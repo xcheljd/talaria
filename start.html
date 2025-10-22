@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup - Communication Template Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .start-container {
+            max-width: 600px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
+
+        .start-card {
+            background: #ffffff;
+            border: 1px solid #e8e8e8;
+            padding: 3rem;
+        }
+
+        .start-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .start-header h1 {
+            font-size: 1.5rem;
+            font-weight: 400;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.01em;
+            color: #1a1a1a;
+        }
+
+        .start-header p {
+            font-size: 0.9375rem;
+            color: #666666;
+            line-height: 1.6;
+        }
+
+        .start-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .start-info {
+            background: #f8f8f8;
+            border-left: 2px solid #2b2b2b;
+            padding: 1rem 1.25rem;
+            font-size: 0.875rem;
+            color: #4a4a4a;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .skip-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        .skip-link a {
+            color: #666666;
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+
+        .skip-link a:hover {
+            color: #2b2b2b;
+        }
+
+        @media (max-width: 768px) {
+            .start-container {
+                margin: 2rem auto;
+                padding: 0 1rem;
+            }
+
+            .start-card {
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="start-container">
+        <div class="start-card">
+            <div class="start-header">
+                <h1>Welcome to Communication Template Generator</h1>
+                <p>Set up your profile to auto-fill common fields across all templates</p>
+            </div>
+
+            <div class="start-info">
+                This information will be saved locally on your device and used to automatically fill in your details when creating templates. You can update this information anytime.
+            </div>
+
+            <form class="start-form" id="setupForm">
+                <div class="form-group">
+                    <label class="form-label">Your Name *</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="employeeName"
+                            placeholder="e.g., John Smith"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Employee ID</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="employeeId"
+                            placeholder="e.g., E789"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Store Phone</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="storePhone"
+                            placeholder="702-357-8990"
+                            value="702-357-8990"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Store Name</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="storeName"
+                            placeholder="Citizen Company Store"
+                            value="Citizen Company Store"
+                        >
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn">Save & Continue</button>
+                </div>
+            </form>
+
+            <div class="skip-link">
+                <a href="index.html">Skip for now</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+        const form = document.getElementById('setupForm');
+        const toast = document.getElementById('toast');
+
+        // Load existing data if available
+        window.addEventListener('DOMContentLoaded', () => {
+            const userData = localStorage.getItem('userProfile');
+            if (userData) {
+                try {
+                    const data = JSON.parse(userData);
+                    if (data.employeeName) document.getElementById('employeeName').value = data.employeeName;
+                    if (data.employeeId) document.getElementById('employeeId').value = data.employeeId;
+                    if (data.storePhone) document.getElementById('storePhone').value = data.storePhone;
+                    if (data.storeName) document.getElementById('storeName').value = data.storeName;
+                } catch (e) {
+                    console.error('Error loading user data:', e);
+                }
+            }
+        });
+
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const userData = {
+                employeeName: document.getElementById('employeeName').value.trim(),
+                employeeId: document.getElementById('employeeId').value.trim(),
+                storePhone: document.getElementById('storePhone').value.trim(),
+                storeName: document.getElementById('storeName').value.trim()
+            };
+
+            // Validate required fields
+            if (!userData.employeeName) {
+                showToast('Please enter your name');
+                return;
+            }
+
+            // Save to localStorage
+            try {
+                localStorage.setItem('userProfile', JSON.stringify(userData));
+                showToast('Profile saved successfully!');
+
+                // Redirect to main app after a short delay
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+            } catch (e) {
+                console.error('Error saving user data:', e);
+                showToast('Error saving profile. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>
