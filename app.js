@@ -601,8 +601,6 @@ function selectTemplate(key) {
             if (userProfile) {
                 if ((field === 'employeeName' || field === 'yourName') && userProfile.employeeName) {
                     autoFillValue = escapeAttr(userProfile.employeeName);
-                } else if (field === 'employeeId' && userProfile.employeeId) {
-                    autoFillValue = escapeAttr(userProfile.employeeId);
                 }
             }
 
