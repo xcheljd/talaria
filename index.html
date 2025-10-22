@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Communication Template Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Communication Template Generator</h1>
+        <div class="navigation">
+            <div class="search-container">
+                <input type="text" class="search-box" placeholder="Search templates..." id="searchBox" aria-label="Search templates">
+                <button class="clear-search" id="clearSearch" aria-label="Clear search">×</button>
+                <div class="search-results" id="searchResults" role="listbox" aria-live="polite"></div>
+                <div class="result-counter" id="resultCounter" aria-live="polite"></div>
+            </div>
+
+            <div class="category-tabs">
+                <button class="tab active" data-category="all">All</button>
+                <button class="tab" data-category="Customer Email">Email</button>
+                <button class="tab" data-category="Phone Orders">Phone</button>
+                <button class="tab" data-category="Text">Text</button>
+            </div>
+
+            <select class="template-select" id="templateSelect" aria-label="Select template">
+                <option value="">Select a template...</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2 class="section-title" id="formSectionTitle">Template Fields</h2>
+            <div id="formFields" class="form-grid">
+                <div class="placeholder-message" id="formPlaceholder">
+                    <p>Select a template to begin</p>
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn" id="generateBtn">Generate</button>
+                <button class="btn" id="clearBtn" disabled>Clear</button>
+            </div>
+        </div>
+
+        <div class="card output-card">
+            <h2 class="section-title">Generated Message</h2>
+            <textarea class="output-textarea" id="outputArea" placeholder="Your generated message will appear here..." aria-label="Generated message output"></textarea>
+            <div class="button-group">
+                <button class="btn" id="copyBtn">Copy Message</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
