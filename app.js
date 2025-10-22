@@ -601,6 +601,10 @@ function selectTemplate(key) {
             if (userProfile) {
                 if ((field === 'employeeName' || field === 'yourName') && userProfile.employeeName) {
                     autoFillValue = escapeAttr(userProfile.employeeName);
+                } else if (field === 'storePhone' && userProfile.storePhone) {
+                    autoFillValue = escapeAttr(userProfile.storePhone);
+                } else if (field === 'storeName' && userProfile.storeName) {
+                    autoFillValue = escapeAttr(userProfile.storeName);
                 }
             }
 
