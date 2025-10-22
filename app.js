@@ -424,6 +424,21 @@ let currentCategory = 'all';
 let currentTemplate = null;
 let searchActive = false;
 
+// User profile data (loaded from localStorage)
+let userProfile = null;
+
+// Load user profile from localStorage
+function loadUserProfile() {
+    try {
+        const data = localStorage.getItem('userProfile');
+        if (data) {
+            userProfile = JSON.parse(data);
+        }
+    } catch (e) {
+        console.error('Error loading user profile:', e);
+    }
+}
+
 // Cached DOM elements
 const elements = {
     searchBox: null,
@@ -581,13 +596,23 @@ function selectTemplate(key) {
                 </datalist>
             ` : '';
 
+            // Auto-fill from user profile
+            let autoFillValue = '';
+            if (userProfile) {
+                if ((field === 'employeeName' || field === 'yourName') && userProfile.employeeName) {
+                    autoFillValue = escapeAttr(userProfile.employeeName);
+                } else if (field === 'employeeId' && userProfile.employeeId) {
+                    autoFillValue = escapeAttr(userProfile.employeeId);
+                }
+            }
+
             return `
                 <div class="form-group${fullWidthClass}">
                     <label class="form-label">${sanitizeHTML(capitalizedLabel)}${requiredMark}</label>
                     <div class="input-wrapper">
                         ${isTextarea
-                            ? `<textarea class="form-textarea" data-field="${safeField}" ${config.required ? 'required' : ''} placeholder="${safeExample}"></textarea>`
-                            : `<input type="text" class="form-input" data-field="${safeField}" ${config.required ? 'required' : ''} placeholder="${safeExample}" list="${datalistId}">${datalistHTML}`
+                            ? `<textarea class="form-textarea" data-field="${safeField}" ${config.required ? 'required' : ''} placeholder="${safeExample}">${autoFillValue}</textarea>`
+                            : `<input type="text" class="form-input" data-field="${safeField}" ${config.required ? 'required' : ''} placeholder="${safeExample}" value="${autoFillValue}" list="${datalistId}">${datalistHTML}`
                         }
                         <button class="clear-input" data-clear="${safeField}" title="Clear">×</button>
                     </div>
@@ -867,6 +892,7 @@ function copyToClipboard() {
 function init() {
     try {
         cacheElements();
+        loadUserProfile();
         populateDropdown();
 
         // Event listeners
