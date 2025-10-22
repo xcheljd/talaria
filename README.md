@@ -11,11 +11,18 @@ A professional communication template generator for Citizen Company Store operat
 
 ## Usage
 
-1. Open `Communication_Template_Generator.html` in any modern web browser
+1. Open `index.html` in any modern web browser
 2. Select a template from the dropdown or use the search function
 3. Fill in the required fields
 4. Click "Generate Message" to create your communication
 5. Click "Copy to Clipboard" to copy the message
+
+## File Structure
+
+- `index.html` - Main HTML file
+- `styles.css` - Stylesheet with all CSS
+- `app.js` - JavaScript application logic
+- `Communication_Template_Generator.html` - Legacy single-file version (deprecated)
 
 ## Template Categories
 

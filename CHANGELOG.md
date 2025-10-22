@@ -2,6 +2,31 @@
 
 All notable changes to the Communication Template Generator will be documented in this file.
 
+## [1.1.0] - 2025-10-22
+
+### Changed
+- **Code Architecture**: Split monolithic HTML file into separate HTML, CSS, and JavaScript files
+- **Performance**: Implemented DOM element caching to reduce repeated querySelector calls
+- **Error Handling**: Added try-catch blocks throughout application for better error handling
+- **Security**: Added HTML sanitization functions to prevent XSS vulnerabilities
+- **Validation**: Enhanced tracking number validation to support UPS, FedEx, and USPS formats
+
+### Removed
+- Dead code: `saveFieldHistory()`, `fieldHistory` object, `validateAllFields()` function
+- Unused `autoFillData` object with hardcoded values
+
+### Improved
+- Better error messages with user-friendly toast notifications
+- Cleaner separation of concerns (HTML structure, CSS styling, JS logic)
+- More maintainable and testable codebase
+- Enhanced accessibility with ARIA labels
+- Constants extracted for magic numbers (TOAST_DURATION_MS, STORE_PHONE, STORE_NAME)
+
+### Fixed
+- Tracking number validation now accepts FedEx and USPS formats (not just UPS)
+- Improved error handling prevents application crashes
+- XSS vulnerability patched with proper sanitization
+
 ## [1.0.0] - 2025-10-21
 
 ### Added
