@@ -1,7 +1,14 @@
 // Constants
 const TOAST_DURATION_MS = 2500;
-const STORE_PHONE = '702-357-8990';
-const STORE_NAME = 'Citizen Company Store';
+
+// Helper functions to get store info from user profile
+function getStorePhone() {
+    return userProfile && userProfile.storePhone ? userProfile.storePhone : '702-357-8990';
+}
+
+function getStoreName() {
+    return userProfile && userProfile.storeName ? userProfile.storeName : 'Citizen Company Store';
+}
 
 // Template metadata with help text
 const templateHelp = {
@@ -96,11 +103,11 @@ Thank you for visiting our Citizen Company Store outlet location! It was a pleas
 
 I've added you to our VIP email list for weekly promotional updates featuring exclusive outlet pricing on our timepieces.
 
-Please don't hesitate to reach out by replying to this email or call the store at ${STORE_PHONE}. I would be happy to check availability on any models you're considering.
+Please don't hesitate to reach out by replying to this email or call the store at ${getStorePhone()}. I would be happy to check availability on any models you're considering.
 
 Best regards,
 ${data.employeeName}
-${STORE_NAME}`
+${getStoreName()}`
     },
     'back-in-stock': {
         name: 'Back in Stock',
@@ -115,7 +122,7 @@ Great news! The ${data.brand} ${data.modelName} (${data.modelNumber}) you inquir
 Current outlet price: ${data.price} (${data.discount}% off retail)
 Quantity available: ${data.quantity}
 
-This model tends to sell quickly at this price point. If you'd like me to hold one for you, please let me know by ${data.holdDeadline}, or feel free to call the store at ${STORE_PHONE}.
+This model tends to sell quickly at this price point. If you'd like me to hold one for you, please let me know by ${data.holdDeadline}, or feel free to call the store at ${getStorePhone()}.
 
 We can also arrange shipping for $20 flat-rate ground delivery within the US if you're unable to visit the store.
 
@@ -123,7 +130,7 @@ Looking forward to hearing from you!
 
 Best regards,
 ${data.employeeName}
-${STORE_NAME}`
+${getStoreName()}`
     },
     'thank-you-warranty': {
         name: 'Thank You & Warranty',
@@ -137,13 +144,13 @@ Thank you for your purchase of the ${data.brand} ${data.modelName} (${data.model
 
 I can help you register your watch online to receive an additional 1-year warranty at no cost. This extends your coverage and ensures you get the most out of your timepiece.
 
-If you'd like assistance with registration or have any questions about your new watch, please reply to this email or call the store at ${STORE_PHONE}.
+If you'd like assistance with registration or have any questions about your new watch, please reply to this email or call the store at ${getStorePhone()}.
 
-Thank you again for choosing ${STORE_NAME}!
+Thank you again for choosing ${getStoreName()}!
 
 Best regards,
 ${data.employeeName}
-${STORE_NAME}`
+${getStoreName()}`
     },
     'weekly-sale': {
         name: 'Weekly Sale',
@@ -167,7 +174,7 @@ This promotion runs through ${data.endDate}. Would you like me to check if we ha
 
 Best regards,
 ${data.employeeName}
-${STORE_NAME}`;
+${getStoreName()}`;
         }
     },
     'new-model-arrival': {
@@ -191,13 +198,13 @@ Current price: ${data.price}
 
 I'd be happy to set up an appointment to show you all the features of this watch and let you try it on. This model tends to generate a lot of interest, so I wanted to reach out to you first.
 
-Would you like to schedule a time to see it in person? Please reply to this email or call the store at ${STORE_PHONE}.
+Would you like to schedule a time to see it in person? Please reply to this email or call the store at ${getStorePhone()}.
 
 Looking forward to hearing from you!
 
 Best regards,
 ${data.employeeName}
-${STORE_NAME}`;
+${getStoreName()}`;
         }
     },
     'limited-edition': {
@@ -217,11 +224,11 @@ Availability: Only ${data.quantityAvailable} available
 
 This is truly a special piece that won't last long. I'd love to show it to you in person and discuss how it could complement your collection.
 
-Can you stop by this week, or would you like me to hold one for you? Please reply to this email or call the store at ${STORE_PHONE}.
+Can you stop by this week, or would you like me to hold one for you? Please reply to this email or call the store at ${getStorePhone()}.
 
 Best regards,
 ${data.employeeName}
-${STORE_NAME}
+${getStoreName()}
 
 P.S. - Given the limited availability, I'm only reaching out to our most valued collectors. Let me know if you're interested!`
     },
@@ -249,7 +256,7 @@ Would you have time this week or next to stop by? I'd love to show you how we've
 
 Best regards,
 ${data.employeeName}
-${STORE_NAME}
+${getStoreName()}
 
 P.S. - We now carry everything from current season pieces to discontinued treasures, giving you more options than ever before.`
     },
@@ -280,13 +287,13 @@ ${data.customerAddress}
 
 Your order will ship within 1-2 business days via ${data.carrier}. You'll receive tracking information at this email address once shipped.${trackingInfo}
 
-If you have any questions, please don't hesitate to contact us at ${STORE_PHONE}.
+If you have any questions, please don't hesitate to contact us at ${getStorePhone()}.
 
-Thank you for shopping with ${STORE_NAME}!
+Thank you for shopping with ${getStoreName()}!
 
 Best regards,
 ${data.employeeName}
-${STORE_NAME}`;
+${getStoreName()}`;
         }
     },
     'phone-shipped': {
@@ -298,7 +305,7 @@ ${STORE_NAME}`;
 
 Hi ${data.customerName},
 
-Thank you for your recent purchase from ${STORE_NAME}! We're pleased to confirm that your order has been shipped and is on its way to you.
+Thank you for your recent purchase from ${getStoreName()}! We're pleased to confirm that your order has been shipped and is on its way to you.
 
 Tracking Information:
 UPS Tracking Number: ${data.trackingNumber}
@@ -317,7 +324,7 @@ We hope you enjoy your new ${data.brand} timepiece!
 
 Best regards,
 ${data.employeeName}
-${STORE_NAME}`;
+${getStoreName()}`;
         }
     },
     'phone-under-500': {
@@ -403,7 +410,7 @@ Thank you,`
         name: 'Thank You',
         category: 'Text',
         fields: ['customerName', 'modelName', 'warrantyLength', 'brand'],
-        generate: (data) => `${data.customerName}, thank you for your purchase today! Your ${data.modelName} comes with a ${data.warrantyLength} warranty. Reach out anytime at ${STORE_PHONE} for any questions. Enjoy your new ${data.brand}!`
+        generate: (data) => `${data.customerName}, thank you for your purchase today! Your ${data.modelName} comes with a ${data.warrantyLength} warranty. Reach out anytime at ${getStorePhone()} for any questions. Enjoy your new ${data.brand}!`
     },
     'text-interest-followup': {
         name: 'Sale Alert',
@@ -414,7 +421,7 @@ Thank you,`
             const discount = parseFloat(data.discount) || 0;
             const salePrice = (msrp * (1 - discount / 100)).toFixed(2);
 
-            return `Hi ${data.customerName}! This is ${data.employeeName} from Citizen Watch Store at the South Premium Outlets. The ${data.modelName} you were interested in is on ${data.discount}% OFF promotion (MSRP ${data.msrp} now ${salePrice} plus tax) until ${data.endDate}. Please let me know if you'd like me to hold one for you. Thank you!`;
+            return `Hi ${data.customerName}! This is ${data.employeeName} from Citizen Company Store at ${getStoreName()}. The ${data.modelName} you were interested in is on ${data.discount}% OFF promotion (MSRP ${data.msrp} now ${salePrice} plus tax) until ${data.endDate}. Please let me know if you'd like me to hold one for you. Thank you!`;
         }
     }
 };
