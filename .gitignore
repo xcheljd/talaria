@@ -1,0 +1,31 @@
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Editor and IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.*.kate-swp
+.*.sw?
+
+# Temporary Files
+*.tmp
+*.bak
+*.log
+
+# Node modules (if needed in future)
+node_modules/
+
+# Environment files (if needed in future)
+.env
+.env.local
