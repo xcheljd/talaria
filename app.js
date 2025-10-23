@@ -10,6 +10,14 @@ function getStoreName() {
     return userProfile && userProfile.storeName ? userProfile.storeName : 'Citizen Company Store';
 }
 
+function getStoreLocation() {
+    return userProfile && userProfile.storeLocation ? userProfile.storeLocation : 'the South Premium Outlets';
+}
+
+function getFullStoreLocation() {
+    return `Citizen Company Store at ${getStoreLocation()}`;
+}
+
 // Template metadata with help text
 const templateHelp = {
     'new-customer-welcome': 'Use after a customer visits the store for the first time. Adds them to VIP list.',
@@ -421,7 +429,7 @@ Thank you,`
             const discount = parseFloat(data.discount) || 0;
             const salePrice = (msrp * (1 - discount / 100)).toFixed(2);
 
-            return `Hi ${data.customerName}! This is ${data.employeeName} from Citizen Company Store at ${getStoreName()}. The ${data.modelName} you were interested in is on ${data.discount}% OFF promotion (MSRP ${data.msrp} now ${salePrice} plus tax) until ${data.endDate}. Please let me know if you'd like me to hold one for you. Thank you!`;
+            return `Hi ${data.customerName}! This is ${data.employeeName} from ${getFullStoreLocation()}. The ${data.modelName} you were interested in is on ${data.discount}% OFF promotion (MSRP ${data.msrp} now ${salePrice} plus tax) until ${data.endDate}. Please let me know if you'd like me to hold one for you. Thank you!`;
         }
     }
 };

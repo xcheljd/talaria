@@ -203,23 +203,23 @@
 
         // Store data mapping
         const storeData = {
-            '125003': { name: 'Orlando International', phone: '407-459-8400' },
-            '125004': { name: 'Camarillo', phone: '805-419-2340' },
-            '125005': { name: 'Vegas North', phone: '702-357-8890' },
-            '125006': { name: 'Vegas South', phone: '702-357-8990' },
-            '125007': { name: 'San Marcos', phone: '512-381-5400' },
-            '125008': { name: 'Seattle', phone: '360-208-7400' },
-            '125009': { name: 'Orlando Vineland', phone: '321-424-6400' },
-            '125010': { name: 'Woodbury Common', phone: '845-256-6440' },
-            '125011': { name: 'San Francisco', phone: '925-255-0900' },
-            '125012': { name: 'Desert Hills', phone: '951-922-0555' },
-            '125013': { name: 'Citadel', phone: '323-638-1002' },
-            '125014': { name: 'Dolphin Mall', phone: '305-363-4663' },
-            '125016': { name: 'Sawgrass Mills', phone: '954-708-1400' },
-            '125017': { name: 'Great Mall', phone: '408-834-7800' },
-            '125018': { name: 'Ontario Mills', phone: '909-657-1060' },
-            '125020': { name: 'Chicago Fashion Outlets', phone: '847-200-4909' },
-            '355015': { name: 'Toronto', phone: '647-847-6880' }
+            '125003': { name: 'Orlando International', phone: '407-459-8400', location: 'the Orlando International Premium Outlets' },
+            '125004': { name: 'Camarillo', phone: '805-419-2340', location: 'the Camarillo Premium Outlets' },
+            '125005': { name: 'Vegas North', phone: '702-357-8890', location: 'the Las Vegas North Premium Outlet' },
+            '125006': { name: 'Vegas South', phone: '702-357-8990', location: 'the Las Vegas South Premium Outlet' },
+            '125007': { name: 'San Marcos', phone: '512-381-5400', location: 'the San Marcos Premium Outlets' },
+            '125008': { name: 'Seattle', phone: '360-208-7400', location: 'the Seattle Premium Outlet' },
+            '125009': { name: 'Orlando Vineland', phone: '321-424-6400', location: 'the Orlando Vineland Premium Outlets' },
+            '125010': { name: 'Woodbury Common', phone: '845-256-6440', location: 'the Woodbury Common Premium Outlets' },
+            '125011': { name: 'San Francisco', phone: '925-255-0900', location: 'the San Francisco Premium Outlets' },
+            '125012': { name: 'Desert Hills', phone: '951-922-0555', location: 'the Desert Hills Premium Outlets' },
+            '125013': { name: 'Citadel', phone: '323-638-1002', location: 'the Citadel Outlets' },
+            '125014': { name: 'Dolphin Mall', phone: '305-363-4663', location: 'the Dolphin Mall Shopping Center' },
+            '125016': { name: 'Sawgrass Mills', phone: '954-708-1400', location: 'the Sawgrass Mills Shopping Center' },
+            '125017': { name: 'Great Mall', phone: '408-834-7800', location: 'Great Mall' },
+            '125018': { name: 'Ontario Mills', phone: '909-657-1060', location: 'the Ontario Mills Shopping Center' },
+            '125020': { name: 'Chicago Fashion Outlets', phone: '847-200-4909', location: 'the Fashion Outlets of Chicago' },
+            '355015': { name: 'Toronto', phone: '647-847-6880', location: 'the Toronto Premium Outlets' }
         };
 
         // Handle store selection change
@@ -268,7 +268,8 @@
                 employeeName: document.getElementById('employeeName').value.trim(),
                 storeId: storeId,
                 storePhone: document.getElementById('storePhone').value.trim(),
-                storeName: document.getElementById('storeName').value.trim()
+                storeName: document.getElementById('storeName').value.trim(),
+                storeLocation: storeData[storeId] ? storeData[storeId].location : ''
             };
 
             // Validate required fields
