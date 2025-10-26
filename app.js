@@ -64,6 +64,7 @@ const fieldConfig = {
     carrier: { example: 'UPS', required: true, suggestions: ['UPS', 'FedEx', 'USPS'] },
     // Promotion Email fields
     promoDateRange: { example: 'Nov 28 - Dec 1', required: true },
+    promoYear: { example: '2024-2025', required: false },
     promoTitle: { example: 'Leave blank for auto-generation', required: false },
     promoBrand: { example: 'Citizen', required: true, suggestions: ['Citizen', 'Bulova', 'Alpina', 'Frederique Constant'] },
     promoDiscount: { example: '60', required: true, validation: 'number' },
@@ -623,6 +624,7 @@ function updateLivePreview() {
     if (currentTemplate !== 'promotion-email') return;
 
     const dateRangeInput = document.getElementById('promoDateRange');
+    const yearInput = document.getElementById('promoYear');
     const titleInput = document.getElementById('promoTitle');
 
     // Only update if we have at least a date range
@@ -632,6 +634,7 @@ function updateLivePreview() {
 
     const data = {
         promoDateRange: dateRangeInput.value,
+        promoYear: yearInput ? yearInput.value : '',
         promoTitle: titleInput ? titleInput.value : ''
     };
 
@@ -812,6 +815,15 @@ function renderPromotionEmailForm() {
         </div>
 
         <div class="form-group">
+            <label class="form-label">Year (optional)</label>
+            <div class="input-wrapper">
+                <input type="text" class="form-input" id="promoYear" placeholder="Auto-uses current year">
+                <button class="clear-input" data-clear="promoYear" title="Clear">×</button>
+            </div>
+            <div class="field-help">Override for cross-year sales (e.g., Dec 30 - Jan 3)</div>
+        </div>
+
+        <div class="form-group">
             <label class="form-label">Title (optional)</label>
             <div class="input-wrapper">
                 <input type="text" class="form-input" id="promoTitle" placeholder="Leave blank for auto-generation">
@@ -831,6 +843,7 @@ function renderPromotionEmailForm() {
 
     // Add event listeners
     const dateRangeInput = document.getElementById('promoDateRange');
+    const yearInput = document.getElementById('promoYear');
     const titleInput = document.getElementById('promoTitle');
     const addTierBtn = document.getElementById('addTierBtn');
 
@@ -851,6 +864,28 @@ function renderPromotionEmailForm() {
                 dateRangeInput.value = '';
                 clearDateBtn.classList.remove('visible');
                 dateRangeInput.focus();
+                updateLivePreview();
+            });
+        }
+    }
+
+    // Year input listener
+    if (yearInput) {
+        yearInput.addEventListener('input', () => {
+            const clearBtn = document.querySelector('[data-clear="promoYear"]');
+            if (clearBtn) {
+                clearBtn.classList.toggle('visible', yearInput.value.trim().length > 0);
+            }
+            debouncedLivePreview(); // Update preview as user types
+        });
+
+        // Clear button
+        const clearYearBtn = document.querySelector('[data-clear="promoYear"]');
+        if (clearYearBtn) {
+            clearYearBtn.addEventListener('click', () => {
+                yearInput.value = '';
+                clearYearBtn.classList.remove('visible');
+                yearInput.focus();
                 updateLivePreview();
             });
         }
@@ -891,7 +926,9 @@ function renderPromotionEmailForm() {
 function generatePromotionEmailHTML(data) {
     const dateRange = data.promoDateRange || '';
     const title = data.promoTitle && data.promoTitle.trim() ? data.promoTitle : generatePromoTitle(dateRange);
-    const year = new Date().getFullYear();
+
+    // Use override year if provided, otherwise use current year
+    const year = data.promoYear && data.promoYear.trim() ? data.promoYear.trim() : new Date().getFullYear();
 
     // Get store info from profile
     const storePhone = getStorePhone();
