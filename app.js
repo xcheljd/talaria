@@ -34,7 +34,8 @@ const templateHelp = {
     'inter-store-notification': 'Notify receiving store that order is prepared and ready for pickup.',
     'text-availability': 'Quick response to customer inquiry about specific model availability.',
     'text-thank-you': 'Post-purchase thank you via text. Keep it brief and friendly.',
-    'text-interest-followup': 'Follow up on specific watch customer showed interest in. Use after store visit.'
+    'text-interest-followup': 'Follow up on specific watch customer showed interest in. Use after store visit.',
+    'promotion-email': 'Generate HTML email for weekly promotions with discount tiers. Auto-generates title based on dates.'
 };
 
 // Field examples and validation rules
@@ -60,7 +61,14 @@ const fieldConfig = {
     employeeId: { example: 'E789', required: true },
     warrantyLength: { example: '5-year', required: true },
     warrantyYears: { example: '5', required: true, validation: 'number' },
-    carrier: { example: 'UPS', required: true, suggestions: ['UPS', 'FedEx', 'USPS'] }
+    carrier: { example: 'UPS', required: true, suggestions: ['UPS', 'FedEx', 'USPS'] },
+    // Promotion Email fields
+    promoDateRange: { example: 'Nov 28 - Dec 1', required: true },
+    promoTitle: { example: 'Leave blank for auto-generation', required: false },
+    promoBrand: { example: 'Citizen', required: true, suggestions: ['Citizen', 'Bulova', 'Alpina', 'Frederique Constant'] },
+    promoDiscount: { example: '60', required: true, validation: 'number' },
+    promoCollections: { example: 'Corso, Avion, Marine Star', required: false },
+    promoCallout: { example: 'Optional special note', required: false }
 };
 
 // Utility function to sanitize HTML and prevent XSS
@@ -431,6 +439,16 @@ Thank you,`
 
             return `Hi ${data.customerName}! This is ${data.employeeName} from ${getFullStoreLocation()}. The ${data.modelName} you were interested in is on ${data.discount}% OFF promotion (MSRP ${data.msrp} now ${salePrice} plus tax) until ${data.endDate}. Please let me know if you'd like me to hold one for you. Thank you!`;
         }
+    },
+    'promotion-email': {
+        name: 'Promotion Email (HTML)',
+        category: 'Customer Email',
+        fields: ['promoDateRange', 'promoTitle'],
+        customTemplate: true, // Special flag for custom rendering
+        generate: (data) => {
+            // This will be called by custom generation logic
+            return generatePromotionEmailHTML(data);
+        }
     }
 };
 
@@ -441,6 +459,9 @@ let searchActive = false;
 
 // User profile data (loaded from localStorage)
 let userProfile = null;
+
+// Promotion email state
+let promotionTiers = [];
 
 // Load user profile from localStorage
 function loadUserProfile() {
@@ -484,6 +505,356 @@ function cacheElements() {
     elements.clearBtn = document.getElementById('clearBtn');
     elements.copyBtn = document.getElementById('copyBtn');
     elements.toast = document.getElementById('toast');
+}
+
+// ===== PROMOTION EMAIL HELPER FUNCTIONS =====
+
+// Auto-generate title based on date range
+function generatePromoTitle(dateRange) {
+    if (!dateRange) return 'WEEKLY SALE';
+
+    const today = new Date();
+    const currentYear = today.getFullYear();
+
+    // Parse date range
+    const dateStr = dateRange.toLowerCase();
+
+    // Black Friday detection (typically last Friday of November)
+    if (dateStr.includes('nov') && (dateStr.includes('24') || dateStr.includes('25') || dateStr.includes('26') || dateStr.includes('27') || dateStr.includes('28') || dateStr.includes('29'))) {
+        return 'BLACK FRIDAY OUTLET EVENT';
+    }
+
+    // Cyber Monday (Monday after Black Friday)
+    if (dateStr.includes('nov') && dateStr.includes('30')) {
+        return 'CYBER MONDAY SALE';
+    }
+    if (dateStr.includes('dec') && dateStr.includes('1') && !dateStr.includes('10')) {
+        return 'CYBER MONDAY SALE';
+    }
+
+    // Holiday season (December)
+    if (dateStr.includes('dec')) {
+        return 'HOLIDAY SALE EVENT';
+    }
+
+    // Summer clearance (June-August)
+    if (dateStr.includes('jun') || dateStr.includes('jul') || dateStr.includes('aug')) {
+        return 'SUMMER CLEARANCE';
+    }
+
+    // Back to school (late August - early September)
+    if ((dateStr.includes('aug') && (dateStr.includes('20') || dateStr.includes('2') || dateStr.includes('3'))) ||
+        (dateStr.includes('sep') && (dateStr.includes('1') || dateStr.includes('2') || dateStr.includes('3') || dateStr.includes('4') || dateStr.includes('5') || dateStr.includes('6') || dateStr.includes('7') || dateStr.includes('8') || dateStr.includes('9')))) {
+        return 'BACK TO SCHOOL SALE';
+    }
+
+    // Default
+    return 'WEEKLY SALE';
+}
+
+// Add a new promotion tier
+function addPromotionTier() {
+    const tierId = Date.now();
+    promotionTiers.push({
+        id: tierId,
+        brand: '',
+        discount: '',
+        collections: '',
+        callout: ''
+    });
+    renderPromotionTiers();
+}
+
+// Remove a promotion tier
+function removePromotionTier(tierId) {
+    promotionTiers = promotionTiers.filter(tier => tier.id !== tierId);
+    renderPromotionTiers();
+}
+
+// Render all promotion tiers
+function renderPromotionTiers() {
+    const container = document.getElementById('promotionTiersContainer');
+    if (!container) return;
+
+    container.innerHTML = promotionTiers.map((tier, index) => {
+        const safeId = escapeAttr(String(tier.id));
+        return `
+            <div class="promotion-tier" data-tier-id="${safeId}">
+                <div class="tier-header">
+                    <span class="tier-number">Tier ${index + 1}</span>
+                    <button type="button" class="tier-remove-btn" onclick="removePromotionTier(${tier.id})" title="Remove tier">×</button>
+                </div>
+
+                <div class="tier-fields">
+                    <div class="form-group">
+                        <label class="form-label">Brand *</label>
+                        <select class="form-input tier-brand" data-tier-id="${safeId}">
+                            <option value="">Select brand...</option>
+                            <option value="Citizen" ${tier.brand === 'Citizen' ? 'selected' : ''}>Citizen</option>
+                            <option value="Bulova" ${tier.brand === 'Bulova' ? 'selected' : ''}>Bulova</option>
+                            <option value="Alpina" ${tier.brand === 'Alpina' ? 'selected' : ''}>Alpina</option>
+                            <option value="Frederique Constant" ${tier.brand === 'Frederique Constant' ? 'selected' : ''}>Frederique Constant</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Discount % *</label>
+                        <input type="text" class="form-input tier-discount" data-tier-id="${safeId}" value="${escapeAttr(tier.discount)}" placeholder="60">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label class="form-label">Collections (comma-separated)</label>
+                        <input type="text" class="form-input tier-collections" data-tier-id="${safeId}" value="${escapeAttr(tier.collections)}" placeholder="Corso, Avion, Marine Star">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label class="form-label">Special Callout (optional)</label>
+                        <input type="text" class="form-input tier-callout" data-tier-id="${safeId}" value="${escapeAttr(tier.callout)}" placeholder="Final sale items excluded">
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Attach event listeners to update tier data
+    container.querySelectorAll('.tier-brand, .tier-discount, .tier-collections, .tier-callout').forEach(input => {
+        input.addEventListener('input', updateTierData);
+    });
+}
+
+// Update tier data from inputs
+function updateTierData(e) {
+    const tierId = parseInt(e.target.dataset.tierId);
+    const tier = promotionTiers.find(t => t.id === tierId);
+    if (!tier) return;
+
+    if (e.target.classList.contains('tier-brand')) {
+        tier.brand = e.target.value;
+    } else if (e.target.classList.contains('tier-discount')) {
+        tier.discount = e.target.value;
+    } else if (e.target.classList.contains('tier-collections')) {
+        tier.collections = e.target.value;
+    } else if (e.target.classList.contains('tier-callout')) {
+        tier.callout = e.target.value;
+    }
+}
+
+// Render the promotion email form
+function renderPromotionEmailForm() {
+    // Reset tiers
+    promotionTiers = [];
+
+    elements.formFields.innerHTML = `
+        <div class="form-group">
+            <label class="form-label">Date Range *</label>
+            <div class="input-wrapper">
+                <input type="text" class="form-input" id="promoDateRange" placeholder="Nov 28 - Dec 1" required>
+                <button class="clear-input" data-clear="promoDateRange" title="Clear">×</button>
+            </div>
+            <div class="field-help">Used for auto-title generation and display</div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Title (optional)</label>
+            <div class="input-wrapper">
+                <input type="text" class="form-input" id="promoTitle" placeholder="Leave blank for auto-generation">
+                <button class="clear-input" data-clear="promoTitle" title="Clear">×</button>
+            </div>
+            <div class="field-help">Auto-generates based on date (Black Friday, Holiday Sale, etc.)</div>
+        </div>
+
+        <div class="form-group full-width" style="margin-top: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <label class="form-label" style="margin-bottom: 0;">Discount Tiers</label>
+                <button type="button" class="btn" id="addTierBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Tier</button>
+            </div>
+            <div id="promotionTiersContainer"></div>
+        </div>
+    `;
+
+    // Add event listeners
+    const dateRangeInput = document.getElementById('promoDateRange');
+    const titleInput = document.getElementById('promoTitle');
+    const addTierBtn = document.getElementById('addTierBtn');
+
+    // Date range input listener
+    if (dateRangeInput) {
+        dateRangeInput.addEventListener('input', () => {
+            const clearBtn = document.querySelector('[data-clear="promoDateRange"]');
+            if (clearBtn) {
+                clearBtn.classList.toggle('visible', dateRangeInput.value.trim().length > 0);
+            }
+        });
+
+        // Clear button
+        const clearDateBtn = document.querySelector('[data-clear="promoDateRange"]');
+        if (clearDateBtn) {
+            clearDateBtn.addEventListener('click', () => {
+                dateRangeInput.value = '';
+                clearDateBtn.classList.remove('visible');
+                dateRangeInput.focus();
+            });
+        }
+    }
+
+    // Title input listener
+    if (titleInput) {
+        titleInput.addEventListener('input', () => {
+            const clearBtn = document.querySelector('[data-clear="promoTitle"]');
+            if (clearBtn) {
+                clearBtn.classList.toggle('visible', titleInput.value.trim().length > 0);
+            }
+        });
+
+        // Clear button
+        const clearTitleBtn = document.querySelector('[data-clear="promoTitle"]');
+        if (clearTitleBtn) {
+            clearTitleBtn.addEventListener('click', () => {
+                titleInput.value = '';
+                clearTitleBtn.classList.remove('visible');
+                titleInput.focus();
+            });
+        }
+    }
+
+    // Add tier button
+    if (addTierBtn) {
+        addTierBtn.addEventListener('click', addPromotionTier);
+    }
+
+    // Add initial tier
+    addPromotionTier();
+}
+
+// Generate promotion email HTML
+function generatePromotionEmailHTML(data) {
+    const dateRange = data.promoDateRange || '';
+    const title = data.promoTitle && data.promoTitle.trim() ? data.promoTitle : generatePromoTitle(dateRange);
+    const year = new Date().getFullYear();
+
+    // Get store info from profile
+    const storePhone = getStorePhone();
+    const storeName = getStoreName();
+
+    // Build brand sections from tiers
+    let brandSections = '';
+    promotionTiers.forEach(tier => {
+        if (!tier.brand || !tier.discount) return; // Skip incomplete tiers
+
+        let collectionsHTML = '';
+        if (tier.collections && tier.collections.trim()) {
+            const collections = tier.collections.split(',').map(c => c.trim()).filter(c => c);
+            collectionsHTML = collections.map(c => `*${c}`).join(' • ');
+        }
+
+        brandSections += `
+                <p style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-bottom: 8px;"><b>${tier.brand} - ${tier.discount}% OFF</b></p>`;
+
+        if (collectionsHTML) {
+            brandSections += `
+                <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-left: 20px; margin-top: 0; margin-bottom: ${tier.callout ? '5px' : '20px'};">
+                    ${collectionsHTML}
+                </p>`;
+        }
+
+        if (tier.callout && tier.callout.trim()) {
+            brandSections += `
+                <p style="font-size: 13px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-left: 20px; margin-top: 0; margin-bottom: 20px; color: #0066cc; font-style: italic;">
+                    ${tier.callout}
+                </p>`;
+        }
+    });
+
+    // Get store-specific details
+    let storeAddress = '7400 Las Vegas Blvd. South, Suite 231<br>Las Vegas, NV 89123';
+    let storeMapCoords = '36.05145495363422,-115.16933573536541';
+    let storeEmail = 'VegasSouth@citizenwatchgroup.com';
+    let storeHours = 'Mon–Sat: 10AM–8PM | Sun: 10AM–7PM';
+    let storeLocation = 'Entrance E, near Polo Ralph Lauren';
+
+    // TODO: These could be pulled from userProfile in the future
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+    <title>Weekly Sale</title>
+</head>
+<body style="font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; background-color: white; margin: 0; padding: 0;">
+
+    <center>
+    <table width="600" style="background-color: white; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif;">
+
+        <!-- HEADER -->
+        <tr>
+            <td style="padding: 20px; text-align: center; border-bottom: 2px solid gray;">
+                <h1 style="font-size: 24px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">${title}</h1>
+                <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 10px 0 0 0;">${dateRange}, ${year} • While Supplies Last</p>
+            </td>
+        </tr>
+
+        <!-- MAIN CONTENT -->
+        <tr>
+            <td style="padding: 25px;">
+
+                <!-- BRAND SECTIONS -->
+${brandSections}
+
+                <!-- HOW TO SHOP BOX -->
+                <div style="background-color: #f5f5f5; padding: 15px; margin-bottom: 20px;">
+                    <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0;"><b>HOW TO SHOP</b></p>
+                    <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">• Visit us in-store for outlet-exclusive deals<br>
+                    • Call ${storePhone} for availability<br>
+                    • $20 flat-rate ground shipping in US<br>
+                    • Email ${storeEmail}</p>
+                </div>
+
+                <!-- IMPORTANT NOTES BOX -->
+                <div style="border: 1px solid #ddd; padding: 15px;">
+                    <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0;"><b>IMPORTANT NOTES</b></p>
+                    <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">
+                    • *Select models only<br>
+                    • See attached PDF for complete model details<br>
+                    • Limited availability - while supplies last<br>
+                    • Email response time up to 48 hours<br>
+                    • Find us at ${storeLocation}</p>
+                </div>
+
+            </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+            <td style="background-color: #2c3e50; padding: 20px; text-align: center;">
+                <h3 style="color: white; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 18px; margin: 0 0 10px 0;">CITIZEN COMPANY STORE</h3>
+                <p style="color: white; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
+                    📍 <a href="https://www.google.com/maps?q=${storeMapCoords}" style="color: white;">
+                    ${storeAddress}</a>
+                </p>
+                <p style="color: white; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
+                    📞 <a href="tel:+1${storePhone.replace(/\D/g, '')}" style="color: white;">${storePhone}</a> |
+                    📧 <a href="mailto:${storeEmail}" style="color: white;">${storeEmail}</a>
+                </p>
+                <p style="color: #ffd700; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 13px; margin: 10px 0 0 0;">
+                    <b>STORE HOURS</b><br>
+                    ${storeHours}
+                </p>
+            </td>
+        </tr>
+
+        <!-- UNSUBSCRIBE -->
+        <tr>
+            <td style="background-color: #f4f4f4; padding: 15px; text-align: center;">
+                <p style="font-size: 12px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">
+                    No longer interested? Simply reply to this email with <b>"UNSUBSCRIBE"</b>
+                </p>
+            </td>
+        </tr>
+
+    </table>
+    </center>
+
+</body>
+</html>`;
 }
 
 function populateDropdown(category = 'all') {
@@ -571,6 +942,14 @@ function selectTemplate(key) {
         const placeholder = document.getElementById('formPlaceholder');
         if (placeholder) {
             placeholder.remove();
+        }
+
+        // Handle custom promotion email template
+        if (template.customTemplate && key === 'promotion-email') {
+            renderPromotionEmailForm();
+            elements.outputArea.value = '';
+            elements.clearBtn.disabled = false;
+            return;
         }
 
         elements.formFields.innerHTML = template.fields.map(field => {
@@ -796,9 +1175,30 @@ function generateMessage() {
     if (!currentTemplate) return;
 
     try {
-        highlightEmptyRequiredFields();
-
         const template = templates[currentTemplate];
+
+        // Handle promotion email specially
+        if (currentTemplate === 'promotion-email') {
+            const dateRangeInput = document.getElementById('promoDateRange');
+            const titleInput = document.getElementById('promoTitle');
+
+            if (!dateRangeInput || !dateRangeInput.value.trim()) {
+                showToast('⚠ Date range is required');
+                return;
+            }
+
+            const data = {
+                promoDateRange: dateRangeInput.value,
+                promoTitle: titleInput ? titleInput.value : ''
+            };
+
+            const message = template.generate(data);
+            elements.outputArea.value = message;
+            return;
+        }
+
+        // Regular template handling
+        highlightEmptyRequiredFields();
         const data = {};
 
         template.fields.forEach(field => {
@@ -841,6 +1241,11 @@ function clearAll() {
     if (!currentTemplate) return;
 
     try {
+        // Clear promotion tiers if it's a promotion email
+        if (currentTemplate === 'promotion-email') {
+            promotionTiers = [];
+        }
+
         const inputs = elements.formFields.querySelectorAll('.form-input, .form-textarea');
         inputs.forEach(input => input.value = '');
         elements.outputArea.value = '';
