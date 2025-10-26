@@ -598,6 +598,42 @@ body {
     gap: 1.5rem;
 }
 
+/* Special Hours Styles */
+.special-hour-row {
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 2px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: box-shadow 0.2s;
+}
+
+.special-hour-row:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.special-hour-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 1rem;
+    align-items: start;
+}
+
+.hour-remove-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #999999;
+    cursor: pointer;
+    padding: 0.5rem;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.hour-remove-btn:hover {
+    color: #c62828;
+}
+
 /* Output Tabs for Promotion Email */
 .output-tabs {
     display: flex;

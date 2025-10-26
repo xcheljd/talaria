@@ -64,6 +64,7 @@ const fieldConfig = {
     carrier: { example: 'UPS', required: true, suggestions: ['UPS', 'FedEx', 'USPS'] },
     // Promotion Email fields
     promoDateRange: { example: 'Nov 28 - Dec 1', required: true },
+    promoYear: { example: '2024-2025', required: false },
     promoTitle: { example: 'Leave blank for auto-generation', required: false },
     promoBrand: { example: 'Citizen', required: true, suggestions: ['Citizen', 'Bulova', 'Alpina', 'Frederique Constant'] },
     promoDiscount: { example: '60', required: true, validation: 'number' },
@@ -462,6 +463,7 @@ let userProfile = null;
 
 // Promotion email state
 let promotionTiers = [];
+let specialHours = [];
 
 // Load user profile from localStorage
 function loadUserProfile() {
@@ -623,6 +625,7 @@ function updateLivePreview() {
     if (currentTemplate !== 'promotion-email') return;
 
     const dateRangeInput = document.getElementById('promoDateRange');
+    const yearInput = document.getElementById('promoYear');
     const titleInput = document.getElementById('promoTitle');
 
     // Only update if we have at least a date range
@@ -632,6 +635,7 @@ function updateLivePreview() {
 
     const data = {
         promoDateRange: dateRangeInput.value,
+        promoYear: yearInput ? yearInput.value : '',
         promoTitle: titleInput ? titleInput.value : ''
     };
 
@@ -718,6 +722,23 @@ function removePromotionTier(tierId) {
     renderPromotionTiers();
 }
 
+// Add a new special hour row
+function addSpecialHour() {
+    const hourId = Date.now();
+    specialHours.push({
+        id: hourId,
+        day: '',
+        hours: ''
+    });
+    renderSpecialHours();
+}
+
+// Remove a special hour row
+function removeSpecialHour(hourId) {
+    specialHours = specialHours.filter(hour => hour.id !== hourId);
+    renderSpecialHours();
+}
+
 // Render all promotion tiers
 function renderPromotionTiers() {
     const container = document.getElementById('promotionTiersContainer');
@@ -796,10 +817,58 @@ function updateTierData(e) {
     }
 }
 
+// Render all special hours
+function renderSpecialHours() {
+    const container = document.getElementById('specialHoursContainer');
+    if (!container) return;
+
+    container.innerHTML = specialHours.map((hour, index) => {
+        const safeId = escapeAttr(String(hour.id));
+        return `
+            <div class="special-hour-row" data-hour-id="${safeId}">
+                <div class="special-hour-fields">
+                    <div class="form-group">
+                        <input type="text" class="form-input hour-day" data-hour-id="${safeId}" value="${escapeAttr(hour.day)}" placeholder="e.g., Friday Nov 29">
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-input hour-hours" data-hour-id="${safeId}" value="${escapeAttr(hour.hours)}" placeholder="e.g., 6AM–10PM or CLOSED">
+                    </div>
+                    <button type="button" class="hour-remove-btn" onclick="removeSpecialHour(${hour.id})" title="Remove">×</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Attach event listeners to update hour data and live preview
+    container.querySelectorAll('.hour-day, .hour-hours').forEach(input => {
+        input.addEventListener('input', (e) => {
+            updateSpecialHourData(e);
+            debouncedLivePreview();
+        });
+    });
+
+    // Update preview after rendering hours
+    updateLivePreview();
+}
+
+// Update special hour data from inputs
+function updateSpecialHourData(e) {
+    const hourId = parseInt(e.target.dataset.hourId);
+    const hour = specialHours.find(h => h.id === hourId);
+    if (!hour) return;
+
+    if (e.target.classList.contains('hour-day')) {
+        hour.day = e.target.value;
+    } else if (e.target.classList.contains('hour-hours')) {
+        hour.hours = e.target.value;
+    }
+}
+
 // Render the promotion email form
 function renderPromotionEmailForm() {
-    // Reset tiers
+    // Reset tiers and special hours
     promotionTiers = [];
+    specialHours = [];
 
     elements.formFields.innerHTML = `
         <div class="form-group">
@@ -809,6 +878,15 @@ function renderPromotionEmailForm() {
                 <button class="clear-input" data-clear="promoDateRange" title="Clear">×</button>
             </div>
             <div class="field-help">Used for auto-title generation and display</div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Year (optional)</label>
+            <div class="input-wrapper">
+                <input type="text" class="form-input" id="promoYear" placeholder="Auto-uses current year">
+                <button class="clear-input" data-clear="promoYear" title="Clear">×</button>
+            </div>
+            <div class="field-help">Override for cross-year sales (e.g., Dec 30 - Jan 3)</div>
         </div>
 
         <div class="form-group">
@@ -827,10 +905,20 @@ function renderPromotionEmailForm() {
             </div>
             <div id="promotionTiersContainer"></div>
         </div>
+
+        <div class="form-group full-width" style="margin-top: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <label class="form-label" style="margin-bottom: 0;">Special Hours (optional)</label>
+                <button type="button" class="btn" id="addHourBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Special Hours</button>
+            </div>
+            <div class="field-help" style="margin-bottom: 1rem;">For holidays or special sale hours (e.g., Black Friday extended hours)</div>
+            <div id="specialHoursContainer"></div>
+        </div>
     `;
 
     // Add event listeners
     const dateRangeInput = document.getElementById('promoDateRange');
+    const yearInput = document.getElementById('promoYear');
     const titleInput = document.getElementById('promoTitle');
     const addTierBtn = document.getElementById('addTierBtn');
 
@@ -851,6 +939,28 @@ function renderPromotionEmailForm() {
                 dateRangeInput.value = '';
                 clearDateBtn.classList.remove('visible');
                 dateRangeInput.focus();
+                updateLivePreview();
+            });
+        }
+    }
+
+    // Year input listener
+    if (yearInput) {
+        yearInput.addEventListener('input', () => {
+            const clearBtn = document.querySelector('[data-clear="promoYear"]');
+            if (clearBtn) {
+                clearBtn.classList.toggle('visible', yearInput.value.trim().length > 0);
+            }
+            debouncedLivePreview(); // Update preview as user types
+        });
+
+        // Clear button
+        const clearYearBtn = document.querySelector('[data-clear="promoYear"]');
+        if (clearYearBtn) {
+            clearYearBtn.addEventListener('click', () => {
+                yearInput.value = '';
+                clearYearBtn.classList.remove('visible');
+                yearInput.focus();
                 updateLivePreview();
             });
         }
@@ -883,6 +993,12 @@ function renderPromotionEmailForm() {
         addTierBtn.addEventListener('click', addPromotionTier);
     }
 
+    // Add special hour button
+    const addHourBtn = document.getElementById('addHourBtn');
+    if (addHourBtn) {
+        addHourBtn.addEventListener('click', addSpecialHour);
+    }
+
     // Add initial tier
     addPromotionTier();
 }
@@ -891,7 +1007,9 @@ function renderPromotionEmailForm() {
 function generatePromotionEmailHTML(data) {
     const dateRange = data.promoDateRange || '';
     const title = data.promoTitle && data.promoTitle.trim() ? data.promoTitle : generatePromoTitle(dateRange);
-    const year = new Date().getFullYear();
+
+    // Use override year if provided, otherwise use current year
+    const year = data.promoYear && data.promoYear.trim() ? data.promoYear.trim() : new Date().getFullYear();
 
     // Get store info from profile
     const storePhone = getStorePhone();
@@ -945,6 +1063,10 @@ function generatePromotionEmailHTML(data) {
 
         if (userProfile.storeAddress) {
             storeAddress = userProfile.storeAddress.replace(/\n/g, '<br>');
+        }
+
+        if (userProfile.storeMapCoords) {
+            storeMapCoords = userProfile.storeMapCoords;
         }
 
         if (userProfile.storeHours) {
@@ -1028,7 +1150,11 @@ ${brandSections}
                 <p style="color: #ffd700; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 13px; margin: 10px 0 0 0;">
                     <b>STORE HOURS</b><br>
                     ${storeHours}
-                </p>
+                </p>${specialHours.length > 0 ? `
+                <p style="color: #ffd700; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 13px; margin: 10px 0 0 0;">
+                    <b>SPECIAL HOURS</b><br>
+                    ${specialHours.map(hour => hour.day && hour.hours ? `${hour.day}: ${hour.hours}` : '').filter(h => h).join('<br>')}
+                </p>` : ''}
             </td>
         </tr>
 
@@ -1435,9 +1561,10 @@ function clearAll() {
     if (!currentTemplate) return;
 
     try {
-        // Clear promotion tiers if it's a promotion email
+        // Clear promotion tiers and special hours if it's a promotion email
         if (currentTemplate === 'promotion-email') {
             promotionTiers = [];
+            specialHours = [];
         }
 
         const inputs = elements.formFields.querySelectorAll('.form-input, .form-textarea');
