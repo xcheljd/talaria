@@ -488,7 +488,8 @@ const elements = {
     generateBtn: null,
     clearBtn: null,
     copyBtn: null,
-    toast: null
+    toast: null,
+    outputCard: null
 };
 
 // Cache DOM elements on page load
@@ -505,6 +506,101 @@ function cacheElements() {
     elements.clearBtn = document.getElementById('clearBtn');
     elements.copyBtn = document.getElementById('copyBtn');
     elements.toast = document.getElementById('toast');
+    elements.outputCard = document.querySelector('.output-card');
+}
+
+// Show tabbed output for promotion emails
+function showTabbedOutput() {
+    if (!elements.outputCard) return;
+
+    elements.outputCard.innerHTML = `
+        <h2 class="section-title">Generated Email</h2>
+
+        <div class="output-tabs">
+            <button class="output-tab active" data-tab="preview">Preview</button>
+            <button class="output-tab" data-tab="code">HTML Code</button>
+        </div>
+
+        <div class="output-content active" id="previewContent">
+            <iframe class="preview-iframe" id="previewIframe"></iframe>
+        </div>
+
+        <div class="output-content" id="codeContent">
+            <textarea class="output-textarea" id="codeArea" placeholder="HTML code will appear here..."></textarea>
+        </div>
+
+        <div class="button-group">
+            <button class="btn" id="copyPreviewBtn">Copy HTML Code</button>
+        </div>
+    `;
+
+    // Add tab switching
+    const tabs = elements.outputCard.querySelectorAll('.output-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.tab;
+
+            // Update active tab
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            // Update active content
+            elements.outputCard.querySelectorAll('.output-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            if (targetTab === 'preview') {
+                document.getElementById('previewContent').classList.add('active');
+            } else {
+                document.getElementById('codeContent').classList.add('active');
+            }
+        });
+    });
+
+    // Add copy button handler
+    const copyBtn = document.getElementById('copyPreviewBtn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+            const codeArea = document.getElementById('codeArea');
+            if (codeArea && codeArea.value) {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(codeArea.value).then(() => {
+                        showToast('✓ HTML Code Copied!');
+                    }).catch(() => {
+                        showToast('⚠ Copy failed');
+                    });
+                } else {
+                    codeArea.select();
+                    document.execCommand('copy');
+                    showToast('✓ HTML Code Copied!');
+                }
+            } else {
+                showToast('⚠ Nothing to copy');
+            }
+        });
+    }
+}
+
+// Show regular output
+function showRegularOutput() {
+    if (!elements.outputCard) return;
+
+    elements.outputCard.innerHTML = `
+        <h2 class="section-title">Generated Message</h2>
+        <textarea class="output-textarea" id="outputArea" placeholder="Your generated message will appear here..." aria-label="Generated message output"></textarea>
+        <div class="button-group">
+            <button class="btn" id="copyBtn">Copy Message</button>
+        </div>
+    `;
+
+    // Re-cache the output area
+    elements.outputArea = document.getElementById('outputArea');
+
+    // Re-attach copy button handler
+    const copyBtn = document.getElementById('copyBtn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', copyToClipboard);
+    }
 }
 
 // ===== PROMOTION EMAIL HELPER FUNCTIONS =====
@@ -947,10 +1043,13 @@ function selectTemplate(key) {
         // Handle custom promotion email template
         if (template.customTemplate && key === 'promotion-email') {
             renderPromotionEmailForm();
-            elements.outputArea.value = '';
+            showTabbedOutput();
             elements.clearBtn.disabled = false;
             return;
         }
+
+        // Show regular output for non-promotion templates
+        showRegularOutput();
 
         elements.formFields.innerHTML = template.fields.map(field => {
             const label = field.replace(/([A-Z])/g, ' $1').trim();
@@ -1187,13 +1286,34 @@ function generateMessage() {
                 return;
             }
 
+            if (promotionTiers.length === 0) {
+                showToast('⚠ Add at least one discount tier');
+                return;
+            }
+
             const data = {
                 promoDateRange: dateRangeInput.value,
                 promoTitle: titleInput ? titleInput.value : ''
             };
 
-            const message = template.generate(data);
-            elements.outputArea.value = message;
+            const htmlCode = template.generate(data);
+
+            // Update code textarea
+            const codeArea = document.getElementById('codeArea');
+            if (codeArea) {
+                codeArea.value = htmlCode;
+            }
+
+            // Update preview iframe
+            const previewIframe = document.getElementById('previewIframe');
+            if (previewIframe) {
+                const iframeDoc = previewIframe.contentDocument || previewIframe.contentWindow.document;
+                iframeDoc.open();
+                iframeDoc.write(htmlCode);
+                iframeDoc.close();
+            }
+
+            showToast('✓ Email generated!');
             return;
         }
 
@@ -1248,7 +1368,9 @@ function clearAll() {
 
         const inputs = elements.formFields.querySelectorAll('.form-input, .form-textarea');
         inputs.forEach(input => input.value = '');
-        elements.outputArea.value = '';
+
+        // Reset to regular output
+        showRegularOutput();
 
         elements.formSectionTitle.textContent = 'Template Fields';
         currentTemplate = null;
