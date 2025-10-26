@@ -984,6 +984,10 @@ function generatePromotionEmailHTML(data) {
             storeAddress = userProfile.storeAddress.replace(/\n/g, '<br>');
         }
 
+        if (userProfile.storeMapCoords) {
+            storeMapCoords = userProfile.storeMapCoords;
+        }
+
         if (userProfile.storeHours) {
             storeHours = userProfile.storeHours;
         }

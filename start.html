@@ -206,6 +206,19 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label class="form-label">Map Coordinates</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="storeMapCoords"
+                            placeholder="36.05145495363422,-115.16933573536541"
+                        >
+                    </div>
+                    <div class="field-help">Latitude,Longitude for Google Maps link</div>
+                </div>
+
                 <div class="form-group full-width">
                     <label class="form-label">Store Hours</label>
                     <div class="input-wrapper">
@@ -252,6 +265,7 @@
         const storeNameInput = document.getElementById('storeName');
         const storeEmailInput = document.getElementById('storeEmail');
         const storeAddressInput = document.getElementById('storeAddress');
+        const storeMapCoordsInput = document.getElementById('storeMapCoords');
         const storeHoursInput = document.getElementById('storeHours');
         const storeDirectionsInput = document.getElementById('storeDirections');
 
@@ -323,6 +337,7 @@
                     // Load custom store details if saved
                     if (data.storeEmail) storeEmailInput.value = data.storeEmail;
                     if (data.storeAddress) storeAddressInput.value = data.storeAddress;
+                    if (data.storeMapCoords) storeMapCoordsInput.value = data.storeMapCoords;
                     if (data.storeHours) storeHoursInput.value = data.storeHours;
                     if (data.storeDirections) storeDirectionsInput.value = data.storeDirections;
                 } catch (e) {
@@ -351,6 +366,7 @@
                 storeLocation: storeData[storeId] ? storeData[storeId].location : '',
                 storeEmail: storeEmailInput.value.trim(),
                 storeAddress: storeAddressInput.value.trim(),
+                storeMapCoords: storeMapCoordsInput.value.trim(),
                 storeHours: storeHoursInput.value.trim(),
                 storeDirections: storeDirectionsInput.value.trim()
             };
