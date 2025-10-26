@@ -926,14 +926,48 @@ function generatePromotionEmailHTML(data) {
         }
     });
 
-    // Get store-specific details
+    // Get store-specific details from user profile
     let storeAddress = '7400 Las Vegas Blvd. South, Suite 231<br>Las Vegas, NV 89123';
     let storeMapCoords = '36.05145495363422,-115.16933573536541';
-    let storeEmail = 'VegasSouth@citizenwatchgroup.com';
+    let storeEmail = storePhone.replace(/\D/g, ''); // Default fallback
     let storeHours = 'Mon–Sat: 10AM–8PM | Sun: 10AM–7PM';
-    let storeLocation = 'Entrance E, near Polo Ralph Lauren';
+    let storeDirections = '';
 
-    // TODO: These could be pulled from userProfile in the future
+    // Override with user profile data if available
+    if (userProfile) {
+        if (userProfile.storeEmail) {
+            storeEmail = userProfile.storeEmail;
+        } else if (userProfile.storeName) {
+            // Auto-generate email from store name
+            const emailPrefix = userProfile.storeName.toLowerCase().replace(/\s+/g, '');
+            storeEmail = `${emailPrefix}@citizenwatchgroup.com`;
+        }
+
+        if (userProfile.storeAddress) {
+            storeAddress = userProfile.storeAddress.replace(/\n/g, '<br>');
+        }
+
+        if (userProfile.storeHours) {
+            storeHours = userProfile.storeHours;
+        }
+
+        if (userProfile.storeDirections) {
+            storeDirections = userProfile.storeDirections;
+        }
+    }
+
+    // Build important notes section
+    let importantNotes = `
+                    • *Select models only<br>
+                    • See attached PDF for complete model details<br>
+                    • Limited availability - while supplies last<br>
+                    • Email response time up to 48 hours`;
+
+    // Add store directions if available
+    if (storeDirections) {
+        importantNotes += `<br>
+                    • Find us at ${storeDirections}`;
+    }
 
     return `<!DOCTYPE html>
 <html>
@@ -973,11 +1007,7 @@ ${brandSections}
                 <div style="border: 1px solid #ddd; padding: 15px;">
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0;"><b>IMPORTANT NOTES</b></p>
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">
-                    • *Select models only<br>
-                    • See attached PDF for complete model details<br>
-                    • Limited availability - while supplies last<br>
-                    • Email response time up to 48 hours<br>
-                    • Find us at ${storeLocation}</p>
+                    ${importantNotes}</p>
                 </div>
 
             </td>

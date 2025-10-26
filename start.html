@@ -181,6 +181,56 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label class="form-label">Store Email</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="email"
+                            class="form-input"
+                            id="storeEmail"
+                            placeholder="Will auto-fill from store selection"
+                        >
+                    </div>
+                    <div class="field-help">Auto-generated as storename@citizenwatchgroup.com</div>
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">Store Address</label>
+                    <div class="input-wrapper">
+                        <textarea
+                            class="form-textarea"
+                            id="storeAddress"
+                            placeholder="123 Main Street&#10;City, State ZIP"
+                            style="min-height: 80px;"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">Store Hours</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="storeHours"
+                            placeholder="Mon–Sat: 10AM–8PM | Sun: 10AM–7PM"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">Store Directions / Location Notes</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="storeDirections"
+                            placeholder="e.g., Entrance E, near Polo Ralph Lauren"
+                        >
+                    </div>
+                    <div class="field-help">Optional: Easy-to-follow directions for customers</div>
+                </div>
+
                 <div class="button-group">
                     <button type="submit" class="btn">Save & Continue</button>
                 </div>
@@ -200,6 +250,18 @@
         const storeSelect = document.getElementById('storeSelect');
         const storePhoneInput = document.getElementById('storePhone');
         const storeNameInput = document.getElementById('storeName');
+        const storeEmailInput = document.getElementById('storeEmail');
+        const storeAddressInput = document.getElementById('storeAddress');
+        const storeHoursInput = document.getElementById('storeHours');
+        const storeDirectionsInput = document.getElementById('storeDirections');
+
+        // Generate email from store name
+        function generateStoreEmail(storeName) {
+            if (!storeName) return '';
+            // Remove spaces, convert to lowercase, add domain
+            const prefix = storeName.toLowerCase().replace(/\s+/g, '');
+            return `${prefix}@citizenwatchgroup.com`;
+        }
 
         // Store data mapping
         const storeData = {
@@ -226,11 +288,23 @@
         storeSelect.addEventListener('change', (e) => {
             const storeId = e.target.value;
             if (storeId && storeData[storeId]) {
-                storePhoneInput.value = storeData[storeId].phone;
-                storeNameInput.value = storeData[storeId].name;
+                const store = storeData[storeId];
+                storePhoneInput.value = store.phone;
+                storeNameInput.value = store.name;
+
+                // Auto-generate email if field is empty
+                if (!storeEmailInput.value) {
+                    storeEmailInput.value = generateStoreEmail(store.name);
+                }
+
+                // Pre-fill hours with default if empty
+                if (!storeHoursInput.value) {
+                    storeHoursInput.value = 'Mon–Sat: 10AM–8PM | Sun: 10AM–7PM';
+                }
             } else {
                 storePhoneInput.value = '';
                 storeNameInput.value = '';
+                storeEmailInput.value = '';
             }
         });
 
@@ -246,6 +320,11 @@
                         // Trigger change event to populate phone and name
                         storeSelect.dispatchEvent(new Event('change'));
                     }
+                    // Load custom store details if saved
+                    if (data.storeEmail) storeEmailInput.value = data.storeEmail;
+                    if (data.storeAddress) storeAddressInput.value = data.storeAddress;
+                    if (data.storeHours) storeHoursInput.value = data.storeHours;
+                    if (data.storeDirections) storeDirectionsInput.value = data.storeDirections;
                 } catch (e) {
                     console.error('Error loading user data:', e);
                 }
@@ -267,9 +346,13 @@
             const userData = {
                 employeeName: document.getElementById('employeeName').value.trim(),
                 storeId: storeId,
-                storePhone: document.getElementById('storePhone').value.trim(),
-                storeName: document.getElementById('storeName').value.trim(),
-                storeLocation: storeData[storeId] ? storeData[storeId].location : ''
+                storePhone: storePhoneInput.value.trim(),
+                storeName: storeNameInput.value.trim(),
+                storeLocation: storeData[storeId] ? storeData[storeId].location : '',
+                storeEmail: storeEmailInput.value.trim(),
+                storeAddress: storeAddressInput.value.trim(),
+                storeHours: storeHoursInput.value.trim(),
+                storeDirections: storeDirectionsInput.value.trim()
             };
 
             // Validate required fields
