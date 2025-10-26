@@ -605,6 +605,57 @@ function showRegularOutput() {
 
 // ===== PROMOTION EMAIL HELPER FUNCTIONS =====
 
+// Debounce utility for live preview
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Update live preview
+function updateLivePreview() {
+    if (currentTemplate !== 'promotion-email') return;
+
+    const dateRangeInput = document.getElementById('promoDateRange');
+    const titleInput = document.getElementById('promoTitle');
+
+    // Only update if we have at least a date range
+    if (!dateRangeInput || !dateRangeInput.value.trim()) {
+        return;
+    }
+
+    const data = {
+        promoDateRange: dateRangeInput.value,
+        promoTitle: titleInput ? titleInput.value : ''
+    };
+
+    const htmlCode = generatePromotionEmailHTML(data);
+
+    // Update code textarea
+    const codeArea = document.getElementById('codeArea');
+    if (codeArea) {
+        codeArea.value = htmlCode;
+    }
+
+    // Update preview iframe
+    const previewIframe = document.getElementById('previewIframe');
+    if (previewIframe) {
+        const iframeDoc = previewIframe.contentDocument || previewIframe.contentWindow.document;
+        iframeDoc.open();
+        iframeDoc.write(htmlCode);
+        iframeDoc.close();
+    }
+}
+
+// Create debounced version for typing
+const debouncedLivePreview = debounce(updateLivePreview, 500);
+
 // Auto-generate title based on date range
 function generatePromoTitle(dateRange) {
     if (!dateRange) return 'WEEKLY SALE';
@@ -712,10 +763,20 @@ function renderPromotionTiers() {
         `;
     }).join('');
 
-    // Attach event listeners to update tier data
+    // Attach event listeners to update tier data and live preview
     container.querySelectorAll('.tier-brand, .tier-discount, .tier-collections, .tier-callout').forEach(input => {
-        input.addEventListener('input', updateTierData);
+        input.addEventListener('input', (e) => {
+            updateTierData(e);
+            debouncedLivePreview();
+        });
+        input.addEventListener('change', (e) => {
+            updateTierData(e);
+            updateLivePreview(); // Immediate update for dropdowns
+        });
     });
+
+    // Update preview after rendering tiers
+    updateLivePreview();
 }
 
 // Update tier data from inputs
@@ -780,6 +841,7 @@ function renderPromotionEmailForm() {
             if (clearBtn) {
                 clearBtn.classList.toggle('visible', dateRangeInput.value.trim().length > 0);
             }
+            debouncedLivePreview(); // Update preview as user types
         });
 
         // Clear button
@@ -789,6 +851,7 @@ function renderPromotionEmailForm() {
                 dateRangeInput.value = '';
                 clearDateBtn.classList.remove('visible');
                 dateRangeInput.focus();
+                updateLivePreview();
             });
         }
     }
@@ -800,6 +863,7 @@ function renderPromotionEmailForm() {
             if (clearBtn) {
                 clearBtn.classList.toggle('visible', titleInput.value.trim().length > 0);
             }
+            debouncedLivePreview(); // Update preview as user types
         });
 
         // Clear button
@@ -809,6 +873,7 @@ function renderPromotionEmailForm() {
                 titleInput.value = '';
                 clearTitleBtn.classList.remove('visible');
                 titleInput.focus();
+                updateLivePreview();
             });
         }
     }
@@ -1276,10 +1341,9 @@ function generateMessage() {
     try {
         const template = templates[currentTemplate];
 
-        // Handle promotion email specially
+        // Handle promotion email specially - force refresh live preview
         if (currentTemplate === 'promotion-email') {
             const dateRangeInput = document.getElementById('promoDateRange');
-            const titleInput = document.getElementById('promoTitle');
 
             if (!dateRangeInput || !dateRangeInput.value.trim()) {
                 showToast('⚠ Date range is required');
@@ -1291,29 +1355,9 @@ function generateMessage() {
                 return;
             }
 
-            const data = {
-                promoDateRange: dateRangeInput.value,
-                promoTitle: titleInput ? titleInput.value : ''
-            };
-
-            const htmlCode = template.generate(data);
-
-            // Update code textarea
-            const codeArea = document.getElementById('codeArea');
-            if (codeArea) {
-                codeArea.value = htmlCode;
-            }
-
-            // Update preview iframe
-            const previewIframe = document.getElementById('previewIframe');
-            if (previewIframe) {
-                const iframeDoc = previewIframe.contentDocument || previewIframe.contentWindow.document;
-                iframeDoc.open();
-                iframeDoc.write(htmlCode);
-                iframeDoc.close();
-            }
-
-            showToast('✓ Email generated!');
+            // Force immediate update of live preview
+            updateLivePreview();
+            showToast('✓ Preview refreshed!');
             return;
         }
 
