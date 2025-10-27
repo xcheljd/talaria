@@ -1321,6 +1321,8 @@ function renderPromotionEntries() {
                                 <circle cx="12" cy="13" r="1.5"/>
                             </svg>
                         </div>
+                        <button type="button" class="order-btn" onclick="movePromotionEntryUp(${entry.id})" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
+                        <button type="button" class="order-btn" onclick="movePromotionEntryDown(${entry.id})" title="Move down" ${isLast ? 'disabled' : ''}>▼</button>
                         <span class="entry-number">Entry ${index + 1}</span>
                         ${isCollapsed ? `<span class="entry-summary">${summaryText}</span>` : ''}
                     </div>
@@ -2130,12 +2132,14 @@ function renderSearchResults(query) {
                template.category.toLowerCase().includes(lowerQuery);
     });
 
+    // Build results HTML
+    let resultsHTML = '';
     if (results.length === 0) {
-        elements.searchResults.innerHTML = '<div class="search-result-item" style="cursor: default; color: #999;">No templates found</div>';
+        resultsHTML = '<div class="search-result-item" style="cursor: default; color: var(--text-tertiary);">No templates found</div>';
         elements.resultCounter.textContent = '0 templates found';
     } else {
         // Use sanitization to prevent XSS
-        elements.searchResults.innerHTML = results.map(key => {
+        resultsHTML = results.map(key => {
             const template = templates[key];
             const safeName = sanitizeHTML(template.name);
             const safeCategory = sanitizeHTML(template.category);
@@ -2149,6 +2153,11 @@ function renderSearchResults(query) {
         }).join('');
         elements.resultCounter.textContent = `${results.length} template${results.length === 1 ? '' : 's'} found`;
     }
+
+    // Update only the results, preserving the counter
+    const counterElement = elements.resultCounter;
+    elements.searchResults.innerHTML = resultsHTML;
+    elements.searchResults.appendChild(counterElement);
 
     elements.searchResults.classList.add('visible');
 }
