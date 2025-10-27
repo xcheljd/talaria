@@ -1221,8 +1221,8 @@ function toggleEntryCollapse(entryId) {
 }
 
 // Drag-and-drop setup for reordering items
-function setupDragAndDrop(container, itemsArray, renderFunction) {
-    const rows = container.querySelectorAll('.editable-item-row');
+function setupDragAndDrop(container, itemsArray, renderFunction, selector = '.editable-item-row') {
+    const rows = container.querySelectorAll(selector);
     let draggedElement = null;
     let draggedItemId = null;
 
@@ -1230,7 +1230,8 @@ function setupDragAndDrop(container, itemsArray, renderFunction) {
         // Drag start
         row.addEventListener('dragstart', (e) => {
             draggedElement = row;
-            draggedItemId = parseInt(row.dataset.itemId);
+            // Try both data-item-id and data-entry-id
+            draggedItemId = parseInt(row.dataset.itemId || row.dataset.entryId);
             row.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
         });
@@ -1262,7 +1263,8 @@ function setupDragAndDrop(container, itemsArray, renderFunction) {
             row.classList.remove('drag-over');
 
             if (draggedElement !== row) {
-                const targetItemId = parseInt(row.dataset.itemId);
+                // Try both data-item-id and data-entry-id
+                const targetItemId = parseInt(row.dataset.itemId || row.dataset.entryId);
 
                 // Find indices
                 const draggedIndex = itemsArray.findIndex(item => item.id === draggedItemId);
@@ -1306,18 +1308,26 @@ function renderPromotionEntries() {
         }
 
         return `
-            <div class="promotion-entry ${isCollapsed ? 'collapsed' : ''}" data-entry-id="${safeId}">
+            <div class="promotion-entry ${isCollapsed ? 'collapsed' : ''}" data-entry-id="${safeId}" draggable="true">
                 <div class="entry-header">
                     <div class="entry-header-left">
+                        <div class="drag-handle" title="Drag to reorder">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <circle cx="4" cy="3" r="1.5"/>
+                                <circle cx="4" cy="8" r="1.5"/>
+                                <circle cx="4" cy="13" r="1.5"/>
+                                <circle cx="12" cy="3" r="1.5"/>
+                                <circle cx="12" cy="8" r="1.5"/>
+                                <circle cx="12" cy="13" r="1.5"/>
+                            </svg>
+                        </div>
                         <span class="entry-number">Entry ${index + 1}</span>
                         ${isCollapsed ? `<span class="entry-summary">${summaryText}</span>` : ''}
                     </div>
                     <div class="entry-controls">
-                        <button type="button" class="collapse-btn" onclick="toggleEntryCollapse(${entry.id})" title="${isCollapsed ? 'Expand' : 'Minimize'}">
-                            ${isCollapsed ? '▼' : '▲'}
+                        <button type="button" class="collapse-btn" onclick="toggleEntryCollapse(${entry.id})" title="${isCollapsed ? 'Expand' : 'Collapse'}">
+                            ${isCollapsed ? 'Expand' : 'Collapse'}
                         </button>
-                        <button type="button" class="order-btn" onclick="movePromotionEntryUp(${entry.id})" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
-                        <button type="button" class="order-btn" onclick="movePromotionEntryDown(${entry.id})" title="Move down" ${isLast ? 'disabled' : ''}>▼</button>
                         <button type="button" class="entry-remove-btn" onclick="removePromotionEntry(${entry.id})" title="Remove">×</button>
                     </div>
                 </div>
@@ -1366,6 +1376,9 @@ function renderPromotionEntries() {
             captureState(); // Capture immediately on dropdown change
         });
     });
+
+    // Add drag-and-drop functionality for reordering entries
+    setupDragAndDrop(container, promotionEntries, renderPromotionEntries, '.promotion-entry');
 
     // Update preview after rendering entries
     updateLivePreview();
