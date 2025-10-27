@@ -1,6 +1,73 @@
 // Constants
 const TOAST_DURATION_MS = 2500;
 
+// ===== DARK MODE & NAVIGATION TOGGLE =====
+
+// Initialize dark mode from localStorage
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+}
+
+// Toggle dark mode
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+
+    // Add ripple effect
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.style.animation = 'none';
+        setTimeout(() => {
+            themeToggle.style.animation = 'pulse 0.3s ease';
+        }, 10);
+    }
+}
+
+// Toggle navigation visibility
+function toggleNavigation() {
+    const navigation = document.getElementById('navigation');
+    const navToggleText = document.getElementById('navToggleText');
+
+    if (!navigation) return;
+
+    const isCollapsed = navigation.classList.toggle('collapsed');
+
+    if (navToggleText) {
+        navToggleText.textContent = isCollapsed ? 'Show Navigation' : 'Hide Navigation';
+    }
+
+    // Save state
+    localStorage.setItem('navCollapsed', isCollapsed);
+}
+
+// Initialize navigation state
+function initNavigation() {
+    const navCollapsed = localStorage.getItem('navCollapsed') === 'true';
+    const navigation = document.getElementById('navigation');
+    const navToggleText = document.getElementById('navToggleText');
+
+    if (navCollapsed && navigation) {
+        navigation.classList.add('collapsed');
+        if (navToggleText) {
+            navToggleText.textContent = 'Show Navigation';
+        }
+    }
+}
+
+// Add pulse animation to CSS
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+`;
+document.head.appendChild(style);
+
 // Helper functions to get store info from user profile
 function getStorePhone() {
     return userProfile && userProfile.storePhone ? userProfile.storePhone : '702-357-8990';
@@ -2055,6 +2122,10 @@ function copyToClipboard() {
 // Initialize application
 function init() {
     try {
+        // Initialize theme and navigation
+        initTheme();
+        initNavigation();
+
         cacheElements();
         loadUserProfile();
         populateDropdown();
@@ -2087,6 +2158,17 @@ function init() {
         elements.generateBtn.addEventListener('click', generateMessage);
         elements.clearBtn.addEventListener('click', clearAll);
         elements.copyBtn.addEventListener('click', copyToClipboard);
+
+        // Theme and navigation toggles
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', toggleTheme);
+        }
+
+        const navToggle = document.getElementById('navToggle');
+        if (navToggle) {
+            navToggle.addEventListener('click', toggleNavigation);
+        }
     } catch (error) {
         console.error('Initialization error:', error);
     }
