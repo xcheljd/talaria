@@ -713,7 +713,7 @@ function importPromotionTemplate() {
         reader.onload = (event) => {
             try {
                 const config = JSON.parse(event.target.result);
-                applyImportedConfig(config);
+                applyImportedConfig(config, true); // true = collapse entries on import
                 showToast('✓ Template imported from file successfully');
             } catch (error) {
                 console.error('Import error:', error);
@@ -739,7 +739,7 @@ function importPromotionTemplate() {
 }
 
 // Helper function to apply imported configuration
-function applyImportedConfig(config) {
+function applyImportedConfig(config, collapseEntries = true) {
     if (!config) {
         showToast('✗ Invalid template data');
         return;
@@ -759,6 +759,15 @@ function applyImportedConfig(config) {
     specialHours = JSON.parse(JSON.stringify(config.specialHours || []));
     howToShopItems = JSON.parse(JSON.stringify(config.howToShopItems || []));
     importantNotesItems = JSON.parse(JSON.stringify(config.importantNotesItems || []));
+
+    // Set collapse state for all entries
+    if (collapseEntries) {
+        // When importing, collapse all entries by default
+        entryCollapsedStates = {};
+        promotionEntries.forEach(entry => {
+            entryCollapsedStates[entry.id] = true;
+        });
+    }
 
     // Re-render all sections
     renderPromotionEntries();
@@ -783,7 +792,7 @@ function importFromLocalStorage() {
         }
 
         const config = JSON.parse(saved);
-        applyImportedConfig(config);
+        applyImportedConfig(config, true); // true = collapse entries on import
         showToast('✓ Template imported from browser storage');
     } catch (e) {
         console.error('Import error:', e);
@@ -1670,14 +1679,35 @@ function initializeDefaultItems() {
 
 // Render the promotion email form
 function renderPromotionEmailForm() {
-    // Reset all arrays
-    promotionEntries = [];
-    specialHours = [];
-    howToShopItems = [];
-    importantNotesItems = [];
+    // Check if there's a saved template in localStorage
+    const savedTemplate = localStorage.getItem('savedPromotionTemplate');
 
-    // Initialize default items
-    initializeDefaultItems();
+    if (savedTemplate) {
+        // Load saved template automatically
+        try {
+            const config = JSON.parse(savedTemplate);
+            // Don't reset arrays - we'll populate from saved data
+            promotionEntries = [];
+            specialHours = [];
+            howToShopItems = [];
+            importantNotesItems = [];
+        } catch (e) {
+            // If parsing fails, fall back to defaults
+            console.error('Error loading saved template:', e);
+            promotionEntries = [];
+            specialHours = [];
+            howToShopItems = [];
+            importantNotesItems = [];
+            initializeDefaultItems();
+        }
+    } else {
+        // No saved template - initialize defaults
+        promotionEntries = [];
+        specialHours = [];
+        howToShopItems = [];
+        importantNotesItems = [];
+        initializeDefaultItems();
+    }
 
     // Update section header to include undo/redo buttons
     const parentCard = elements.formSectionTitle.closest('.card');
@@ -1854,12 +1884,23 @@ function renderPromotionEmailForm() {
         addHourBtn.addEventListener('click', addSpecialHour);
     }
 
-    // Add initial entry
-    addPromotionEntry();
-
-    // Render collapsible sections
-    renderHowToShopSection();
-    renderImportantNotesSection();
+    // Load saved template if available, otherwise add initial entry
+    if (savedTemplate) {
+        try {
+            const config = JSON.parse(savedTemplate);
+            applyImportedConfig(config, false); // false = don't collapse on auto-load
+        } catch (e) {
+            console.error('Error applying saved template:', e);
+            addPromotionEntry();
+            renderHowToShopSection();
+            renderImportantNotesSection();
+        }
+    } else {
+        // No saved template - add initial entry
+        addPromotionEntry();
+        renderHowToShopSection();
+        renderImportantNotesSection();
+    }
 
     // Wire up undo/redo buttons
     const undoBtn = document.getElementById('undoBtn');
