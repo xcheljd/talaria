@@ -674,6 +674,98 @@ function updateUndoRedoButtons() {
     }
 }
 
+// Save promotion template configuration to localStorage
+function savePromotionTemplate() {
+    if (currentTemplate !== 'promotion-email') return;
+
+    const config = {
+        dateRange: document.getElementById('promoDateRange')?.value || '',
+        year: document.getElementById('promoYear')?.value || '',
+        title: document.getElementById('promoTitle')?.value || '',
+        promotionEntries: JSON.parse(JSON.stringify(promotionEntries)),
+        specialHours: JSON.parse(JSON.stringify(specialHours)),
+        howToShopItems: JSON.parse(JSON.stringify(howToShopItems)),
+        importantNotesItems: JSON.parse(JSON.stringify(importantNotesItems)),
+        savedAt: new Date().toISOString()
+    };
+
+    localStorage.setItem('savedPromotionTemplate', JSON.stringify(config));
+    showToast('✓ Template saved successfully');
+}
+
+// Import promotion template configuration from localStorage
+function importPromotionTemplate() {
+    if (currentTemplate !== 'promotion-email') return;
+
+    try {
+        const saved = localStorage.getItem('savedPromotionTemplate');
+        if (!saved) {
+            showToast('⚠ No saved template found');
+            return;
+        }
+
+        const config = JSON.parse(saved);
+
+        // Restore form fields
+        const dateRangeInput = document.getElementById('promoDateRange');
+        const yearInput = document.getElementById('promoYear');
+        const titleInput = document.getElementById('promoTitle');
+
+        if (dateRangeInput) dateRangeInput.value = config.dateRange || '';
+        if (yearInput) yearInput.value = config.year || '';
+        if (titleInput) titleInput.value = config.title || '';
+
+        // Restore arrays
+        promotionEntries = JSON.parse(JSON.stringify(config.promotionEntries || []));
+        specialHours = JSON.parse(JSON.stringify(config.specialHours || []));
+        howToShopItems = JSON.parse(JSON.stringify(config.howToShopItems || []));
+        importantNotesItems = JSON.parse(JSON.stringify(config.importantNotesItems || []));
+
+        // Re-render all sections
+        renderPromotionEntries();
+        renderSpecialHours();
+        renderHowToShopSection();
+        renderImportantNotesSection();
+
+        // Update live preview and capture state
+        updateLivePreview();
+        captureState();
+
+        showToast('✓ Template imported successfully');
+    } catch (e) {
+        console.error('Import error:', e);
+        showToast('✗ Error importing template');
+    }
+}
+
+// Export promotion template configuration as JSON file
+function exportPromotionTemplate() {
+    if (currentTemplate !== 'promotion-email') return;
+
+    const config = {
+        dateRange: document.getElementById('promoDateRange')?.value || '',
+        year: document.getElementById('promoYear')?.value || '',
+        title: document.getElementById('promoTitle')?.value || '',
+        promotionEntries: JSON.parse(JSON.stringify(promotionEntries)),
+        specialHours: JSON.parse(JSON.stringify(specialHours)),
+        howToShopItems: JSON.parse(JSON.stringify(howToShopItems)),
+        importantNotesItems: JSON.parse(JSON.stringify(importantNotesItems)),
+        exportedAt: new Date().toISOString()
+    };
+
+    const dataStr = JSON.stringify(config, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `promotion-template-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+
+    URL.revokeObjectURL(url);
+    showToast('✓ Template exported successfully');
+}
+
 // Load user profile from localStorage
 function loadUserProfile() {
     try {
@@ -1519,8 +1611,16 @@ function renderPromotionEmailForm() {
     // Initialize default items
     initializeDefaultItems();
 
-    elements.formFields.innerHTML = `
-        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 1.5rem;">
+    // Update section header to include undo/redo buttons
+    const parentCard = elements.formSectionTitle.closest('.card');
+    const existingTitle = elements.formSectionTitle;
+
+    // Create new header structure
+    const headerContainer = document.createElement('div');
+    headerContainer.className = 'section-header-with-controls';
+    headerContainer.innerHTML = `
+        <h2 class="section-title" style="margin-bottom: 0;">Promotion Email (HTML) Fields</h2>
+        <div class="section-header-controls">
             <button type="button" class="undo-redo-btn" id="undoBtn" title="Undo (Ctrl+Z)" disabled>
                 <span>↶ Undo</span>
             </button>
@@ -1528,7 +1628,12 @@ function renderPromotionEmailForm() {
                 <span>↷ Redo</span>
             </button>
         </div>
+    `;
 
+    // Replace existing title
+    existingTitle.replaceWith(headerContainer);
+
+    elements.formFields.innerHTML = `
         <div class="form-group">
             <label class="form-label">Date Range *</label>
             <div class="input-wrapper">
@@ -1582,6 +1687,18 @@ function renderPromotionEmailForm() {
             <div id="specialHoursReminder" style="display: none; background: #fff3cd; border-left: 3px solid #ffc107; padding: 1rem; margin-top: 1rem;">
                 <strong>⚠️ Reminder:</strong> Don't forget to update your special hours on Yelp and Google Maps!
             </div>
+        </div>
+
+        <div class="template-actions">
+            <button type="button" class="template-action-btn" id="saveTemplateBtn" title="Save current configuration">
+                💾 Save Template
+            </button>
+            <button type="button" class="template-action-btn" id="importTemplateBtn" title="Import saved configuration">
+                📥 Import Template
+            </button>
+            <button type="button" class="template-action-btn" id="exportTemplateBtn" title="Export configuration as JSON">
+                📤 Export Template
+            </button>
         </div>
     `;
 
@@ -1685,6 +1802,21 @@ function renderPromotionEmailForm() {
     }
     if (redoBtn) {
         redoBtn.addEventListener('click', redo);
+    }
+
+    // Wire up save/import/export buttons
+    const saveTemplateBtn = document.getElementById('saveTemplateBtn');
+    const importTemplateBtn = document.getElementById('importTemplateBtn');
+    const exportTemplateBtn = document.getElementById('exportTemplateBtn');
+
+    if (saveTemplateBtn) {
+        saveTemplateBtn.addEventListener('click', savePromotionTemplate);
+    }
+    if (importTemplateBtn) {
+        importTemplateBtn.addEventListener('click', importPromotionTemplate);
+    }
+    if (exportTemplateBtn) {
+        exportTemplateBtn.addEventListener('click', exportPromotionTemplate);
     }
 
     // Add keyboard shortcuts
