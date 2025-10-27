@@ -467,6 +467,86 @@ let specialHours = [];
 let howToShopItems = [];
 let importantNotesItems = [];
 
+// Undo/Redo history
+let historyStack = [];
+let historyIndex = -1;
+const MAX_HISTORY = 50;
+
+// Capture current state for undo/redo
+function captureState() {
+    // Only capture if we're in promotion email mode
+    if (currentTemplate !== 'promotion-email') return;
+
+    const state = {
+        promotionEntries: JSON.parse(JSON.stringify(promotionEntries)),
+        specialHours: JSON.parse(JSON.stringify(specialHours)),
+        howToShopItems: JSON.parse(JSON.stringify(howToShopItems)),
+        importantNotesItems: JSON.parse(JSON.stringify(importantNotesItems))
+    };
+
+    // Remove any states after current index (when making new changes after undo)
+    historyStack = historyStack.slice(0, historyIndex + 1);
+
+    // Add new state
+    historyStack.push(state);
+
+    // Limit history size
+    if (historyStack.length > MAX_HISTORY) {
+        historyStack.shift();
+    } else {
+        historyIndex++;
+    }
+
+    updateUndoRedoButtons();
+}
+
+// Restore state from history
+function restoreState(state) {
+    promotionEntries = JSON.parse(JSON.stringify(state.promotionEntries));
+    specialHours = JSON.parse(JSON.stringify(state.specialHours));
+    howToShopItems = JSON.parse(JSON.stringify(state.howToShopItems));
+    importantNotesItems = JSON.parse(JSON.stringify(state.importantNotesItems));
+
+    // Re-render all sections without capturing state
+    renderPromotionEntries();
+    renderSpecialHours();
+    renderHowToShopItems();
+    renderImportantNotesItems();
+}
+
+// Undo last change
+function undo() {
+    if (historyIndex > 0) {
+        historyIndex--;
+        restoreState(historyStack[historyIndex]);
+        updateUndoRedoButtons();
+        showToast('↶ Undone');
+    }
+}
+
+// Redo last undone change
+function redo() {
+    if (historyIndex < historyStack.length - 1) {
+        historyIndex++;
+        restoreState(historyStack[historyIndex]);
+        updateUndoRedoButtons();
+        showToast('↷ Redone');
+    }
+}
+
+// Update undo/redo button states
+function updateUndoRedoButtons() {
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+
+    if (undoBtn) {
+        undoBtn.disabled = historyIndex <= 0;
+    }
+    if (redoBtn) {
+        redoBtn.disabled = historyIndex >= historyStack.length - 1;
+    }
+}
+
 // Load user profile from localStorage
 function loadUserProfile() {
     try {
@@ -662,6 +742,9 @@ function updateLivePreview() {
 // Create debounced version for typing
 const debouncedLivePreview = debounce(updateLivePreview, 500);
 
+// Create debounced version for state capture (after user stops typing)
+const debouncedCaptureState = debounce(captureState, 1000);
+
 // Auto-generate title based on date range
 function generatePromoTitle(dateRange) {
     if (!dateRange) return 'WEEKLY SALE';
@@ -716,12 +799,14 @@ function addPromotionEntry() {
         callout: ''
     });
     renderPromotionEntries();
+    captureState();
 }
 
 // Remove a promotion entry
 function removePromotionEntry(entryId) {
     promotionEntries = promotionEntries.filter(entry => entry.id !== entryId);
     renderPromotionEntries();
+    captureState();
 }
 
 // Move promotion entry up
@@ -730,6 +815,7 @@ function movePromotionEntryUp(entryId) {
     if (index > 0) {
         [promotionEntries[index - 1], promotionEntries[index]] = [promotionEntries[index], promotionEntries[index - 1]];
         renderPromotionEntries();
+        captureState();
     }
 }
 
@@ -739,6 +825,7 @@ function movePromotionEntryDown(entryId) {
     if (index < promotionEntries.length - 1) {
         [promotionEntries[index], promotionEntries[index + 1]] = [promotionEntries[index + 1], promotionEntries[index]];
         renderPromotionEntries();
+        captureState();
     }
 }
 
@@ -751,12 +838,14 @@ function addSpecialHour() {
         hours: ''
     });
     renderSpecialHours();
+    captureState();
 }
 
 // Remove a special hour row
 function removeSpecialHour(hourId) {
     specialHours = specialHours.filter(hour => hour.id !== hourId);
     renderSpecialHours();
+    captureState();
 }
 
 // Move special hour up
@@ -765,6 +854,7 @@ function moveSpecialHourUp(hourId) {
     if (index > 0) {
         [specialHours[index - 1], specialHours[index]] = [specialHours[index], specialHours[index - 1]];
         renderSpecialHours();
+        captureState();
     }
 }
 
@@ -774,6 +864,7 @@ function moveSpecialHourDown(hourId) {
     if (index < specialHours.length - 1) {
         [specialHours[index], specialHours[index + 1]] = [specialHours[index + 1], specialHours[index]];
         renderSpecialHours();
+        captureState();
     }
 }
 
@@ -782,11 +873,13 @@ function addHowToShopItem() {
     const itemId = Date.now();
     howToShopItems.push({ id: itemId, text: '' });
     renderHowToShopItems();
+    captureState();
 }
 
 function removeHowToShopItem(itemId) {
     howToShopItems = howToShopItems.filter(item => item.id !== itemId);
     renderHowToShopItems();
+    captureState();
 }
 
 function moveHowToShopItemUp(itemId) {
@@ -794,6 +887,7 @@ function moveHowToShopItemUp(itemId) {
     if (index > 0) {
         [howToShopItems[index - 1], howToShopItems[index]] = [howToShopItems[index], howToShopItems[index - 1]];
         renderHowToShopItems();
+        captureState();
     }
 }
 
@@ -802,6 +896,7 @@ function moveHowToShopItemDown(itemId) {
     if (index < howToShopItems.length - 1) {
         [howToShopItems[index], howToShopItems[index + 1]] = [howToShopItems[index + 1], howToShopItems[index]];
         renderHowToShopItems();
+        captureState();
     }
 }
 
@@ -810,11 +905,13 @@ function addImportantNotesItem() {
     const itemId = Date.now();
     importantNotesItems.push({ id: itemId, text: '' });
     renderImportantNotesItems();
+    captureState();
 }
 
 function removeImportantNotesItem(itemId) {
     importantNotesItems = importantNotesItems.filter(item => item.id !== itemId);
     renderImportantNotesItems();
+    captureState();
 }
 
 function moveImportantNotesItemUp(itemId) {
@@ -822,6 +919,7 @@ function moveImportantNotesItemUp(itemId) {
     if (index > 0) {
         [importantNotesItems[index - 1], importantNotesItems[index]] = [importantNotesItems[index], importantNotesItems[index - 1]];
         renderImportantNotesItems();
+        captureState();
     }
 }
 
@@ -830,6 +928,7 @@ function moveImportantNotesItemDown(itemId) {
     if (index < importantNotesItems.length - 1) {
         [importantNotesItems[index], importantNotesItems[index + 1]] = [importantNotesItems[index + 1], importantNotesItems[index]];
         renderImportantNotesItems();
+        captureState();
     }
 }
 
@@ -890,10 +989,12 @@ function renderPromotionEntries() {
         input.addEventListener('input', (e) => {
             updateEntryData(e);
             debouncedLivePreview();
+            debouncedCaptureState(); // Capture after user stops typing
         });
         input.addEventListener('change', (e) => {
             updateEntryData(e);
             updateLivePreview(); // Immediate update for dropdowns
+            captureState(); // Capture immediately on dropdown change
         });
     });
 
@@ -952,6 +1053,7 @@ function renderSpecialHours() {
         input.addEventListener('input', (e) => {
             updateSpecialHourData(e);
             debouncedLivePreview();
+            debouncedCaptureState(); // Capture after user stops typing
         });
     });
 
@@ -1012,6 +1114,7 @@ function renderHowToShopItems() {
             if (item) {
                 item.text = e.target.value;
                 debouncedLivePreview();
+                debouncedCaptureState(); // Capture after user stops typing
             }
         });
     });
@@ -1053,6 +1156,7 @@ function renderImportantNotesItems() {
             if (item) {
                 item.text = e.target.value;
                 debouncedLivePreview();
+                debouncedCaptureState(); // Capture after user stops typing
             }
         });
     });
@@ -1104,6 +1208,15 @@ function renderPromotionEmailForm() {
     initializeDefaultItems();
 
     elements.formFields.innerHTML = `
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 1.5rem;">
+            <button type="button" class="undo-redo-btn" id="undoBtn" title="Undo (Ctrl+Z)" disabled>
+                <span>↶ Undo</span>
+            </button>
+            <button type="button" class="undo-redo-btn" id="redoBtn" title="Redo (Ctrl+Y)" disabled>
+                <span>↷ Redo</span>
+            </button>
+        </div>
+
         <div class="form-group">
             <label class="form-label">Date Range *</label>
             <div class="input-wrapper">
@@ -1272,6 +1385,41 @@ function renderPromotionEmailForm() {
     // Render initial items
     renderHowToShopItems();
     renderImportantNotesItems();
+
+    // Wire up undo/redo buttons
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+
+    if (undoBtn) {
+        undoBtn.addEventListener('click', undo);
+    }
+    if (redoBtn) {
+        redoBtn.addEventListener('click', redo);
+    }
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', handleUndoRedoShortcuts);
+
+    // Capture initial state
+    captureState();
+}
+
+// Handle keyboard shortcuts for undo/redo
+function handleUndoRedoShortcuts(e) {
+    // Only apply in promotion email mode
+    if (currentTemplate !== 'promotion-email') return;
+
+    // Ctrl+Z or Cmd+Z for undo
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+    }
+
+    // Ctrl+Y or Cmd+Y or Ctrl+Shift+Z for redo
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+    }
 }
 
 // Generate promotion email HTML
