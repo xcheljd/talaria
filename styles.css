@@ -1387,9 +1387,39 @@ body {
 
 .editable-item-fields {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto 1fr auto;
     gap: 1rem;
     align-items: start;
+}
+
+.drag-handle {
+    cursor: grab;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    transition: all var(--transition-base);
+    border-radius: var(--radius-sm);
+}
+
+.drag-handle:hover {
+    color: var(--accent-primary);
+    background: var(--bg-accent);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.editable-item-row.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+.editable-item-row.drag-over {
+    border-color: var(--accent-primary);
+    border-style: dashed;
+    background: var(--bg-accent);
 }
 
 .item-controls {
@@ -1467,58 +1497,62 @@ body {
 
 /* Collapsible Section Styles */
 .collapsible-section-header {
-    background: #f5f5f5;
-    border: 1px solid #d0d0d0;
-    border-radius: 2px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
     padding: 1rem 1.5rem;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: all 0.2s;
+    transition: all var(--transition-base);
     margin-bottom: 0;
 }
 
 .collapsible-section-header:hover {
-    background: #ebebeb;
-    border-color: #b0b0b0;
+    background: var(--bg-accent);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
 }
 
 .collapsible-section-header.expanded {
     border-bottom: none;
-    border-radius: 2px 2px 0 0;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     margin-bottom: 0;
 }
 
 .section-label {
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #1a1a1a;
+    color: var(--text-primary);
 }
 
 .edit-section-btn {
-    background: none;
+    background: var(--accent-primary);
     border: none;
-    font-size: 0.8125rem;
-    color: #666666;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-inverse);
     cursor: pointer;
-    padding: 0.25rem 0.5rem;
-    transition: color 0.2s;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-base);
     font-family: inherit;
 }
 
 .edit-section-btn:hover {
-    color: #2b2b2b;
+    background: var(--accent-secondary);
+    transform: scale(1.05);
 }
 
 .collapsible-section-content {
-    border: 1px solid #d0d0d0;
+    border: 2px solid var(--border-subtle);
     border-top: none;
-    border-radius: 0 0 2px 2px;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
     padding: 1.5rem;
-    background: #ffffff;
+    background: var(--bg-secondary);
 }
 
 @media (max-width: 1024px) {
