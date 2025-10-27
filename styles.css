@@ -465,7 +465,7 @@ body {
     align-items: start;
     max-height: 500px;
     opacity: 1;
-    overflow: hidden;
+    overflow: visible;
     transition: all var(--transition-slow);
 }
 
@@ -522,15 +522,19 @@ body {
     font-size: 20px;
     color: var(--text-tertiary);
     cursor: pointer;
-    padding: 4px 8px;
+    padding: 4px;
     display: none;
     transition: all var(--transition-fast);
     border-radius: 50%;
     line-height: 1;
+    width: 28px;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
 }
 
 .clear-search.visible {
-    display: block;
+    display: flex;
 }
 
 .clear-search:hover {
@@ -637,11 +641,17 @@ body {
 .result-counter {
     font-size: 12px;
     color: var(--text-secondary);
-    margin-top: 8px;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     font-weight: 500;
     line-height: 1.4;
+    padding: 10px 12px;
+    border-top: 2px solid var(--border-medium);
+    background: var(--bg-tertiary);
+    text-align: center;
+    position: sticky;
+    bottom: 0;
+    margin-top: auto;
 }
 
 .category-tabs {
@@ -1311,22 +1321,26 @@ body {
 
 /* Order Control Buttons */
 .order-btn {
-    background: none;
+    background: var(--bg-tertiary);
     border: 2px solid var(--border-medium);
-    font-size: 0.875rem;
+    font-size: 12px;
     color: var(--text-secondary);
     cursor: pointer;
-    padding: 0.25rem 0.5rem;
+    padding: 4px 8px;
     line-height: 1;
     transition: all var(--transition-base);
-    border-radius: var(--radius-sm);
+    border-radius: 4px;
+    min-width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .order-btn:hover:not(:disabled) {
     background: var(--accent-primary);
     border-color: var(--accent-primary);
     color: var(--text-inverse);
-    transform: translateY(-2px);
 }
 
 .order-btn:disabled {
