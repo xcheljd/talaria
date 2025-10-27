@@ -462,8 +462,10 @@ let searchActive = false;
 let userProfile = null;
 
 // Promotion email state
-let promotionTiers = [];
+let promotionEntries = [];
 let specialHours = [];
+let howToShopItems = [];
+let importantNotesItems = [];
 
 // Load user profile from localStorage
 function loadUserProfile() {
@@ -703,23 +705,41 @@ function generatePromoTitle(dateRange) {
     return 'WEEKLY SALE';
 }
 
-// Add a new promotion tier
-function addPromotionTier() {
-    const tierId = Date.now();
-    promotionTiers.push({
-        id: tierId,
+// Add a new promotion entry
+function addPromotionEntry() {
+    const entryId = Date.now();
+    promotionEntries.push({
+        id: entryId,
         brand: '',
         discount: '',
         collections: '',
         callout: ''
     });
-    renderPromotionTiers();
+    renderPromotionEntries();
 }
 
-// Remove a promotion tier
-function removePromotionTier(tierId) {
-    promotionTiers = promotionTiers.filter(tier => tier.id !== tierId);
-    renderPromotionTiers();
+// Remove a promotion entry
+function removePromotionEntry(entryId) {
+    promotionEntries = promotionEntries.filter(entry => entry.id !== entryId);
+    renderPromotionEntries();
+}
+
+// Move promotion entry up
+function movePromotionEntryUp(entryId) {
+    const index = promotionEntries.findIndex(e => e.id === entryId);
+    if (index > 0) {
+        [promotionEntries[index - 1], promotionEntries[index]] = [promotionEntries[index], promotionEntries[index - 1]];
+        renderPromotionEntries();
+    }
+}
+
+// Move promotion entry down
+function movePromotionEntryDown(entryId) {
+    const index = promotionEntries.findIndex(e => e.id === entryId);
+    if (index < promotionEntries.length - 1) {
+        [promotionEntries[index], promotionEntries[index + 1]] = [promotionEntries[index + 1], promotionEntries[index]];
+        renderPromotionEntries();
+    }
 }
 
 // Add a new special hour row
@@ -739,81 +759,162 @@ function removeSpecialHour(hourId) {
     renderSpecialHours();
 }
 
-// Render all promotion tiers
-function renderPromotionTiers() {
-    const container = document.getElementById('promotionTiersContainer');
+// Move special hour up
+function moveSpecialHourUp(hourId) {
+    const index = specialHours.findIndex(h => h.id === hourId);
+    if (index > 0) {
+        [specialHours[index - 1], specialHours[index]] = [specialHours[index], specialHours[index - 1]];
+        renderSpecialHours();
+    }
+}
+
+// Move special hour down
+function moveSpecialHourDown(hourId) {
+    const index = specialHours.findIndex(h => h.id === hourId);
+    if (index < specialHours.length - 1) {
+        [specialHours[index], specialHours[index + 1]] = [specialHours[index + 1], specialHours[index]];
+        renderSpecialHours();
+    }
+}
+
+// How to Shop functions
+function addHowToShopItem() {
+    const itemId = Date.now();
+    howToShopItems.push({ id: itemId, text: '' });
+    renderHowToShopItems();
+}
+
+function removeHowToShopItem(itemId) {
+    howToShopItems = howToShopItems.filter(item => item.id !== itemId);
+    renderHowToShopItems();
+}
+
+function moveHowToShopItemUp(itemId) {
+    const index = howToShopItems.findIndex(i => i.id === itemId);
+    if (index > 0) {
+        [howToShopItems[index - 1], howToShopItems[index]] = [howToShopItems[index], howToShopItems[index - 1]];
+        renderHowToShopItems();
+    }
+}
+
+function moveHowToShopItemDown(itemId) {
+    const index = howToShopItems.findIndex(i => i.id === itemId);
+    if (index < howToShopItems.length - 1) {
+        [howToShopItems[index], howToShopItems[index + 1]] = [howToShopItems[index + 1], howToShopItems[index]];
+        renderHowToShopItems();
+    }
+}
+
+// Important Notes functions
+function addImportantNotesItem() {
+    const itemId = Date.now();
+    importantNotesItems.push({ id: itemId, text: '' });
+    renderImportantNotesItems();
+}
+
+function removeImportantNotesItem(itemId) {
+    importantNotesItems = importantNotesItems.filter(item => item.id !== itemId);
+    renderImportantNotesItems();
+}
+
+function moveImportantNotesItemUp(itemId) {
+    const index = importantNotesItems.findIndex(i => i.id === itemId);
+    if (index > 0) {
+        [importantNotesItems[index - 1], importantNotesItems[index]] = [importantNotesItems[index], importantNotesItems[index - 1]];
+        renderImportantNotesItems();
+    }
+}
+
+function moveImportantNotesItemDown(itemId) {
+    const index = importantNotesItems.findIndex(i => i.id === itemId);
+    if (index < importantNotesItems.length - 1) {
+        [importantNotesItems[index], importantNotesItems[index + 1]] = [importantNotesItems[index + 1], importantNotesItems[index]];
+        renderImportantNotesItems();
+    }
+}
+
+// Render all promotion entries
+function renderPromotionEntries() {
+    const container = document.getElementById('promotionEntriesContainer');
     if (!container) return;
 
-    container.innerHTML = promotionTiers.map((tier, index) => {
-        const safeId = escapeAttr(String(tier.id));
+    container.innerHTML = promotionEntries.map((entry, index) => {
+        const safeId = escapeAttr(String(entry.id));
+        const isFirst = index === 0;
+        const isLast = index === promotionEntries.length - 1;
+
         return `
-            <div class="promotion-tier" data-tier-id="${safeId}">
-                <div class="tier-header">
-                    <span class="tier-number">Tier ${index + 1}</span>
-                    <button type="button" class="tier-remove-btn" onclick="removePromotionTier(${tier.id})" title="Remove tier">×</button>
+            <div class="promotion-entry" data-entry-id="${safeId}">
+                <div class="entry-header">
+                    <span class="entry-number">Entry ${index + 1}</span>
+                    <div class="entry-controls">
+                        <button type="button" class="order-btn" onclick="movePromotionEntryUp(${entry.id})" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
+                        <button type="button" class="order-btn" onclick="movePromotionEntryDown(${entry.id})" title="Move down" ${isLast ? 'disabled' : ''}>▼</button>
+                        <button type="button" class="entry-remove-btn" onclick="removePromotionEntry(${entry.id})" title="Remove">×</button>
+                    </div>
                 </div>
 
-                <div class="tier-fields">
+                <div class="entry-fields">
                     <div class="form-group">
                         <label class="form-label">Brand *</label>
-                        <select class="form-input tier-brand" data-tier-id="${safeId}">
+                        <select class="form-input entry-brand" data-entry-id="${safeId}">
                             <option value="">Select brand...</option>
-                            <option value="Citizen" ${tier.brand === 'Citizen' ? 'selected' : ''}>Citizen</option>
-                            <option value="Bulova" ${tier.brand === 'Bulova' ? 'selected' : ''}>Bulova</option>
-                            <option value="Alpina" ${tier.brand === 'Alpina' ? 'selected' : ''}>Alpina</option>
-                            <option value="Frederique Constant" ${tier.brand === 'Frederique Constant' ? 'selected' : ''}>Frederique Constant</option>
+                            <option value="Citizen" ${entry.brand === 'Citizen' ? 'selected' : ''}>Citizen</option>
+                            <option value="Bulova" ${entry.brand === 'Bulova' ? 'selected' : ''}>Bulova</option>
+                            <option value="Alpina" ${entry.brand === 'Alpina' ? 'selected' : ''}>Alpina</option>
+                            <option value="Frederique Constant" ${entry.brand === 'Frederique Constant' ? 'selected' : ''}>Frederique Constant</option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Discount % *</label>
-                        <input type="text" class="form-input tier-discount" data-tier-id="${safeId}" value="${escapeAttr(tier.discount)}" placeholder="60">
+                        <input type="text" class="form-input entry-discount" data-entry-id="${safeId}" value="${escapeAttr(entry.discount)}" placeholder="60">
                     </div>
 
                     <div class="form-group full-width">
                         <label class="form-label">Collections (comma-separated)</label>
-                        <input type="text" class="form-input tier-collections" data-tier-id="${safeId}" value="${escapeAttr(tier.collections)}" placeholder="Corso, Avion, Marine Star">
+                        <input type="text" class="form-input entry-collections" data-entry-id="${safeId}" value="${escapeAttr(entry.collections)}" placeholder="Corso, Avion, Marine Star">
                     </div>
 
                     <div class="form-group full-width">
                         <label class="form-label">Special Callout (optional)</label>
-                        <input type="text" class="form-input tier-callout" data-tier-id="${safeId}" value="${escapeAttr(tier.callout)}" placeholder="Final sale items excluded">
+                        <input type="text" class="form-input entry-callout" data-entry-id="${safeId}" value="${escapeAttr(entry.callout)}" placeholder="Final sale items excluded">
                     </div>
                 </div>
             </div>
         `;
     }).join('');
 
-    // Attach event listeners to update tier data and live preview
-    container.querySelectorAll('.tier-brand, .tier-discount, .tier-collections, .tier-callout').forEach(input => {
+    // Attach event listeners to update entry data and live preview
+    container.querySelectorAll('.entry-brand, .entry-discount, .entry-collections, .entry-callout').forEach(input => {
         input.addEventListener('input', (e) => {
-            updateTierData(e);
+            updateEntryData(e);
             debouncedLivePreview();
         });
         input.addEventListener('change', (e) => {
-            updateTierData(e);
+            updateEntryData(e);
             updateLivePreview(); // Immediate update for dropdowns
         });
     });
 
-    // Update preview after rendering tiers
+    // Update preview after rendering entries
     updateLivePreview();
 }
 
-// Update tier data from inputs
-function updateTierData(e) {
-    const tierId = parseInt(e.target.dataset.tierId);
-    const tier = promotionTiers.find(t => t.id === tierId);
-    if (!tier) return;
+// Update entry data from inputs
+function updateEntryData(e) {
+    const entryId = parseInt(e.target.dataset.entryId);
+    const entry = promotionEntries.find(t => t.id === entryId);
+    if (!entry) return;
 
-    if (e.target.classList.contains('tier-brand')) {
-        tier.brand = e.target.value;
-    } else if (e.target.classList.contains('tier-discount')) {
-        tier.discount = e.target.value;
-    } else if (e.target.classList.contains('tier-collections')) {
-        tier.collections = e.target.value;
-    } else if (e.target.classList.contains('tier-callout')) {
-        tier.callout = e.target.value;
+    if (e.target.classList.contains('entry-brand')) {
+        entry.brand = e.target.value;
+    } else if (e.target.classList.contains('entry-discount')) {
+        entry.discount = e.target.value;
+    } else if (e.target.classList.contains('entry-collections')) {
+        entry.collections = e.target.value;
+    } else if (e.target.classList.contains('entry-callout')) {
+        entry.callout = e.target.value;
     }
 }
 
@@ -824,6 +925,9 @@ function renderSpecialHours() {
 
     container.innerHTML = specialHours.map((hour, index) => {
         const safeId = escapeAttr(String(hour.id));
+        const isFirst = index === 0;
+        const isLast = index === specialHours.length - 1;
+
         return `
             <div class="special-hour-row" data-hour-id="${safeId}">
                 <div class="special-hour-fields">
@@ -833,7 +937,11 @@ function renderSpecialHours() {
                     <div class="form-group">
                         <input type="text" class="form-input hour-hours" data-hour-id="${safeId}" value="${escapeAttr(hour.hours)}" placeholder="e.g., 6AM–10PM or CLOSED">
                     </div>
-                    <button type="button" class="hour-remove-btn" onclick="removeSpecialHour(${hour.id})" title="Remove">×</button>
+                    <div class="hour-controls">
+                        <button type="button" class="order-btn" onclick="moveSpecialHourUp(${hour.id})" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
+                        <button type="button" class="order-btn" onclick="moveSpecialHourDown(${hour.id})" title="Move down" ${isLast ? 'disabled' : ''}>▼</button>
+                        <button type="button" class="hour-remove-btn" onclick="removeSpecialHour(${hour.id})" title="Remove">×</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -849,6 +957,12 @@ function renderSpecialHours() {
 
     // Update preview after rendering hours
     updateLivePreview();
+
+    // Show/hide reminder based on special hours
+    const reminder = document.getElementById('specialHoursReminder');
+    if (reminder) {
+        reminder.style.display = specialHours.length > 0 ? 'block' : 'none';
+    }
 }
 
 // Update special hour data from inputs
@@ -864,11 +978,130 @@ function updateSpecialHourData(e) {
     }
 }
 
+// Render How to Shop items
+function renderHowToShopItems() {
+    const container = document.getElementById('howToShopContainer');
+    if (!container) return;
+
+    container.innerHTML = howToShopItems.map((item, index) => {
+        const safeId = escapeAttr(String(item.id));
+        const isFirst = index === 0;
+        const isLast = index === howToShopItems.length - 1;
+
+        return `
+            <div class="editable-item-row" data-item-id="${safeId}">
+                <div class="editable-item-fields">
+                    <div class="form-group">
+                        <input type="text" class="form-input shop-item-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Visit us in-store for outlet-exclusive deals">
+                    </div>
+                    <div class="item-controls">
+                        <button type="button" class="order-btn" onclick="moveHowToShopItemUp(${item.id})" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
+                        <button type="button" class="order-btn" onclick="moveHowToShopItemDown(${item.id})" title="Move down" ${isLast ? 'disabled' : ''}>▼</button>
+                        <button type="button" class="item-remove-btn" onclick="removeHowToShopItem(${item.id})" title="Remove">×</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Attach event listeners
+    container.querySelectorAll('.shop-item-text').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const itemId = parseInt(e.target.dataset.itemId);
+            const item = howToShopItems.find(i => i.id === itemId);
+            if (item) {
+                item.text = e.target.value;
+                debouncedLivePreview();
+            }
+        });
+    });
+
+    updateLivePreview();
+}
+
+// Render Important Notes items
+function renderImportantNotesItems() {
+    const container = document.getElementById('importantNotesContainer');
+    if (!container) return;
+
+    container.innerHTML = importantNotesItems.map((item, index) => {
+        const safeId = escapeAttr(String(item.id));
+        const isFirst = index === 0;
+        const isLast = index === importantNotesItems.length - 1;
+
+        return `
+            <div class="editable-item-row" data-item-id="${safeId}">
+                <div class="editable-item-fields">
+                    <div class="form-group">
+                        <input type="text" class="form-input notes-item-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., See attached PDF for complete model details">
+                    </div>
+                    <div class="item-controls">
+                        <button type="button" class="order-btn" onclick="moveImportantNotesItemUp(${item.id})" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
+                        <button type="button" class="order-btn" onclick="moveImportantNotesItemDown(${item.id})" title="Move down" ${isLast ? 'disabled' : ''}>▼</button>
+                        <button type="button" class="item-remove-btn" onclick="removeImportantNotesItem(${item.id})" title="Remove">×</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Attach event listeners
+    container.querySelectorAll('.notes-item-text').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const itemId = parseInt(e.target.dataset.itemId);
+            const item = importantNotesItems.find(i => i.id === itemId);
+            if (item) {
+                item.text = e.target.value;
+                debouncedLivePreview();
+            }
+        });
+    });
+
+    updateLivePreview();
+}
+
+// Initialize default How to Shop and Important Notes items
+function initializeDefaultItems() {
+    if (howToShopItems.length === 0) {
+        const storePhone = getStorePhone();
+        const storeEmail = userProfile && userProfile.storeEmail ? userProfile.storeEmail : 'store@citizenwatchgroup.com';
+
+        howToShopItems = [
+            { id: Date.now() + 1, text: 'Visit us in-store for outlet-exclusive deals' },
+            { id: Date.now() + 2, text: `Call ${storePhone} for availability` },
+            { id: Date.now() + 3, text: '$20 flat-rate ground shipping in US' },
+            { id: Date.now() + 4, text: `Email ${storeEmail}` }
+        ];
+    }
+
+    if (importantNotesItems.length === 0) {
+        importantNotesItems = [
+            { id: Date.now() + 10, text: '*Select models only' },
+            { id: Date.now() + 11, text: 'See attached PDF for complete model details' },
+            { id: Date.now() + 12, text: 'Limited availability - while supplies last' },
+            { id: Date.now() + 13, text: 'Email response time up to 48 hours' }
+        ];
+
+        // Add store directions if available
+        if (userProfile && userProfile.storeDirections) {
+            importantNotesItems.push({
+                id: Date.now() + 14,
+                text: `Find us at ${userProfile.storeDirections}`
+            });
+        }
+    }
+}
+
 // Render the promotion email form
 function renderPromotionEmailForm() {
-    // Reset tiers and special hours
-    promotionTiers = [];
+    // Reset all arrays
+    promotionEntries = [];
     specialHours = [];
+    howToShopItems = [];
+    importantNotesItems = [];
+
+    // Initialize default items
+    initializeDefaultItems();
 
     elements.formFields.innerHTML = `
         <div class="form-group">
@@ -900,10 +1133,28 @@ function renderPromotionEmailForm() {
 
         <div class="form-group full-width" style="margin-top: 2rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <label class="form-label" style="margin-bottom: 0;">Discount Tiers</label>
-                <button type="button" class="btn" id="addTierBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Tier</button>
+                <label class="form-label" style="margin-bottom: 0;">Discount Entries</label>
+                <button type="button" class="btn" id="addEntryBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Entry</button>
             </div>
-            <div id="promotionTiersContainer"></div>
+            <div id="promotionEntriesContainer"></div>
+        </div>
+
+        <div class="form-group full-width" style="margin-top: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <label class="form-label" style="margin-bottom: 0;">How to Shop</label>
+                <button type="button" class="btn" id="addShopBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
+            </div>
+            <div class="field-help" style="margin-bottom: 1rem;">Customize the "How to Shop" section bullets</div>
+            <div id="howToShopContainer"></div>
+        </div>
+
+        <div class="form-group full-width" style="margin-top: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <label class="form-label" style="margin-bottom: 0;">Important Notes</label>
+                <button type="button" class="btn" id="addNotesBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
+            </div>
+            <div class="field-help" style="margin-bottom: 1rem;">Customize the "Important Notes" section bullets</div>
+            <div id="importantNotesContainer"></div>
         </div>
 
         <div class="form-group full-width" style="margin-top: 2rem;">
@@ -913,6 +1164,9 @@ function renderPromotionEmailForm() {
             </div>
             <div class="field-help" style="margin-bottom: 1rem;">For holidays or special sale hours (e.g., Black Friday extended hours)</div>
             <div id="specialHoursContainer"></div>
+            <div id="specialHoursReminder" style="display: none; background: #fff3cd; border-left: 3px solid #ffc107; padding: 1rem; margin-top: 1rem;">
+                <strong>⚠️ Reminder:</strong> Don't forget to update your special hours on Yelp and Google Maps!
+            </div>
         </div>
     `;
 
@@ -988,9 +1242,22 @@ function renderPromotionEmailForm() {
         }
     }
 
-    // Add tier button
-    if (addTierBtn) {
-        addTierBtn.addEventListener('click', addPromotionTier);
+    // Add entry button
+    const addEntryBtn = document.getElementById('addEntryBtn');
+    if (addEntryBtn) {
+        addEntryBtn.addEventListener('click', addPromotionEntry);
+    }
+
+    // Add How to Shop item button
+    const addShopBtn = document.getElementById('addShopBtn');
+    if (addShopBtn) {
+        addShopBtn.addEventListener('click', addHowToShopItem);
+    }
+
+    // Add Important Notes item button
+    const addNotesBtn = document.getElementById('addNotesBtn');
+    if (addNotesBtn) {
+        addNotesBtn.addEventListener('click', addImportantNotesItem);
     }
 
     // Add special hour button
@@ -999,8 +1266,12 @@ function renderPromotionEmailForm() {
         addHourBtn.addEventListener('click', addSpecialHour);
     }
 
-    // Add initial tier
-    addPromotionTier();
+    // Add initial entry
+    addPromotionEntry();
+
+    // Render initial items
+    renderHowToShopItems();
+    renderImportantNotesItems();
 }
 
 // Generate promotion email HTML
@@ -1015,41 +1286,40 @@ function generatePromotionEmailHTML(data) {
     const storePhone = getStorePhone();
     const storeName = getStoreName();
 
-    // Build brand sections from tiers
+    // Build brand sections from entries
     let brandSections = '';
-    promotionTiers.forEach(tier => {
-        if (!tier.brand || !tier.discount) return; // Skip incomplete tiers
+    promotionEntries.forEach(entry => {
+        if (!entry.brand || !entry.discount) return; // Skip incomplete entries
 
         let collectionsHTML = '';
-        if (tier.collections && tier.collections.trim()) {
-            const collections = tier.collections.split(',').map(c => c.trim()).filter(c => c);
+        if (entry.collections && entry.collections.trim()) {
+            const collections = entry.collections.split(',').map(c => c.trim()).filter(c => c);
             collectionsHTML = collections.map(c => `*${c}`).join(' • ');
         }
 
         brandSections += `
-                <p style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-bottom: 8px;"><b>${tier.brand} - ${tier.discount}% OFF</b></p>`;
+                <p style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-bottom: 8px;"><b>${entry.brand} - ${entry.discount}% OFF</b></p>`;
 
         if (collectionsHTML) {
             brandSections += `
-                <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-left: 20px; margin-top: 0; margin-bottom: ${tier.callout ? '5px' : '20px'};">
+                <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-left: 20px; margin-top: 0; margin-bottom: ${entry.callout ? '5px' : '20px'};">
                     ${collectionsHTML}
                 </p>`;
         }
 
-        if (tier.callout && tier.callout.trim()) {
+        if (entry.callout && entry.callout.trim()) {
             brandSections += `
                 <p style="font-size: 13px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-left: 20px; margin-top: 0; margin-bottom: 20px; color: #0066cc; font-style: italic;">
-                    ${tier.callout}
+                    ${entry.callout}
                 </p>`;
         }
     });
 
     // Get store-specific details from user profile
     let storeAddress = '7400 Las Vegas Blvd. South, Suite 231<br>Las Vegas, NV 89123';
-    let storeMapCoords = '36.05145495363422,-115.16933573536541';
+    let storeMapLink = 'https://www.google.com/maps?q=36.05145495363422,-115.16933573536541'; // Default
     let storeEmail = storePhone.replace(/\D/g, ''); // Default fallback
     let storeHours = 'Mon–Sat: 10AM–8PM | Sun: 10AM–7PM';
-    let storeDirections = '';
 
     // Override with user profile data if available
     if (userProfile) {
@@ -1065,31 +1335,32 @@ function generatePromotionEmailHTML(data) {
             storeAddress = userProfile.storeAddress.replace(/\n/g, '<br>');
         }
 
-        if (userProfile.storeMapCoords) {
-            storeMapCoords = userProfile.storeMapCoords;
-        }
-
         if (userProfile.storeHours) {
             storeHours = userProfile.storeHours;
         }
 
-        if (userProfile.storeDirections) {
-            storeDirections = userProfile.storeDirections;
+        // Build Google Maps link with priority: coordinates > address
+        if (userProfile.storeMapCoords && userProfile.storeMapCoords.trim()) {
+            // Priority 1: Use coordinates if available
+            storeMapLink = `https://www.google.com/maps?q=${encodeURIComponent(userProfile.storeMapCoords)}`;
+        } else if (userProfile.storeAddress && userProfile.storeAddress.trim()) {
+            // Priority 2: Use address text for search if no coordinates
+            const addressForSearch = userProfile.storeAddress.replace(/<br>/g, ' ').replace(/\n/g, ' ');
+            storeMapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressForSearch)}`;
         }
     }
 
-    // Build important notes section
-    let importantNotes = `
-                    • *Select models only<br>
-                    • See attached PDF for complete model details<br>
-                    • Limited availability - while supplies last<br>
-                    • Email response time up to 48 hours`;
+    // Build How to Shop section from array
+    let howToShopHTML = howToShopItems
+        .filter(item => item.text && item.text.trim())
+        .map(item => `• ${item.text}`)
+        .join('<br>\n                    ');
 
-    // Add store directions if available
-    if (storeDirections) {
-        importantNotes += `<br>
-                    • Find us at ${storeDirections}`;
-    }
+    // Build Important Notes section from array
+    let importantNotesHTML = importantNotesItems
+        .filter(item => item.text && item.text.trim())
+        .map(item => `• ${item.text}`)
+        .join('<br>\n                    ');
 
     return `<!DOCTYPE html>
 <html>
@@ -1119,17 +1390,15 @@ ${brandSections}
                 <!-- HOW TO SHOP BOX -->
                 <div style="background-color: #f5f5f5; padding: 15px; margin-bottom: 20px;">
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0;"><b>HOW TO SHOP</b></p>
-                    <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">• Visit us in-store for outlet-exclusive deals<br>
-                    • Call ${storePhone} for availability<br>
-                    • $20 flat-rate ground shipping in US<br>
-                    • Email ${storeEmail}</p>
+                    <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">
+                    ${howToShopHTML}</p>
                 </div>
 
                 <!-- IMPORTANT NOTES BOX -->
                 <div style="border: 1px solid #ddd; padding: 15px;">
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0;"><b>IMPORTANT NOTES</b></p>
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">
-                    ${importantNotes}</p>
+                    ${importantNotesHTML}</p>
                 </div>
 
             </td>
@@ -1140,12 +1409,12 @@ ${brandSections}
             <td style="background-color: #2c3e50; padding: 20px; text-align: center;">
                 <h3 style="color: white; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 18px; margin: 0 0 10px 0;">CITIZEN COMPANY STORE</h3>
                 <p style="color: white; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
-                    📍 <a href="https://www.google.com/maps?q=${storeMapCoords}" style="color: white;">
+                    📍 <a href="${storeMapLink}" target="_blank" style="color: white;">
                     ${storeAddress}</a>
                 </p>
                 <p style="color: white; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
-                    📞 <a href="tel:+1${storePhone.replace(/\D/g, '')}" style="color: white;">${storePhone}</a> |
-                    📧 <a href="mailto:${storeEmail}" style="color: white;">${storeEmail}</a>
+                    📞 <a href="tel:+1${storePhone.replace(/\D/g, '')}" target="_blank" style="color: white;">${storePhone}</a> |
+                    📧 <a href="mailto:${storeEmail}" target="_blank" style="color: white;">${storeEmail}</a>
                 </p>
                 <p style="color: #ffd700; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 13px; margin: 10px 0 0 0;">
                     <b>STORE HOURS</b><br>
@@ -1506,8 +1775,8 @@ function generateMessage() {
                 return;
             }
 
-            if (promotionTiers.length === 0) {
-                showToast('⚠ Add at least one discount tier');
+            if (promotionEntries.length === 0) {
+                showToast('⚠ Add at least one discount entry');
                 return;
             }
 
@@ -1561,10 +1830,12 @@ function clearAll() {
     if (!currentTemplate) return;
 
     try {
-        // Clear promotion tiers and special hours if it's a promotion email
+        // Clear all promotion email arrays
         if (currentTemplate === 'promotion-email') {
-            promotionTiers = [];
+            promotionEntries = [];
             specialHours = [];
+            howToShopItems = [];
+            importantNotesItems = [];
         }
 
         const inputs = elements.formFields.querySelectorAll('.form-input, .form-textarea');
