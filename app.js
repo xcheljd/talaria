@@ -693,48 +693,101 @@ function savePromotionTemplate() {
     showToast('✓ Template saved successfully');
 }
 
-// Import promotion template configuration from localStorage
+// Import promotion template - supports both localStorage and file selection
 function importPromotionTemplate() {
+    if (currentTemplate !== 'promotion-email') return;
+
+    // Create file input element
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json,application/json';
+    fileInput.style.display = 'none';
+
+    // Handle file selection
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+            try {
+                const config = JSON.parse(event.target.result);
+                applyImportedConfig(config);
+                showToast('✓ Template imported from file successfully');
+            } catch (error) {
+                console.error('Import error:', error);
+                showToast('✗ Error reading template file - Invalid JSON');
+            }
+        };
+
+        reader.onerror = () => {
+            showToast('✗ Error reading file');
+        };
+
+        reader.readAsText(file);
+    });
+
+    // Trigger file selection
+    document.body.appendChild(fileInput);
+    fileInput.click();
+
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(fileInput);
+    }, 1000);
+}
+
+// Helper function to apply imported configuration
+function applyImportedConfig(config) {
+    if (!config) {
+        showToast('✗ Invalid template data');
+        return;
+    }
+
+    // Restore form fields
+    const dateRangeInput = document.getElementById('promoDateRange');
+    const yearInput = document.getElementById('promoYear');
+    const titleInput = document.getElementById('promoTitle');
+
+    if (dateRangeInput) dateRangeInput.value = config.dateRange || '';
+    if (yearInput) yearInput.value = config.year || '';
+    if (titleInput) titleInput.value = config.title || '';
+
+    // Restore arrays
+    promotionEntries = JSON.parse(JSON.stringify(config.promotionEntries || []));
+    specialHours = JSON.parse(JSON.stringify(config.specialHours || []));
+    howToShopItems = JSON.parse(JSON.stringify(config.howToShopItems || []));
+    importantNotesItems = JSON.parse(JSON.stringify(config.importantNotesItems || []));
+
+    // Re-render all sections
+    renderPromotionEntries();
+    renderSpecialHours();
+    renderHowToShopSection();
+    renderImportantNotesSection();
+
+    // Update live preview and capture state
+    updateLivePreview();
+    captureState();
+}
+
+// Import from localStorage (for backwards compatibility)
+function importFromLocalStorage() {
     if (currentTemplate !== 'promotion-email') return;
 
     try {
         const saved = localStorage.getItem('savedPromotionTemplate');
         if (!saved) {
-            showToast('⚠ No saved template found');
+            showToast('⚠ No saved template found in browser storage');
             return;
         }
 
         const config = JSON.parse(saved);
-
-        // Restore form fields
-        const dateRangeInput = document.getElementById('promoDateRange');
-        const yearInput = document.getElementById('promoYear');
-        const titleInput = document.getElementById('promoTitle');
-
-        if (dateRangeInput) dateRangeInput.value = config.dateRange || '';
-        if (yearInput) yearInput.value = config.year || '';
-        if (titleInput) titleInput.value = config.title || '';
-
-        // Restore arrays
-        promotionEntries = JSON.parse(JSON.stringify(config.promotionEntries || []));
-        specialHours = JSON.parse(JSON.stringify(config.specialHours || []));
-        howToShopItems = JSON.parse(JSON.stringify(config.howToShopItems || []));
-        importantNotesItems = JSON.parse(JSON.stringify(config.importantNotesItems || []));
-
-        // Re-render all sections
-        renderPromotionEntries();
-        renderSpecialHours();
-        renderHowToShopSection();
-        renderImportantNotesSection();
-
-        // Update live preview and capture state
-        updateLivePreview();
-        captureState();
-
-        showToast('✓ Template imported successfully');
+        applyImportedConfig(config);
+        showToast('✓ Template imported from browser storage');
     } catch (e) {
         console.error('Import error:', e);
-        showToast('✗ Error importing template');
+        showToast('✗ Error importing from browser storage');
     }
 }
 
