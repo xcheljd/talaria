@@ -534,6 +534,11 @@ let specialHours = [];
 let howToShopItems = [];
 let importantNotesItems = [];
 
+// UI state for collapsible sections
+let howToShopExpanded = false;
+let importantNotesExpanded = false;
+let entryCollapsedStates = {}; // Track which entries are collapsed by ID
+
 // Undo/Redo history
 let historyStack = [];
 let historyIndex = -1;
@@ -577,8 +582,8 @@ function restoreState(state) {
     // Re-render all sections without capturing state
     renderPromotionEntries();
     renderSpecialHours();
-    renderHowToShopItems();
-    renderImportantNotesItems();
+    renderHowToShopSection();
+    renderImportantNotesSection();
 }
 
 // Undo last change
@@ -939,13 +944,13 @@ function moveSpecialHourDown(hourId) {
 function addHowToShopItem() {
     const itemId = Date.now();
     howToShopItems.push({ id: itemId, text: '' });
-    renderHowToShopItems();
+    renderHowToShopSection();
     captureState();
 }
 
 function removeHowToShopItem(itemId) {
     howToShopItems = howToShopItems.filter(item => item.id !== itemId);
-    renderHowToShopItems();
+    renderHowToShopSection();
     captureState();
 }
 
@@ -953,7 +958,7 @@ function moveHowToShopItemUp(itemId) {
     const index = howToShopItems.findIndex(i => i.id === itemId);
     if (index > 0) {
         [howToShopItems[index - 1], howToShopItems[index]] = [howToShopItems[index], howToShopItems[index - 1]];
-        renderHowToShopItems();
+        renderHowToShopSection();
         captureState();
     }
 }
@@ -962,7 +967,7 @@ function moveHowToShopItemDown(itemId) {
     const index = howToShopItems.findIndex(i => i.id === itemId);
     if (index < howToShopItems.length - 1) {
         [howToShopItems[index], howToShopItems[index + 1]] = [howToShopItems[index + 1], howToShopItems[index]];
-        renderHowToShopItems();
+        renderHowToShopSection();
         captureState();
     }
 }
@@ -971,13 +976,13 @@ function moveHowToShopItemDown(itemId) {
 function addImportantNotesItem() {
     const itemId = Date.now();
     importantNotesItems.push({ id: itemId, text: '' });
-    renderImportantNotesItems();
+    renderImportantNotesSection();
     captureState();
 }
 
 function removeImportantNotesItem(itemId) {
     importantNotesItems = importantNotesItems.filter(item => item.id !== itemId);
-    renderImportantNotesItems();
+    renderImportantNotesSection();
     captureState();
 }
 
@@ -985,7 +990,7 @@ function moveImportantNotesItemUp(itemId) {
     const index = importantNotesItems.findIndex(i => i.id === itemId);
     if (index > 0) {
         [importantNotesItems[index - 1], importantNotesItems[index]] = [importantNotesItems[index], importantNotesItems[index - 1]];
-        renderImportantNotesItems();
+        renderImportantNotesSection();
         captureState();
     }
 }
@@ -994,9 +999,25 @@ function moveImportantNotesItemDown(itemId) {
     const index = importantNotesItems.findIndex(i => i.id === itemId);
     if (index < importantNotesItems.length - 1) {
         [importantNotesItems[index], importantNotesItems[index + 1]] = [importantNotesItems[index + 1], importantNotesItems[index]];
-        renderImportantNotesItems();
+        renderImportantNotesSection();
         captureState();
     }
+}
+
+// Toggle functions for collapsible sections
+function toggleHowToShop() {
+    howToShopExpanded = !howToShopExpanded;
+    renderHowToShopSection();
+}
+
+function toggleImportantNotes() {
+    importantNotesExpanded = !importantNotesExpanded;
+    renderImportantNotesSection();
+}
+
+function toggleEntryCollapse(entryId) {
+    entryCollapsedStates[entryId] = !entryCollapsedStates[entryId];
+    renderPromotionEntries();
 }
 
 // Render all promotion entries
@@ -1008,19 +1029,38 @@ function renderPromotionEntries() {
         const safeId = escapeAttr(String(entry.id));
         const isFirst = index === 0;
         const isLast = index === promotionEntries.length - 1;
+        const isCollapsed = entryCollapsedStates[entry.id] || false;
+
+        // Build summary text for collapsed state
+        let summaryText = '';
+        if (entry.brand && entry.discount) {
+            summaryText = `${entry.brand} - ${entry.discount}% OFF`;
+            if (entry.collections) {
+                const firstCollection = entry.collections.split(',')[0].trim();
+                summaryText += ` • ${firstCollection}${entry.collections.includes(',') ? '...' : ''}`;
+            }
+        } else {
+            summaryText = 'Entry not filled out';
+        }
 
         return `
-            <div class="promotion-entry" data-entry-id="${safeId}">
+            <div class="promotion-entry ${isCollapsed ? 'collapsed' : ''}" data-entry-id="${safeId}">
                 <div class="entry-header">
-                    <span class="entry-number">Entry ${index + 1}</span>
+                    <div class="entry-header-left">
+                        <span class="entry-number">Entry ${index + 1}</span>
+                        ${isCollapsed ? `<span class="entry-summary">${summaryText}</span>` : ''}
+                    </div>
                     <div class="entry-controls">
+                        <button type="button" class="collapse-btn" onclick="toggleEntryCollapse(${entry.id})" title="${isCollapsed ? 'Expand' : 'Minimize'}">
+                            ${isCollapsed ? '▼' : '▲'}
+                        </button>
                         <button type="button" class="order-btn" onclick="movePromotionEntryUp(${entry.id})" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
                         <button type="button" class="order-btn" onclick="movePromotionEntryDown(${entry.id})" title="Move down" ${isLast ? 'disabled' : ''}>▼</button>
                         <button type="button" class="entry-remove-btn" onclick="removePromotionEntry(${entry.id})" title="Remove">×</button>
                     </div>
                 </div>
 
-                <div class="entry-fields">
+                <div class="entry-fields" style="display: ${isCollapsed ? 'none' : 'grid'};">
                     <div class="form-group">
                         <label class="form-label">Brand *</label>
                         <select class="form-input entry-brand" data-entry-id="${safeId}">
@@ -1147,9 +1187,42 @@ function updateSpecialHourData(e) {
     }
 }
 
-// Render How to Shop items
+// Render How to Shop section (wrapper with expand/collapse)
+function renderHowToShopSection() {
+    const wrapper = document.getElementById('howToShopWrapper');
+    if (!wrapper) return;
+
+    if (!howToShopExpanded) {
+        // Collapsed state - show summary
+        const itemCount = howToShopItems.filter(item => item.text && item.text.trim()).length;
+        wrapper.innerHTML = `
+            <div class="collapsible-section-header" onclick="toggleHowToShop()">
+                <span class="section-label">How to Shop (${itemCount} items)</span>
+                <button type="button" class="edit-section-btn">Edit ▼</button>
+            </div>
+        `;
+    } else {
+        // Expanded state - show all items
+        wrapper.innerHTML = `
+            <div class="collapsible-section-header expanded" onclick="toggleHowToShop()">
+                <span class="section-label">How to Shop</span>
+                <button type="button" class="edit-section-btn">Collapse ▲</button>
+            </div>
+            <div class="collapsible-section-content">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                    <button type="button" class="btn" onclick="addHowToShopItem(); event.stopPropagation();" style="padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
+                </div>
+                <div id="howToShopItemsContainer"></div>
+            </div>
+        `;
+        // Render the items
+        renderHowToShopItems();
+    }
+}
+
+// Render How to Shop items (called when expanded)
 function renderHowToShopItems() {
-    const container = document.getElementById('howToShopContainer');
+    const container = document.getElementById('howToShopItemsContainer');
     if (!container) return;
 
     container.innerHTML = howToShopItems.map((item, index) => {
@@ -1189,9 +1262,42 @@ function renderHowToShopItems() {
     updateLivePreview();
 }
 
-// Render Important Notes items
+// Render Important Notes section (wrapper with expand/collapse)
+function renderImportantNotesSection() {
+    const wrapper = document.getElementById('importantNotesWrapper');
+    if (!wrapper) return;
+
+    if (!importantNotesExpanded) {
+        // Collapsed state - show summary
+        const itemCount = importantNotesItems.filter(item => item.text && item.text.trim()).length;
+        wrapper.innerHTML = `
+            <div class="collapsible-section-header" onclick="toggleImportantNotes()">
+                <span class="section-label">Important Notes (${itemCount} items)</span>
+                <button type="button" class="edit-section-btn">Edit ▼</button>
+            </div>
+        `;
+    } else {
+        // Expanded state - show all items
+        wrapper.innerHTML = `
+            <div class="collapsible-section-header expanded" onclick="toggleImportantNotes()">
+                <span class="section-label">Important Notes</span>
+                <button type="button" class="edit-section-btn">Collapse ▲</button>
+            </div>
+            <div class="collapsible-section-content">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                    <button type="button" class="btn" onclick="addImportantNotesItem(); event.stopPropagation();" style="padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
+                </div>
+                <div id="importantNotesItemsContainer"></div>
+            </div>
+        `;
+        // Render the items
+        renderImportantNotesItems();
+    }
+}
+
+// Render Important Notes items (called when expanded)
 function renderImportantNotesItems() {
-    const container = document.getElementById('importantNotesContainer');
+    const container = document.getElementById('importantNotesItemsContainer');
     if (!container) return;
 
     container.innerHTML = importantNotesItems.map((item, index) => {
@@ -1320,21 +1426,11 @@ function renderPromotionEmailForm() {
         </div>
 
         <div class="form-group full-width" style="margin-top: 2rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <label class="form-label" style="margin-bottom: 0;">How to Shop</label>
-                <button type="button" class="btn" id="addShopBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
-            </div>
-            <div class="field-help" style="margin-bottom: 1rem;">Customize the "How to Shop" section bullets</div>
-            <div id="howToShopContainer"></div>
+            <div id="howToShopWrapper"></div>
         </div>
 
         <div class="form-group full-width" style="margin-top: 2rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <label class="form-label" style="margin-bottom: 0;">Important Notes</label>
-                <button type="button" class="btn" id="addNotesBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
-            </div>
-            <div class="field-help" style="margin-bottom: 1rem;">Customize the "Important Notes" section bullets</div>
-            <div id="importantNotesContainer"></div>
+            <div id="importantNotesWrapper"></div>
         </div>
 
         <div class="form-group full-width" style="margin-top: 2rem;">
@@ -1428,18 +1524,6 @@ function renderPromotionEmailForm() {
         addEntryBtn.addEventListener('click', addPromotionEntry);
     }
 
-    // Add How to Shop item button
-    const addShopBtn = document.getElementById('addShopBtn');
-    if (addShopBtn) {
-        addShopBtn.addEventListener('click', addHowToShopItem);
-    }
-
-    // Add Important Notes item button
-    const addNotesBtn = document.getElementById('addNotesBtn');
-    if (addNotesBtn) {
-        addNotesBtn.addEventListener('click', addImportantNotesItem);
-    }
-
     // Add special hour button
     const addHourBtn = document.getElementById('addHourBtn');
     if (addHourBtn) {
@@ -1449,9 +1533,9 @@ function renderPromotionEmailForm() {
     // Add initial entry
     addPromotionEntry();
 
-    // Render initial items
-    renderHowToShopItems();
-    renderImportantNotesItems();
+    // Render collapsible sections
+    renderHowToShopSection();
+    renderImportantNotesSection();
 
     // Wire up undo/redo buttons
     const undoBtn = document.getElementById('undoBtn');
