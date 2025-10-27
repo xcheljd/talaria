@@ -514,18 +514,19 @@ body {
 
 .clear-search {
     position: absolute;
-    right: 0.75rem;
+    right: 10px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
-    font-size: 1.25rem;
+    font-size: 20px;
     color: var(--text-tertiary);
     cursor: pointer;
-    padding: 0.25rem 0.5rem;
+    padding: 4px 8px;
     display: none;
     transition: all var(--transition-fast);
     border-radius: 50%;
+    line-height: 1;
 }
 
 .clear-search.visible {
@@ -634,12 +635,13 @@ body {
 }
 
 .result-counter {
-    font-size: 0.8125rem;
+    font-size: 12px;
     color: var(--text-secondary);
-    margin-top: 0.75rem;
+    margin-top: 8px;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     font-weight: 500;
+    line-height: 1.4;
 }
 
 .category-tabs {
@@ -976,20 +978,22 @@ body {
 
 .btn {
     flex: 1;
-    padding: 1rem 1.5rem;
+    padding: 10px 20px;
     background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     color: var(--text-inverse);
     border: none;
-    font-size: 0.8125rem;
+    font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-base);
     font-family: inherit;
-    border-radius: var(--radius-md);
+    border-radius: 6px;
     box-shadow: var(--shadow-sm);
     position: relative;
+    height: 40px;
+    line-height: 1.2;
     overflow: hidden;
 }
 
@@ -1127,10 +1131,11 @@ body {
 }
 
 .field-help {
-    font-size: 0.75rem;
+    font-size: 12px;
     color: var(--text-tertiary);
-    margin-top: 0.25rem;
+    margin-top: 4px;
     font-style: italic;
+    line-height: 1.4;
 }
 
 .calculated-value {
@@ -1202,7 +1207,17 @@ body {
 
 .promotion-entry:hover {
     box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+}
+
+.promotion-entry.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+.promotion-entry.drag-over {
+    border-color: var(--accent-primary);
+    border-style: dashed;
+    background: var(--bg-accent);
 }
 
 .entry-header {
@@ -1217,8 +1232,26 @@ body {
 .entry-header-left {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 12px;
     flex: 1;
+}
+
+.entry-header-left .drag-handle {
+    cursor: grab;
+    color: var(--text-tertiary);
+    padding: 4px;
+    transition: all var(--transition-base);
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.entry-header-left .drag-handle:hover {
+    color: var(--accent-primary);
+    background: var(--bg-accent);
+}
+
+.entry-header-left .drag-handle:active {
+    cursor: grabbing;
 }
 
 .entry-number {
@@ -1303,22 +1336,23 @@ body {
 
 /* Collapse Button for Entries */
 .collapse-btn {
-    background: none;
-    border: 1px solid #d0d0d0;
-    font-size: 0.75rem;
-    color: #666666;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-medium);
+    font-size: 12px;
+    color: var(--text-secondary);
     cursor: pointer;
-    padding: 0.25rem 0.5rem;
-    line-height: 1;
-    transition: all 0.2s;
-    border-radius: 2px;
-    min-width: 2rem;
+    padding: 6px 12px;
+    line-height: 1.2;
+    transition: all var(--transition-base);
+    border-radius: 6px;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .collapse-btn:hover {
-    background: #f5f5f5;
-    border-color: #2b2b2b;
-    color: #2b2b2b;
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--text-inverse);
 }
 
 /* Undo/Redo Buttons */
@@ -1326,17 +1360,22 @@ body {
 .template-action-btn {
     background: var(--bg-tertiary);
     border: 2px solid var(--border-medium);
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-secondary);
     cursor: pointer;
-    padding: 7px 12px;
+    padding: 8px 12px;
     transition: all var(--transition-base);
     border-radius: 6px;
     font-family: inherit;
     font-weight: 600;
     height: 36px;
-    line-height: 1.4;
+    line-height: 1.2;
     box-sizing: border-box;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
 }
 
 .undo-redo-btn:hover:not(:disabled),
