@@ -398,20 +398,20 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 500;
-    color: #999999;
+    color: var(--text-tertiary);
     cursor: pointer;
     border-bottom: 2px solid transparent;
-    transition: all 0.2s;
+    transition: all var(--transition-base);
     white-space: nowrap;
 }
 
 .tab.active {
-    color: #333333;
-    border-bottom-color: #333333;
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
 }
 
 .tab:hover {
-    color: #666666;
+    color: var(--text-secondary);
 }
 
 .template-select {
@@ -626,20 +626,20 @@ body {
     appearance: none;
     width: 1.25rem;
     height: 1.25rem;
-    border: 2px solid #d0d0d0;
+    border: 2px solid var(--border-medium);
     border-radius: 50%;
     cursor: pointer;
     position: relative;
-    transition: all 0.2s;
+    transition: all var(--transition-base);
 }
 
 .radio-option input[type="radio"]:hover {
-    border-color: #2b2b2b;
+    border-color: var(--accent-primary);
 }
 
 .radio-option input[type="radio"]:checked {
-    border-color: #2b2b2b;
-    background: #2b2b2b;
+    border-color: var(--accent-primary);
+    background: var(--accent-primary);
 }
 
 .radio-option input[type="radio"]:checked::after {
@@ -651,12 +651,12 @@ body {
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 50%;
-    background: #ffffff;
+    background: var(--text-inverse);
 }
 
 .radio-option label {
     font-size: 0.9375rem;
-    color: #2b2b2b;
+    color: var(--text-primary);
     cursor: pointer;
     user-select: none;
 }
@@ -665,27 +665,28 @@ body {
     width: 100%;
     min-height: 480px;
     padding: 1.5rem;
-    border: 1px solid #e0e0e0;
-    background: #fafafa;
+    border: 2px solid var(--border-subtle);
+    background: var(--bg-tertiary);
     font-size: 0.9375rem;
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
     resize: vertical;
     line-height: 1.75;
     white-space: pre-wrap;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    border-radius: 2px;
-    color: #2b2b2b;
+    transition: all var(--transition-base);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
 }
 
 .output-textarea.live-preview {
-    color: #666;
+    color: var(--text-tertiary);
     font-style: italic;
 }
 
 .output-textarea:focus {
     outline: none;
-    border-color: #2b2b2b;
-    box-shadow: 0 0 0 2px rgba(43, 43, 43, 0.05);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(169, 132, 103, 0.1);
+    transform: translateY(-1px);
 }
 
 .button-group {
@@ -845,12 +846,13 @@ body {
 
 .calculated-value {
     font-size: 0.875rem;
-    color: #2b2b2b;
+    color: var(--accent-primary);
     margin-top: 0.5rem;
     padding: 0.5rem 0.75rem;
-    background: #f0f8f0;
-    border-left: 2px solid #4caf50;
-    font-weight: 500;
+    background: var(--accent-highlight);
+    border-left: 3px solid var(--accent-primary);
+    font-weight: 600;
+    border-radius: var(--radius-sm);
 }
 
 .datalist-wrapper {
@@ -858,14 +860,15 @@ body {
 }
 
 .form-input.error, .form-textarea.error {
-    border-color: #c62828;
-    background: #fff8f8;
+    border-color: #dc3545;
+    background: var(--bg-accent);
 }
 
 .error-message {
     font-size: 0.75rem;
-    color: #c62828;
+    color: #dc3545;
     margin-top: 0.5rem;
+    font-weight: 500;
 }
 
 .template-option {
@@ -874,19 +877,20 @@ body {
 
 .tooltip {
     position: absolute;
-    background: #2b2b2b;
-    color: #fff;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     padding: 0.75rem 1rem;
-    border-radius: 2px;
+    border-radius: var(--radius-md);
     font-size: 0.8125rem;
     line-height: 1.6;
     max-width: 320px;
     z-index: 1000;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.2s;
+    transition: all var(--transition-base);
     white-space: normal;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-lg);
+    border: 2px solid var(--border-medium);
 }
 
 .tooltip.show {
@@ -894,21 +898,22 @@ body {
 }
 
 .template-select option[data-help]:hover {
-    background: #f8f8f8;
+    background: var(--bg-tertiary);
 }
 
 /* Promotion Email Entry Styles */
 .promotion-entry {
-    background: #ffffff;
-    border: 1px solid #e8e8e8;
-    border-radius: 2px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-subtle);
+    border-radius: var(--radius-md);
     padding: 1.5rem;
     margin-bottom: 1.5rem;
-    transition: box-shadow 0.2s;
+    transition: all var(--transition-base);
 }
 
 .promotion-entry:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
 }
 
 .entry-header {
@@ -917,15 +922,15 @@ body {
     align-items: center;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid #e8e8e8;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .entry-number {
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #1a1a1a;
+    color: var(--accent-primary);
 }
 
 .entry-controls {
@@ -938,15 +943,18 @@ body {
     background: none;
     border: none;
     font-size: 1.5rem;
-    color: #999999;
+    color: var(--text-tertiary);
     cursor: pointer;
     padding: 0.25rem 0.5rem;
     line-height: 1;
-    transition: color 0.2s;
+    transition: all var(--transition-fast);
+    border-radius: 50%;
 }
 
 .entry-remove-btn:hover {
-    color: #c62828;
+    color: #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+    transform: scale(1.1) rotate(90deg);
 }
 
 .entry-fields {
@@ -958,20 +966,21 @@ body {
 /* Order Control Buttons */
 .order-btn {
     background: none;
-    border: 1px solid #d0d0d0;
+    border: 2px solid var(--border-medium);
     font-size: 0.875rem;
-    color: #666666;
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 0.25rem 0.5rem;
     line-height: 1;
-    transition: all 0.2s;
-    border-radius: 2px;
+    transition: all var(--transition-base);
+    border-radius: var(--radius-sm);
 }
 
 .order-btn:hover:not(:disabled) {
-    background: #f5f5f5;
-    border-color: #2b2b2b;
-    color: #2b2b2b;
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--text-inverse);
+    transform: translateY(-2px);
 }
 
 .order-btn:disabled {
@@ -981,21 +990,24 @@ body {
 
 /* Undo/Redo Buttons */
 .undo-redo-btn {
-    background: #f5f5f5;
-    border: 1px solid #d0d0d0;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-medium);
     font-size: 0.8125rem;
-    color: #666666;
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 0.5rem 1rem;
-    transition: all 0.2s;
-    border-radius: 2px;
+    transition: all var(--transition-base);
+    border-radius: var(--radius-sm);
     font-family: inherit;
+    font-weight: 600;
 }
 
 .undo-redo-btn:hover:not(:disabled) {
-    background: #2b2b2b;
-    border-color: #2b2b2b;
-    color: white;
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--text-inverse);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
 }
 
 .undo-redo-btn:disabled {
@@ -1005,16 +1017,17 @@ body {
 
 /* Special Hours Styles */
 .special-hour-row {
-    background: #ffffff;
-    border: 1px solid #e8e8e8;
-    border-radius: 2px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-subtle);
+    border-radius: var(--radius-md);
     padding: 1rem;
     margin-bottom: 1rem;
-    transition: box-shadow 0.2s;
+    transition: all var(--transition-base);
 }
 
 .special-hour-row:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
 }
 
 .special-hour-fields {
@@ -1034,29 +1047,33 @@ body {
     background: none;
     border: none;
     font-size: 1.5rem;
-    color: #999999;
+    color: var(--text-tertiary);
     cursor: pointer;
     padding: 0.25rem 0.5rem;
     line-height: 1;
-    transition: color 0.2s;
+    transition: all var(--transition-fast);
+    border-radius: 50%;
 }
 
 .hour-remove-btn:hover {
-    color: #c62828;
+    color: #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+    transform: scale(1.1) rotate(90deg);
 }
 
 /* Editable Items (How to Shop, Important Notes) */
 .editable-item-row {
-    background: #ffffff;
-    border: 1px solid #e8e8e8;
-    border-radius: 2px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-subtle);
+    border-radius: var(--radius-md);
     padding: 1rem;
     margin-bottom: 1rem;
-    transition: box-shadow 0.2s;
+    transition: all var(--transition-base);
 }
 
 .editable-item-row:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
 }
 
 .editable-item-fields {
@@ -1076,15 +1093,18 @@ body {
     background: none;
     border: none;
     font-size: 1.5rem;
-    color: #999999;
+    color: var(--text-tertiary);
     cursor: pointer;
     padding: 0.25rem 0.5rem;
     line-height: 1;
-    transition: color 0.2s;
+    transition: all var(--transition-fast);
+    border-radius: 50%;
 }
 
 .item-remove-btn:hover {
-    color: #c62828;
+    color: #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+    transform: scale(1.1) rotate(90deg);
 }
 
 /* Output Tabs for Promotion Email */
@@ -1092,7 +1112,7 @@ body {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 1.5rem;
-    border-bottom: 1px solid #e8e8e8;
+    border-bottom: 2px solid var(--border-subtle);
 }
 
 .output-tab {
@@ -1102,21 +1122,22 @@ body {
     font-size: 0.8125rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    font-weight: 500;
-    color: #999999;
+    font-weight: 600;
+    color: var(--text-tertiary);
     cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+    transition: all var(--transition-base);
     font-family: inherit;
+    position: relative;
 }
 
 .output-tab.active {
-    color: #2b2b2b;
-    border-bottom-color: #2b2b2b;
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
 }
 
 .output-tab:hover {
-    color: #666666;
+    color: var(--text-secondary);
 }
 
 .output-content {
@@ -1130,9 +1151,9 @@ body {
 .preview-iframe {
     width: 100%;
     min-height: 600px;
-    border: 1px solid #e0e0e0;
-    background: #ffffff;
-    border-radius: 2px;
+    border: 2px solid var(--border-subtle);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
 }
 
 @media (max-width: 1024px) {
