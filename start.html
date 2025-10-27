@@ -13,9 +13,16 @@
         }
 
         .start-card {
-            background: #ffffff;
-            border: 1px solid #e8e8e8;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-subtle);
             padding: 3rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition-theme);
+        }
+
+        .start-card:hover {
+            box-shadow: var(--shadow-lg), var(--glow);
         }
 
         .start-header {
@@ -24,16 +31,20 @@
         }
 
         .start-header h1 {
-            font-size: 1.5rem;
-            font-weight: 400;
+            font-size: 1.75rem;
+            font-weight: 600;
             margin-bottom: 0.5rem;
-            letter-spacing: -0.01em;
-            color: #1a1a1a;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .start-header p {
             font-size: 0.9375rem;
-            color: #666666;
+            color: var(--text-secondary);
             line-height: 1.6;
         }
 
@@ -44,51 +55,70 @@
         }
 
         .start-info {
-            background: #f8f8f8;
-            border-left: 2px solid #2b2b2b;
+            background: var(--bg-accent);
+            border-left: 3px solid var(--accent-primary);
             padding: 1rem 1.25rem;
             font-size: 0.875rem;
-            color: #4a4a4a;
+            color: var(--text-secondary);
             line-height: 1.6;
             margin-bottom: 1rem;
+            border-radius: var(--radius-sm);
+        }
+
+        [data-theme="dark"] .start-info {
+            box-shadow: var(--glow);
         }
 
         .skip-link {
             text-align: center;
             margin-top: 1.5rem;
             padding-top: 1.5rem;
-            border-top: 1px solid #e8e8e8;
+            border-top: 1px solid var(--border-subtle);
         }
 
         .skip-link a {
-            color: #666666;
+            color: var(--text-secondary);
             text-decoration: none;
             font-size: 0.875rem;
-            transition: color 0.2s;
+            transition: all var(--transition-base);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            display: inline-block;
         }
 
         .skip-link a:hover {
-            color: #2b2b2b;
+            color: var(--accent-primary);
+            background: var(--bg-tertiary);
+            transform: translateY(-2px);
         }
 
         .form-input:read-only {
-            background: #f5f5f5;
-            color: #666666;
+            background: var(--bg-tertiary);
+            color: var(--text-tertiary);
             cursor: not-allowed;
+            opacity: 0.7;
         }
 
         .form-input[type="text"]:read-only:focus {
-            border-color: #d0d0d0;
+            border-color: var(--border-medium);
             box-shadow: none;
         }
 
         select.form-input {
             cursor: pointer;
             appearance: none;
-            background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path fill="%23666666" d="M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z"/></svg>');
+            background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path fill="currentColor" d="M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z"/></svg>');
             background-repeat: no-repeat;
             background-position: right 1rem center;
             padding-right: 2.5rem;
+        }
+
+        /* Theme Toggle on start page */
+        .start-theme-toggle {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 1000;
         }
 
         @media (max-width: 768px) {
@@ -100,10 +130,22 @@
             .start-card {
                 padding: 2rem 1.5rem;
             }
+
+            .start-theme-toggle {
+                top: 1rem;
+                right: 1rem;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Theme Toggle -->
+    <div class="start-theme-toggle">
+        <button class="theme-toggle" id="themeToggle" title="Cycle themes: Light → Warm → Dark" aria-label="Cycle through themes">
+            <div class="theme-toggle-slider"></div>
+        </button>
+    </div>
+
     <div class="start-container">
         <div class="start-card">
             <div class="start-header">
@@ -257,6 +299,49 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+    <script>
+        // Theme System - Same as main app
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIndicator(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const themeOrder = ['light', 'warm', 'dark'];
+            const currentIndex = themeOrder.indexOf(currentTheme);
+            const nextIndex = (currentIndex + 1) % themeOrder.length;
+            const newTheme = themeOrder[nextIndex];
+
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIndicator(newTheme);
+        }
+
+        function updateThemeIndicator(theme) {
+            const slider = document.querySelector('.theme-toggle-slider');
+            if (!slider) return;
+
+            const positions = { 'light': '0px', 'warm': '28px', 'dark': '56px' };
+            slider.style.transform = `translateX(${positions[theme]})`;
+
+            const gradients = {
+                'light': 'linear-gradient(135deg, #a98467, #d4a574)',
+                'warm': 'linear-gradient(135deg, #ff9500, #ffb340)',
+                'dark': 'linear-gradient(135deg, #00f5ff, #b537f2)'
+            };
+            slider.style.background = gradients[theme];
+        }
+
+        // Initialize theme on page load
+        initTheme();
+
+        // Attach theme toggle handler
+        document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+
+        // Original start.html script below
+    </script>
     <script>
         const form = document.getElementById('setupForm');
         const toast = document.getElementById('toast');
