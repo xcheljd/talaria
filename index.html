@@ -10,15 +10,23 @@
     <div class="header">
         <div class="header-top">
             <h1>Communication Template Generator</h1>
-            <a href="start.html" class="profile-link" title="Edit your profile">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                Profile
-            </a>
+            <div class="header-controls">
+                <button class="nav-toggle" id="navToggle" title="Toggle navigation">
+                    <span id="navToggleText">Hide Navigation</span>
+                </button>
+                <button class="theme-toggle" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <div class="theme-toggle-slider"></div>
+                </button>
+                <a href="start.html" class="profile-link" title="Edit your profile">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    Profile
+                </a>
+            </div>
         </div>
-        <div class="navigation">
+        <div class="navigation" id="navigation">
             <div class="search-container">
                 <input type="text" class="search-box" placeholder="Search templates..." id="searchBox" aria-label="Search templates">
                 <button class="clear-search" id="clearSearch" aria-label="Clear search">×</button>
