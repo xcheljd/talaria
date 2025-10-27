@@ -546,8 +546,8 @@ body {
     background: #f8f8f8;
 }
 
-/* Promotion Email Tier Styles */
-.promotion-tier {
+/* Promotion Email Entry Styles */
+.promotion-entry {
     background: #ffffff;
     border: 1px solid #e8e8e8;
     border-radius: 2px;
@@ -556,11 +556,11 @@ body {
     transition: box-shadow 0.2s;
 }
 
-.promotion-tier:hover {
+.promotion-entry:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.tier-header {
+.entry-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -569,7 +569,7 @@ body {
     border-bottom: 1px solid #e8e8e8;
 }
 
-.tier-number {
+.entry-number {
     font-size: 0.875rem;
     font-weight: 500;
     text-transform: uppercase;
@@ -577,7 +577,13 @@ body {
     color: #1a1a1a;
 }
 
-.tier-remove-btn {
+.entry-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.entry-remove-btn {
     background: none;
     border: none;
     font-size: 1.5rem;
@@ -588,14 +594,38 @@ body {
     transition: color 0.2s;
 }
 
-.tier-remove-btn:hover {
+.entry-remove-btn:hover {
     color: #c62828;
 }
 
-.tier-fields {
+.entry-fields {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
+}
+
+/* Order Control Buttons */
+.order-btn {
+    background: none;
+    border: 1px solid #d0d0d0;
+    font-size: 0.875rem;
+    color: #666666;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+    transition: all 0.2s;
+    border-radius: 2px;
+}
+
+.order-btn:hover:not(:disabled) {
+    background: #f5f5f5;
+    border-color: #2b2b2b;
+    color: #2b2b2b;
+}
+
+.order-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }
 
 /* Special Hours Styles */
@@ -619,18 +649,66 @@ body {
     align-items: start;
 }
 
+.hour-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
 .hour-remove-btn {
     background: none;
     border: none;
     font-size: 1.5rem;
     color: #999999;
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.25rem 0.5rem;
     line-height: 1;
     transition: color 0.2s;
 }
 
 .hour-remove-btn:hover {
+    color: #c62828;
+}
+
+/* Editable Items (How to Shop, Important Notes) */
+.editable-item-row {
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 2px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: box-shadow 0.2s;
+}
+
+.editable-item-row:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.editable-item-fields {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: start;
+}
+
+.item-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.item-remove-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #999999;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.item-remove-btn:hover {
     color: #c62828;
 }
 
