@@ -1,23 +1,29 @@
 // Constants
 const TOAST_DURATION_MS = 2500;
 
-// ===== DARK MODE & NAVIGATION TOGGLE =====
+// ===== THREE THEME SYSTEM (Light / Warm / Dark-Neon) =====
 
-// Initialize dark mode from localStorage
+// Initialize theme from localStorage
 function initTheme() {
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIndicator(savedTheme);
 }
 
-// Toggle dark mode
+// Cycle through three themes: light -> warm -> dark -> light
 function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+
+    const themeOrder = ['light', 'warm', 'dark'];
+    const currentIndex = themeOrder.indexOf(currentTheme);
+    const nextIndex = (currentIndex + 1) % themeOrder.length;
+    const newTheme = themeOrder[nextIndex];
 
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
+    updateThemeIndicator(newTheme);
 
-    // Add ripple effect
+    // Add pulse animation
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
         themeToggle.style.animation = 'none';
@@ -25,6 +31,31 @@ function toggleTheme() {
             themeToggle.style.animation = 'pulse 0.3s ease';
         }, 10);
     }
+}
+
+// Update theme toggle visual indicator
+function updateThemeIndicator(theme) {
+    const slider = document.querySelector('.theme-toggle-slider');
+    if (!slider) return;
+
+    // Position slider based on theme
+    const positions = {
+        'light': '0px',
+        'warm': '28px',
+        'dark': '56px'
+    };
+
+    // Update slider position
+    slider.style.transform = `translateX(${positions[theme]})`;
+
+    // Update slider colors based on theme
+    const gradients = {
+        'light': 'linear-gradient(135deg, #a98467, #d4a574)',
+        'warm': 'linear-gradient(135deg, #ff9500, #ffb340)',
+        'dark': 'linear-gradient(135deg, #00f5ff, #b537f2)'
+    };
+
+    slider.style.background = gradients[theme];
 }
 
 // Toggle navigation visibility
