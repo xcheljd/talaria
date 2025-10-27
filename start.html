@@ -113,6 +113,19 @@
             padding-right: 2.5rem;
         }
 
+        .field-help {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-top: 0.5rem;
+        }
+
+        .form-section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+            margin: 1.5rem 0;
+            opacity: 0.3;
+        }
+
         /* Theme Toggle on start page */
         .start-theme-toggle {
             position: fixed;
@@ -141,7 +154,7 @@
 <body>
     <!-- Theme Toggle -->
     <div class="start-theme-toggle">
-        <button class="theme-toggle" id="themeToggle" title="Cycle themes: Light → Warm → Dark" aria-label="Cycle through themes">
+        <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
             <div class="theme-toggle-slider"></div>
         </button>
     </div>
@@ -286,6 +299,36 @@
                     <div class="field-help">Optional: Easy-to-follow directions for customers</div>
                 </div>
 
+                <div class="form-section-divider"></div>
+
+                <div class="form-group">
+                    <label class="form-label">Light Mode Color Palette</label>
+                    <div class="input-wrapper">
+                        <select class="form-input" id="lightPaletteSelect">
+                            <option value="pastel">Pastel Professional (Default)</option>
+                            <option value="golden-hour">Golden Hour</option>
+                            <option value="terracotta">Terracotta Clay</option>
+                            <option value="mint">Mint Fresh</option>
+                            <option value="lavender">Lavender Dream</option>
+                        </select>
+                    </div>
+                    <div class="field-help">Choose your preferred color scheme for light mode</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Dark Mode Color Palette</label>
+                    <div class="input-wrapper">
+                        <select class="form-input" id="darkPaletteSelect">
+                            <option value="midnight-blue">Midnight Blue (Default)</option>
+                            <option value="cyberpunk">Cyberpunk Neon</option>
+                            <option value="forest">Forest Night</option>
+                            <option value="purple">Purple Haze</option>
+                            <option value="ember">Warm Ember</option>
+                        </select>
+                    </div>
+                    <div class="field-help">Choose your preferred color scheme for dark mode</div>
+                </div>
+
                 <div class="button-group">
                     <button type="submit" class="btn">Save & Continue</button>
                 </div>
@@ -300,38 +343,55 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script>
-        // Theme System - Same as main app
+        // Theme System - Matches main app.js
         function initTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeIndicator(savedTheme);
+            const savedMode = localStorage.getItem('currentMode') || 'light';
+            const lightPalette = localStorage.getItem('lightPalette') || 'pastel';
+            const darkPalette = localStorage.getItem('darkPalette') || 'midnight-blue';
+
+            document.documentElement.setAttribute('data-theme', savedMode);
+            document.documentElement.setAttribute('data-light-palette', lightPalette);
+            document.documentElement.setAttribute('data-dark-palette', darkPalette);
+            updateThemeIndicator(savedMode);
+
+            // Update palette selector values
+            const lightPaletteSelect = document.getElementById('lightPaletteSelect');
+            const darkPaletteSelect = document.getElementById('darkPaletteSelect');
+            if (lightPaletteSelect) lightPaletteSelect.value = lightPalette;
+            if (darkPaletteSelect) darkPaletteSelect.value = darkPalette;
         }
 
         function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const themeOrder = ['light', 'warm', 'dark'];
-            const currentIndex = themeOrder.indexOf(currentTheme);
-            const nextIndex = (currentIndex + 1) % themeOrder.length;
-            const newTheme = themeOrder[nextIndex];
+            const currentMode = document.documentElement.getAttribute('data-theme') || 'light';
+            const newMode = currentMode === 'light' ? 'dark' : 'light';
 
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIndicator(newTheme);
+            document.documentElement.setAttribute('data-theme', newMode);
+            localStorage.setItem('currentMode', newMode);
+            updateThemeIndicator(newMode);
         }
 
         function updateThemeIndicator(theme) {
             const slider = document.querySelector('.theme-toggle-slider');
             if (!slider) return;
 
-            const positions = { 'light': '0px', 'warm': '28px', 'dark': '56px' };
+            const positions = { 'light': '0px', 'dark': '28px' };
             slider.style.transform = `translateX(${positions[theme]})`;
 
             const gradients = {
                 'light': 'linear-gradient(135deg, #a98467, #d4a574)',
-                'warm': 'linear-gradient(135deg, #ff9500, #ffb340)',
                 'dark': 'linear-gradient(135deg, #00f5ff, #b537f2)'
             };
             slider.style.background = gradients[theme];
+        }
+
+        function setLightPalette(paletteName) {
+            document.documentElement.setAttribute('data-light-palette', paletteName);
+            localStorage.setItem('lightPalette', paletteName);
+        }
+
+        function setDarkPalette(paletteName) {
+            document.documentElement.setAttribute('data-dark-palette', paletteName);
+            localStorage.setItem('darkPalette', paletteName);
         }
 
         // Initialize theme on page load
@@ -339,6 +399,15 @@
 
         // Attach theme toggle handler
         document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+
+        // Attach palette selector handlers
+        document.getElementById('lightPaletteSelect')?.addEventListener('change', function(e) {
+            setLightPalette(e.target.value);
+        });
+
+        document.getElementById('darkPaletteSelect')?.addEventListener('change', function(e) {
+            setDarkPalette(e.target.value);
+        });
 
         // Original start.html script below
     </script>

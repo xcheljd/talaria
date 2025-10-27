@@ -1,27 +1,33 @@
 // Constants
 const TOAST_DURATION_MS = 2500;
 
-// ===== THREE THEME SYSTEM (Light / Warm / Dark-Neon) =====
+// ===== CUSTOMIZABLE PALETTE SYSTEM (Light / Dark with 5 palettes each) =====
 
-// Initialize theme from localStorage
+// Initialize theme and palettes from localStorage
 function initTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    updateThemeIndicator(savedTheme);
+    // Load current mode (light or dark)
+    const savedMode = localStorage.getItem('currentMode') || 'light';
+
+    // Load palette preferences (defaults: pastel for light, midnight-blue for dark)
+    const lightPalette = localStorage.getItem('lightPalette') || 'pastel';
+    const darkPalette = localStorage.getItem('darkPalette') || 'midnight-blue';
+
+    // Apply theme and palettes
+    document.documentElement.setAttribute('data-theme', savedMode);
+    document.documentElement.setAttribute('data-light-palette', lightPalette);
+    document.documentElement.setAttribute('data-dark-palette', darkPalette);
+
+    updateThemeIndicator(savedMode);
 }
 
-// Cycle through three themes: light -> warm -> dark -> light
+// Simple toggle between light and dark modes
 function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const currentMode = document.documentElement.getAttribute('data-theme') || 'light';
+    const newMode = currentMode === 'light' ? 'dark' : 'light';
 
-    const themeOrder = ['light', 'warm', 'dark'];
-    const currentIndex = themeOrder.indexOf(currentTheme);
-    const nextIndex = (currentIndex + 1) % themeOrder.length;
-    const newTheme = themeOrder[nextIndex];
-
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    updateThemeIndicator(newTheme);
+    document.documentElement.setAttribute('data-theme', newMode);
+    localStorage.setItem('currentMode', newMode);
+    updateThemeIndicator(newMode);
 
     // Add pulse animation
     const themeToggle = document.getElementById('themeToggle');
@@ -38,11 +44,10 @@ function updateThemeIndicator(theme) {
     const slider = document.querySelector('.theme-toggle-slider');
     if (!slider) return;
 
-    // Position slider based on theme
+    // Position slider based on theme (2-position toggle)
     const positions = {
         'light': '0px',
-        'warm': '28px',
-        'dark': '56px'
+        'dark': '28px'
     };
 
     // Update slider position
@@ -51,11 +56,30 @@ function updateThemeIndicator(theme) {
     // Update slider colors based on theme
     const gradients = {
         'light': 'linear-gradient(135deg, #a98467, #d4a574)',
-        'warm': 'linear-gradient(135deg, #ff9500, #ffb340)',
         'dark': 'linear-gradient(135deg, #00f5ff, #b537f2)'
     };
 
     slider.style.background = gradients[theme];
+}
+
+// Update light mode palette
+function setLightPalette(paletteName) {
+    document.documentElement.setAttribute('data-light-palette', paletteName);
+    localStorage.setItem('lightPalette', paletteName);
+}
+
+// Update dark mode palette
+function setDarkPalette(paletteName) {
+    document.documentElement.setAttribute('data-dark-palette', paletteName);
+    localStorage.setItem('darkPalette', paletteName);
+}
+
+// Get current palette names
+function getCurrentPalettes() {
+    return {
+        light: localStorage.getItem('lightPalette') || 'pastel',
+        dark: localStorage.getItem('darkPalette') || 'midnight-blue'
+    };
 }
 
 // Toggle navigation visibility
