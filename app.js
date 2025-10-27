@@ -1075,6 +1075,68 @@ function toggleEntryCollapse(entryId) {
     renderPromotionEntries();
 }
 
+// Drag-and-drop setup for reordering items
+function setupDragAndDrop(container, itemsArray, renderFunction) {
+    const rows = container.querySelectorAll('.editable-item-row');
+    let draggedElement = null;
+    let draggedItemId = null;
+
+    rows.forEach(row => {
+        // Drag start
+        row.addEventListener('dragstart', (e) => {
+            draggedElement = row;
+            draggedItemId = parseInt(row.dataset.itemId);
+            row.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+
+        // Drag end
+        row.addEventListener('dragend', (e) => {
+            row.classList.remove('dragging');
+            rows.forEach(r => r.classList.remove('drag-over'));
+        });
+
+        // Drag over
+        row.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            if (draggedElement !== row) {
+                row.classList.add('drag-over');
+            }
+        });
+
+        // Drag leave
+        row.addEventListener('dragleave', (e) => {
+            row.classList.remove('drag-over');
+        });
+
+        // Drop
+        row.addEventListener('drop', (e) => {
+            e.preventDefault();
+            row.classList.remove('drag-over');
+
+            if (draggedElement !== row) {
+                const targetItemId = parseInt(row.dataset.itemId);
+
+                // Find indices
+                const draggedIndex = itemsArray.findIndex(item => item.id === draggedItemId);
+                const targetIndex = itemsArray.findIndex(item => item.id === targetItemId);
+
+                if (draggedIndex !== -1 && targetIndex !== -1) {
+                    // Reorder array
+                    const [removed] = itemsArray.splice(draggedIndex, 1);
+                    itemsArray.splice(targetIndex, 0, removed);
+
+                    // Re-render
+                    renderFunction();
+                    captureState();
+                }
+            }
+        });
+    });
+}
+
 // Render all promotion entries
 function renderPromotionEntries() {
     const container = document.getElementById('promotionEntriesContainer');
@@ -1253,7 +1315,7 @@ function renderHowToShopSection() {
         wrapper.innerHTML = `
             <div class="collapsible-section-header" onclick="toggleHowToShop()">
                 <span class="section-label">How to Shop (${itemCount} items)</span>
-                <button type="button" class="edit-section-btn">Edit ▼</button>
+                <button type="button" class="edit-section-btn">Expand</button>
             </div>
         `;
     } else {
@@ -1261,7 +1323,7 @@ function renderHowToShopSection() {
         wrapper.innerHTML = `
             <div class="collapsible-section-header expanded" onclick="toggleHowToShop()">
                 <span class="section-label">How to Shop</span>
-                <button type="button" class="edit-section-btn">Collapse ▲</button>
+                <button type="button" class="edit-section-btn">Collapse</button>
             </div>
             <div class="collapsible-section-content">
                 <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
@@ -1286,14 +1348,22 @@ function renderHowToShopItems() {
         const isLast = index === howToShopItems.length - 1;
 
         return `
-            <div class="editable-item-row" data-item-id="${safeId}">
+            <div class="editable-item-row" data-item-id="${safeId}" draggable="true">
                 <div class="editable-item-fields">
+                    <div class="drag-handle" title="Drag to reorder">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <circle cx="4" cy="3" r="1.5"/>
+                            <circle cx="4" cy="8" r="1.5"/>
+                            <circle cx="4" cy="13" r="1.5"/>
+                            <circle cx="12" cy="3" r="1.5"/>
+                            <circle cx="12" cy="8" r="1.5"/>
+                            <circle cx="12" cy="13" r="1.5"/>
+                        </svg>
+                    </div>
                     <div class="form-group">
                         <input type="text" class="form-input shop-item-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Visit us in-store for outlet-exclusive deals">
                     </div>
                     <div class="item-controls">
-                        <button type="button" class="order-btn" onclick="moveHowToShopItemUp(${item.id})" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
-                        <button type="button" class="order-btn" onclick="moveHowToShopItemDown(${item.id})" title="Move down" ${isLast ? 'disabled' : ''}>▼</button>
                         <button type="button" class="item-remove-btn" onclick="removeHowToShopItem(${item.id})" title="Remove">×</button>
                     </div>
                 </div>
@@ -1314,6 +1384,9 @@ function renderHowToShopItems() {
         });
     });
 
+    // Add drag-and-drop functionality
+    setupDragAndDrop(container, howToShopItems, renderHowToShopSection);
+
     updateLivePreview();
 }
 
@@ -1328,7 +1401,7 @@ function renderImportantNotesSection() {
         wrapper.innerHTML = `
             <div class="collapsible-section-header" onclick="toggleImportantNotes()">
                 <span class="section-label">Important Notes (${itemCount} items)</span>
-                <button type="button" class="edit-section-btn">Edit ▼</button>
+                <button type="button" class="edit-section-btn">Expand</button>
             </div>
         `;
     } else {
@@ -1336,7 +1409,7 @@ function renderImportantNotesSection() {
         wrapper.innerHTML = `
             <div class="collapsible-section-header expanded" onclick="toggleImportantNotes()">
                 <span class="section-label">Important Notes</span>
-                <button type="button" class="edit-section-btn">Collapse ▲</button>
+                <button type="button" class="edit-section-btn">Collapse</button>
             </div>
             <div class="collapsible-section-content">
                 <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
@@ -1361,14 +1434,22 @@ function renderImportantNotesItems() {
         const isLast = index === importantNotesItems.length - 1;
 
         return `
-            <div class="editable-item-row" data-item-id="${safeId}">
+            <div class="editable-item-row" data-item-id="${safeId}" draggable="true">
                 <div class="editable-item-fields">
+                    <div class="drag-handle" title="Drag to reorder">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <circle cx="4" cy="3" r="1.5"/>
+                            <circle cx="4" cy="8" r="1.5"/>
+                            <circle cx="4" cy="13" r="1.5"/>
+                            <circle cx="12" cy="3" r="1.5"/>
+                            <circle cx="12" cy="8" r="1.5"/>
+                            <circle cx="12" cy="13" r="1.5"/>
+                        </svg>
+                    </div>
                     <div class="form-group">
                         <input type="text" class="form-input notes-item-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., See attached PDF for complete model details">
                     </div>
                     <div class="item-controls">
-                        <button type="button" class="order-btn" onclick="moveImportantNotesItemUp(${item.id})" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
-                        <button type="button" class="order-btn" onclick="moveImportantNotesItemDown(${item.id})" title="Move down" ${isLast ? 'disabled' : ''}>▼</button>
                         <button type="button" class="item-remove-btn" onclick="removeImportantNotesItem(${item.id})" title="Remove">×</button>
                     </div>
                 </div>
@@ -1388,6 +1469,9 @@ function renderImportantNotesItems() {
             }
         });
     });
+
+    // Add drag-and-drop functionality
+    setupDragAndDrop(container, importantNotesItems, renderImportantNotesSection);
 
     updateLivePreview();
 }
