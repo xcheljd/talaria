@@ -3044,18 +3044,26 @@ function openPromotionEmailInClient() {
 // Create EML file format with HTML body and PDF attachments
 function createEMLFile(subject, htmlBody, pdfAttachments = []) {
     const boundary = '----=_NextPart_' + Date.now();
+    const date = new Date().toUTCString();
 
     let eml = `Subject: ${subject}\r\n`;
+    eml += `Date: ${date}\r\n`;
     eml += `MIME-Version: 1.0\r\n`;
     eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
     eml += `\r\n`;
+    eml += `This is a multi-part message in MIME format.\r\n`;
+    eml += `\r\n`;
 
-    // Add HTML body part
+    // Add HTML body part - use base64 encoding for better Outlook compatibility
     eml += `--${boundary}\r\n`;
     eml += `Content-Type: text/html; charset=UTF-8\r\n`;
-    eml += `Content-Transfer-Encoding: quoted-printable\r\n`;
+    eml += `Content-Transfer-Encoding: base64\r\n`;
     eml += `\r\n`;
-    eml += htmlBody.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n');
+
+    // Convert HTML to base64 and split into 76-character lines
+    const htmlBase64 = btoa(unescape(encodeURIComponent(htmlBody)));
+    const htmlLines = htmlBase64.match(/.{1,76}/g) || [];
+    eml += htmlLines.join('\r\n');
     eml += `\r\n\r\n`;
 
     // Add PDF attachments
