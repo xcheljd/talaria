@@ -934,7 +934,7 @@ function showTabbedOutput() {
 
         <div class="button-group">
             <button class="btn" id="copyPreviewBtn">Copy HTML Code</button>
-            <button class="btn" id="openEmailBtn">Download .EML File to Open in Email Client</button>
+            <button class="btn" id="openEmailBtn">Download .EML File & Open w/ Outlook</button>
         </div>
     `;
 
