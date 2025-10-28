@@ -1386,10 +1386,14 @@ body {
     line-height: 1.2;
     box-sizing: border-box;
     white-space: nowrap;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     gap: 3px;
+}
+
+.template-action-btn {
+    flex: 1;
 }
 
 .undo-redo-btn:hover:not(:disabled),
@@ -1408,9 +1412,9 @@ body {
 
 .template-actions {
     display: flex;
-    gap: 8px;
-    margin-top: 16px;
-    padding-top: 16px;
+    gap: 7px;
+    margin-top: 14px;
+    padding-top: 14px;
     border-top: 1px solid var(--border-subtle);
 }
 
