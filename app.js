@@ -3002,7 +3002,10 @@ function openInEmailClient() {
 
 // Open promotion email in email client with subject line and PDF handling
 function openPromotionEmailInClient() {
-    const htmlContent = elements.outputArea.value;
+    // Get HTML content from the code area (used for promotion emails)
+    const codeArea = document.getElementById('codeArea');
+    const htmlContent = codeArea ? codeArea.value : '';
+
     if (!htmlContent) {
         showToast('⚠ Generate the email first');
         return;
