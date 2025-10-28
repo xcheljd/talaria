@@ -588,6 +588,9 @@ let promotionEntries = [];
 let specialHours = [];
 let howToShopItems = [];
 let importantNotesItems = [];
+let attachedPDFs = []; // PDF attachments with file data
+let generatedSubjectLines = []; // Array of 10 generated subject line options
+let selectedSubjectLine = null; // User's selected subject line
 
 // UI state for collapsible sections
 let howToShopExpanded = false;
@@ -608,7 +611,10 @@ function captureState() {
         promotionEntries: JSON.parse(JSON.stringify(promotionEntries)),
         specialHours: JSON.parse(JSON.stringify(specialHours)),
         howToShopItems: JSON.parse(JSON.stringify(howToShopItems)),
-        importantNotesItems: JSON.parse(JSON.stringify(importantNotesItems))
+        importantNotesItems: JSON.parse(JSON.stringify(importantNotesItems)),
+        attachedPDFs: JSON.parse(JSON.stringify(attachedPDFs)),
+        generatedSubjectLines: JSON.parse(JSON.stringify(generatedSubjectLines)),
+        selectedSubjectLine: selectedSubjectLine
     };
 
     // Remove any states after current index (when making new changes after undo)
@@ -633,12 +639,17 @@ function restoreState(state) {
     specialHours = JSON.parse(JSON.stringify(state.specialHours));
     howToShopItems = JSON.parse(JSON.stringify(state.howToShopItems));
     importantNotesItems = JSON.parse(JSON.stringify(state.importantNotesItems));
+    attachedPDFs = state.attachedPDFs ? JSON.parse(JSON.stringify(state.attachedPDFs)) : [];
+    generatedSubjectLines = state.generatedSubjectLines ? JSON.parse(JSON.stringify(state.generatedSubjectLines)) : [];
+    selectedSubjectLine = state.selectedSubjectLine || null;
 
     // Re-render all sections without capturing state
     renderPromotionEntries();
     renderSpecialHours();
     renderHowToShopSection();
     renderImportantNotesSection();
+    renderAttachedPDFs();
+    renderSubjectLines();
 }
 
 // Undo last change
@@ -692,6 +703,9 @@ function savePromotionTemplate() {
         specialHours: JSON.parse(JSON.stringify(specialHours)),
         howToShopItems: JSON.parse(JSON.stringify(howToShopItems)),
         importantNotesItems: JSON.parse(JSON.stringify(importantNotesItems)),
+        attachedPDFs: JSON.parse(JSON.stringify(attachedPDFs)),
+        generatedSubjectLines: JSON.parse(JSON.stringify(generatedSubjectLines)),
+        selectedSubjectLine: selectedSubjectLine,
         savedAt: new Date().toISOString()
     };
 
@@ -765,6 +779,9 @@ function applyImportedConfig(config, collapseEntries = true) {
     specialHours = JSON.parse(JSON.stringify(config.specialHours || []));
     howToShopItems = JSON.parse(JSON.stringify(config.howToShopItems || []));
     importantNotesItems = JSON.parse(JSON.stringify(config.importantNotesItems || []));
+    attachedPDFs = JSON.parse(JSON.stringify(config.attachedPDFs || []));
+    generatedSubjectLines = JSON.parse(JSON.stringify(config.generatedSubjectLines || []));
+    selectedSubjectLine = config.selectedSubjectLine || null;
 
     // Set collapse state for all entries
     if (collapseEntries) {
@@ -780,6 +797,8 @@ function applyImportedConfig(config, collapseEntries = true) {
     renderSpecialHours();
     renderHowToShopSection();
     renderImportantNotesSection();
+    renderAttachedPDFs();
+    renderSubjectLines();
 
     // Update live preview and capture state
     updateLivePreview();
@@ -818,6 +837,9 @@ function exportPromotionTemplate() {
         specialHours: JSON.parse(JSON.stringify(specialHours)),
         howToShopItems: JSON.parse(JSON.stringify(howToShopItems)),
         importantNotesItems: JSON.parse(JSON.stringify(importantNotesItems)),
+        attachedPDFs: JSON.parse(JSON.stringify(attachedPDFs)),
+        generatedSubjectLines: JSON.parse(JSON.stringify(generatedSubjectLines)),
+        selectedSubjectLine: selectedSubjectLine,
         exportedAt: new Date().toISOString()
     };
 
@@ -1694,6 +1716,9 @@ function renderPromotionEmailForm() {
             specialHours = [];
             howToShopItems = [];
             importantNotesItems = [];
+            attachedPDFs = [];
+            generatedSubjectLines = [];
+            selectedSubjectLine = null;
         } catch (e) {
             // If parsing fails, fall back to defaults
             console.error('Error loading saved template:', e);
@@ -1701,6 +1726,9 @@ function renderPromotionEmailForm() {
             specialHours = [];
             howToShopItems = [];
             importantNotesItems = [];
+            attachedPDFs = [];
+            generatedSubjectLines = [];
+            selectedSubjectLine = null;
             initializeDefaultItems();
         }
     } else {
@@ -1709,6 +1737,9 @@ function renderPromotionEmailForm() {
         specialHours = [];
         howToShopItems = [];
         importantNotesItems = [];
+        attachedPDFs = [];
+        generatedSubjectLines = [];
+        selectedSubjectLine = null;
         initializeDefaultItems();
     }
 
@@ -1788,6 +1819,35 @@ function renderPromotionEmailForm() {
             <div id="specialHoursReminder" style="display: none; background: #fff3cd; border-left: 3px solid #ffc107; padding: 1rem; margin-top: 1rem;">
                 <strong>⚠️ Reminder:</strong> Don't forget to update your special hours on Yelp and Google Maps!
             </div>
+        </div>
+
+        <div class="form-group full-width" style="margin-top: 2rem;">
+            <label class="form-label">ATTACHMENTS (OPTIONAL)</label>
+            <div class="field-help" style="margin-bottom: 1rem;">Upload PDF files to attach to your promotional email (max 10MB per file)</div>
+            <div class="pdf-upload-section">
+                <div class="pdf-upload-dropzone" id="pdfDropzone">
+                    <input type="file" id="pdfFileInput" accept=".pdf,application/pdf" multiple style="display: none;">
+                    <div class="dropzone-content">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p class="dropzone-text">Click to upload or drag and drop PDF files</p>
+                        <p class="dropzone-hint">Maximum 10MB per file</p>
+                    </div>
+                </div>
+                <div id="attachedPDFsList" class="attached-pdfs-list"></div>
+            </div>
+        </div>
+
+        <div class="form-group full-width" style="margin-top: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <label class="form-label" style="margin-bottom: 0;">SUBJECT LINES</label>
+                <button type="button" class="btn" id="regenerateSubjectsBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem; display: none;">🔄 Regenerate</button>
+            </div>
+            <div class="field-help" style="margin-bottom: 1rem;">Click "Generate" below to create 10 subject line suggestions based on your promotion details</div>
+            <div id="subjectLinesContainer" class="subject-lines-container"></div>
         </div>
 
         <div class="template-actions">
@@ -1931,11 +1991,313 @@ function renderPromotionEmailForm() {
         exportTemplateBtn.addEventListener('click', exportPromotionTemplate);
     }
 
+    // Wire up PDF upload
+    const pdfDropzone = document.getElementById('pdfDropzone');
+    const pdfFileInput = document.getElementById('pdfFileInput');
+
+    if (pdfDropzone && pdfFileInput) {
+        // Click to upload
+        pdfDropzone.addEventListener('click', () => {
+            pdfFileInput.click();
+        });
+
+        // File input change
+        pdfFileInput.addEventListener('change', handlePDFUpload);
+
+        // Drag and drop events
+        pdfDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            pdfDropzone.classList.add('dragover');
+        });
+
+        pdfDropzone.addEventListener('dragleave', () => {
+            pdfDropzone.classList.remove('dragover');
+        });
+
+        pdfDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            pdfDropzone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+            if (files.length > 0) {
+                handlePDFFiles(files);
+            } else {
+                showToast('⚠ Please drop only PDF files');
+            }
+        });
+    }
+
+    // Wire up regenerate subject lines button
+    const regenerateSubjectsBtn = document.getElementById('regenerateSubjectsBtn');
+    if (regenerateSubjectsBtn) {
+        regenerateSubjectsBtn.addEventListener('click', generateSubjectLines);
+    }
+
+    // Render PDF list and subject lines
+    renderAttachedPDFs();
+    renderSubjectLines();
+
     // Add keyboard shortcuts
     document.addEventListener('keydown', handleUndoRedoShortcuts);
 
     // Capture initial state
     captureState();
+}
+
+// Handle PDF file upload from input
+function handlePDFUpload(e) {
+    const files = Array.from(e.target.files);
+    handlePDFFiles(files);
+    e.target.value = ''; // Reset input to allow re-uploading same file
+}
+
+// Process PDF files - validate and add to attachedPDFs array
+function handlePDFFiles(files) {
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    let hasErrors = false;
+
+    for (const file of files) {
+        // Validate file type
+        if (file.type !== 'application/pdf') {
+            showToast(`✗ ${file.name} is not a PDF file`);
+            hasErrors = true;
+            continue;
+        }
+
+        // Validate file size
+        if (file.size > MAX_FILE_SIZE) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            showToast(`✗ ${file.name} is too large (${sizeMB}MB). Max size is 10MB.`);
+            hasErrors = true;
+            continue;
+        }
+
+        // Check for duplicate names
+        if (attachedPDFs.some(pdf => pdf.name === file.name)) {
+            showToast(`⚠ ${file.name} is already attached`);
+            continue;
+        }
+
+        // Read file as base64 for storage
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const pdfData = {
+                id: Date.now() + Math.random(), // Unique ID
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                data: e.target.result // base64 data URL
+            };
+
+            attachedPDFs.push(pdfData);
+            renderAttachedPDFs();
+            debouncedCaptureState();
+
+            if (!hasErrors && files.length === 1) {
+                showToast(`✓ ${file.name} attached successfully`);
+            }
+        };
+
+        reader.onerror = () => {
+            showToast(`✗ Error reading ${file.name}`);
+        };
+
+        reader.readAsDataURL(file);
+    }
+
+    if (!hasErrors && files.length > 1) {
+        showToast(`✓ ${files.length} PDFs attached successfully`);
+    }
+}
+
+// Render attached PDFs list
+function renderAttachedPDFs() {
+    const container = document.getElementById('attachedPDFsList');
+    if (!container) return;
+
+    if (attachedPDFs.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = attachedPDFs.map(pdf => {
+        const sizeKB = (pdf.size / 1024).toFixed(1);
+        const sizeMB = (pdf.size / (1024 * 1024)).toFixed(2);
+        const displaySize = pdf.size > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
+
+        return `
+            <div class="attached-pdf-item" data-pdf-id="${pdf.id}">
+                <div class="pdf-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <text x="12" y="17" font-size="6" text-anchor="middle" fill="currentColor">PDF</text>
+                    </svg>
+                </div>
+                <div class="pdf-info">
+                    <div class="pdf-name" title="${pdf.name}">${pdf.name}</div>
+                    <div class="pdf-size">${displaySize}</div>
+                </div>
+                <button class="pdf-remove-btn" onclick="removePDF(${pdf.id})" title="Remove PDF">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+// Remove PDF from attachedPDFs array
+function removePDF(pdfId) {
+    const pdf = attachedPDFs.find(p => p.id === pdfId);
+    if (!pdf) return;
+
+    attachedPDFs = attachedPDFs.filter(p => p.id !== pdfId);
+    renderAttachedPDFs();
+    debouncedCaptureState();
+    showToast(`✓ ${pdf.name} removed`);
+}
+
+// Generate subject lines based on promotion data
+function generateSubjectLines() {
+    const dateRange = document.getElementById('promoDateRange')?.value || '';
+    const title = document.getElementById('promoTitle')?.value || '';
+
+    if (!dateRange && promotionEntries.length === 0) {
+        showToast('⚠ Add promotion details first to generate subject lines');
+        return;
+    }
+
+    // Extract data from promotion entries
+    const brands = [...new Set(promotionEntries.map(e => e.brand).filter(b => b))];
+    const discounts = promotionEntries.map(e => e.discount).filter(d => d).sort((a, b) => parseInt(b) - parseInt(a));
+    const maxDiscount = discounts[0] || '';
+
+    // Determine if it's a holiday/special event
+    const lowerDate = dateRange.toLowerCase();
+    const isBlackFriday = lowerDate.includes('black friday') || lowerDate.includes('nov 2') || lowerDate.includes('nov 29');
+    const isCyberMonday = lowerDate.includes('cyber monday');
+    const isHoliday = lowerDate.includes('holiday') || lowerDate.includes('dec');
+    const isNewYear = lowerDate.includes('jan') || lowerDate.includes('new year');
+
+    const subjects = [];
+
+    // Subject line templates
+    if (maxDiscount) {
+        subjects.push(`Save up to ${maxDiscount}% ${isBlackFriday ? 'this Black Friday!' : 'now!'}`);
+        subjects.push(`${maxDiscount}% OFF ${brands.length > 0 ? brands[0] : 'watches'}`);
+        subjects.push(`Last Chance: ${maxDiscount}% OFF`);
+    }
+
+    if (isBlackFriday) {
+        subjects.push('Black Friday Outlet Sale is HERE!');
+        subjects.push('BIGGEST Sale of the Year - Shop Now!');
+    } else if (isCyberMonday) {
+        subjects.push('Cyber Monday Deals - Limited Time!');
+    } else if (isHoliday) {
+        subjects.push('Holiday Savings Event - Shop Now!');
+        subjects.push('Perfect Holiday Gifts on Sale');
+    } else if (isNewYear) {
+        subjects.push('New Year, New Watch - Save Big!');
+    }
+
+    if (brands.length > 0) {
+        subjects.push(`${brands.join(' & ')} Sale - Don't Miss Out!`);
+        subjects.push(`Exclusive ${brands[0]} Deals Inside`);
+    }
+
+    subjects.push(title || 'Special Outlet Sale - Limited Time!');
+    subjects.push('Your Favorite Brands - Now on Sale');
+    subjects.push(`Hurry! ${dateRange} Sale Ends Soon`);
+
+    // Ensure we have exactly 10 unique subject lines
+    const uniqueSubjects = [...new Set(subjects)];
+    while (uniqueSubjects.length < 10) {
+        uniqueSubjects.push(`Sale Alert: ${dateRange || 'Limited Time Only'}`);
+        uniqueSubjects.push('Don\'t Miss These Deals!');
+        uniqueSubjects.push('Outlet Specials - Shop Today');
+    }
+
+    generatedSubjectLines = uniqueSubjects.slice(0, 10);
+
+    // Auto-select first subject line if none selected
+    if (!selectedSubjectLine) {
+        selectedSubjectLine = generatedSubjectLines[0];
+    }
+
+    renderSubjectLines();
+    debouncedCaptureState();
+
+    // Show regenerate button
+    const regenerateBtn = document.getElementById('regenerateSubjectsBtn');
+    if (regenerateBtn) {
+        regenerateBtn.style.display = 'flex';
+    }
+
+    showToast('✓ 10 subject lines generated');
+}
+
+// Render subject lines
+function renderSubjectLines() {
+    const container = document.getElementById('subjectLinesContainer');
+    if (!container) return;
+
+    if (generatedSubjectLines.length === 0) {
+        container.innerHTML = '<div class="subject-lines-empty">Generate your email template first to create subject line suggestions</div>';
+        return;
+    }
+
+    container.innerHTML = generatedSubjectLines.map((subject, index) => {
+        const isSelected = subject === selectedSubjectLine;
+        const charCount = subject.length;
+        const isOptimal = charCount <= 50;
+
+        return `
+            <div class="subject-line-option ${isSelected ? 'selected' : ''}" data-subject="${subject}" onclick="selectSubjectLine('${subject.replace(/'/g, "\\'")}')">
+                <div class="subject-radio">
+                    <input type="radio" name="subjectLine" ${isSelected ? 'checked' : ''} readonly>
+                </div>
+                <div class="subject-content">
+                    <div class="subject-text-wrapper">
+                        <input
+                            type="text"
+                            class="subject-text-input"
+                            value="${subject}"
+                            onchange="updateSubjectLine(${index}, this.value)"
+                            onclick="event.stopPropagation()"
+                        >
+                    </div>
+                    <div class="subject-meta">
+                        <span class="char-count ${isOptimal ? 'optimal' : 'warning'}">${charCount} chars ${isOptimal ? '✓' : '(>50)'}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Select a subject line
+function selectSubjectLine(subject) {
+    selectedSubjectLine = subject;
+    renderSubjectLines();
+    debouncedCaptureState();
+}
+
+// Update subject line text
+function updateSubjectLine(index, newText) {
+    if (index >= 0 && index < generatedSubjectLines.length) {
+        const oldText = generatedSubjectLines[index];
+        generatedSubjectLines[index] = newText;
+
+        // If this was the selected subject, update the selection
+        if (selectedSubjectLine === oldText) {
+            selectedSubjectLine = newText;
+        }
+
+        renderSubjectLines();
+        debouncedCaptureState();
+    }
 }
 
 // Handle keyboard shortcuts for undo/redo
@@ -2473,7 +2835,11 @@ function generateMessage() {
 
             // Force immediate update of live preview
             updateLivePreview();
-            showToast('✓ Preview refreshed!');
+
+            // Generate subject lines automatically
+            generateSubjectLines();
+
+            showToast('✓ Preview and subject lines generated!');
             return;
         }
 
@@ -2527,6 +2893,11 @@ function clearAll() {
             specialHours = [];
             howToShopItems = [];
             importantNotesItems = [];
+            attachedPDFs = [];
+            generatedSubjectLines = [];
+            selectedSubjectLine = null;
+            renderAttachedPDFs();
+            renderSubjectLines();
         }
 
         const inputs = elements.formFields.querySelectorAll('.form-input, .form-textarea');
@@ -2598,6 +2969,12 @@ function copyToClipboard() {
 
 // Open generated message in default email client
 function openInEmailClient() {
+    // Special handling for promotion email
+    if (currentTemplate === 'promotion-email') {
+        openPromotionEmailInClient();
+        return;
+    }
+
     const text = elements.outputArea.value;
     if (!text) {
         showToast('⚠ Nothing to send');
@@ -2620,6 +2997,99 @@ function openInEmailClient() {
     } catch (error) {
         console.error('Email client error:', error);
         showToast('⚠ Failed to open email client');
+    }
+}
+
+// Open promotion email in email client with subject line and PDF handling
+function openPromotionEmailInClient() {
+    const htmlContent = elements.outputArea.value;
+    if (!htmlContent) {
+        showToast('⚠ Generate the email first');
+        return;
+    }
+
+    // Get selected subject line
+    const subject = selectedSubjectLine || 'Promotional Sale';
+
+    try {
+        // Create .eml file with HTML content
+        const emlContent = createEMLFile(subject, htmlContent);
+
+        // Create blob and download
+        const blob = new Blob([emlContent], { type: 'message/rfc822' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `promotion-email-${new Date().toISOString().split('T')[0]}.eml`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        let message = '✓ Email file created! Opening in your default email client...';
+
+        // If there are PDFs attached, offer to download them
+        if (attachedPDFs.length > 0) {
+            message += `\n\n📎 ${attachedPDFs.length} PDF(s) attached - download below to attach manually`;
+
+            // Auto-download PDFs
+            setTimeout(() => {
+                downloadAllPDFs();
+            }, 500);
+        }
+
+        showToast(message);
+    } catch (error) {
+        console.error('Email client error:', error);
+        showToast('⚠ Failed to create email file');
+    }
+}
+
+// Create EML file format
+function createEMLFile(subject, htmlBody) {
+    const boundary = '----=_NextPart_' + Date.now();
+
+    let eml = `Subject: ${subject}\r\n`;
+    eml += `MIME-Version: 1.0\r\n`;
+    eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
+    eml += `\r\n`;
+    eml += `--${boundary}\r\n`;
+    eml += `Content-Type: text/html; charset=UTF-8\r\n`;
+    eml += `Content-Transfer-Encoding: quoted-printable\r\n`;
+    eml += `\r\n`;
+    eml += htmlBody.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n');
+    eml += `\r\n`;
+    eml += `--${boundary}--\r\n`;
+
+    return eml;
+}
+
+// Download all attached PDFs
+function downloadAllPDFs() {
+    if (attachedPDFs.length === 0) return;
+
+    if (attachedPDFs.length === 1) {
+        // Single PDF - download directly
+        const pdf = attachedPDFs[0];
+        const link = document.createElement('a');
+        link.href = pdf.data;
+        link.download = pdf.name;
+        link.click();
+        showToast(`✓ Downloaded ${pdf.name}`);
+    } else {
+        // Multiple PDFs - download each with a slight delay
+        let downloadedCount = 0;
+        attachedPDFs.forEach((pdf, index) => {
+            setTimeout(() => {
+                const link = document.createElement('a');
+                link.href = pdf.data;
+                link.download = pdf.name;
+                link.click();
+                downloadedCount++;
+
+                if (downloadedCount === attachedPDFs.length) {
+                    showToast(`✓ Downloaded ${downloadedCount} PDFs`);
+                }
+            }, index * 300); // 300ms delay between each download
+        });
     }
 }
 
