@@ -910,6 +910,15 @@ function showTabbedOutput() {
     elements.outputCard.innerHTML = `
         <h2 class="section-title">Generated Email</h2>
 
+        <!-- Subject Lines Section -->
+        <div id="subjectLinesSection" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">Subject Line</h3>
+                <button type="button" class="btn" id="regenerateSubjectsBtn" style="padding: 0.5rem 1rem; font-size: 0.75rem; display: none;">🔄 Regenerate</button>
+            </div>
+            <div id="subjectLinesContainer" class="subject-lines-container"></div>
+        </div>
+
         <div class="output-tabs">
             <button class="output-tab active" data-tab="preview">Preview</button>
             <button class="output-tab" data-tab="code">HTML Code</button>
@@ -925,6 +934,7 @@ function showTabbedOutput() {
 
         <div class="button-group">
             <button class="btn" id="copyPreviewBtn">Copy HTML Code</button>
+            <button class="btn" id="openEmailBtn">Download .EML File to Open in Email Client</button>
         </div>
     `;
 
@@ -973,6 +983,21 @@ function showTabbedOutput() {
             }
         });
     }
+
+    // Add openEmailBtn handler
+    const openEmailBtn = document.getElementById('openEmailBtn');
+    if (openEmailBtn) {
+        openEmailBtn.addEventListener('click', openInEmailClient);
+    }
+
+    // Add regenerateSubjectsBtn handler
+    const regenerateSubjectsBtn = document.getElementById('regenerateSubjectsBtn');
+    if (regenerateSubjectsBtn) {
+        regenerateSubjectsBtn.addEventListener('click', generateSubjectLines);
+    }
+
+    // Render subject lines if they exist
+    renderSubjectLines();
 }
 
 // Show regular output
@@ -1841,15 +1866,6 @@ function renderPromotionEmailForm() {
             </div>
         </div>
 
-        <div class="form-group full-width" style="margin-top: 2rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <label class="form-label" style="margin-bottom: 0;">SUBJECT LINES</label>
-                <button type="button" class="btn" id="regenerateSubjectsBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem; display: none;">🔄 Regenerate</button>
-            </div>
-            <div class="field-help" style="margin-bottom: 1rem;">Click "Generate" below to create 10 subject line suggestions based on your promotion details</div>
-            <div id="subjectLinesContainer" class="subject-lines-container"></div>
-        </div>
-
         <div class="template-actions">
             <button type="button" class="template-action-btn" id="saveTemplateBtn" title="Save current configuration">
                 💾 Save Template
@@ -2026,15 +2042,8 @@ function renderPromotionEmailForm() {
         });
     }
 
-    // Wire up regenerate subject lines button
-    const regenerateSubjectsBtn = document.getElementById('regenerateSubjectsBtn');
-    if (regenerateSubjectsBtn) {
-        regenerateSubjectsBtn.addEventListener('click', generateSubjectLines);
-    }
-
-    // Render PDF list and subject lines
+    // Render PDF list
     renderAttachedPDFs();
-    renderSubjectLines();
 
     // Add keyboard shortcuts
     document.addEventListener('keydown', handleUndoRedoShortcuts);
@@ -3170,7 +3179,7 @@ function init() {
         elements.generateBtn.addEventListener('click', generateMessage);
         elements.clearBtn.addEventListener('click', clearAll);
         elements.copyBtn.addEventListener('click', copyToClipboard);
-        elements.openEmailBtn.addEventListener('click', openInEmailClient);
+        // Note: openEmailBtn is dynamically added in showTabbedOutput() for promotion emails
 
         // Theme and navigation toggles
         const themeToggle = document.getElementById('themeToggle');
