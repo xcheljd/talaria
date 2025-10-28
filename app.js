@@ -3012,8 +3012,8 @@ function openPromotionEmailInClient() {
     const subject = selectedSubjectLine || 'Promotional Sale';
 
     try {
-        // Create .eml file with HTML content
-        const emlContent = createEMLFile(subject, htmlContent);
+        // Create .eml file with HTML content and PDF attachments
+        const emlContent = createEMLFile(subject, htmlContent, attachedPDFs);
 
         // Create blob and download
         const blob = new Blob([emlContent], { type: 'message/rfc822' });
@@ -3024,16 +3024,11 @@ function openPromotionEmailInClient() {
         link.click();
         URL.revokeObjectURL(url);
 
-        let message = '✓ Email file created! Opening in your default email client...';
-
-        // If there are PDFs attached, offer to download them
+        let message = '✓ Email file created with HTML content';
         if (attachedPDFs.length > 0) {
-            message += `\n\n📎 ${attachedPDFs.length} PDF(s) attached - download below to attach manually`;
-
-            // Auto-download PDFs
-            setTimeout(() => {
-                downloadAllPDFs();
-            }, 500);
+            message += ` and ${attachedPDFs.length} PDF attachment${attachedPDFs.length > 1 ? 's' : ''}! Opening in your email client...`;
+        } else {
+            message += '! Opening in your email client...';
         }
 
         showToast(message);
@@ -3043,54 +3038,46 @@ function openPromotionEmailInClient() {
     }
 }
 
-// Create EML file format
-function createEMLFile(subject, htmlBody) {
+// Create EML file format with HTML body and PDF attachments
+function createEMLFile(subject, htmlBody, pdfAttachments = []) {
     const boundary = '----=_NextPart_' + Date.now();
 
     let eml = `Subject: ${subject}\r\n`;
     eml += `MIME-Version: 1.0\r\n`;
     eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
     eml += `\r\n`;
+
+    // Add HTML body part
     eml += `--${boundary}\r\n`;
     eml += `Content-Type: text/html; charset=UTF-8\r\n`;
     eml += `Content-Transfer-Encoding: quoted-printable\r\n`;
     eml += `\r\n`;
     eml += htmlBody.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n');
-    eml += `\r\n`;
+    eml += `\r\n\r\n`;
+
+    // Add PDF attachments
+    if (pdfAttachments && pdfAttachments.length > 0) {
+        pdfAttachments.forEach(pdf => {
+            // Extract base64 data from data URL (format: data:application/pdf;base64,...)
+            const base64Data = pdf.data.split(',')[1];
+
+            eml += `--${boundary}\r\n`;
+            eml += `Content-Type: application/pdf; name="${pdf.name}"\r\n`;
+            eml += `Content-Transfer-Encoding: base64\r\n`;
+            eml += `Content-Disposition: attachment; filename="${pdf.name}"\r\n`;
+            eml += `\r\n`;
+
+            // Split base64 data into 76-character lines (RFC 2045 standard)
+            const lines = base64Data.match(/.{1,76}/g) || [];
+            eml += lines.join('\r\n');
+            eml += `\r\n\r\n`;
+        });
+    }
+
+    // End boundary
     eml += `--${boundary}--\r\n`;
 
     return eml;
-}
-
-// Download all attached PDFs
-function downloadAllPDFs() {
-    if (attachedPDFs.length === 0) return;
-
-    if (attachedPDFs.length === 1) {
-        // Single PDF - download directly
-        const pdf = attachedPDFs[0];
-        const link = document.createElement('a');
-        link.href = pdf.data;
-        link.download = pdf.name;
-        link.click();
-        showToast(`✓ Downloaded ${pdf.name}`);
-    } else {
-        // Multiple PDFs - download each with a slight delay
-        let downloadedCount = 0;
-        attachedPDFs.forEach((pdf, index) => {
-            setTimeout(() => {
-                const link = document.createElement('a');
-                link.href = pdf.data;
-                link.download = pdf.name;
-                link.click();
-                downloadedCount++;
-
-                if (downloadedCount === attachedPDFs.length) {
-                    showToast(`✓ Downloaded ${downloadedCount} PDFs`);
-                }
-            }, index * 300); // 300ms delay between each download
-        });
-    }
 }
 
 // Initialize application
