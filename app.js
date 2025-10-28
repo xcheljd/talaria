@@ -2248,56 +2248,96 @@ function renderSubjectLines() {
         return;
     }
 
-    container.innerHTML = generatedSubjectLines.map((subject, index) => {
+    // Create dropdown with generated subject lines
+    const dropdownOptions = generatedSubjectLines.map((subject, index) => {
         const isSelected = subject === selectedSubjectLine;
-        const charCount = subject.length;
-        const isOptimal = charCount <= 50;
+        return `<option value="${index}" ${isSelected ? 'selected' : ''}>${subject}</option>`;
+    }).join('');
 
-        return `
-            <div class="subject-line-option ${isSelected ? 'selected' : ''}" data-subject="${subject}" onclick="selectSubjectLine('${subject.replace(/'/g, "\\'")}')">
-                <div class="subject-radio">
-                    <input type="radio" name="subjectLine" ${isSelected ? 'checked' : ''} readonly>
-                </div>
-                <div class="subject-content">
-                    <div class="subject-text-wrapper">
-                        <input
-                            type="text"
-                            class="subject-text-input"
-                            value="${subject}"
-                            onchange="updateSubjectLine(${index}, this.value)"
-                            onclick="event.stopPropagation()"
-                        >
-                    </div>
-                    <div class="subject-meta">
-                        <span class="char-count ${isOptimal ? 'optimal' : 'warning'}">${charCount} chars ${isOptimal ? '✓' : '(>50)'}</span>
-                    </div>
+    container.innerHTML = `
+        <div class="subject-line-dropdown-wrapper">
+            <label class="subject-dropdown-label">Choose a subject line suggestion:</label>
+            <select id="subjectLineDropdown" class="subject-line-dropdown">
+                <option value="" disabled ${!selectedSubjectLine ? 'selected' : ''}>Select a subject line...</option>
+                ${dropdownOptions}
+            </select>
+        </div>
+        <div id="selectedSubjectCard" class="selected-subject-card" style="display: ${selectedSubjectLine ? 'block' : 'none'};">
+            <label class="subject-card-label">Selected Subject Line (editable):</label>
+            <div class="subject-card-input-wrapper">
+                <input
+                    type="text"
+                    id="selectedSubjectInput"
+                    class="subject-card-input"
+                    value="${selectedSubjectLine || ''}"
+                    placeholder="Your subject line..."
+                >
+                <div class="subject-card-meta">
+                    <span class="char-count ${selectedSubjectLine && selectedSubjectLine.length <= 50 ? 'optimal' : 'warning'}" id="subjectCharCount">
+                        ${selectedSubjectLine ? selectedSubjectLine.length : 0} chars ${selectedSubjectLine && selectedSubjectLine.length <= 50 ? '✓' : selectedSubjectLine && selectedSubjectLine.length > 50 ? '(>50)' : ''}
+                    </span>
                 </div>
             </div>
-        `;
-    }).join('');
+        </div>
+    `;
+
+    // Add event listener to dropdown
+    const dropdown = document.getElementById('subjectLineDropdown');
+    if (dropdown) {
+        dropdown.addEventListener('change', (e) => {
+            const index = parseInt(e.target.value);
+            if (index >= 0 && index < generatedSubjectLines.length) {
+                selectSubjectLine(generatedSubjectLines[index]);
+            }
+        });
+    }
+
+    // Add event listener to input field
+    const input = document.getElementById('selectedSubjectInput');
+    if (input) {
+        input.addEventListener('input', (e) => {
+            selectedSubjectLine = e.target.value;
+
+            // Update character count
+            const charCount = document.getElementById('subjectCharCount');
+            if (charCount) {
+                const length = e.target.value.length;
+                const isOptimal = length <= 50;
+                charCount.className = `char-count ${isOptimal ? 'optimal' : 'warning'}`;
+                charCount.textContent = `${length} chars ${isOptimal ? '✓' : '(>50)'}`;
+            }
+
+            debouncedCaptureState();
+        });
+    }
 }
 
 // Select a subject line
 function selectSubjectLine(subject) {
     selectedSubjectLine = subject;
-    renderSubjectLines();
-    debouncedCaptureState();
-}
 
-// Update subject line text
-function updateSubjectLine(index, newText) {
-    if (index >= 0 && index < generatedSubjectLines.length) {
-        const oldText = generatedSubjectLines[index];
-        generatedSubjectLines[index] = newText;
-
-        // If this was the selected subject, update the selection
-        if (selectedSubjectLine === oldText) {
-            selectedSubjectLine = newText;
-        }
-
-        renderSubjectLines();
-        debouncedCaptureState();
+    // Show the card
+    const card = document.getElementById('selectedSubjectCard');
+    if (card) {
+        card.style.display = 'block';
     }
+
+    // Update input value
+    const input = document.getElementById('selectedSubjectInput');
+    if (input) {
+        input.value = subject;
+    }
+
+    // Update character count
+    const charCount = document.getElementById('subjectCharCount');
+    if (charCount) {
+        const length = subject.length;
+        const isOptimal = length <= 50;
+        charCount.className = `char-count ${isOptimal ? 'optimal' : 'warning'}`;
+        charCount.textContent = `${length} chars ${isOptimal ? '✓' : '(>50)'}`;
+    }
+
+    debouncedCaptureState();
 }
 
 // Handle keyboard shortcuts for undo/redo
