@@ -678,6 +678,12 @@ function updateUndoRedoButtons() {
 function savePromotionTemplate() {
     if (currentTemplate !== 'promotion-email') return;
 
+    // Collapse all entries before saving
+    promotionEntries.forEach(entry => {
+        entryCollapsedStates[entry.id] = true;
+    });
+    renderPromotionEntries(); // Update the UI to show collapsed state
+
     const config = {
         dateRange: document.getElementById('promoDateRange')?.value || '',
         year: document.getElementById('promoYear')?.value || '',
@@ -870,6 +876,7 @@ function cacheElements() {
     elements.generateBtn = document.getElementById('generateBtn');
     elements.clearBtn = document.getElementById('clearBtn');
     elements.copyBtn = document.getElementById('copyBtn');
+    elements.openEmailBtn = document.getElementById('openEmailBtn');
     elements.toast = document.getElementById('toast');
     elements.outputCard = document.querySelector('.output-card');
 }
@@ -1308,10 +1315,6 @@ function renderPromotionEntries() {
         let summaryText = '';
         if (entry.brand && entry.discount) {
             summaryText = `${entry.brand} - ${entry.discount}% OFF`;
-            if (entry.collections) {
-                const firstCollection = entry.collections.split(',')[0].trim();
-                summaryText += ` • ${firstCollection}${entry.collections.includes(',') ? '...' : ''}`;
-            }
         } else {
             summaryText = 'Entry not filled out';
         }
@@ -2221,6 +2224,7 @@ function selectTemplate(key) {
             renderPromotionEmailForm();
             showTabbedOutput();
             elements.clearBtn.disabled = false;
+            elements.openEmailBtn.disabled = false;
             return;
         }
 
@@ -2300,6 +2304,7 @@ function selectTemplate(key) {
 
         elements.outputArea.value = '';
         elements.clearBtn.disabled = false;
+        elements.openEmailBtn.disabled = false;
     } catch (error) {
         console.error('Error selecting template:', error);
         showToast('Error loading template');
@@ -2541,6 +2546,7 @@ function clearAll() {
         `;
 
         elements.clearBtn.disabled = true;
+        elements.openEmailBtn.disabled = true;
     } catch (error) {
         console.error('Error clearing form:', error);
         showToast('Error clearing form');
@@ -2590,6 +2596,33 @@ function copyToClipboard() {
     }
 }
 
+// Open generated message in default email client
+function openInEmailClient() {
+    const text = elements.outputArea.value;
+    if (!text) {
+        showToast('⚠ Nothing to send');
+        return;
+    }
+
+    try {
+        // Encode the body content for mailto: protocol
+        const body = encodeURIComponent(text);
+
+        // Create mailto link
+        // Note: Most email clients have a character limit for mailto: URLs (typically 2000-2048 chars)
+        // For HTML content, the email client will treat it as plain text in the body
+        const mailtoLink = `mailto:?body=${body}`;
+
+        // Open the link to trigger default email client
+        window.location.href = mailtoLink;
+
+        showToast('✓ Opening email client...');
+    } catch (error) {
+        console.error('Email client error:', error);
+        showToast('⚠ Failed to open email client');
+    }
+}
+
 // Initialize application
 function init() {
     try {
@@ -2629,6 +2662,7 @@ function init() {
         elements.generateBtn.addEventListener('click', generateMessage);
         elements.clearBtn.addEventListener('click', clearAll);
         elements.copyBtn.addEventListener('click', copyToClipboard);
+        elements.openEmailBtn.addEventListener('click', openInEmailClient);
 
         // Theme and navigation toggles
         const themeToggle = document.getElementById('themeToggle');
