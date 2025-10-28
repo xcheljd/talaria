@@ -1388,11 +1388,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 5px;
+    flex: 1;
+    min-width: 0;
 }
 
-.template-action-btn {
-    flex: 1;
+.template-action-btn svg {
+    flex-shrink: 0;
+    transition: all var(--transition-base);
 }
 
 .undo-redo-btn:hover:not(:disabled),
@@ -1415,6 +1418,18 @@ body {
     margin-top: 14px;
     padding-top: 14px;
     border-top: 1px solid var(--border-subtle);
+    width: 100%;
+}
+
+/* Responsive adjustments for template action buttons */
+@media (max-width: 768px) {
+    .template-actions {
+        flex-direction: column;
+    }
+
+    .template-action-btn {
+        width: 100%;
+    }
 }
 
 /* Special Hours Styles */
