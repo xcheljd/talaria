@@ -3315,9 +3315,14 @@ function init() {
 function parseEmailList(text) {
     if (!text || !text.trim()) return [];
 
-    // Split by comma or newline, clean up whitespace
-    const emails = text.split(/[,\n]/)
+    // Handle various separators: commas, newlines, tabs, semicolons
+    const emails = text.split(/[,\n\t;]/)
         .map(email => email.trim())
+        .filter(email => email.length > 0)
+        .map(email => {
+            // Clean up common issues from spreadsheet copy-paste
+            return email.replace(/["']/g, '').trim(); // Remove quotes
+        })
         .filter(email => email.length > 0)
         .filter(email => isValidEmail(email));
 
@@ -3379,27 +3384,45 @@ function updateBulkAnalysis() {
         return;
     }
 
-    const emails = parseEmailList(emailText);
+    // Parse all entries vs valid emails
+    const allEntries = emailText.split(/[,\n\t;]/)
+        .map(email => email.trim())
+        .filter(email => email.length > 0);
+
+    const validEmails = parseEmailList(emailText);
+    const invalidCount = allEntries.length - validEmails.length;
+
     const batchSize = parseInt(batchSizeInput.value) || 500;
 
-    if (emails.length === 0) {
-        bulkAnalysis.style.display = 'none';
+    if (validEmails.length === 0) {
+        bulkStats.innerHTML = `
+            <div>• Total entries found: ${allEntries.length}</div>
+            <div style="color: #dc3545;">• Valid emails: 0 (check format)</div>
+            <div style="font-size: 0.9rem; color: var(--text-tertiary);">Make sure emails contain @ and a domain</div>
+        `;
+        bulkAnalysis.style.display = 'block';
         return;
     }
 
     // Calculate batches
-    const fullBatches = Math.floor(emails.length / batchSize);
-    const remainder = emails.length % batchSize;
+    const fullBatches = Math.floor(validEmails.length / batchSize);
+    const remainder = validEmails.length % batchSize;
     const totalBatches = fullBatches + (remainder > 0 ? 1 : 0);
 
     // Update display
-    bulkStats.innerHTML = `
-        <div>• Emails Found: ${emails.length}</div>
+    let statsHtml = `
+        <div>• Total entries: ${allEntries.length}</div>
+        <div style="color: ${invalidCount > 0 ? '#fd7e14' : 'var(--text-secondary)'};">• Valid emails: ${validEmails.length}${invalidCount > 0 ? ` (${invalidCount} invalid)` : ''}</div>
         <div>• Batch Size: ${batchSize} emails</div>
         <div>• Total Batches: ${totalBatches}</div>
         <div>• Files: ${fullBatches > 0 ? `${fullBatches}×${batchSize}` : ''}${remainder > 0 ? `${fullBatches > 0 ? ' + ' : ''}1×${remainder}` : ''} emails</div>
     `;
 
+    if (invalidCount > 0) {
+        statsHtml += `<div style="font-size: 0.9rem; color: var(--text-tertiary); margin-top: 0.5rem;">Tip: Check for extra spaces, tabs, or invalid email formats</div>`;
+    }
+
+    bulkStats.innerHTML = statsHtml;
     bulkAnalysis.style.display = 'block';
 }
 
@@ -3520,49 +3543,64 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = []) {
 }
 
 async function generateBulkEMLFiles() {
-    // Validate current template
-    if (currentTemplate !== 'promotion-email') {
-        showToast('⚠️ Bulk email only available for promotion template');
-        return;
-    }
-
-    // Get and validate email list
-    const bulkEmailList = document.getElementById('bulkEmailList');
-    if (!bulkEmailList) return;
-
-    const emailText = bulkEmailList.value.trim();
-    if (!emailText) {
-        showToast('⚠️ Please enter recipient emails');
-        return;
-    }
-
-    const emails = parseEmailList(emailText);
-    if (emails.length === 0) {
-        showToast('⚠️ No valid emails found');
-        return;
-    }
-
-    // Validate batch size
-    if (!validateBatchSize()) {
-        showToast('⚠️ Please fix batch size issues');
-        return;
-    }
-
-    const batchSize = parseInt(document.getElementById('batchSize').value);
-
     try {
+        // Validate current template
+        if (currentTemplate !== 'promotion-email') {
+            showToast('⚠️ Bulk email only available for promotion template');
+            return;
+        }
+
+        // Get and validate email list
+        const bulkEmailList = document.getElementById('bulkEmailList');
+        if (!bulkEmailList) {
+            showToast('⚠️ Bulk email interface not found');
+            return;
+        }
+
+        const emailText = bulkEmailList.value.trim();
+        if (!emailText) {
+            showToast('⚠️ Please enter recipient emails');
+            return;
+        }
+
+        console.log('Parsing email text:', emailText.substring(0, 100) + '...');
+        const emails = parseEmailList(emailText);
+        console.log('Parsed emails:', emails.length, 'valid emails found');
+
+        if (emails.length === 0) {
+            showToast('⚠️ No valid emails found. Check format and try again.');
+            return;
+        }
+
+        // Validate batch size
+        if (!validateBatchSize()) {
+            showToast('⚠️ Please fix batch size issues');
+            return;
+        }
+
+        const batchSize = parseInt(document.getElementById('batchSize').value);
+        console.log('Using batch size:', batchSize);
+
         // Generate HTML content first
         showToast('⏳ Generating email content...');
         const htmlContent = await generatePromotionHTML();
+        console.log('HTML content generated, length:', htmlContent.length);
+
+        if (!htmlContent || htmlContent.length < 100) {
+            showToast('⚠️ Email content generation failed. Please fill out the form completely.');
+            return;
+        }
 
         // Extract date range for ZIP naming
         const zipFilename = generateZipFilenameFromHTML(htmlContent);
+        console.log('ZIP filename:', zipFilename);
 
         // Split emails into batches
         const batches = [];
         for (let i = 0; i < emails.length; i += batchSize) {
             batches.push(emails.slice(i, i + batchSize));
         }
+        console.log('Created', batches.length, 'batches');
 
         showToast(`⏳ Creating ${batches.length} EML files...`);
 
@@ -3574,8 +3612,13 @@ async function generateBulkEMLFiles() {
 
             // Get subject line
             const subject = selectedSubjectLine || 'Promotional Sale';
+            console.log(`Creating EML ${i + 1}/${batches.length}: ${filename} with ${batch.length} recipients`);
 
             const emlContent = createBCCBatchEML(subject, htmlContent, batch, attachedPDFs);
+
+            if (!emlContent || emlContent.length < 100) {
+                throw new Error(`Failed to generate EML content for batch ${i + 1}`);
+            }
 
             emlFiles.push({
                 name: filename,
@@ -3588,6 +3631,8 @@ async function generateBulkEMLFiles() {
 
         for (let i = 0; i < emlFiles.length; i++) {
             const file = emlFiles[i];
+            console.log(`Downloading file ${i + 1}/${emlFiles.length}: ${file.name}`);
+
             const blob = new Blob([file.content], { type: 'message/rfc822' });
             const url = URL.createObjectURL(blob);
 
@@ -3604,11 +3649,11 @@ async function generateBulkEMLFiles() {
             }
         }
 
-        showToast(`✅ Downloaded ${emlFiles.length} EML files`);
+        showToast(`✅ Downloaded ${emlFiles.length} EML files successfully!`);
 
     } catch (error) {
         console.error('Bulk EML generation error:', error);
-        showToast('⚠️ Failed to generate bulk emails');
+        showToast(`⚠️ Failed to generate bulk emails: ${error.message || 'Unknown error'}`);
     }
 }
 
