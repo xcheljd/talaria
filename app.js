@@ -3641,7 +3641,19 @@ async function generateBulkEMLFiles() {
 
         // Generate HTML content first
         showToast('⏳ Generating email content...');
-        const htmlContent = await generatePromotionHTML();
+
+        // Collect promotion data for HTML generation
+        const dateRangeInput = document.getElementById('promoDateRange');
+        const yearInput = document.getElementById('promoYear');
+        const titleInput = document.getElementById('promoTitle');
+
+        const data = {
+            promoDateRange: dateRangeInput ? dateRangeInput.value : '',
+            promoYear: yearInput ? yearInput.value : '',
+            promoTitle: titleInput ? titleInput.value : ''
+        };
+
+        const htmlContent = generatePromotionEmailHTML(data);
         console.log('HTML content generated, length:', htmlContent.length);
 
         if (!htmlContent || htmlContent.length < 100) {
