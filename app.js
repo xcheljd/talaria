@@ -932,6 +932,23 @@ function showTabbedOutput() {
                 <div id="batchSizeHelp" style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem;">Range: 50-1000 emails. 500 is recommended for spam safety.</div>
             </div>
 
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem;">Download Format</label>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="downloadFormat" value="zip" checked style="margin: 0;">
+                        <span style="font-size: 0.9rem;">ZIP Archive (single file)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="downloadFormat" value="individual" style="margin: 0;">
+                        <span style="font-size: 0.9rem;">Individual EML Files</span>
+                    </label>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem;">
+                    ZIP may trigger antivirus. Individual files download separately but are safer.
+                </div>
+            </div>
+
             <div id="bulkAnalysis" style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; display: none;">
                 <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);">📊 Batch Analysis</div>
                 <div id="bulkStats" style="font-size: 0.9rem; color: var(--text-secondary);"></div>
@@ -3696,31 +3713,62 @@ async function generateBulkEMLFiles() {
             });
         }
 
-        // Create ZIP file containing all EML files
-        showToast(`📦 Creating ZIP archive with ${emlFiles.length} EML files...`);
+        // Check selected download format
+        const downloadFormat = document.querySelector('input[name="downloadFormat"]:checked').value;
 
-        const zip = new JSZip();
+        if (downloadFormat === 'zip') {
+            // Create ZIP file containing all EML files
+            showToast(`📦 Creating ZIP archive with ${emlFiles.length} EML files...`);
 
-        // Add each EML file to the ZIP
-        emlFiles.forEach(file => {
-            zip.file(file.name, file.content);
-        });
+            const zip = new JSZip();
 
-        // Generate ZIP blob and download
-        zip.generateAsync({ type: 'blob' }).then(zipBlob => {
-            const url = URL.createObjectURL(zipBlob);
+            // Add each EML file to the ZIP
+            emlFiles.forEach(file => {
+                zip.file(file.name, file.content);
+            });
 
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = zipFilename;
-            link.click();
+            // Generate ZIP blob and download
+            zip.generateAsync({ type: 'blob' }).then(zipBlob => {
+                const url = URL.createObjectURL(zipBlob);
 
-            URL.revokeObjectURL(url);
-            showToast(`✅ ZIP archive downloaded: ${zipFilename}`);
-        }).catch(error => {
-            console.error('ZIP creation failed:', error);
-            showToast('❌ Failed to create ZIP archive');
-        });
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = zipFilename;
+                link.click();
+
+                URL.revokeObjectURL(url);
+                showToast(`✅ ZIP archive downloaded: ${zipFilename}`);
+            }).catch(error => {
+                console.error('ZIP creation failed:', error);
+                showToast('❌ Failed to create ZIP archive');
+            });
+        } else {
+            // Download individual EML files
+            showToast(`📁 Downloading ${emlFiles.length} individual EML files...`);
+
+            // Download files with small delays to avoid browser blocking
+            for (let i = 0; i < emlFiles.length; i++) {
+                const file = emlFiles[i];
+                console.log(`Downloading file ${i + 1}/${emlFiles.length}: ${file.name}`);
+
+                const blob = new Blob([file.content], { type: 'message/rfc822' });
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = file.name;
+                link.click();
+
+                URL.revokeObjectURL(url);
+
+                // Small delay between downloads to avoid browser blocking
+                if (i < emlFiles.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
+
+            showToast(`✅ Downloaded ${emlFiles.length} EML files successfully!`);
+        }
 
     } catch (error) {
         console.error('Bulk EML generation error:', error);
