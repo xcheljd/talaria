@@ -2731,7 +2731,6 @@ function selectTemplate(key) {
 
         elements.outputArea.value = '';
         elements.clearBtn.disabled = false;
-        elements.openEmailBtn.disabled = false;
     } catch (error) {
         console.error('Error selecting template:', error);
         showToast('Error loading template');
