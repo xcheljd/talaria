@@ -1877,6 +1877,35 @@ function renderPromotionEmailForm() {
             </div>
         </div>
 
+        <div class="form-group full-width" style="margin-top: 2rem; border-top: 2px solid var(--border-subtle); padding-top: 2rem;">
+            <label class="form-label">BULK EMAIL DISTRIBUTION</label>
+            <div class="field-help" style="margin-bottom: 1rem;">Send this promotion to multiple recipients in BCC batches</div>
+
+            <div class="form-group">
+                <label class="form-label">Recipient Email List</label>
+                <textarea class="form-input" id="bulkEmailList" placeholder="Paste emails here (comma or line separated)&#10;&#10;Example:&#10;customer1@example.com, customer2@example.com&#10;customer3@example.com" rows="6" style="resize: vertical; min-height: 120px;"></textarea>
+                <div class="field-help">One email per line or separated by commas. Duplicates will be automatically removed.</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Batch Size</label>
+                <div class="input-wrapper">
+                    <input type="number" class="form-input" id="batchSize" value="500" min="50" max="1000" step="50" style="width: 120px;">
+                    <span style="margin-left: 0.5rem; color: var(--text-secondary);">emails per file</span>
+                </div>
+                <div class="field-help" id="batchSizeHelp">Range: 50-1000 emails. 500 is recommended for spam safety.</div>
+            </div>
+
+            <div id="bulkAnalysis" style="background: var(--bg-tertiary); padding: 1rem; border-radius: var(--radius-sm); margin-top: 1rem; display: none;">
+                <div style="font-weight: 600; margin-bottom: 0.5rem;">📊 Batch Analysis</div>
+                <div id="bulkStats"></div>
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <button type="button" class="btn" id="generateBulkBtn" style="width: 100%;">Generate BCC Batch Files</button>
+            </div>
+        </div>
+
         <div class="template-actions">
             <button type="button" class="template-action-btn" id="saveTemplateBtn" title="Save current configuration">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1910,6 +1939,27 @@ function renderPromotionEmailForm() {
     const yearInput = document.getElementById('promoYear');
     const titleInput = document.getElementById('promoTitle');
     const addTierBtn = document.getElementById('addTierBtn');
+
+    // Bulk email functionality
+    const bulkEmailList = document.getElementById('bulkEmailList');
+    const batchSizeInput = document.getElementById('batchSize');
+    const generateBulkBtn = document.getElementById('generateBulkBtn');
+
+    // Bulk email event listeners
+    if (bulkEmailList) {
+        bulkEmailList.addEventListener('input', updateBulkAnalysis);
+    }
+
+    if (batchSizeInput) {
+        batchSizeInput.addEventListener('input', () => {
+            validateBatchSize();
+            updateBulkAnalysis();
+        });
+    }
+
+    if (generateBulkBtn) {
+        generateBulkBtn.addEventListener('click', generateBulkEMLFiles);
+    }
 
     // Date range input listener
     if (dateRangeInput) {
@@ -3259,6 +3309,309 @@ function init() {
         console.error('Initialization error:', error);
     }
 }
+
+// Bulk email functionality
+function parseEmailList(text) {
+    if (!text || !text.trim()) return [];
+
+    // Split by comma or newline, clean up whitespace
+    const emails = text.split(/[,\n]/)
+        .map(email => email.trim())
+        .filter(email => email.length > 0)
+        .filter(email => isValidEmail(email));
+
+    // Remove duplicates
+    return [...new Set(emails)];
+}
+
+function isValidEmail(email) {
+    // Basic email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+function validateBatchSize() {
+    const batchSizeInput = document.getElementById('batchSize');
+    const helpText = document.getElementById('batchSizeHelp');
+
+    if (!batchSizeInput || !helpText) return;
+
+    const size = parseInt(batchSizeInput.value);
+
+    if (isNaN(size) || size < 50) {
+        helpText.textContent = 'Minimum batch size is 50 emails';
+        helpText.style.color = '#dc3545';
+        return false;
+    }
+
+    if (size > 1000) {
+        helpText.textContent = 'Maximum batch size is 1000 emails';
+        helpText.style.color = '#dc3545';
+        return false;
+    }
+
+    if (size > 750) {
+        helpText.textContent = '⚠️ Large batches may trigger spam filters';
+        helpText.style.color = '#fd7e14';
+    } else if (size < 200) {
+        helpText.textContent = 'ℹ️ Small batches create more files to manage';
+        helpText.style.color = '#17a2b8';
+    } else {
+        helpText.textContent = '✅ Good balance of efficiency and deliverability';
+        helpText.style.color = 'var(--text-secondary)';
+    }
+
+    return true;
+}
+
+function updateBulkAnalysis() {
+    const bulkEmailList = document.getElementById('bulkEmailList');
+    const batchSizeInput = document.getElementById('batchSize');
+    const bulkAnalysis = document.getElementById('bulkAnalysis');
+    const bulkStats = document.getElementById('bulkStats');
+
+    if (!bulkEmailList || !batchSizeInput || !bulkAnalysis || !bulkStats) return;
+
+    const emailText = bulkEmailList.value.trim();
+    if (!emailText) {
+        bulkAnalysis.style.display = 'none';
+        return;
+    }
+
+    const emails = parseEmailList(emailText);
+    const batchSize = parseInt(batchSizeInput.value) || 500;
+
+    if (emails.length === 0) {
+        bulkAnalysis.style.display = 'none';
+        return;
+    }
+
+    // Calculate batches
+    const fullBatches = Math.floor(emails.length / batchSize);
+    const remainder = emails.length % batchSize;
+    const totalBatches = fullBatches + (remainder > 0 ? 1 : 0);
+
+    // Update display
+    bulkStats.innerHTML = `
+        <div>• Emails Found: ${emails.length}</div>
+        <div>• Batch Size: ${batchSize} emails</div>
+        <div>• Total Batches: ${totalBatches}</div>
+        <div>• Files: ${fullBatches > 0 ? `${fullBatches}×${batchSize}` : ''}${remainder > 0 ? `${fullBatches > 0 ? ' + ' : ''}1×${remainder}` : ''} emails</div>
+    `;
+
+    bulkAnalysis.style.display = 'block';
+}
+
+function extractDateRangeFromHTML(htmlContent) {
+    if (!htmlContent) return null;
+
+    // Find text before "While Supplies Last"
+    const whileSuppliesLastIndex = htmlContent.indexOf('While Supplies Last');
+    if (whileSuppliesLastIndex === -1) return null;
+
+    // Look backwards for the date range pattern
+    const searchStart = Math.max(0, whileSuppliesLastIndex - 200); // Look back up to 200 chars
+    const searchText = htmlContent.substring(searchStart, whileSuppliesLastIndex);
+
+    // Find the pattern: "dateRange, year • While Supplies Last"
+    const match = searchText.match(/([A-Za-z]+\s+\d+(?:\s*-\s*[A-Za-z]+\s+\d+)?),\s*(\d{4})\s*•\s*While Supplies Last/);
+
+    if (match) {
+        return `${match[1]}, ${match[2]}`;
+    }
+
+    return null;
+}
+
+function formatDateRangeForFilename(dateRangeText) {
+    if (!dateRangeText) return '';
+
+    // Examples:
+    // "October 28 - November 3, 2025" → "Oct28-Nov3.2025"
+    // "December 15 - 31, 2025" → "Dec15-Dec31.2025"
+
+    const monthMap = {
+        'January': 'Jan', 'February': 'Feb', 'March': 'Mar',
+        'April': 'Apr', 'May': 'May', 'June': 'Jun',
+        'July': 'Jul', 'August': 'Aug', 'September': 'Sep',
+        'October': 'Oct', 'November': 'Nov', 'December': 'Dec'
+    };
+
+    // Match date ranges like "October 28 - November 3, 2025"
+    const rangeMatch = dateRangeText.match(/^([A-Za-z]+)\s+(\d+)(?:\s*-\s*([A-Za-z]+)\s+(\d+))?,?\s*(\d{4})$/);
+
+    if (rangeMatch) {
+        const [, startMonth, startDay, endMonth, endDay, year] = rangeMatch;
+
+        const startMonthAbbrev = monthMap[startMonth] || startMonth.substring(0, 3);
+        const endMonthAbbrev = endMonth ? (monthMap[endMonth] || endMonth.substring(0, 3)) : startMonthAbbrev;
+
+        if (endMonth && endDay) {
+            return `${startMonthAbbrev}${startDay}-${endMonthAbbrev}${endDay}.${year}`;
+        } else {
+            return `${startMonthAbbrev}${startDay}.${year}`;
+        }
+    }
+
+    // Fallback: clean up the text
+    return dateRangeText.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+}
+
+function generateZipFilenameFromHTML(htmlContent) {
+    const dateRange = extractDateRangeFromHTML(htmlContent);
+
+    if (dateRange) {
+        const formattedRange = formatDateRangeForFilename(dateRange);
+        return `Promo-email.${formattedRange}.zip`;
+    } else {
+        // Fallback to current date
+        const today = new Date();
+        return `Promo-email.${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}.zip`;
+    }
+}
+
+function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = []) {
+    const boundary = '----=_NextPart_' + Date.now();
+    const bccHeader = recipients.join(', ');
+
+    let eml = `From: ${userProfile.storeName} <${userProfile.storeEmail}>\r\n`;
+    eml += `Subject: ${subject}\r\n`;
+    eml += `BCC: ${bccHeader}\r\n`;
+    eml += `MIME-Version: 1.0\r\n`;
+    eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
+    eml += `X-Unsent: 1\r\n`;
+    eml += `\r\n`;
+    eml += `This is a multi-part message in MIME format.\r\n`;
+    eml += `\r\n`;
+
+    // Add HTML body
+    eml += `--${boundary}\r\n`;
+    eml += `Content-Type: text/html; charset=UTF-8\r\n`;
+    eml += `Content-Transfer-Encoding: base64\r\n`;
+    eml += `\r\n`;
+
+    const htmlBase64 = btoa(unescape(encodeURIComponent(htmlBody)));
+    const htmlLines = htmlBase64.match(/.{1,76}/g) || [];
+    eml += htmlLines.join('\r\n');
+    eml += `\r\n\r\n`;
+
+    // Add PDF attachments
+    if (pdfAttachments && pdfAttachments.length > 0) {
+        pdfAttachments.forEach(pdf => {
+            const base64Data = pdf.data.split(',')[1];
+
+            eml += `--${boundary}\r\n`;
+            eml += `Content-Type: application/pdf; name="${pdf.name}"\r\n`;
+            eml += `Content-Transfer-Encoding: base64\r\n`;
+            eml += `Content-Disposition: attachment; filename="${pdf.name}"\r\n`;
+            eml += `\r\n`;
+
+            const lines = base64Data.match(/.{1,76}/g) || [];
+            eml += lines.join('\r\n');
+            eml += `\r\n\r\n`;
+        });
+    }
+
+    // End boundary
+    eml += `--${boundary}--\r\n`;
+
+    return eml;
+}
+
+async function generateBulkEMLFiles() {
+    // Validate current template
+    if (currentTemplate !== 'promotion-email') {
+        showToast('⚠️ Bulk email only available for promotion template');
+        return;
+    }
+
+    // Get and validate email list
+    const bulkEmailList = document.getElementById('bulkEmailList');
+    if (!bulkEmailList) return;
+
+    const emailText = bulkEmailList.value.trim();
+    if (!emailText) {
+        showToast('⚠️ Please enter recipient emails');
+        return;
+    }
+
+    const emails = parseEmailList(emailText);
+    if (emails.length === 0) {
+        showToast('⚠️ No valid emails found');
+        return;
+    }
+
+    // Validate batch size
+    if (!validateBatchSize()) {
+        showToast('⚠️ Please fix batch size issues');
+        return;
+    }
+
+    const batchSize = parseInt(document.getElementById('batchSize').value);
+
+    try {
+        // Generate HTML content first
+        showToast('⏳ Generating email content...');
+        const htmlContent = await generatePromotionHTML();
+
+        // Extract date range for ZIP naming
+        const zipFilename = generateZipFilenameFromHTML(htmlContent);
+
+        // Split emails into batches
+        const batches = [];
+        for (let i = 0; i < emails.length; i += batchSize) {
+            batches.push(emails.slice(i, i + batchSize));
+        }
+
+        showToast(`⏳ Creating ${batches.length} EML files...`);
+
+        // Generate EML files for each batch
+        const emlFiles = [];
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i];
+            const filename = `batch-${String(i + 1).padStart(3, '0')}.eml`;
+
+            // Get subject line
+            const subject = selectedSubjectLine || 'Promotional Sale';
+
+            const emlContent = createBCCBatchEML(subject, htmlContent, batch, attachedPDFs);
+
+            emlFiles.push({
+                name: filename,
+                content: emlContent
+            });
+        }
+
+        // Download EML files individually with small delays
+        showToast(`📁 Downloading ${emlFiles.length} EML files...`);
+
+        for (let i = 0; i < emlFiles.length; i++) {
+            const file = emlFiles[i];
+            const blob = new Blob([file.content], { type: 'message/rfc822' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = file.name;
+            link.click();
+
+            URL.revokeObjectURL(url);
+
+            // Small delay between downloads to avoid browser blocking
+            if (i < emlFiles.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+
+        showToast(`✅ Downloaded ${emlFiles.length} EML files`);
+
+    } catch (error) {
+        console.error('Bulk EML generation error:', error);
+        showToast('⚠️ Failed to generate bulk emails');
+    }
+}
+
+
 
 // Start the application when DOM is ready
 if (document.readyState === 'loading') {
