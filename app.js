@@ -3155,12 +3155,14 @@ function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '') {
     const senderName = userProfile && userProfile.storeName ? userProfile.storeName : 'Citizen Company Store';
     const senderEmail = userProfile && userProfile.storeEmail ? userProfile.storeEmail : 'store@citizenwatchgroup.com';
 
+    // Create EML as a draft message to allow editing in Outlook
     let eml = `From: ${senderName} <${senderEmail}>\r\n`;
-    eml += `To: ${recipient}\r\n`; // Use recipient if provided, otherwise leave empty
+    // Omit To: header entirely to ensure Outlook treats it as editable draft
     eml += `Subject: ${subject}\r\n`;
-    eml += `Date: ${date}\r\n`;
+    // Omit Date header to prevent Outlook from treating as sent message
     eml += `MIME-Version: 1.0\r\n`;
     eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
+    eml += `X-Unsent: 1\r\n`; // Mark as unsent/draft
     eml += `\r\n`;
     eml += `This is a multi-part message in MIME format.\r\n`;
     eml += `\r\n`;
