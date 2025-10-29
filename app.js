@@ -897,10 +897,8 @@ function cacheElements() {
     elements.outputArea = document.getElementById('outputArea');
     elements.generateBtn = document.getElementById('generateBtn');
     elements.clearBtn = document.getElementById('clearBtn');
-    elements.copyBtn = document.getElementById('copyBtn');
-    elements.openEmailBtn = document.getElementById('openEmailBtn');
-    elements.toast = document.getElementById('toast');
-    elements.outputCard = document.querySelector('.output-card');
+        elements.copyBtn = document.getElementById('copyBtn');
+        elements.toast = document.getElementById('toast');    elements.outputCard = document.querySelector('.output-card');
 }
 
 // Show tabbed output for promotion emails
@@ -2650,7 +2648,10 @@ function selectTemplate(key) {
             renderPromotionEmailForm();
             showTabbedOutput();
             elements.clearBtn.disabled = false;
-            elements.openEmailBtn.disabled = false;
+            const openEmailBtn = document.getElementById('openEmailBtn');
+            if (openEmailBtn) {
+                openEmailBtn.disabled = false;
+            }
             return;
         }
 
@@ -2981,7 +2982,10 @@ function clearAll() {
         `;
 
         elements.clearBtn.disabled = true;
-        elements.openEmailBtn.disabled = true;
+        const openEmailBtn = document.getElementById('openEmailBtn');
+        if (openEmailBtn) {
+            openEmailBtn.disabled = true;
+        }
     } catch (error) {
         console.error('Error clearing form:', error);
         showToast('Error clearing form');
