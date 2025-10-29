@@ -932,20 +932,24 @@ function showTabbedOutput() {
                 <div id="batchSizeHelp" style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem;">Range: 50-1000 emails. 500 is recommended for spam safety.</div>
             </div>
 
+            <div style="background: #d1ecf1; border-left: 3px solid #17a2b8; padding: 0.75rem; margin-bottom: 1rem; border-radius: var(--radius-sm);">
+                <strong>✅ Windows Security Compatible:</strong> Use "Individual EML Files" format. ZIP archives may trigger false positives.
+            </div>
+
             <div style="margin-bottom: 1rem;">
                 <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem;">Download Format</label>
                 <div style="display: flex; gap: 1rem; align-items: center;">
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="radio" name="downloadFormat" value="zip" checked style="margin: 0;">
-                        <span style="font-size: 0.9rem;">ZIP Archive (single file)</span>
+                        <input type="radio" name="downloadFormat" value="zip" style="margin: 0;">
+                        <span style="font-size: 0.9rem;">ZIP Archive (may trigger antivirus)</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="radio" name="downloadFormat" value="individual" style="margin: 0;">
-                        <span style="font-size: 0.9rem;">Individual EML Files</span>
+                        <input type="radio" name="downloadFormat" value="individual" checked style="margin: 0;">
+                        <span style="font-size: 0.9rem;">Individual EML Files (recommended)</span>
                     </label>
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem;">
-                    ZIP includes README.txt manifest. May trigger antivirus - try individual files if needed.
+                    <strong>Recommended:</strong> Individual EML files work with Windows Security. Edge browser warning is cosmetic.
                 </div>
             </div>
 
@@ -3776,7 +3780,7 @@ These files are safe to open with Microsoft Outlook or other email clients.
             // Download individual EML files
             showToast(`📁 Downloading ${emlFiles.length} individual EML files...`);
 
-            // Download files with small delays to avoid browser blocking
+            // Download files with optimized delays to avoid browser blocking
             for (let i = 0; i < emlFiles.length; i++) {
                 const file = emlFiles[i];
                 console.log(`Downloading file ${i + 1}/${emlFiles.length}: ${file.name}`);
@@ -3791,9 +3795,9 @@ These files are safe to open with Microsoft Outlook or other email clients.
 
                 URL.revokeObjectURL(url);
 
-                // Small delay between downloads to avoid browser blocking
+                // Optimized delay between downloads (reduced from 500ms to 200ms)
                 if (i < emlFiles.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    await new Promise(resolve => setTimeout(resolve, 200));
                 }
             }
 
