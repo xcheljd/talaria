@@ -699,6 +699,7 @@ function savePromotionTemplate() {
         dateRange: document.getElementById('promoDateRange')?.value || '',
         year: document.getElementById('promoYear')?.value || '',
         title: document.getElementById('promoTitle')?.value || '',
+        recipient: document.getElementById('promoRecipient')?.value || '',
         promotionEntries: JSON.parse(JSON.stringify(promotionEntries)),
         specialHours: JSON.parse(JSON.stringify(specialHours)),
         howToShopItems: JSON.parse(JSON.stringify(howToShopItems)),
@@ -769,10 +770,12 @@ function applyImportedConfig(config, collapseEntries = true) {
     const dateRangeInput = document.getElementById('promoDateRange');
     const yearInput = document.getElementById('promoYear');
     const titleInput = document.getElementById('promoTitle');
+    const recipientInput = document.getElementById('promoRecipient');
 
     if (dateRangeInput) dateRangeInput.value = config.dateRange || '';
     if (yearInput) yearInput.value = config.year || '';
     if (titleInput) titleInput.value = config.title || '';
+    if (recipientInput) recipientInput.value = config.recipient || '';
 
     // Restore arrays
     promotionEntries = JSON.parse(JSON.stringify(config.promotionEntries || []));
@@ -833,6 +836,7 @@ function exportPromotionTemplate() {
         dateRange: document.getElementById('promoDateRange')?.value || '',
         year: document.getElementById('promoYear')?.value || '',
         title: document.getElementById('promoTitle')?.value || '',
+        recipient: document.getElementById('promoRecipient')?.value || '',
         promotionEntries: JSON.parse(JSON.stringify(promotionEntries)),
         specialHours: JSON.parse(JSON.stringify(specialHours)),
         howToShopItems: JSON.parse(JSON.stringify(howToShopItems)),
@@ -1816,6 +1820,15 @@ function renderPromotionEmailForm() {
             <div class="field-help">Auto-generates based on date (Black Friday, Holiday Sale, etc.)</div>
         </div>
 
+        <div class="form-group">
+            <label class="form-label">Recipient Email (optional)</label>
+            <div class="input-wrapper">
+                <input type="email" class="form-input" id="promoRecipient" placeholder="recipient@example.com">
+                <button class="clear-input" data-clear="promoRecipient" title="Clear">×</button>
+            </div>
+            <div class="field-help">Leave blank to fill in Outlook. Multiple emails separated by commas.</div>
+        </div>
+
         <div class="form-group full-width" style="margin-top: 2rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <label class="form-label" style="margin-bottom: 0;">Discount Entries</label>
@@ -1960,6 +1973,27 @@ function renderPromotionEmailForm() {
                 clearTitleBtn.classList.remove('visible');
                 titleInput.focus();
                 updateLivePreview();
+            });
+        }
+    }
+
+    // Recipient input listener
+    const recipientInput = document.getElementById('promoRecipient');
+    if (recipientInput) {
+        recipientInput.addEventListener('input', () => {
+            const clearBtn = document.querySelector('[data-clear="promoRecipient"]');
+            if (clearBtn) {
+                clearBtn.classList.toggle('visible', recipientInput.value.trim().length > 0);
+            }
+        });
+
+        // Clear button
+        const clearRecipientBtn = document.querySelector('[data-clear="promoRecipient"]');
+        if (clearRecipientBtn) {
+            clearRecipientBtn.addEventListener('click', () => {
+                recipientInput.value = '';
+                clearRecipientBtn.classList.remove('visible');
+                recipientInput.focus();
             });
         }
     }
@@ -3081,9 +3115,13 @@ function openPromotionEmailInClient() {
     // Get selected subject line
     const subject = selectedSubjectLine || 'Promotional Sale';
 
+    // Get recipient if specified
+    const recipientInput = document.getElementById('promoRecipient');
+    const recipient = recipientInput ? recipientInput.value.trim() : '';
+
     try {
         // Create .eml file with HTML content and PDF attachments
-        const emlContent = createEMLFile(subject, htmlContent, attachedPDFs);
+        const emlContent = createEMLFile(subject, htmlContent, attachedPDFs, recipient);
 
         // Create blob and download
         const blob = new Blob([emlContent], { type: 'message/rfc822' });
@@ -3109,11 +3147,17 @@ function openPromotionEmailInClient() {
 }
 
 // Create EML file format with HTML body and PDF attachments
-function createEMLFile(subject, htmlBody, pdfAttachments = []) {
+function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '') {
     const boundary = '----=_NextPart_' + Date.now();
     const date = new Date().toUTCString();
 
-    let eml = `Subject: ${subject}\r\n`;
+    // Get user profile for sender information
+    const senderName = userProfile && userProfile.storeName ? userProfile.storeName : 'Citizen Company Store';
+    const senderEmail = userProfile && userProfile.storeEmail ? userProfile.storeEmail : 'store@citizenwatchgroup.com';
+
+    let eml = `From: ${senderName} <${senderEmail}>\r\n`;
+    eml += `To: ${recipient}\r\n`; // Use recipient if provided, otherwise leave empty
+    eml += `Subject: ${subject}\r\n`;
     eml += `Date: ${date}\r\n`;
     eml += `MIME-Version: 1.0\r\n`;
     eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
