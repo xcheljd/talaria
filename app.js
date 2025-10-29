@@ -912,6 +912,32 @@ function showTabbedOutput() {
     elements.outputCard.innerHTML = `
         <h2 class="section-title">Generated Email</h2>
 
+        <!-- Bulk Email Distribution Section -->
+        <div id="bulkEmailSection" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 2px solid var(--border-subtle);">
+            <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; color: var(--text-primary);">📧 Bulk Email Distribution</h3>
+            <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Send this promotion to multiple recipients in BCC batches</div>
+
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem;">Recipient Email List</label>
+                <textarea id="bulkEmailList" placeholder="Paste emails here (comma or line separated)&#10;&#10;Example:&#10;customer1@example.com, customer2@example.com&#10;customer3@example.com" rows="4" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-subtle); background: var(--bg-secondary); color: var(--text-primary); border-radius: var(--radius-sm); font-family: inherit; resize: vertical;"></textarea>
+                <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem;">One email per line or separated by commas. Duplicates will be automatically removed.</div>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem;">Batch Size</label>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="number" id="batchSize" value="500" min="50" max="1000" step="50" style="width: 100px; padding: 0.5rem; border: 2px solid var(--border-subtle); background: var(--bg-secondary); color: var(--text-primary); border-radius: var(--radius-sm); font-family: inherit;">
+                    <span style="color: var(--text-secondary);">emails per file</span>
+                </div>
+                <div id="batchSizeHelp" style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem;">Range: 50-1000 emails. 500 is recommended for spam safety.</div>
+            </div>
+
+            <div id="bulkAnalysis" style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; display: none;">
+                <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);">📊 Batch Analysis</div>
+                <div id="bulkStats" style="font-size: 0.9rem; color: var(--text-secondary);"></div>
+            </div>
+        </div>
+
         <!-- Subject Lines Section -->
         <div id="subjectLinesSection" style="margin-bottom: 1.5rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -937,6 +963,7 @@ function showTabbedOutput() {
         <div class="button-group">
             <button class="btn" id="copyPreviewBtn">Copy HTML Code</button>
             <button class="btn" id="openEmailBtn">Download .EML File & Open w/ Outlook</button>
+            <button class="btn" id="generateBulkBtn">Generate BCC Batch Files</button>
         </div>
     `;
 
@@ -996,6 +1023,26 @@ function showTabbedOutput() {
     const regenerateSubjectsBtn = document.getElementById('regenerateSubjectsBtn');
     if (regenerateSubjectsBtn) {
         regenerateSubjectsBtn.addEventListener('click', generateSubjectLines);
+    }
+
+    // Bulk email event listeners
+    const bulkEmailList = document.getElementById('bulkEmailList');
+    const batchSizeInput = document.getElementById('batchSize');
+    const generateBulkBtn = document.getElementById('generateBulkBtn');
+
+    if (bulkEmailList) {
+        bulkEmailList.addEventListener('input', updateBulkAnalysis);
+    }
+
+    if (batchSizeInput) {
+        batchSizeInput.addEventListener('input', () => {
+            validateBatchSize();
+            updateBulkAnalysis();
+        });
+    }
+
+    if (generateBulkBtn) {
+        generateBulkBtn.addEventListener('click', generateBulkEMLFiles);
     }
 
     // Render subject lines if they exist
@@ -1877,34 +1924,7 @@ function renderPromotionEmailForm() {
             </div>
         </div>
 
-        <div class="form-group full-width" style="margin-top: 2rem; border-top: 2px solid var(--border-subtle); padding-top: 2rem;">
-            <label class="form-label">BULK EMAIL DISTRIBUTION</label>
-            <div class="field-help" style="margin-bottom: 1rem;">Send this promotion to multiple recipients in BCC batches</div>
 
-            <div class="form-group">
-                <label class="form-label">Recipient Email List</label>
-                <textarea class="form-input" id="bulkEmailList" placeholder="Paste emails here (comma or line separated)&#10;&#10;Example:&#10;customer1@example.com, customer2@example.com&#10;customer3@example.com" rows="6" style="resize: vertical; min-height: 120px;"></textarea>
-                <div class="field-help">One email per line or separated by commas. Duplicates will be automatically removed.</div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Batch Size</label>
-                <div class="input-wrapper">
-                    <input type="number" class="form-input" id="batchSize" value="500" min="50" max="1000" step="50" style="width: 120px;">
-                    <span style="margin-left: 0.5rem; color: var(--text-secondary);">emails per file</span>
-                </div>
-                <div class="field-help" id="batchSizeHelp">Range: 50-1000 emails. 500 is recommended for spam safety.</div>
-            </div>
-
-            <div id="bulkAnalysis" style="background: var(--bg-tertiary); padding: 1rem; border-radius: var(--radius-sm); margin-top: 1rem; display: none;">
-                <div style="font-weight: 600; margin-bottom: 0.5rem;">📊 Batch Analysis</div>
-                <div id="bulkStats"></div>
-            </div>
-
-            <div style="margin-top: 1.5rem;">
-                <button type="button" class="btn" id="generateBulkBtn" style="width: 100%;">Generate BCC Batch Files</button>
-            </div>
-        </div>
 
         <div class="template-actions">
             <button type="button" class="template-action-btn" id="saveTemplateBtn" title="Save current configuration">
@@ -1940,26 +1960,7 @@ function renderPromotionEmailForm() {
     const titleInput = document.getElementById('promoTitle');
     const addTierBtn = document.getElementById('addTierBtn');
 
-    // Bulk email functionality
-    const bulkEmailList = document.getElementById('bulkEmailList');
-    const batchSizeInput = document.getElementById('batchSize');
-    const generateBulkBtn = document.getElementById('generateBulkBtn');
-
-    // Bulk email event listeners
-    if (bulkEmailList) {
-        bulkEmailList.addEventListener('input', updateBulkAnalysis);
-    }
-
-    if (batchSizeInput) {
-        batchSizeInput.addEventListener('input', () => {
-            validateBatchSize();
-            updateBulkAnalysis();
-        });
-    }
-
-    if (generateBulkBtn) {
-        generateBulkBtn.addEventListener('click', generateBulkEMLFiles);
-    }
+    // Bulk email event listeners are now set up in showTabbedOutput()
 
     // Date range input listener
     if (dateRangeInput) {
