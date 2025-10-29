@@ -3616,8 +3616,8 @@ async function generateBulkEMLFiles() {
         console.log('Using batch size:', batchSize);
 
         // Check for duplicates and get user confirmation
-        const duplicates = detectDuplicates(validEmails);
-        let finalEmails = validEmails;
+        const duplicates = detectDuplicates(emails);
+        let finalEmails = emails;
 
         if (duplicates.length > 0) {
             const confirmed = confirm(
@@ -3630,11 +3630,11 @@ async function generateBulkEMLFiles() {
 
             if (confirmed) {
                 // Remove duplicates
-                finalEmails = [...new Set(validEmails)];
+                finalEmails = [...new Set(emails)];
                 showToast(`✅ Removed ${duplicates.length} duplicate emails`);
             } else {
                 // Keep all emails (including duplicates)
-                finalEmails = validEmails;
+                finalEmails = emails;
                 showToast(`ℹ️ Keeping all emails including duplicates`);
             }
         }
