@@ -3370,6 +3370,23 @@ function validateBatchSize() {
     return true;
 }
 
+function detectDuplicates(emails) {
+    const seen = new Set();
+    const duplicates = [];
+
+    emails.forEach(email => {
+        if (seen.has(email)) {
+            if (!duplicates.includes(email)) {
+                duplicates.push(email);
+            }
+        } else {
+            seen.add(email);
+        }
+    });
+
+    return duplicates;
+}
+
 function updateBulkAnalysis() {
     const bulkEmailList = document.getElementById('bulkEmailList');
     const batchSizeInput = document.getElementById('batchSize');
@@ -3392,6 +3409,10 @@ function updateBulkAnalysis() {
     const validEmails = parseEmailList(emailText);
     const invalidCount = allEntries.length - validEmails.length;
 
+    // Detect duplicates among valid emails
+    const duplicates = detectDuplicates(validEmails);
+    const duplicateCount = duplicates.length;
+
     const batchSize = parseInt(batchSizeInput.value) || 500;
 
     if (validEmails.length === 0) {
@@ -3404,15 +3425,24 @@ function updateBulkAnalysis() {
         return;
     }
 
-    // Calculate batches
-    const fullBatches = Math.floor(validEmails.length / batchSize);
-    const remainder = validEmails.length % batchSize;
+    // Calculate batches based on unique emails
+    const uniqueValidEmails = [...new Set(validEmails)];
+    const fullBatches = Math.floor(uniqueValidEmails.length / batchSize);
+    const remainder = uniqueValidEmails.length % batchSize;
     const totalBatches = fullBatches + (remainder > 0 ? 1 : 0);
 
-    // Update display
+    // Update display with duplicate information
     let statsHtml = `
         <div>• Total entries: ${allEntries.length}</div>
         <div style="color: ${invalidCount > 0 ? '#fd7e14' : 'var(--text-secondary)'};">• Valid emails: ${validEmails.length}${invalidCount > 0 ? ` (${invalidCount} invalid)` : ''}</div>
+    `;
+
+    if (duplicateCount > 0) {
+        statsHtml += `<div style="color: #17a2b8;">• Duplicates found: ${duplicateCount} unique addresses</div>`;
+        statsHtml += `<div style="font-weight: 600; color: var(--text-primary);">• Final unique emails: ${uniqueValidEmails.length}</div>`;
+    }
+
+    statsHtml += `
         <div>• Batch Size: ${batchSize} emails</div>
         <div>• Total Batches: ${totalBatches}</div>
         <div>• Files: ${fullBatches > 0 ? `${fullBatches}×${batchSize}` : ''}${remainder > 0 ? `${fullBatches > 0 ? ' + ' : ''}1×${remainder}` : ''} emails</div>
@@ -3420,6 +3450,10 @@ function updateBulkAnalysis() {
 
     if (invalidCount > 0) {
         statsHtml += `<div style="font-size: 0.9rem; color: var(--text-tertiary); margin-top: 0.5rem;">Tip: Check for extra spaces, tabs, or invalid email formats</div>`;
+    }
+
+    if (duplicateCount > 0) {
+        statsHtml += `<div style="font-size: 0.9rem; color: #17a2b8; margin-top: 0.5rem;">ℹ️ Duplicates will be removed during generation to ensure each recipient gets one email</div>`;
     }
 
     bulkStats.innerHTML = statsHtml;
@@ -3581,6 +3615,30 @@ async function generateBulkEMLFiles() {
         const batchSize = parseInt(document.getElementById('batchSize').value);
         console.log('Using batch size:', batchSize);
 
+        // Check for duplicates and get user confirmation
+        const duplicates = detectDuplicates(validEmails);
+        let finalEmails = validEmails;
+
+        if (duplicates.length > 0) {
+            const confirmed = confirm(
+                `Found ${duplicates.length} duplicate email addresses in your list.\n\n` +
+                `Examples: ${duplicates.slice(0, 3).join(', ')}${duplicates.length > 3 ? '...' : ''}\n\n` +
+                `Remove duplicates to ensure each recipient gets only one email?\n\n` +
+                `• OK: Remove duplicates (recommended)\n` +
+                `• Cancel: Keep all emails (including duplicates)`
+            );
+
+            if (confirmed) {
+                // Remove duplicates
+                finalEmails = [...new Set(validEmails)];
+                showToast(`✅ Removed ${duplicates.length} duplicate emails`);
+            } else {
+                // Keep all emails (including duplicates)
+                finalEmails = validEmails;
+                showToast(`ℹ️ Keeping all emails including duplicates`);
+            }
+        }
+
         // Generate HTML content first
         showToast('⏳ Generating email content...');
         const htmlContent = await generatePromotionHTML();
@@ -3597,8 +3655,8 @@ async function generateBulkEMLFiles() {
 
         // Split emails into batches
         const batches = [];
-        for (let i = 0; i < emails.length; i += batchSize) {
-            batches.push(emails.slice(i, i + batchSize));
+        for (let i = 0; i < finalEmails.length; i += batchSize) {
+            batches.push(finalEmails.slice(i, i + batchSize));
         }
         console.log('Created', batches.length, 'batches');
 
