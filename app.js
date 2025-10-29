@@ -3696,30 +3696,31 @@ async function generateBulkEMLFiles() {
             });
         }
 
-        // Download EML files individually with small delays
-        showToast(`📁 Downloading ${emlFiles.length} EML files...`);
+        // Create ZIP file containing all EML files
+        showToast(`📦 Creating ZIP archive with ${emlFiles.length} EML files...`);
 
-        for (let i = 0; i < emlFiles.length; i++) {
-            const file = emlFiles[i];
-            console.log(`Downloading file ${i + 1}/${emlFiles.length}: ${file.name}`);
+        const zip = new JSZip();
 
-            const blob = new Blob([file.content], { type: 'message/rfc822' });
-            const url = URL.createObjectURL(blob);
+        // Add each EML file to the ZIP
+        emlFiles.forEach(file => {
+            zip.file(file.name, file.content);
+        });
+
+        // Generate ZIP blob and download
+        zip.generateAsync({ type: 'blob' }).then(zipBlob => {
+            const url = URL.createObjectURL(zipBlob);
 
             const link = document.createElement('a');
             link.href = url;
-            link.download = file.name;
+            link.download = zipFilename;
             link.click();
 
             URL.revokeObjectURL(url);
-
-            // Small delay between downloads to avoid browser blocking
-            if (i < emlFiles.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-        }
-
-        showToast(`✅ Downloaded ${emlFiles.length} EML files successfully!`);
+            showToast(`✅ ZIP archive downloaded: ${zipFilename}`);
+        }).catch(error => {
+            console.error('ZIP creation failed:', error);
+            showToast('❌ Failed to create ZIP archive');
+        });
 
     } catch (error) {
         console.error('Bulk EML generation error:', error);
