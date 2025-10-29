@@ -917,10 +917,6 @@ function showTabbedOutput() {
             <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; color: var(--text-primary);">📧 Bulk Email Distribution</h3>
             <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Send this promotion to multiple recipients in BCC batches</div>
 
-            <div style="background: #fff3cd; border-left: 3px solid #ffc107; padding: 1rem; margin-bottom: 1rem; border-radius: var(--radius-sm);">
-                <strong>⚠️ Safety Warning:</strong> Generated EML files are ready-to-send emails. Always verify BCC recipients before clicking Send to prevent accidental bulk emails. Open files in preview mode first.
-            </div>
-
             <div style="margin-bottom: 1rem;">
                 <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem;">Recipient Email List</label>
                 <textarea id="bulkEmailList" placeholder="Paste emails here (comma or line separated)&#10;&#10;Example:&#10;customer1@example.com, customer2@example.com&#10;customer3@example.com" rows="4" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-subtle); background: var(--bg-secondary); color: var(--text-primary); border-radius: var(--radius-sm); font-family: inherit; resize: vertical;"></textarea>
@@ -962,10 +958,6 @@ function showTabbedOutput() {
 
         <div class="output-content" id="codeContent">
             <textarea class="output-textarea" id="codeArea" placeholder="HTML code will appear here..."></textarea>
-        </div>
-
-        <div style="background: #f8d7da; border-left: 3px solid #dc3545; padding: 0.75rem; margin: 1rem 0; border-radius: var(--radius-sm); font-size: 0.85rem;">
-            <strong>🚨 Critical:</strong> EML files are live emails. Test with 1-2 recipients first. Never click Send unless you intend to email everyone in the BCC field.
         </div>
 
         <div class="button-group">
@@ -3221,7 +3213,7 @@ function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '') {
     // Omit Date header to prevent Outlook from treating as sent message
     eml += `MIME-Version: 1.0\r\n`;
     eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
-    // X-Unsent header removed - EML now appears as normal email (ready to send)
+    eml += `X-Unsent: 1\r\n`; // Mark as unsent/draft
     eml += `\r\n`;
     eml += `This is a multi-part message in MIME format.\r\n`;
     eml += `\r\n`;
@@ -3545,7 +3537,7 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = []) {
     eml += `BCC: ${bccHeader}\r\n`;
     eml += `MIME-Version: 1.0\r\n`;
     eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
-    // X-Unsent header removed - EML now appears as normal email (ready to send)
+    eml += `X-Unsent: 1\r\n`;
     eml += `\r\n`;
     eml += `This is a multi-part message in MIME format.\r\n`;
     eml += `\r\n`;
@@ -3686,7 +3678,7 @@ async function generateBulkEMLFiles() {
         const emlFiles = [];
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i];
-            const filename = `batch-${String(i + 1).padStart(3, '0')}-READY-TO-SEND.eml`;
+            const filename = `batch-${String(i + 1).padStart(3, '0')}.eml`;
 
             // Get subject line
             const subject = selectedSubjectLine || 'Promotional Sale';
