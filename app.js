@@ -938,12 +938,12 @@ function showTabbedOutput() {
                 <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem;">Download Format</label>
                 <div style="display: flex; gap: 1rem; align-items: center;">
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="radio" name="downloadFormat" value="zip" style="margin: 0;">
-                        <span style="font-size: 0.9rem;">ZIP Archive (may trigger antivirus on Windows)</span>
+                        <input type="radio" name="downloadFormat" value="individual" checked style="margin: 0;">
+                        <span style="font-size: 0.9rem;">Individual MSG Files (recommended)</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="radio" name="downloadFormat" value="individual" checked style="margin: 0;">
-                        <span style="font-size: 0.9rem;">Individual EML Files (recommended)</span>
+                        <input type="radio" name="downloadFormat" value="zip" style="margin: 0;">
+                        <span style="font-size: 0.9rem;">ZIP Archive (may trigger antivirus on Windows)</span>
                     </label>
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem;">
