@@ -3597,13 +3597,13 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
     const senderName = userProfile && userProfile.storeName ? userProfile.storeName : 'Store';
 
     console.log(`createBCCBatchEML called with ${recipients ? recipients.length : 0} recipients`);
-    let emlContent = `From: ${senderName} <${senderEmail}>\n`;
+    let emlContent = `From: ${senderName} <${senderEmail}>\r\n`;
 
     // Add BCC headers for each recipient in the batch (leave To field empty)
     if (recipients && recipients.length > 0) {
         console.log(`Adding ${recipients.length} BCC headers to EML`);
         recipients.forEach((recipient, index) => {
-            emlContent += `BCC: ${recipient}\n`;
+            emlContent += `BCC: ${recipient}\r\n`;
             if (index < 3 || index > recipients.length - 3) { // Log first 3 and last 3
                 console.log(`BCC header ${index + 1}: ${recipient}`);
             }
@@ -3615,32 +3615,20 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
         console.warn('No recipients provided for BCC headers!');
     }
 
-    emlContent += `Subject: ${subject}\n`;
-    emlContent += `MIME-Version: 1.0\n`;
-    emlContent += `Content-Type: multipart/mixed; boundary="${boundary}"\n`;
-    emlContent += `X-Unsent: 1\n`; // Mark as unsent/draft
-    emlContent += `X-Outlook-Template: 1\n`; // Mark as Outlook template
-    emlContent += `\n`;
+    emlContent += `Subject: ${subject}\r\n`;
+    emlContent += `MIME-Version: 1.0\r\n`;
+    emlContent += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
+    emlContent += `X-Unsent: 1\r\n`; // Mark as unsent/draft
+    emlContent += `X-Outlook-Template: 1\r\n`; // Mark as Outlook template
+    emlContent += `\r\n`;
 
     // HTML body part
-    emlContent += `--${boundary}\n`;
-    emlContent += `Content-Type: text/html; charset=utf-8\n`;
-    emlContent += `Content-Transfer-Encoding: 7bit\n\n`;
-    emlContent += htmlBody + '\n\n';
+    emlContent += `--${boundary}\r\n`;
+    emlContent += `Content-Type: text/html; charset=utf-8\r\n`;
+    emlContent += `Content-Transfer-Encoding: 7bit\r\n\r\n`;
+    emlContent += htmlBody + '\r\n\r\n';
 
-    // Add PDF attachments
-    if (pdfAttachments && pdfAttachments.length > 0) {
-        pdfAttachments.forEach(pdf => {
-            const base64Data = pdf.data.split(',')[1];
-            emlContent += `--${boundary}\n`;
-            emlContent += `Content-Type: application/pdf; name="${pdf.name}"\n`;
-            emlContent += `Content-Transfer-Encoding: base64\n`;
-            emlContent += `Content-Disposition: attachment; filename="${pdf.name}"\n\n`;
-            emlContent += base64Data + '\n\n';
-        });
-    }
-
-    emlContent += `--${boundary}--\n`;
+    emlContent += `--${boundary}--\r\n`;
 
     const bccCount = (emlContent.match(/BCC:/g) || []).length;
     console.log(`Generated EML with ${bccCount} BCC headers, file size: ${new TextEncoder().encode(emlContent).length} bytes`);
