@@ -1907,14 +1907,7 @@ function renderPromotionEmailForm() {
             <div class="field-help">Auto-generates based on date (Black Friday, Holiday Sale, etc.)</div>
         </div>
 
-        <div class="form-group">
-            <label class="form-label">Recipient Email (optional)</label>
-            <div class="input-wrapper">
-                <input type="email" class="form-input" id="promoRecipient" placeholder="recipient@example.com">
-                <button class="clear-input" data-clear="promoRecipient" title="Clear">×</button>
-            </div>
-            <div class="field-help">Leave blank to fill in Outlook. Multiple emails separated by commas.</div>
-        </div>
+
 
         <div class="form-group full-width" style="margin-top: 2rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
