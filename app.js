@@ -932,9 +932,7 @@ function showTabbedOutput() {
                 <div id="batchSizeHelp" style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem;">Range: 50-1000 emails. 500 is recommended for spam safety.</div>
             </div>
 
-            <div style="background: #d1ecf1; border-left: 3px solid #17a2b8; padding: 0.75rem; margin-bottom: 1rem; border-radius: var(--radius-sm);">
-                <strong>✅ Windows Security Compatible:</strong> Use "Individual EML Files" format. ZIP archives may trigger false positives.
-            </div>
+
 
             <div style="margin-bottom: 1rem;">
                 <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem;">Download Format</label>
