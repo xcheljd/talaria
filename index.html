@@ -74,32 +74,7 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <!-- Browser polyfills for Node.js dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/path-browserify@1.0.1/index.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/util@0.12.5/util.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/stream-browserify@3.0.0/index.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/os-browserify@0.3.0/browser.js"></script>
-    <script>
-        // Make Node.js globals available
-        if (typeof window !== 'undefined') {
-            window.global = window;
-            window.process = {
-                env: {},
-                version: '',
-                platform: 'browser',
-                cwd: () => '/',
-                nextTick: (fn) => setTimeout(fn, 0)
-            };
-            window.Buffer = window.Buffer || Buffer;
-        }
-    </script>
-    <!-- Crypto polyfill for Node.js crypto module -->
-    <script src="https://cdn.jsdelivr.net/npm/crypto-browserify@3.12.0/index.js"></script>
 
-    <script type="module">
-
-    </script>
     <script src="app.js"></script>
 </body>
 </html>

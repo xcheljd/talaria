@@ -843,6 +843,7 @@ body {
 
 .form-group.full-width {
     grid-column: 1 / -1;
+    width: 100%;
 }
 
 .form-group.radio-field {
@@ -1373,15 +1374,15 @@ body {
 .template-action-btn {
     background: var(--bg-tertiary);
     border: 2px solid var(--border-medium);
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-secondary);
     cursor: pointer;
-    padding: 7px 10px;
+    padding: 8px 17px;
     transition: all var(--transition-base);
     border-radius: 5px;
     font-family: inherit;
     font-weight: 600;
-    height: 31px;
+    height: 34px;
     line-height: 1.2;
     box-sizing: border-box;
     white-space: nowrap;
@@ -1390,7 +1391,6 @@ body {
     justify-content: center;
     gap: 5px;
     flex: 1;
-    min-width: 0;
 }
 
 .template-action-btn svg {
@@ -1412,23 +1412,31 @@ body {
     cursor: not-allowed;
 }
 
-.template-actions {
-    display: flex;
-    gap: 7px;
-    margin-top: 14px;
+.template-actions-container {
+    margin-top: 2rem;
     padding-top: 14px;
     border-top: 1px solid var(--border-subtle);
     width: 100%;
+    grid-column: 1 / -1;
+}
+
+.template-actions {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Responsive adjustments for template action buttons */
 @media (max-width: 768px) {
     .template-actions {
         flex-direction: column;
+        gap: 10px;
     }
 
     .template-action-btn {
         width: 100%;
+        flex: 1 1 auto;
     }
 }
 
@@ -1995,6 +2003,37 @@ body {
 }
 
 /* Responsive adjustments for new sections */
+/* Custom Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-medium);
+    border-radius: 4px;
+    transition: all var(--transition-base);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-primary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    box-shadow: 0 0 6px var(--accent-primary);
+}
+
+/* Firefox scrollbar styling */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-medium) var(--bg-tertiary);
+}
+
 @media (max-width: 768px) {
     .pdf-upload-dropzone {
         padding: 1.5rem;

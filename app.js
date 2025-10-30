@@ -74,13 +74,6 @@ function setDarkPalette(paletteName) {
     localStorage.setItem('darkPalette', paletteName);
 }
 
-// Get current palette names
-function getCurrentPalettes() {
-    return {
-        light: localStorage.getItem('lightPalette') || 'pastel',
-        dark: localStorage.getItem('darkPalette') || 'midnight-blue'
-    };
-}
 
 // Toggle navigation visibility
 function toggleNavigation() {
@@ -927,17 +920,42 @@ function showTabbedOutput() {
 
         <!-- Bulk Email Distribution Section -->
         <div id="bulkEmailSection" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-tertiary); border-radius: var(--radius-md); border: 2px solid var(--border-subtle);">
-            <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; color: var(--text-primary);">📧 Bulk Email Distribution</h3>
+            <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                    <path d="M2 6l10 8 10-8"></path>
+                    <line x1="2" y1="18" x2="22" y2="18"></line>
+                </svg>
+                Bulk Email Distribution
+            </h3>
             <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Send this promotion to multiple recipients in BCC batches</div>
 
             <div style="margin-bottom: 1rem;">
-                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem;">Recipient Email List</label>
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M8 6h13"></path>
+                        <path d="M8 12h13"></path>
+                        <path d="M8 18h13"></path>
+                        <path d="M3 6h.01"></path>
+                        <path d="M3 12h.01"></path>
+                        <path d="M3 18h.01"></path>
+                    </svg>
+                    Recipient Email List
+                </label>
                 <textarea id="bulkEmailList" placeholder="Paste emails here (comma or line separated)&#10;&#10;Example:&#10;customer1@example.com, customer2@example.com&#10;customer3@example.com" rows="4" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-subtle); background: var(--bg-secondary); color: var(--text-primary); border-radius: var(--radius-sm); font-family: inherit; resize: vertical;"></textarea>
                 <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem;">One email per line or separated by commas. Duplicates will be automatically removed.</div>
             </div>
 
             <div style="margin-bottom: 1rem;">
-                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem;">Batch Size</label>
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <rect x="7" y="7" width="10" height="4"></rect>
+                        <rect x="7" y="13" width="6" height="4"></rect>
+                    </svg>
+                    Batch Size
+                </label>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <input type="number" id="batchSize" value="500" min="50" max="1000" step="50" style="width: 100px; padding: 0.5rem; border: 2px solid var(--border-subtle); background: var(--bg-secondary); color: var(--text-primary); border-radius: var(--radius-sm); font-family: inherit;">
                     <span style="color: var(--text-secondary);">emails per file</span>
@@ -948,16 +966,23 @@ function showTabbedOutput() {
 
 
             <div style="margin-bottom: 1rem;">
-                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem;">Download Format</label>
-                <div style="display: flex; gap: 1rem; align-items: center;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="radio" name="downloadFormat" value="individual" checked style="margin: 0;">
-                        <span style="font-size: 0.9rem;">Individual Email Files (recommended)</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="radio" name="downloadFormat" value="zip" style="margin: 0;">
-                        <span style="font-size: 0.9rem;">ZIP Archive (may trigger antivirus on Windows)</span>
-                    </label>
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download Format
+                </label>
+                <div class="radio-group" style="display: flex; gap: 1rem; align-items: center;">
+                    <div class="radio-option">
+                        <input type="radio" id="formatIndividual" name="downloadFormat" value="individual" checked>
+                        <label for="formatIndividual" style="font-size: 0.9rem;">Individual Email Files (recommended)</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="formatZip" name="downloadFormat" value="zip">
+                        <label for="formatZip" style="font-size: 0.9rem;">ZIP Archive (may trigger antivirus on Windows)</label>
+                    </div>
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem;">
                     <strong>Recommended:</strong> Individual email files work with all Outlook versions. Format is automatically optimized for your platform.
@@ -965,21 +990,39 @@ function showTabbedOutput() {
             </div>
 
             <div id="formatStatus" style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem;">
-                <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);">📄 Email Format Status</div>
+                <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 11 12 14 22 4"></polyline>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                    Email Format Status
+                </div>
                 <div id="formatStatusText" style="font-size: 0.9rem; color: var(--text-secondary);">Checking MSG library availability...</div>
             </div>
 
             <div id="bulkAnalysis" style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; display: none;">
-                <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);">📊 Batch Analysis</div>
+                <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                    Batch Analysis
+                </div>
                 <div id="bulkStats" style="font-size: 0.9rem; color: var(--text-secondary);"></div>
             </div>
         </div>
 
         <!-- Subject Lines Section -->
         <div id="subjectLinesSection" style="margin-bottom: 1.5rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h3 style="margin: 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">Subject Line</h3>
-                <button type="button" class="btn" id="regenerateSubjectsBtn" style="padding: 0.5rem 1rem; font-size: 0.75rem; display: none;">🔄 Regenerate</button>
+            <div style="margin-bottom: 1rem;">
+                <h3 style="margin: 0; font-size: 1rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    Subject Line
+                </h3>
             </div>
             <div id="subjectLinesContainer" class="subject-lines-container"></div>
         </div>
@@ -1056,11 +1099,7 @@ function showTabbedOutput() {
         openEmailBtn.addEventListener('click', openInEmailClient);
     }
 
-    // Add regenerateSubjectsBtn handler
-    const regenerateSubjectsBtn = document.getElementById('regenerateSubjectsBtn');
-    if (regenerateSubjectsBtn) {
-        regenerateSubjectsBtn.addEventListener('click', generateSubjectLines);
-    }
+
 
     // Bulk email event listeners
     const bulkEmailList = document.getElementById('bulkEmailList');
@@ -1957,9 +1996,10 @@ function renderPromotionEmailForm() {
             </div>
         </div>
 
+        </div>
 
-
-        <div class="template-actions">
+        <div class="template-actions-container">
+            <div class="template-actions">
             <button type="button" class="template-action-btn" id="saveTemplateBtn" title="Save current configuration">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -2282,9 +2322,10 @@ function renderAttachedPDFs() {
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
-                </button>
+            </button>
             </div>
-        `;
+        </div>
+    `;
     }).join('');
 }
 
@@ -2369,11 +2410,7 @@ function generateSubjectLines() {
     renderSubjectLines();
     debouncedCaptureState();
 
-    // Show regenerate button
-    const regenerateBtn = document.getElementById('regenerateSubjectsBtn');
-    if (regenerateBtn) {
-        regenerateBtn.style.display = 'flex';
-    }
+
 
     showToast('✓ 10 subject lines generated');
 }
@@ -2495,9 +2532,8 @@ function updateFormatStatus() {
     else if (os === 'mac') osName = 'macOS';
     else osName = 'Other Platform';
 
-    statusDiv.innerHTML = `✅ <strong>${formatName} Format:</strong> Optimized for ${osName} (${fileExtension} files)<br><small>Best compatibility with Outlook on your platform</small>`;
+    statusDiv.innerHTML = `<strong>${formatName} Format:</strong> Optimized for ${osName} (${fileExtension} files)<br><small>Best compatibility with Outlook on your platform</small>`;
     statusDiv.style.color = 'var(--text-secondary)';
-    console.log(`Format status: ${osName} detected, using ${formatName} format`);
 }
 
 // Handle keyboard shortcuts for undo/redo
@@ -3590,7 +3626,7 @@ function generateZipFilenameFromHTML(htmlContent) {
     }
 }
 
-function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], format = 'eml') {
+function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], format = 'eml', batchNumber = 1) {
     // Create EML email with CRLF line endings for Outlook compatibility
     // Note: Mac Outlook (.emltpl) may only display 1 BCC recipient in the UI for security,
     // but all recipients are included when the email is sent.
@@ -3598,15 +3634,12 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
     const senderEmail = userProfile && userProfile.storeEmail ? userProfile.storeEmail : 'noreply@example.com';
     const senderName = userProfile && userProfile.storeName ? userProfile.storeName : 'Store';
 
-    console.log(`createBCCBatchEML called with ${recipients ? recipients.length : 0} recipients`);
     let emlContent = `From: ${senderName} <${senderEmail}>\r\n`;
 
     // Add BCC recipients as comma-separated list in single header (RFC 822 compliant)
     if (recipients && recipients.length > 0) {
-        console.log(`Adding ${recipients.length} BCC recipients to single header`);
         const bccLine = `BCC: ${recipients.join(', ')}\r\n`;
         emlContent += bccLine;
-        console.log(`BCC header: ${bccLine.trim()}`);
     } else {
         console.warn('No recipients provided for BCC headers!');
     }
@@ -3631,12 +3664,14 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
     emlContent += `--${boundary}--\r\n`;
 
     const bccCount = (emlContent.match(/BCC:/g) || []).length;
-    console.log(`Generated EML with ${bccCount} BCC headers, file size: ${new TextEncoder().encode(emlContent).length} bytes`);
+
+    // Format batch number with leading zeros (001, 002, etc.)
+    const paddedBatchNumber = batchNumber.toString().padStart(3, '0');
 
     return {
         format: format,
         data: new TextEncoder().encode(emlContent),
-        filename: `bulk-email-${Date.now()}.${format}`
+        filename: `batch-email${paddedBatchNumber}.${format}`
     };
 }
 
@@ -3677,11 +3712,7 @@ async function generateBulkEmailFiles() {
         }
 
         const batchSizeInputValue = document.getElementById('batchSize').value;
-        console.log('Batch size input raw value:', batchSizeInputValue);
         const batchSize = parseInt(batchSizeInputValue);
-        console.log('Parsed batch size:', batchSize);
-        console.log('Batch size type:', typeof batchSize);
-        console.log('Is batch size NaN?', isNaN(batchSize));
 
         if (isNaN(batchSize) || batchSize <= 0) {
             console.error('Invalid batch size:', batchSize);
@@ -3735,7 +3766,6 @@ async function generateBulkEmailFiles() {
         };
 
         const htmlContent = generatePromotionEmailHTML(data);
-        console.log('HTML content generated, length:', htmlContent.length);
 
         if (!htmlContent || htmlContent.length < 100) {
             showToast('⚠️ Email content generation failed. Please fill out the form completely.');
@@ -3744,17 +3774,20 @@ async function generateBulkEmailFiles() {
 
         // Extract date range for ZIP naming
         const zipFilename = generateZipFilenameFromHTML(htmlContent);
-        console.log('ZIP filename:', zipFilename);
 
         // Split emails into batches
-        console.log('About to create batches with:', { finalEmailsCount: finalEmails.length, batchSize });
         const batches = [];
         for (let i = 0; i < finalEmails.length; i += batchSize) {
             const batch = finalEmails.slice(i, i + batchSize);
             batches.push(batch);
-            console.log(`Created batch ${batches.length}: ${batch.length} emails (indices ${i} to ${i + batchSize - 1})`);
         }
-        console.log('Total batches created:', batches.length);
+
+        // Get recommended format based on OS (before using it)
+        const format = getRecommendedFormat();
+        if (!format) {
+            console.error('Format is undefined, defaulting to eml');
+            format = 'eml'; // Fallback
+        }
 
         // Show Mac-specific warning about BCC display limitations
         if (format === 'emltpl') {
@@ -3765,19 +3798,14 @@ async function generateBulkEmailFiles() {
         showToast(`⏳ Creating ${batches.length} email files...`);
 
         // Generate email files for each batch using OS-optimized format
-        console.log('Starting email file generation for', batches.length, 'batches');
         const emailFiles = [];
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i];
-            console.log(`Processing batch ${i + 1}/${batches.length} with ${batch.length} recipients`);
 
             // Get subject line
             const subject = selectedSubjectLine || 'Promotional Sale';
 
-            // Get recommended format based on OS
-            const format = getRecommendedFormat();
-            console.log(`Creating ${format} file for batch ${i + 1}`);
-            const emailResult = createBCCBatchEML(subject, htmlContent, batch, attachedPDFs, format);
+            const emailResult = createBCCBatchEML(subject, htmlContent, batch, attachedPDFs, format, i + 1);
 
             if (!emailResult || !emailResult.data || emailResult.data.length < 100) {
                 throw new Error(`Failed to generate email content for batch ${i + 1}`);
@@ -3861,7 +3889,6 @@ These files are safe to open with Microsoft Outlook on Windows and Mac.
             // Download files with optimized delays to avoid browser blocking
             for (let i = 0; i < emailFiles.length; i++) {
                 const file = emailFiles[i];
-                console.log(`Downloading file ${i + 1}/${emailFiles.length}: ${file.name}`);
 
                 // Set MIME type for email files
                 const mimeType = 'message/rfc822';
