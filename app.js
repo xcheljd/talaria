@@ -3620,6 +3620,10 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
     emlContent += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
     emlContent += `X-Unsent: 1\r\n`; // Mark as unsent/draft
     emlContent += `X-Outlook-Template: 1\r\n`; // Mark as Outlook template
+    emlContent += `Message-Class: IPM.Note\r\n`; // Outlook message classification
+    emlContent += `X-Outlook-Message-Flag: \r\n`; // Draft status indicator
+    emlContent += `X-Mailer: Microsoft Outlook 16.0\r\n`; // Application identifier
+    emlContent += `X-Msg-Status: 00000000\r\n`; // Message status code
     emlContent += `\r\n`;
 
     // HTML body part
