@@ -3604,9 +3604,8 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
     const senderName = userProfile && userProfile.storeName ? userProfile.storeName : 'Store';
 
     let emlContent = `From: ${senderName} <${senderEmail}>\n`;
-    emlContent += `To: undisclosed-recipients:;\n`;
 
-    // Add BCC headers for each recipient in the batch
+    // Add BCC headers for each recipient in the batch (leave To field empty)
     if (recipients && recipients.length > 0) {
         recipients.forEach(recipient => {
             emlContent += `BCC: ${recipient}\n`;
