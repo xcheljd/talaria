@@ -941,7 +941,7 @@ function showTabbedOutput() {
                 <div style="display: flex; gap: 1rem; align-items: center;">
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="downloadFormat" value="zip" style="margin: 0;">
-                        <span style="font-size: 0.9rem;">ZIP Archive (may trigger antivirus)</span>
+                        <span style="font-size: 0.9rem;">ZIP Archive (may trigger antivirus on Windows)</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="downloadFormat" value="individual" checked style="margin: 0;">
@@ -949,7 +949,7 @@ function showTabbedOutput() {
                     </label>
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem;">
-                    <strong>Recommended:</strong> Individual EML files work with Windows Security. Edge browser warning is cosmetic.
+                    <strong>Recommended:</strong> Individual MSG files work with Windows Security and Mac Outlook. Edge browser warning is cosmetic.
                 </div>
             </div>
 
@@ -984,7 +984,7 @@ function showTabbedOutput() {
         <div class="button-group">
             <button class="btn" id="copyPreviewBtn">Copy HTML Code</button>
             <button class="btn" id="openEmailBtn">Download .EML File & Open w/ Outlook</button>
-            <button class="btn" id="generateBulkBtn">Generate BCC Batch Files</button>
+            <button class="btn" id="generateBulkBtn">Generate BCC Batch MSG Files</button>
         </div>
     `;
 
@@ -1063,7 +1063,7 @@ function showTabbedOutput() {
     }
 
     if (generateBulkBtn) {
-        generateBulkBtn.addEventListener('click', generateBulkEMLFiles);
+        generateBulkBtn.addEventListener('click', generateBulkMSGFiles);
     }
 
     // Render subject lines if they exist
@@ -3549,55 +3549,38 @@ function generateZipFilenameFromHTML(htmlContent) {
     }
 }
 
-function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = []) {
-    const boundary = '----=_NextPart_' + Date.now();
-    const bccHeader = recipients.join(', ');
+function createBCCBatchMSG(subject, htmlBody, recipients, pdfAttachments = []) {
+    // Create MSG email using @tutao/oxmsg library for cross-platform Outlook compatibility
+    const email = new window.Email();
 
-    let eml = `From: ${userProfile.storeName} <${userProfile.storeEmail}>\r\n`;
-    eml += `Subject: ${subject}\r\n`;
-    eml += `BCC: ${bccHeader}\r\n`;
-    eml += `MIME-Version: 1.0\r\n`;
-    eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
-    eml += `X-Unsent: 1\r\n`;
-    eml += `\r\n`;
-    eml += `This is a multi-part message in MIME format.\r\n`;
-    eml += `\r\n`;
+    // Set basic email properties
+    email.subject(subject)
+         .bodyHtml(htmlBody)
+         .sender(userProfile.storeEmail, userProfile.storeName);
 
-    // Add HTML body
-    eml += `--${boundary}\r\n`;
-    eml += `Content-Type: text/html; charset=UTF-8\r\n`;
-    eml += `Content-Transfer-Encoding: base64\r\n`;
-    eml += `\r\n`;
-
-    const htmlBase64 = btoa(unescape(encodeURIComponent(htmlBody)));
-    const htmlLines = htmlBase64.match(/.{1,76}/g) || [];
-    eml += htmlLines.join('\r\n');
-    eml += `\r\n\r\n`;
+    // Add BCC recipients
+    recipients.forEach(recipient => {
+        email.bcc(recipient);
+    });
 
     // Add PDF attachments
     if (pdfAttachments && pdfAttachments.length > 0) {
         pdfAttachments.forEach(pdf => {
             const base64Data = pdf.data.split(',')[1];
-
-            eml += `--${boundary}\r\n`;
-            eml += `Content-Type: application/pdf; name="${pdf.name}"\r\n`;
-            eml += `Content-Transfer-Encoding: base64\r\n`;
-            eml += `Content-Disposition: attachment; filename="${pdf.name}"\r\n`;
-            eml += `\r\n`;
-
-            const lines = base64Data.match(/.{1,76}/g) || [];
-            eml += lines.join('\r\n');
-            eml += `\r\n\r\n`;
+            const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+            const attachment = new window.Attachment(binaryData, pdf.name);
+            email.attach(attachment);
         });
     }
 
-    // End boundary
-    eml += `--${boundary}--\r\n`;
+    // Set Outlook icon for email
+    email.iconIndex = 0x00000103; // Email icon
 
-    return eml;
+    // Generate MSG file content
+    return email.msg();
 }
 
-async function generateBulkEMLFiles() {
+async function generateBulkMSGFiles() {
     try {
         // Validate current template
         if (currentTemplate !== 'promotion-email') {
@@ -3696,24 +3679,24 @@ async function generateBulkEMLFiles() {
         showToast(`⏳ Creating ${batches.length} EML files...`);
 
         // Generate EML files for each batch
-        const emlFiles = [];
+        const msgFiles = [];
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i];
-            const filename = `batch-${String(i + 1).padStart(3, '0')}.eml`;
+            const filename = `batch-${String(i + 1).padStart(3, '0')}.msg`;
 
             // Get subject line
             const subject = selectedSubjectLine || 'Promotional Sale';
-            console.log(`Creating EML ${i + 1}/${batches.length}: ${filename} with ${batch.length} recipients`);
+            console.log(`Creating MSG ${i + 1}/${batches.length}: ${filename} with ${batch.length} recipients`);
 
-            const emlContent = createBCCBatchEML(subject, htmlContent, batch, attachedPDFs);
+            const msgContent = createBCCBatchMSG(subject, htmlContent, batch, attachedPDFs);
 
-            if (!emlContent || emlContent.length < 100) {
-                throw new Error(`Failed to generate EML content for batch ${i + 1}`);
+            if (!msgContent || msgContent.length < 100) {
+                throw new Error(`Failed to generate MSG content for batch ${i + 1}`);
             }
 
-            emlFiles.push({
+            msgFiles.push({
                 name: filename,
-                content: emlContent
+                content: msgContent
             });
         }
 
@@ -3722,14 +3705,14 @@ async function generateBulkEMLFiles() {
 
         if (downloadFormat === 'zip') {
             // Create ZIP file containing all EML files
-            showToast(`📦 Creating ZIP archive with ${emlFiles.length} EML files...`);
+            showToast(`📦 Creating ZIP archive with ${msgFiles.length} MSG files...`);
 
             const zip = new JSZip();
 
             // Add manifest file to explain contents and reduce suspicion
             const manifestContent = `PROMOTIONAL EMAIL BATCHES
 
-This ZIP archive contains ${emlFiles.length} promotional email files (.eml format) for bulk distribution.
+This ZIP archive contains ${msgFiles.length} promotional email files (.msg format) for bulk distribution.
 
 Each .eml file contains:
 - HTML formatted promotional content
@@ -3740,16 +3723,16 @@ Each .eml file contains:
 Files are generated by Citizen Communication Template Generator for legitimate marketing purposes.
 
 Created: ${new Date().toISOString()}
-Total files: ${emlFiles.length}
-Format: Email message files (.eml)
+Total files: ${msgFiles.length}
+Format: Outlook message files (.msg)
 
-These files are safe to open with Microsoft Outlook or other email clients.
+These files are safe to open with Microsoft Outlook on Windows and Mac.
 `;
 
             zip.file('README.txt', manifestContent);
 
-            // Add each EML file to the ZIP with different compression options
-            emlFiles.forEach(file => {
+            // Add each MSG file to the ZIP with different compression options
+            msgFiles.forEach(file => {
                 zip.file(file.name, file.content, {
                     compression: 'DEFLATE',
                     compressionOptions: { level: 6 } // Medium compression
@@ -3778,12 +3761,12 @@ These files are safe to open with Microsoft Outlook or other email clients.
             });
         } else {
             // Download individual EML files
-            showToast(`📁 Downloading ${emlFiles.length} individual EML files...`);
+            showToast(`📁 Downloading ${msgFiles.length} individual MSG files...`);
 
             // Download files with optimized delays to avoid browser blocking
-            for (let i = 0; i < emlFiles.length; i++) {
-                const file = emlFiles[i];
-                console.log(`Downloading file ${i + 1}/${emlFiles.length}: ${file.name}`);
+            for (let i = 0; i < msgFiles.length; i++) {
+                const file = msgFiles[i];
+                console.log(`Downloading file ${i + 1}/${msgFiles.length}: ${file.name}`);
 
                 const blob = new Blob([file.content], { type: 'message/rfc822' });
                 const url = URL.createObjectURL(blob);
@@ -3796,12 +3779,12 @@ These files are safe to open with Microsoft Outlook or other email clients.
                 URL.revokeObjectURL(url);
 
                 // Optimized delay between downloads (reduced from 500ms to 200ms)
-                if (i < emlFiles.length - 1) {
+                if (i < msgFiles.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 200));
                 }
             }
 
-            showToast(`✅ Downloaded ${emlFiles.length} EML files successfully!`);
+            showToast(`✅ Downloaded ${msgFiles.length} MSG files successfully!`);
         }
 
     } catch (error) {

@@ -74,6 +74,12 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script type="module">
+        // Import MSG generation library for cross-platform Outlook compatibility
+        import { Email, Attachment } from 'https://cdn.jsdelivr.net/npm/@tutao/oxmsg@0.0.8/dist/index.js';
+        window.Email = Email;
+        window.Attachment = Attachment;
+    </script>
     <script src="app.js"></script>
 </body>
 </html>
