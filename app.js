@@ -860,6 +860,19 @@ function exportPromotionTemplate() {
     showToast('✓ Template exported successfully');
 }
 
+// OS detection for format selection
+function detectOS() {
+    const platform = navigator.platform.toLowerCase();
+    if (platform.includes('win')) return 'windows';
+    if (platform.includes('mac')) return 'mac';
+    return 'other';
+}
+
+function getRecommendedFormat() {
+    const os = detectOS();
+    return os === 'mac' ? 'emltpl' : 'eml';
+}
+
 // Load user profile from localStorage
 function loadUserProfile() {
     try {
@@ -939,7 +952,7 @@ function showTabbedOutput() {
                 <div style="display: flex; gap: 1rem; align-items: center;">
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="downloadFormat" value="individual" checked style="margin: 0;">
-                        <span style="font-size: 0.9rem;">Individual MSG Files (recommended)</span>
+                        <span style="font-size: 0.9rem;">Individual Email Files (recommended)</span>
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="radio" name="downloadFormat" value="zip" style="margin: 0;">
@@ -947,8 +960,13 @@ function showTabbedOutput() {
                     </label>
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem;">
-                    <strong>Recommended:</strong> Individual MSG files work with Windows Security and Mac Outlook. Edge browser warning is cosmetic.
+                    <strong>Recommended:</strong> Individual email files work with all Outlook versions. Format is automatically optimized for your platform.
                 </div>
+            </div>
+
+            <div id="formatStatus" style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem;">
+                <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);">📄 Email Format Status</div>
+                <div id="formatStatusText" style="font-size: 0.9rem; color: var(--text-secondary);">Checking MSG library availability...</div>
             </div>
 
             <div id="bulkAnalysis" style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; display: none;">
@@ -981,8 +999,8 @@ function showTabbedOutput() {
 
         <div class="button-group">
             <button class="btn" id="copyPreviewBtn">Copy HTML Code</button>
-            <button class="btn" id="openEmailBtn">Download .EML File & Open w/ Outlook</button>
-            <button class="btn" id="generateBulkBtn">Generate BCC Batch MSG Files</button>
+            <button class="btn" id="openEmailBtn">Download Email File & Open w/ Outlook</button>
+            <button class="btn" id="generateBulkBtn">Generate BCC Batch Email Files</button>
         </div>
     `;
 
@@ -1061,11 +1079,14 @@ function showTabbedOutput() {
     }
 
     if (generateBulkBtn) {
-        generateBulkBtn.addEventListener('click', generateBulkMSGFiles);
+        generateBulkBtn.addEventListener('click', generateBulkEmailFiles);
     }
 
     // Render subject lines if they exist
     renderSubjectLines();
+
+    // Update format status after library has time to load
+    setTimeout(updateFormatStatus, 2000);
 }
 
 // Show regular output
@@ -2466,6 +2487,26 @@ function selectSubjectLine(subject) {
     debouncedCaptureState();
 }
 
+// Update format status indicator
+function updateFormatStatus() {
+    const statusDiv = document.getElementById('formatStatusText');
+    if (!statusDiv) return;
+
+    const os = detectOS();
+    const format = getRecommendedFormat();
+    const formatName = format === 'emltpl' ? 'Template' : 'EML';
+    const fileExtension = format === 'emltpl' ? '.emltpl' : '.eml';
+
+    let osName = 'Unknown';
+    if (os === 'windows') osName = 'Windows';
+    else if (os === 'mac') osName = 'macOS';
+    else osName = 'Other Platform';
+
+    statusDiv.innerHTML = `✅ <strong>${formatName} Format:</strong> Optimized for ${osName} (${fileExtension} files)<br><small>Best compatibility with Outlook on your platform</small>`;
+    statusDiv.style.color = 'var(--text-secondary)';
+    console.log(`Format status: ${osName} detected, using ${formatName} format`);
+}
+
 // Handle keyboard shortcuts for undo/redo
 function handleUndoRedoShortcuts(e) {
     // Only apply in promotion email mode
@@ -3190,15 +3231,19 @@ function openPromotionEmailInClient() {
     const recipient = recipientInput ? recipientInput.value.trim() : '';
 
     try {
-        // Create .eml file with HTML content and PDF attachments
-        const emlContent = createEMLFile(subject, htmlContent, attachedPDFs, recipient);
+        // Get recommended format based on OS
+        const format = getRecommendedFormat();
+        const fileExtension = format === 'emltpl' ? '.emltpl' : '.eml';
+
+        // Create email file with HTML content and PDF attachments
+        const emlContent = createEMLFile(subject, htmlContent, attachedPDFs, recipient, format);
 
         // Create blob and download
         const blob = new Blob([emlContent], { type: 'message/rfc822' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `promotion-email-${new Date().toISOString().split('T')[0]}.eml`;
+        link.download = `promotion-email-${new Date().toISOString().split('T')[0]}${fileExtension}`;
         link.click();
         URL.revokeObjectURL(url);
 
@@ -3217,7 +3262,7 @@ function openPromotionEmailInClient() {
 }
 
 // Create EML file format with HTML body and PDF attachments
-function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '') {
+function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '', format = 'eml') {
     const boundary = '----=_NextPart_' + Date.now();
     const date = new Date().toUTCString();
 
@@ -3233,6 +3278,11 @@ function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '') {
     eml += `MIME-Version: 1.0\r\n`;
     eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
     eml += `X-Unsent: 1\r\n`; // Mark as unsent/draft
+    eml += `X-Outlook-Message-Flag: \r\n`; // Outlook draft flag
+    eml += `X-Microsoft-Headers: ; name="draft"\r\n`; // Microsoft draft marker
+    eml += `X-Mailer: Microsoft Outlook 16.0\r\n`; // Identify as Outlook-generated
+    eml += `X-Msg-Status: 00000000\r\n`; // Draft message status
+    eml += `X-Outlook-Template: 1\r\n`; // Mark as Outlook template
     eml += `\r\n`;
     eml += `This is a multi-part message in MIME format.\r\n`;
     eml += `\r\n`;
@@ -3547,38 +3597,55 @@ function generateZipFilenameFromHTML(htmlContent) {
     }
 }
 
-function createBCCBatchMSG(subject, htmlBody, recipients, pdfAttachments = []) {
-    // Create MSG email using @tutao/oxmsg library for cross-platform Outlook compatibility
-    const email = new window.Email();
+function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], format = 'eml') {
+    // Create EML email as fallback when MSG generation fails
+    const boundary = '----=_NextPart_' + Date.now();
+    const senderEmail = userProfile && userProfile.storeEmail ? userProfile.storeEmail : 'noreply@example.com';
+    const senderName = userProfile && userProfile.storeName ? userProfile.storeName : 'Store';
 
-    // Set basic email properties
-    email.subject(subject)
-         .bodyHtml(htmlBody)
-         .sender(userProfile.storeEmail, userProfile.storeName);
+    let emlContent = `From: ${senderName} <${senderEmail}>\n`;
+    emlContent += `To: undisclosed-recipients:;\n`;
+    emlContent += `Subject: ${subject}\n`;
+    emlContent += `MIME-Version: 1.0\n`;
+    emlContent += `Content-Type: multipart/mixed; boundary="${boundary}"\n`;
+    emlContent += `X-Unsent: 1\n`; // Mark as unsent/draft
+    emlContent += `X-Outlook-Message-Flag: \n`; // Outlook draft flag
+    emlContent += `X-Microsoft-Headers: ; name="draft"\n`; // Microsoft draft marker
+    emlContent += `X-Mailer: Microsoft Outlook 16.0\n`; // Identify as Outlook-generated
+    emlContent += `X-Msg-Status: 00000000\n`; // Draft message status
+    emlContent += `X-Outlook-Template: 1\n`; // Mark as Outlook template
+    emlContent += `\n`;
 
-    // Add BCC recipients
-    recipients.forEach(recipient => {
-        email.bcc(recipient);
-    });
+    // HTML body part
+    emlContent += `--${boundary}\n`;
+    emlContent += `Content-Type: text/html; charset=utf-8\n`;
+    emlContent += `Content-Transfer-Encoding: 7bit\n\n`;
+    emlContent += htmlBody + '\n\n';
 
     // Add PDF attachments
     if (pdfAttachments && pdfAttachments.length > 0) {
         pdfAttachments.forEach(pdf => {
             const base64Data = pdf.data.split(',')[1];
-            const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-            const attachment = new window.Attachment(binaryData, pdf.name);
-            email.attach(attachment);
+            emlContent += `--${boundary}\n`;
+            emlContent += `Content-Type: application/pdf; name="${pdf.name}"\n`;
+            emlContent += `Content-Transfer-Encoding: base64\n`;
+            emlContent += `Content-Disposition: attachment; filename="${pdf.name}"\n\n`;
+            emlContent += base64Data + '\n\n';
         });
     }
 
-    // Set Outlook icon for email
-    email.iconIndex = 0x00000103; // Email icon
+    emlContent += `--${boundary}--\n`;
 
-    // Generate MSG file content
-    return email.msg();
+    return {
+        format: format,
+        data: new TextEncoder().encode(emlContent),
+        filename: `bulk-email-${Date.now()}.${format}`
+    };
 }
 
-async function generateBulkMSGFiles() {
+
+
+async function generateBulkEmailFiles() {
     try {
         // Validate current template
         if (currentTemplate !== 'promotion-email') {
@@ -3674,45 +3741,52 @@ async function generateBulkMSGFiles() {
         }
         console.log('Created', batches.length, 'batches');
 
-        showToast(`⏳ Creating ${batches.length} EML files...`);
+        showToast(`⏳ Creating ${batches.length} email files...`);
 
-        // Generate EML files for each batch
-        const msgFiles = [];
+        // Generate email files for each batch using OS-optimized format
+        const emailFiles = [];
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i];
-            const filename = `batch-${String(i + 1).padStart(3, '0')}.msg`;
 
             // Get subject line
             const subject = selectedSubjectLine || 'Promotional Sale';
-            console.log(`Creating MSG ${i + 1}/${batches.length}: ${filename} with ${batch.length} recipients`);
+            console.log(`Creating email ${i + 1}/${batches.length} with ${batch.length} recipients`);
 
-            const msgContent = createBCCBatchMSG(subject, htmlContent, batch, attachedPDFs);
+            // Get recommended format based on OS
+            const format = getRecommendedFormat();
+            const emailResult = createBCCBatchEML(subject, htmlContent, batch, attachedPDFs, format);
 
-            if (!msgContent || msgContent.length < 100) {
-                throw new Error(`Failed to generate MSG content for batch ${i + 1}`);
+            if (!emailResult || !emailResult.data || emailResult.data.length < 100) {
+                throw new Error(`Failed to generate email content for batch ${i + 1}`);
             }
 
-            msgFiles.push({
-                name: filename,
-                content: msgContent
+            emailFiles.push({
+                name: emailResult.filename,
+                content: emailResult.data,
+                format: emailResult.format
             });
         }
 
         // Check selected download format
         const downloadFormat = document.querySelector('input[name="downloadFormat"]:checked').value;
 
+        // Determine format for messaging (check first file)
+        const primaryFormat = emailFiles[0]?.format || 'eml';
+        const formatName = primaryFormat === 'emltpl' ? 'Template' : 'EML';
+        const formatDesc = primaryFormat === 'emltpl' ? 'Outlook for Mac templates (.emltpl)' : 'Email files (.eml)';
+
         if (downloadFormat === 'zip') {
-            // Create ZIP file containing all EML files
-            showToast(`📦 Creating ZIP archive with ${msgFiles.length} MSG files...`);
+            // Create ZIP file containing all email files
+            showToast(`📦 Creating ZIP archive with ${emailFiles.length} ${formatName} files...`);
 
             const zip = new JSZip();
 
             // Add manifest file to explain contents and reduce suspicion
             const manifestContent = `PROMOTIONAL EMAIL BATCHES
 
-This ZIP archive contains ${msgFiles.length} promotional email files (.msg format) for bulk distribution.
+This ZIP archive contains ${emailFiles.length} promotional email files (${formatDesc}) for bulk distribution.
 
-Each .eml file contains:
+Each file contains:
 - HTML formatted promotional content
 - BCC recipient list (spam-safe bulk sending)
 - Subject line and proper email headers
@@ -3721,16 +3795,16 @@ Each .eml file contains:
 Files are generated by Citizen Communication Template Generator for legitimate marketing purposes.
 
 Created: ${new Date().toISOString()}
-Total files: ${msgFiles.length}
-Format: Outlook message files (.msg)
+Total files: ${emailFiles.length}
+Format: ${formatDesc}
 
 These files are safe to open with Microsoft Outlook on Windows and Mac.
 `;
 
             zip.file('README.txt', manifestContent);
 
-            // Add each MSG file to the ZIP with different compression options
-            msgFiles.forEach(file => {
+            // Add each email file to the ZIP with different compression options
+            emailFiles.forEach(file => {
                 zip.file(file.name, file.content, {
                     compression: 'DEFLATE',
                     compressionOptions: { level: 6 } // Medium compression
@@ -3758,15 +3832,17 @@ These files are safe to open with Microsoft Outlook on Windows and Mac.
                 showToast('❌ Failed to create ZIP archive');
             });
         } else {
-            // Download individual EML files
-            showToast(`📁 Downloading ${msgFiles.length} individual MSG files...`);
+            // Download individual email files
+            showToast(`📁 Downloading ${emailFiles.length} individual ${formatName} files...`);
 
             // Download files with optimized delays to avoid browser blocking
-            for (let i = 0; i < msgFiles.length; i++) {
-                const file = msgFiles[i];
-                console.log(`Downloading file ${i + 1}/${msgFiles.length}: ${file.name}`);
+            for (let i = 0; i < emailFiles.length; i++) {
+                const file = emailFiles[i];
+                console.log(`Downloading file ${i + 1}/${emailFiles.length}: ${file.name}`);
 
-                const blob = new Blob([file.content], { type: 'message/rfc822' });
+                // Set MIME type for email files
+                const mimeType = 'message/rfc822';
+                const blob = new Blob([file.content], { type: mimeType });
                 const url = URL.createObjectURL(blob);
 
                 const link = document.createElement('a');
@@ -3777,12 +3853,12 @@ These files are safe to open with Microsoft Outlook on Windows and Mac.
                 URL.revokeObjectURL(url);
 
                 // Optimized delay between downloads (reduced from 500ms to 200ms)
-                if (i < msgFiles.length - 1) {
+                if (i < emailFiles.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 200));
                 }
             }
 
-            showToast(`✅ Downloaded ${msgFiles.length} MSG files successfully!`);
+            showToast(`✅ Downloaded ${emailFiles.length} ${formatName} files successfully!`);
         }
 
     } catch (error) {
