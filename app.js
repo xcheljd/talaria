@@ -3591,7 +3591,9 @@ function generateZipFilenameFromHTML(htmlContent) {
 }
 
 function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], format = 'eml') {
-    // Create EML email as fallback when MSG generation fails
+    // Create EML email with CRLF line endings for Outlook compatibility
+    // Note: Mac Outlook (.emltpl) may only display 1 BCC recipient in the UI for security,
+    // but all recipients are included when the email is sent.
     const boundary = '----=_NextPart_' + Date.now();
     const senderEmail = userProfile && userProfile.storeEmail ? userProfile.storeEmail : 'noreply@example.com';
     const senderName = userProfile && userProfile.storeName ? userProfile.storeName : 'Store';
@@ -3759,6 +3761,12 @@ async function generateBulkEmailFiles() {
             console.log(`Created batch ${batches.length}: ${batch.length} emails (indices ${i} to ${i + batchSize - 1})`);
         }
         console.log('Total batches created:', batches.length);
+
+        // Show Mac-specific warning about BCC display limitations
+        if (format === 'emltpl') {
+            const totalRecipients = batches.reduce((sum, batch) => sum + batch.length, 0);
+            showToast(`ℹ️ Mac Outlook templates: May show only 1 BCC recipient, but all ${totalRecipients} recipients are included when sent.`);
+        }
 
         showToast(`⏳ Creating ${batches.length} email files...`);
 
