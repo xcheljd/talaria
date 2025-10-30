@@ -3601,18 +3601,12 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
     console.log(`createBCCBatchEML called with ${recipients ? recipients.length : 0} recipients`);
     let emlContent = `From: ${senderName} <${senderEmail}>\r\n`;
 
-    // Add BCC headers for each recipient in the batch (leave To field empty)
+    // Add BCC recipients as comma-separated list in single header (RFC 822 compliant)
     if (recipients && recipients.length > 0) {
-        console.log(`Adding ${recipients.length} BCC headers to EML`);
-        recipients.forEach((recipient, index) => {
-            emlContent += `BCC: ${recipient}\r\n`;
-            if (index < 3 || index > recipients.length - 3) { // Log first 3 and last 3
-                console.log(`BCC header ${index + 1}: ${recipient}`);
-            }
-        });
-        if (recipients.length > 6) {
-            console.log(`... (${recipients.length - 6} more BCC headers) ...`);
-        }
+        console.log(`Adding ${recipients.length} BCC recipients to single header`);
+        const bccLine = `BCC: ${recipients.join(', ')}\r\n`;
+        emlContent += bccLine;
+        console.log(`BCC header: ${bccLine.trim()}`);
     } else {
         console.warn('No recipients provided for BCC headers!');
     }
