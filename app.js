@@ -3603,13 +3603,20 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
     const senderEmail = userProfile && userProfile.storeEmail ? userProfile.storeEmail : 'noreply@example.com';
     const senderName = userProfile && userProfile.storeName ? userProfile.storeName : 'Store';
 
+    console.log(`Creating EML with ${recipients ? recipients.length : 0} BCC recipients:`, recipients);
+
     let emlContent = `From: ${senderName} <${senderEmail}>\n`;
 
     // Add BCC headers for each recipient in the batch (leave To field empty)
     if (recipients && recipients.length > 0) {
-        recipients.forEach(recipient => {
+        console.log(`Processing ${recipients.length} recipients for BCC headers...`);
+        recipients.forEach((recipient, index) => {
             emlContent += `BCC: ${recipient}\n`;
+            console.log(`BCC header ${index + 1}: BCC: ${recipient}`);
         });
+        console.log(`Finished adding ${recipients.length} BCC headers`);
+    } else {
+        console.warn('No recipients provided for BCC headers!');
     }
 
     emlContent += `Subject: ${subject}\n`;
@@ -3643,6 +3650,10 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
 
     emlContent += `--${boundary}--\n`;
 
+    const bccCount = (emlContent.match(/BCC:/g) || []).length;
+    console.log(`Generated EML with ${bccCount} BCC headers`);
+    console.log('EML content preview (first 500 chars):', emlContent.substring(0, 500));
+
     return {
         format: format,
         data: new TextEncoder().encode(emlContent),
@@ -3673,9 +3684,11 @@ async function generateBulkEmailFiles() {
             return;
         }
 
-        console.log('Parsing email text:', emailText.substring(0, 100) + '...');
+        console.log('=== BCC DEBUG INFO ===');
+        console.log('Raw email input:', emailText);
         const emails = parseEmailList(emailText);
-        console.log('Parsed emails:', emails.length, 'valid emails found');
+        console.log('Parsed emails count:', emails.length);
+        console.log('Parsed emails:', emails);
 
         if (emails.length === 0) {
             showToast('⚠️ No valid emails found. Check format and try again.');
@@ -3689,7 +3702,13 @@ async function generateBulkEmailFiles() {
         }
 
         const batchSize = parseInt(document.getElementById('batchSize').value);
-        console.log('Using batch size:', batchSize);
+        console.log('Batch size from UI:', batchSize);
+
+        if (isNaN(batchSize) || batchSize <= 0) {
+            console.error('Invalid batch size:', batchSize);
+            showToast('⚠️ Invalid batch size. Please check the batch size input.');
+            return;
+        }
 
         // Check for duplicates and get user confirmation
         const duplicates = detectDuplicates(emails);
@@ -3714,6 +3733,8 @@ async function generateBulkEmailFiles() {
                 showToast(`ℹ️ Keeping all emails including duplicates`);
             }
         }
+        console.log('Final emails after dedup processing:', finalEmails.length);
+        console.log('Final emails:', finalEmails);
 
         // Generate HTML content first
         showToast('⏳ Generating email content...');
@@ -3747,6 +3768,9 @@ async function generateBulkEmailFiles() {
             batches.push(finalEmails.slice(i, i + batchSize));
         }
         console.log('Created', batches.length, 'batches');
+        batches.forEach((batch, index) => {
+            console.log(`Batch ${index + 1}: ${batch.length} recipients:`, batch);
+        });
 
         showToast(`⏳ Creating ${batches.length} email files...`);
 
@@ -3757,10 +3781,11 @@ async function generateBulkEmailFiles() {
 
             // Get subject line
             const subject = selectedSubjectLine || 'Promotional Sale';
-            console.log(`Creating email ${i + 1}/${batches.length} with ${batch.length} recipients`);
+            console.log(`Creating email ${i + 1}/${batches.length} with ${batch.length} recipients:`, batch);
 
             // Get recommended format based on OS
             const format = getRecommendedFormat();
+            console.log(`Calling createBCCBatchEML with batch:`, batch);
             const emailResult = createBCCBatchEML(subject, htmlContent, batch, attachedPDFs, format);
 
             if (!emailResult || !emailResult.data || emailResult.data.length < 100) {
