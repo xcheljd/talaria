@@ -3605,6 +3605,14 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
 
     let emlContent = `From: ${senderName} <${senderEmail}>\n`;
     emlContent += `To: undisclosed-recipients:;\n`;
+
+    // Add BCC headers for each recipient in the batch
+    if (recipients && recipients.length > 0) {
+        recipients.forEach(recipient => {
+            emlContent += `BCC: ${recipient}\n`;
+        });
+    }
+
     emlContent += `Subject: ${subject}\n`;
     emlContent += `MIME-Version: 1.0\n`;
     emlContent += `Content-Type: multipart/mixed; boundary="${boundary}"\n`;
