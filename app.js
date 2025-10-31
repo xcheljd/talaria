@@ -7,6 +7,7 @@ let db = null;
 const DB_NAME = 'CitizenTemplates';
 const DB_VERSION = 1;
 const STORE_NAME = 'promotionPDFs';
+const BULK_EMAIL_STORE = 'bulkEmailRecipients';
 
 // Initialize IndexedDB for PDF storage
 function initIndexedDB() {
@@ -37,6 +38,10 @@ function initIndexedDB() {
             // Create object store for PDFs with id as key
             if (!database.objectStoreNames.contains(STORE_NAME)) {
                 database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+            // Create object store for bulk email recipients
+            if (!database.objectStoreNames.contains(BULK_EMAIL_STORE)) {
+                database.createObjectStore(BULK_EMAIL_STORE, { keyPath: 'id' });
             }
         };
     });
@@ -124,6 +129,47 @@ function clearAllPDFsFromIndexedDB() {
 
         request.onerror = () => reject(request.error);
         request.onsuccess = () => resolve();
+    });
+}
+
+// Save bulk email recipients to IndexedDB
+function saveBulkEmailRecipientsToIndexedDB(recipients) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            reject(new Error('IndexedDB not initialized'));
+            return;
+        }
+
+        const transaction = db.transaction([BULK_EMAIL_STORE], 'readwrite');
+        const store = transaction.objectStore(BULK_EMAIL_STORE);
+        const request = store.put({
+            id: 'bulk-email-recipients',
+            data: recipients,
+            savedAt: new Date().toISOString()
+        });
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve();
+    });
+}
+
+// Get bulk email recipients from IndexedDB
+function getBulkEmailRecipientsFromIndexedDB() {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            resolve('');
+            return;
+        }
+
+        const transaction = db.transaction([BULK_EMAIL_STORE], 'readonly');
+        const store = transaction.objectStore(BULK_EMAIL_STORE);
+        const request = store.get('bulk-email-recipients');
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            const result = request.result;
+            resolve(result && result.data ? result.data : '');
+        };
     });
 }
 
@@ -3218,6 +3264,23 @@ function selectTemplate(key) {
             if (openEmailBtn) {
                 openEmailBtn.disabled = false;
             }
+
+            // Restore bulk email recipients from IndexedDB
+            (async () => {
+                try {
+                    const bulkEmailList = document.getElementById('bulkEmailList');
+                    if (bulkEmailList) {
+                        const savedRecipients = await getBulkEmailRecipientsFromIndexedDB();
+                        if (savedRecipients) {
+                            bulkEmailList.value = savedRecipients;
+                            updateBulkAnalysis();
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Failed to restore bulk email recipients:', error);
+                }
+            })();
+
             return;
         }
 
@@ -3991,6 +4054,17 @@ function updateBulkAnalysis() {
     if (!bulkEmailList || !batchSizeInput || !bulkAnalysis || !bulkStats) return;
 
     const emailText = bulkEmailList.value.trim();
+
+    // Save bulk email recipients to IndexedDB
+    if (emailText) {
+        try {
+            saveBulkEmailRecipientsToIndexedDB(emailText).catch(error => {
+                console.warn('Failed to save bulk email recipients:', error);
+            });
+        } catch (error) {
+            console.warn('Failed to save bulk email recipients:', error);
+        }
+    }
     if (!emailText) {
         bulkAnalysis.style.display = 'none';
         return;
