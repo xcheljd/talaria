@@ -29,6 +29,3 @@ node_modules/
 # Environment files (if needed in future)
 .env
 .env.local
-
-# OpenCode temporary files
-opencodetmp/
