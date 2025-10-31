@@ -2138,37 +2138,37 @@ function renderPromotionEmailForm() {
 
 
 
-        <div class="form-group full-width" style="margin-top: 2rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div class="form-group full-width" style="margin-top: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                 <label class="form-label" style="margin-bottom: 0;">Discount Entries</label>
                 <button type="button" class="btn" id="addEntryBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Entry</button>
             </div>
             <div id="promotionEntriesContainer"></div>
         </div>
 
-        <div class="form-group full-width" style="margin-top: 2rem;">
+        <div class="form-group full-width" style="margin-top: 1.25rem;">
             <div id="howToShopWrapper"></div>
         </div>
 
-        <div class="form-group full-width" style="margin-top: 2rem;">
+        <div class="form-group full-width" style="margin-top: 1.25rem;">
             <div id="importantNotesWrapper"></div>
         </div>
 
-        <div class="form-group full-width" style="margin-top: 2rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div class="form-group full-width" style="margin-top: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                 <label class="form-label" style="margin-bottom: 0;">Special Hours (optional)</label>
                 <button type="button" class="btn" id="addHourBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Special Hours</button>
             </div>
-            <div class="field-help" style="margin-bottom: 1rem;">For holidays or special sale hours (e.g., Black Friday extended hours)</div>
+            <div class="field-help" style="margin-bottom: 0.75rem;">For holidays or special sale hours (e.g., Black Friday extended hours)</div>
             <div id="specialHoursContainer"></div>
             <div id="specialHoursReminder" style="display: none; background: #fff3cd; border-left: 3px solid #ffc107; padding: 1rem; margin-top: 1rem;">
                 <strong>⚠️ Reminder:</strong> Don't forget to update your special hours on Yelp and Google Maps!
             </div>
         </div>
 
-        <div class="form-group full-width" style="margin-top: 2rem;">
+        <div class="form-group full-width" style="margin-top: 1.25rem;">
             <label class="form-label">ATTACHMENTS (OPTIONAL)</label>
-            <div class="field-help" style="margin-bottom: 1rem;">Upload PDF files to attach to your promotional email (max 10MB per file)</div>
+            <div class="field-help" style="margin-bottom: 0.75rem;">Upload PDF files to attach to your promotional email (max 10MB per file)</div>
             <div class="pdf-upload-section">
                 <div class="pdf-upload-dropzone" id="pdfDropzone">
                     <input type="file" id="pdfFileInput" accept=".pdf,application/pdf" multiple style="display: none;">
