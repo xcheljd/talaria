@@ -1,6 +1,132 @@
 // Constants
 const TOAST_DURATION_MS = 2500;
 
+// ===== IndexedDB for PDF Storage =====
+
+let db = null;
+const DB_NAME = 'CitizenTemplates';
+const DB_VERSION = 1;
+const STORE_NAME = 'promotionPDFs';
+
+// Initialize IndexedDB for PDF storage
+function initIndexedDB() {
+    return new Promise((resolve) => {
+        // Check browser support
+        const indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB;
+        if (!indexedDB) {
+            console.warn('IndexedDB not supported, PDFs will not persist across refresh');
+            resolve(false);
+            return;
+        }
+
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = () => {
+            console.warn('IndexedDB initialization failed:', request.error);
+            resolve(false);
+        };
+
+        request.onsuccess = () => {
+            db = request.result;
+            console.log('IndexedDB initialized successfully');
+            resolve(true);
+        };
+
+        request.onupgradeneeded = (event) => {
+            const database = event.target.result;
+            // Create object store for PDFs with id as key
+            if (!database.objectStoreNames.contains(STORE_NAME)) {
+                database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+        };
+    });
+}
+
+// Save PDF to IndexedDB
+function savePDFToIndexedDB(pdfData) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            reject(new Error('IndexedDB not initialized'));
+            return;
+        }
+
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put(pdfData);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(pdfData.id);
+    });
+}
+
+// Get all PDFs from IndexedDB
+function getAllPDFsFromIndexedDB() {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            resolve([]);
+            return;
+        }
+
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result || []);
+    });
+}
+
+// Get specific PDF from IndexedDB
+function getPDFFromIndexedDB(pdfId) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            resolve(null);
+            return;
+        }
+
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(pdfId);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result || null);
+    });
+}
+
+// Delete PDF from IndexedDB
+function deletePDFFromIndexedDB(pdfId) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            resolve();
+            return;
+        }
+
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.delete(pdfId);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve();
+    });
+}
+
+// Clear all PDFs from IndexedDB
+function clearAllPDFsFromIndexedDB() {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            resolve();
+            return;
+        }
+
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.clear();
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve();
+    });
+}
+
 // ===== CUSTOMIZABLE PALETTE SYSTEM (Light / Dark with 5 palettes each) =====
 
 // Initialize theme and palettes from localStorage
@@ -701,7 +827,14 @@ function savePromotionTemplate() {
         specialHours: JSON.parse(JSON.stringify(specialHours)),
         howToShopItems: JSON.parse(JSON.stringify(howToShopItems)),
         importantNotesItems: JSON.parse(JSON.stringify(importantNotesItems)),
-        attachedPDFs: JSON.parse(JSON.stringify(attachedPDFs)),
+        // Save only PDF metadata to localStorage (actual data is in IndexedDB)
+        attachedPDFs: JSON.parse(JSON.stringify(attachedPDFs.map(pdf => ({
+            id: pdf.id,
+            name: pdf.name,
+            size: pdf.size,
+            type: pdf.type
+            // Note: 'data' field is intentionally excluded - stored in IndexedDB instead
+        })))),
         generatedSubjectLines: JSON.parse(JSON.stringify(generatedSubjectLines)),
         selectedSubjectLine: selectedSubjectLine
     };
@@ -773,7 +906,7 @@ function importPromotionTemplate() {
 }
 
 // Helper function to apply imported configuration
-function applyImportedConfig(config, collapseEntries = true) {
+async function applyImportedConfig(config, collapseEntries = true) {
     if (!config || typeof config !== 'object') {
         showToast('✗ Invalid template data - not an object');
         return;
@@ -840,9 +973,30 @@ function applyImportedConfig(config, collapseEntries = true) {
     specialHours = JSON.parse(JSON.stringify(config.specialHours || []));
     howToShopItems = JSON.parse(JSON.stringify(config.howToShopItems || []));
     importantNotesItems = JSON.parse(JSON.stringify(config.importantNotesItems || []));
-    attachedPDFs = JSON.parse(JSON.stringify(config.attachedPDFs || []));
     generatedSubjectLines = JSON.parse(JSON.stringify(config.generatedSubjectLines || []));
     selectedSubjectLine = config.selectedSubjectLine || null;
+
+    // Restore PDFs: merge metadata from config with data from IndexedDB
+    attachedPDFs = [];
+    const pdfMetadata = config.attachedPDFs || [];
+
+    for (const metadata of pdfMetadata) {
+        try {
+            // Try to get full PDF data from IndexedDB
+            const fullPdfData = await getPDFFromIndexedDB(metadata.id);
+            if (fullPdfData && fullPdfData.data) {
+                // Use full data from IndexedDB
+                attachedPDFs.push(fullPdfData);
+            } else {
+                // Fallback: use metadata only (data field missing but structure preserved)
+                attachedPDFs.push(metadata);
+            }
+        } catch (error) {
+            console.warn(`Failed to restore PDF ${metadata.name} from IndexedDB:`, error);
+            // Still add the metadata in case IndexedDB fails
+            attachedPDFs.push(metadata);
+        }
+    }
 
     // Set collapse state for all entries
     if (collapseEntries) {
@@ -2475,7 +2629,7 @@ function handlePDFFiles(files) {
 
         // Read file as base64 for storage
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             const pdfData = {
                 id: Date.now() + Math.random(), // Unique ID
                 name: file.name,
@@ -2484,7 +2638,23 @@ function handlePDFFiles(files) {
                 data: e.target.result // base64 data URL
             };
 
-            attachedPDFs.push(pdfData);
+            // Save PDF data to IndexedDB
+            try {
+                await savePDFToIndexedDB(pdfData);
+            } catch (error) {
+                console.warn('Failed to save PDF to IndexedDB:', error);
+                showToast(`⚠ PDF saved to memory but may not persist after refresh`);
+            }
+
+            // Add to in-memory array (without the base64 data for localStorage)
+            attachedPDFs.push({
+                id: pdfData.id,
+                name: pdfData.name,
+                size: pdfData.size,
+                type: pdfData.type
+                // Note: 'data' field is NOT included here, it's stored in IndexedDB
+            });
+
             renderAttachedPDFs();
             debouncedCaptureState();
 
@@ -2544,10 +2714,17 @@ function renderAttachedPDFs() {
     }).join('');
 }
 
-// Remove PDF from attachedPDFs array
-function removePDF(pdfId) {
+// Remove PDF from attachedPDFs array and IndexedDB
+async function removePDF(pdfId) {
     const pdf = attachedPDFs.find(p => p.id === pdfId);
     if (!pdf) return;
+
+    // Delete from IndexedDB
+    try {
+        await deletePDFFromIndexedDB(pdfId);
+    } catch (error) {
+        console.warn('Failed to delete PDF from IndexedDB:', error);
+    }
 
     attachedPDFs = attachedPDFs.filter(p => p.id !== pdfId);
     renderAttachedPDFs();
@@ -3594,8 +3771,11 @@ function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '', f
 }
 
 // Initialize application
-function init() {
+async function init() {
     try {
+        // Initialize IndexedDB for PDF storage
+        await initIndexedDB();
+
         // Initialize theme and navigation
         initTheme();
         initNavigation();
