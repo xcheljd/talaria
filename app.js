@@ -3496,7 +3496,10 @@ function openPromotionEmailInClient() {
 
 // Create EML file format with HTML body and PDF attachments
 function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '', format = 'eml') {
-    const boundary = '----=_NextPart_' + Date.now();
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substr(2, 9);
+    const boundary = '----=_NextPart_' + timestamp + '_' + randomId;
+    const messageId = `<single.${timestamp}.${randomId}@citizenstore.local>`;
     const date = new Date().toUTCString();
 
     // Get user profile for sender information
@@ -3507,7 +3510,10 @@ function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '', f
     let eml = `From: ${senderName} <${senderEmail}>\r\n`;
     // Omit To: header entirely to ensure Outlook treats it as editable draft
     eml += `Subject: ${subject}\r\n`;
-    // Omit Date header to prevent Outlook from treating as sent message
+    // Add Date header (RFC 5322 §3.6.1 - Required, but X-Unsent: 1 keeps as draft)
+    eml += `Date: ${date}\r\n`;
+    // Add Message-ID (RFC 5322 §3.6.4 - Recommended for uniqueness)
+    eml += `Message-ID: ${messageId}\r\n`;
     eml += `MIME-Version: 1.0\r\n`;
     eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
     eml += `X-Unsent: 1\r\n`; // Mark as unsent/draft
@@ -3516,32 +3522,50 @@ function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '', f
     eml += `X-Mailer: Microsoft Outlook 16.0\r\n`; // Identify as Outlook-generated
     eml += `X-Msg-Status: 00000000\r\n`; // Draft message status
     eml += `X-Outlook-Template: 1\r\n`; // Mark as Outlook template
+    eml += `Message-Class: IPM.Note\r\n`; // Outlook message classification
     eml += `\r\n`;
     eml += `This is a multi-part message in MIME format.\r\n`;
     eml += `\r\n`;
 
     // Add HTML body part - use base64 encoding for better Outlook compatibility
     eml += `--${boundary}\r\n`;
-    eml += `Content-Type: text/html; charset=UTF-8\r\n`;
+    eml += `Content-Type: text/html; charset=utf-8\r\n`;
     eml += `Content-Transfer-Encoding: base64\r\n`;
     eml += `\r\n`;
 
-    // Convert HTML to base64 and split into 76-character lines
-    const htmlBase64 = btoa(unescape(encodeURIComponent(htmlBody)));
+    // Normalize HTML line endings to CRLF (RFC 822 standard for email bodies)
+    const normalizedHtml = htmlBody.replace(/\r?\n/g, '\r\n');
+
+    // Convert HTML to base64 and split into 76-character lines (RFC 2045 standard)
+    const htmlBase64 = utf8ToBase64(normalizedHtml);
     const htmlLines = htmlBase64.match(/.{1,76}/g) || [];
     eml += htmlLines.join('\r\n');
     eml += `\r\n\r\n`;
 
     // Add PDF attachments
     if (pdfAttachments && pdfAttachments.length > 0) {
-        pdfAttachments.forEach(pdf => {
+        pdfAttachments.forEach((pdf, index) => {
+            // Validate PDF data format (must be data URL with base64 encoding)
+            const parts = pdf.data.split(',');
+            if (parts.length !== 2 || !parts[0].includes('base64')) {
+                console.error(`Invalid PDF data format for attachment ${index + 1} (${pdf.name})`);
+                return; // Skip this PDF
+            }
+
             // Extract base64 data from data URL (format: data:application/pdf;base64,...)
-            const base64Data = pdf.data.split(',')[1];
+            const base64Data = parts[1];
+
+            // Validate that base64 data is not empty
+            if (!base64Data || base64Data.length === 0) {
+                console.error(`Empty PDF data for attachment ${index + 1} (${pdf.name})`);
+                return; // Skip this PDF
+            }
 
             eml += `--${boundary}\r\n`;
             eml += `Content-Type: application/pdf; name="${pdf.name}"\r\n`;
             eml += `Content-Transfer-Encoding: base64\r\n`;
-            eml += `Content-Disposition: attachment; filename="${pdf.name}"\r\n`;
+            // RFC 2231 - Use encodeFilename for non-ASCII filenames
+            eml += `Content-Disposition: attachment; ${encodeFilename(pdf.name)}\r\n`;
             eml += `\r\n`;
 
             // Split base64 data into 76-character lines (RFC 2045 standard)
@@ -3625,9 +3649,94 @@ function parseEmailList(text) {
 }
 
 function isValidEmail(email) {
-    // Basic email validation regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    // RFC 5322 §3.4 - addr-spec syntax validation
+    // Must have local-part@domain format with reasonable length limits
+    if (!email || typeof email !== 'string') return false;
+
+    // Check total email length (RFC 5321 - max 254 chars)
+    if (email.length > 254) return false;
+
+    // Check for @ symbol
+    const atCount = (email.match(/@/g) || []).length;
+    if (atCount !== 1) return false;
+
+    const [localPart, domain] = email.split('@');
+
+    // Validate local part (before @)
+    if (!localPart || localPart.length === 0 || localPart.length > 64) return false;
+    // Local part can contain: letters, digits, and special chars (! # $ % & ' * + - / = ? ^ _ ` { | } ~)
+    // Simplified version: allow alphanumeric, dots, hyphens, underscores
+    if (!/^[a-zA-Z0-9._\-+]+$/.test(localPart)) return false;
+    // Cannot start or end with a dot
+    if (localPart.startsWith('.') || localPart.endsWith('.')) return false;
+    // Cannot have consecutive dots
+    if (localPart.includes('..')) return false;
+
+    // Validate domain part (after @)
+    if (!domain || domain.length === 0 || domain.length > 255) return false;
+    // Must have at least one dot and valid domain labels
+    if (!/^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/.test(domain)) return false;
+
+    return true;
+}
+
+// Validate subject line length and content (RFC 5322 §2.1.1)
+function validateSubject(subject) {
+    if (!subject || subject.trim() === '') {
+        throw new Error('Subject cannot be empty');
+    }
+    if (subject.length > 900) {
+        throw new Error(`Subject too long: ${subject.length} characters (max 900)`);
+    }
+    // Check for control characters (except tabs)
+    if (/[\x00-\x08\x0A-\x1F\x7F]/.test(subject)) {
+        throw new Error('Subject contains invalid control characters');
+    }
+    return true;
+}
+
+// Encode subject for non-ASCII characters (RFC 2047 - Encoded-words)
+function encodeSubject(subject) {
+    // Check if encoding needed (contains non-ASCII characters)
+    if (!/[^\x00-\x7F]/.test(subject)) {
+        // Pure ASCII, no encoding needed
+        return subject;
+    }
+
+    // Encode as UTF-8 Base64 (RFC 2047 format: =?charset?encoding?encoded-text?=)
+    const utf8Bytes = new TextEncoder().encode(subject);
+    const binaryString = Array.from(utf8Bytes, byte => String.fromCodePoint(byte)).join('');
+    const base64 = btoa(binaryString);
+
+    return `=?UTF-8?B?${base64}?=`;
+}
+
+// Convert string to UTF-8 Base64 encoding (RFC 2045 standard for MIME bodies)
+// Replaces deprecated unescape() function with modern TextEncoder API
+function utf8ToBase64(str) {
+    // Use TextEncoder to convert string to UTF-8 bytes
+    const utf8Bytes = new TextEncoder().encode(str);
+
+    // Convert bytes to binary string (works with btoa)
+    const binaryString = Array.from(utf8Bytes, byte => String.fromCodePoint(byte)).join('');
+
+    // Encode to Base64
+    return btoa(binaryString);
+}
+
+// Encode filename for non-ASCII characters (RFC 2231 - Parameter Value Encoding)
+// If filename contains non-ASCII, use RFC 2231 encoding, otherwise use simple quoted-string
+function encodeFilename(filename) {
+    // Check if filename contains only ASCII characters
+    if (!/[^\x00-\x7F]/.test(filename)) {
+        // Pure ASCII - use simple quoted-string format
+        return `filename="${filename}"`;
+    }
+
+    // Non-ASCII filename - use RFC 2231 parameter encoding
+    // Format: filename*=charset'language'percent-encoded-value
+    const encodedFilename = encodeURIComponent(filename);
+    return `filename*=UTF-8''${encodedFilename}`;
 }
 
 function validateBatchSize() {
@@ -3823,13 +3932,24 @@ function generateZipFilenameFromHTML(htmlContent) {
 }
 
 function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], format = 'eml', batchNumber = 1) {
+    // RFC 5322 §3.4 - Validate email addresses in BCC recipients
+    // Filter out invalid email addresses and log warnings
+    const validRecipients = recipients.filter(email => {
+        if (!isValidEmail(email)) {
+            console.warn(`Invalid email address skipped in batch ${batchNumber}: ${email}`);
+            return false;
+        }
+        return true;
+    });
+
     // DIAGNOSTIC: Log function call with all parameters
     console.log(`\n>>> createBCCBatchEML called for Batch ${batchNumber}`);
     console.log(`    recipients parameter type: ${typeof recipients}, isArray: ${Array.isArray(recipients)}`);
     console.log(`    recipients.length: ${recipients ? recipients.length : 'undefined'}`);
-    if (recipients && recipients.length > 0) {
-        console.log(`    First 3 recipients: ${recipients.slice(0, 3).join(', ')}`);
-        console.log(`    Last recipient: ${recipients[recipients.length - 1]}`);
+    console.log(`    validRecipients.length: ${validRecipients.length}${validRecipients.length < recipients.length ? ` (${recipients.length - validRecipients.length} invalid filtered)` : ''}`);
+    if (validRecipients && validRecipients.length > 0) {
+        console.log(`    First 3 recipients: ${validRecipients.slice(0, 3).join(', ')}`);
+        console.log(`    Last recipient: ${validRecipients[validRecipients.length - 1]}`);
     }
 
     // Create EML email with CRLF line endings for Outlook compatibility
@@ -3852,13 +3972,13 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
 
     // Add BCC recipients with RFC 822 compliant header folding
     // Long headers must be split across multiple lines (max 998 chars per line, recommended 78)
-    if (recipients && recipients.length > 0) {
+    if (validRecipients && validRecipients.length > 0) {
         emlContent += `Bcc: `;
 
         let currentLine = '';
-        for (let i = 0; i < recipients.length; i++) {
-            const recipient = recipients[i];
-            const separator = i < recipients.length - 1 ? ', ' : '';
+        for (let i = 0; i < validRecipients.length; i++) {
+            const recipient = validRecipients[i];
+            const separator = i < validRecipients.length - 1 ? ', ' : '';
             const addition = recipient + separator;
 
             // Check if adding this recipient would exceed 900 characters (safe limit)
@@ -3874,10 +3994,10 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
         // Write final line
         emlContent += currentLine + '\r\n';
 
-        console.log(`    ✓ BCC header created with ${recipients.length} recipients (folded for RFC 822 compliance)`);
+        console.log(`    ✓ BCC header created with ${validRecipients.length} recipients (folded for RFC 822 compliance)`);
     } else {
-        console.error(`    ✗ ERROR - No recipients provided for BCC headers!`);
-        console.error('    Recipients array:', recipients);
+        console.error(`    ✗ ERROR - No valid recipients provided for BCC headers!`);
+        console.error('    Valid recipients array:', validRecipients);
     }
 
     emlContent += `MIME-Version: 1.0\r\n`;
@@ -3890,31 +4010,61 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
     emlContent += `X-Msg-Status: 00000000\r\n`; // Message status code
     emlContent += `\r\n`;
 
-    // HTML body part
+    // RFC 2045 - MIME preamble for non-MIME readers (before first boundary)
+    emlContent += `This is a multi-part message in MIME format.\r\n\r\n`;
+
+    // HTML body part - use base64 encoding for non-ASCII character safety (RFC 2045 §6)
     emlContent += `--${boundary}\r\n`;
     emlContent += `Content-Type: text/html; charset=utf-8\r\n`;
-    emlContent += `Content-Transfer-Encoding: 7bit\r\n\r\n`;
-    emlContent += htmlBody + '\r\n\r\n';
+    emlContent += `Content-Transfer-Encoding: base64\r\n\r\n`;
+
+    // Normalize HTML line endings to CRLF (RFC 822 standard for email bodies)
+    const normalizedHtml = htmlBody.replace(/\r?\n/g, '\r\n');
+
+    // Convert HTML to base64 and split into 76-character lines (RFC 2045 standard)
+    const htmlBase64 = utf8ToBase64(normalizedHtml);
+    const htmlLines = htmlBase64.match(/.{1,76}/g) || [];
+    emlContent += htmlLines.join('\r\n');
+    emlContent += `\r\n\r\n`;
 
     // Add PDF attachments
     if (pdfAttachments && pdfAttachments.length > 0) {
-        pdfAttachments.forEach(pdf => {
+        let attachmentCount = 0;
+        pdfAttachments.forEach((pdf, index) => {
+            // Validate PDF data format (must be data URL with base64 encoding)
+            const parts = pdf.data.split(',');
+            if (parts.length !== 2 || !parts[0].includes('base64')) {
+                console.error(`Invalid PDF data format for attachment ${index + 1} (${pdf.name}) in batch ${batchNumber}`);
+                return; // Skip this PDF
+            }
+
             // Extract base64 data from data URL (format: data:application/pdf;base64,...)
-            const base64Data = pdf.data.split(',')[1];
+            const base64Data = parts[1];
+
+            // Validate that base64 data is not empty
+            if (!base64Data || base64Data.length === 0) {
+                console.error(`Empty PDF data for attachment ${index + 1} (${pdf.name}) in batch ${batchNumber}`);
+                return; // Skip this PDF
+            }
 
             emlContent += `--${boundary}\r\n`;
             emlContent += `Content-Type: application/pdf; name="${pdf.name}"\r\n`;
             emlContent += `Content-Transfer-Encoding: base64\r\n`;
-            emlContent += `Content-Disposition: attachment; filename="${pdf.name}"\r\n`;
+            // RFC 2231 - Use encodeFilename for non-ASCII filenames
+            emlContent += `Content-Disposition: attachment; ${encodeFilename(pdf.name)}\r\n`;
             emlContent += `\r\n`;
 
             // Split base64 data into 76-character lines (RFC 2045 standard)
             const lines = base64Data.match(/.{1,76}/g) || [];
             emlContent += lines.join('\r\n');
             emlContent += `\r\n\r\n`;
+
+            attachmentCount++;
         });
 
-        console.log(`    ✓ Added ${pdfAttachments.length} PDF attachment(s) to batch ${batchNumber}`);
+        if (attachmentCount > 0) {
+            console.log(`    ✓ Added ${attachmentCount} valid PDF attachment(s) to batch ${batchNumber}`);
+        }
     }
 
     emlContent += `--${boundary}--\r\n`;
