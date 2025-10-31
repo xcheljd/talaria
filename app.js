@@ -30,7 +30,7 @@ function toggleTheme() {
     updateThemeIndicator(newMode);
 
     // Add pulse animation
-    const themeToggle = document.getElementById('themeToggle');
+    const themeToggle = elements.themeToggle;
     if (themeToggle) {
         themeToggle.style.animation = 'none';
         setTimeout(() => {
@@ -77,8 +77,8 @@ function setDarkPalette(paletteName) {
 
 // Toggle navigation visibility
 function toggleNavigation() {
-    const navigation = document.getElementById('navigation');
-    const navToggleText = document.getElementById('navToggleText');
+    const navigation = elements.navigation;
+    const navToggleText = elements.navToggleText;
 
     if (!navigation) return;
 
@@ -95,8 +95,8 @@ function toggleNavigation() {
 // Initialize navigation state
 function initNavigation() {
     const navCollapsed = localStorage.getItem('navCollapsed') === 'true';
-    const navigation = document.getElementById('navigation');
-    const navToggleText = document.getElementById('navToggleText');
+    const navigation = elements.navigation;
+    const navToggleText = elements.navToggleText;
 
     if (navCollapsed && navigation) {
         navigation.classList.add('collapsed');
@@ -199,6 +199,19 @@ function escapeAttr(str) {
     return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// Sanitize template data to prevent XSS attacks
+function sanitizeTemplateData(data) {
+    const sanitized = {};
+    for (const [key, value] of Object.entries(data)) {
+        if (typeof value === 'string') {
+            sanitized[key] = sanitizeHTML(value);
+        } else {
+            sanitized[key] = value; // Keep non-string values as-is
+        }
+    }
+    return sanitized;
+}
+
 function getFieldSuggestions(field) {
     const config = fieldConfig[field] || {};
     return config.suggestions || [];
@@ -227,9 +240,11 @@ const templates = {
         name: 'New Customer Welcome',
         category: 'Customer Email',
         fields: ['customerName', 'employeeName'],
-        generate: (data) => `Subject: Welcome to Citizen Company Store - Your VIP Access
+        generate: (data) => {
+            const safe = sanitizeTemplateData(data);
+            return `Subject: Welcome to Citizen Company Store - Your VIP Access
 
-Hi ${data.customerName},
+Hi ${safe.customerName},
 
 Thank you for visiting our Citizen Company Store outlet location! It was a pleasure helping you explore our offerings today.
 
@@ -238,74 +253,7 @@ I've added you to our VIP email list for weekly promotional updates featuring ex
 Please don't hesitate to reach out by replying to this email or call the store at ${getStorePhone()}. I would be happy to check availability on any models you're considering.
 
 Best regards,
-${data.employeeName}
-${getStoreName()}`
-    },
-    'back-in-stock': {
-        name: 'Back in Stock',
-        category: 'Customer Email',
-        fields: ['customerName', 'brand', 'modelName', 'modelNumber', 'price', 'discount', 'quantity', 'holdDeadline', 'employeeName'],
-        generate: (data) => `Subject: Good News! ${data.modelName} Now Available
-
-Hi ${data.customerName},
-
-Great news! The ${data.brand} ${data.modelName} (${data.modelNumber}) you inquired about is now back in stock at our outlet location.
-
-Current outlet price: ${data.price} (${data.discount}% off retail)
-Quantity available: ${data.quantity}
-
-This model tends to sell quickly at this price point. If you'd like me to hold one for you, please let me know by ${data.holdDeadline}, or feel free to call the store at ${getStorePhone()}.
-
-We can also arrange shipping for $20 flat-rate ground delivery within the US if you're unable to visit the store.
-
-Looking forward to hearing from you!
-
-Best regards,
-${data.employeeName}
-${getStoreName()}`
-    },
-    'thank-you-warranty': {
-        name: 'Thank You & Warranty',
-        category: 'Customer Email',
-        fields: ['customerName', 'modelName', 'modelNumber', 'brand', 'employeeName'],
-        generate: (data) => `Subject: Thank You for Your Purchase - Register for Additional Warranty
-
-Hi ${data.customerName},
-
-Thank you for your purchase of the ${data.brand} ${data.modelName} (${data.modelNumber})!
-
-I can help you register your watch online to receive an additional 1-year warranty at no cost. This extends your coverage and ensures you get the most out of your timepiece.
-
-If you'd like assistance with registration or have any questions about your new watch, please reply to this email or call the store at ${getStorePhone()}.
-
-Thank you again for choosing ${getStoreName()}!
-
-Best regards,
-${data.employeeName}
-${getStoreName()}`
-    },
-    'weekly-sale': {
-        name: 'Weekly Sale',
-        category: 'Customer Email',
-        fields: ['customerName', 'collectionName', 'discount', 'brand', 'model1', 'price1', 'original1', 'model2', 'price2', 'original2', 'endDate', 'employeeName'],
-        generate: (data) => {
-            let modelList = `• ${data.model1} - Now ${data.price1} (was ${data.original1})`;
-            if (data.model2 && data.price2) {
-                modelList += `\n• ${data.model2} - Now ${data.price2} (was ${data.original2})`;
-            }
-            return `Subject: ${data.customerName}, This Week's ${data.brand} Sale Includes Your Favorites
-
-Hi ${data.customerName},
-
-I remember you were looking at ${data.collectionName} pieces during your last visit. Good timing - we just started our ${data.discount}% off promotion on select ${data.brand} models this week!
-
-Specifically available in that collection:
-${modelList}
-
-This promotion runs through ${data.endDate}. Would you like me to check if we have your size preference in stock?
-
-Best regards,
-${data.employeeName}
+${safe.employeeName}
 ${getStoreName()}`;
         }
     },
@@ -314,19 +262,20 @@ ${getStoreName()}`;
         category: 'Customer Email',
         fields: ['customerName', 'brand', 'modelName', 'modelNumber', 'keyFeature1', 'keyFeature2', 'keyFeature3', 'price', 'employeeName'],
         generate: (data) => {
-            let features = `• ${data.keyFeature1}`;
-            if (data.keyFeature2) features += `\n• ${data.keyFeature2}`;
-            if (data.keyFeature3) features += `\n• ${data.keyFeature3}`;
-            return `Subject: Great News! ${data.modelName} Now Available
+            const safe = sanitizeTemplateData(data);
+            let features = `• ${safe.keyFeature1}`;
+            if (safe.keyFeature2) features += `\n• ${safe.keyFeature2}`;
+            if (safe.keyFeature3) features += `\n• ${safe.keyFeature3}`;
+            return `Subject: Great News! ${safe.modelName} Now Available
 
-Hi ${data.customerName},
+Hi ${safe.customerName},
 
-Great news! The ${data.brand} ${data.modelName} (${data.modelNumber}) you were interested in has arrived at our store.
+Great news! The ${safe.brand} ${safe.modelName} (${safe.modelNumber}) you were interested in has arrived at our store.
 
 Key Features:
 ${features}
 
-Current price: ${data.price}
+Current price: ${safe.price}
 
 I'd be happy to set up an appointment to show you all the features of this watch and let you try it on. This model tends to generate a lot of interest, so I wanted to reach out to you first.
 
@@ -335,7 +284,7 @@ Would you like to schedule a time to see it in person? Please reply to this emai
 Looking forward to hearing from you!
 
 Best regards,
-${data.employeeName}
+${safe.employeeName}
 ${getStoreName()}`;
         }
     },
@@ -343,34 +292,39 @@ ${getStoreName()}`;
         name: 'Limited Edition',
         category: 'Customer Email',
         fields: ['customerName', 'brand', 'modelName', 'modelNumber', 'limitedDetails', 'price', 'quantityAvailable', 'employeeName'],
-        generate: (data) => `Subject: Exclusive: Limited Edition ${data.modelName} Available
+        generate: (data) => {
+            const safe = sanitizeTemplateData(data);
+            return `Subject: Exclusive: Limited Edition ${safe.modelName} Available
 
-Hi ${data.customerName},
+Hi ${safe.customerName},
 
-I wanted to reach out to you personally because we just received a ${data.brand} ${data.modelName} (${data.modelNumber}) - ${data.limitedDetails}.
+I wanted to reach out to you personally because we just received a ${safe.brand} ${safe.modelName} (${safe.modelNumber}) - ${safe.limitedDetails}.
 
 As someone who appreciates fine timepieces and unique additions to your collection, I thought you'd want to know about this immediately.
 
-Price: ${data.price}
-Availability: Only ${data.quantityAvailable} available
+Price: ${safe.price}
+Availability: Only ${safe.quantityAvailable} available
 
 This is truly a special piece that won't last long. I'd love to show it to you in person and discuss how it could complement your collection.
 
 Can you stop by this week, or would you like me to hold one for you? Please reply to this email or call the store at ${getStorePhone()}.
 
 Best regards,
-${data.employeeName}
+${safe.employeeName}
 ${getStoreName()}
 
-P.S. - Given the limited availability, I'm only reaching out to our most valued collectors. Let me know if you're interested!`
+P.S. - Given the limited availability, I'm only reaching out to our most valued collectors. Let me know if you're interested!`;
+        }
     },
     'vip-reconnection': {
         name: 'VIP Reconnection',
         category: 'Customer Email',
         fields: ['clientName', 'employeeName'],
-        generate: (data) => `Subject: Your Store Has Evolved - We'd Love to Show You What's New
+        generate: (data) => {
+            const safe = sanitizeTemplateData(data);
+            return `Subject: Your Store Has Evolved - We'd Love to Show You What's New
 
-Hi ${data.clientName},
+Hi ${safe.clientName},
 
 I was reviewing our VIP client records and noticed it's been a while since your last visit. I wanted to personally reach out because our store has undergone some exciting changes that I think you'll appreciate.
 
@@ -387,44 +341,46 @@ No purchase necessary - I just want to reconnect and ensure your watches are wor
 Would you have time this week or next to stop by? I'd love to show you how we've evolved while maintaining the exceptional values and service you remember.
 
 Best regards,
-${data.employeeName}
+${safe.employeeName}
 ${getStoreName()}
 
-P.S. - We now carry everything from current season pieces to discontinued treasures, giving you more options than ever before.`
+P.S. - We now carry everything from current season pieces to discontinued treasures, giving you more options than ever before.`;
+        }
     },
     'phone-confirmation': {
         name: 'Confirmation',
         category: 'Phone Orders',
         fields: ['customerName', 'brand', 'modelName', 'modelNumber', 'price', 'discount', 'totalAmount', 'customerAddress', 'carrier', 'trackingNumber', 'employeeName'],
         generate: (data) => {
+            const safe = sanitizeTemplateData(data);
             let trackingInfo = '';
-            if (data.trackingNumber) {
-                trackingInfo = `\n\nTracking Number: ${data.trackingNumber}`;
+            if (safe.trackingNumber) {
+                trackingInfo = `\n\nTracking Number: ${safe.trackingNumber}`;
             }
-            return `Subject: Order Confirmation - ${data.modelName}
+            return `Subject: Order Confirmation - ${safe.modelName}
 
-Hi ${data.customerName},
+Hi ${safe.customerName},
 
 Thank you for your phone order! This email confirms the following:
 
 Order Details:
-Item: ${data.brand} ${data.modelName}
-Model #: ${data.modelNumber}
-Price: ${data.price} (includes ${data.discount}% outlet discount)
+Item: ${safe.brand} ${safe.modelName}
+Model #: ${safe.modelNumber}
+Price: ${safe.price} (includes ${safe.discount}% outlet discount)
 Shipping: $20 flat-rate ground shipping
-Total: ${data.totalAmount}
+Total: ${safe.totalAmount}
 
 Shipping Information:
-${data.customerAddress}
+${safe.customerAddress}
 
-Your order will ship within 1-2 business days via ${data.carrier}. You'll receive tracking information at this email address once shipped.${trackingInfo}
+Your order will ship within 1-2 business days via ${safe.carrier}. You'll receive tracking information at this email address once shipped.${trackingInfo}
 
 If you have any questions, please don't hesitate to contact us at ${getStorePhone()}.
 
 Thank you for shopping with ${getStoreName()}!
 
 Best regards,
-${data.employeeName}
+${safe.employeeName}
 ${getStoreName()}`;
         }
     },
@@ -433,29 +389,30 @@ ${getStoreName()}`;
         category: 'Phone Orders',
         fields: ['customerName', 'brand', 'modelName', 'modelNumber', 'trackingNumber', 'customerAddress', 'employeeName'],
         generate: (data) => {
+            const safe = sanitizeTemplateData(data);
             return `Subject: Your Watch Order - Tracking Information
 
-Hi ${data.customerName},
+Hi ${safe.customerName},
 
 Thank you for your recent purchase from ${getStoreName()}! We're pleased to confirm that your order has been shipped and is on its way to you.
 
 Tracking Information:
-UPS Tracking Number: ${data.trackingNumber}
+UPS Tracking Number: ${safe.trackingNumber}
 
 You can track your shipment at the link above or visit ups.com and enter your tracking number.
 
 Your package requires an adult signature upon delivery to ensure safe receipt of your timepiece.
 
 Order Details:
-Watch Model: ${data.modelNumber} - ${data.modelName}
-Shipping Address: ${data.customerAddress}
+Watch Model: ${safe.modelNumber} - ${safe.modelName}
+Shipping Address: ${safe.customerAddress}
 
 If you have any questions about your order or need any assistance, please don't hesitate to reach out. I'm here to help!
 
-We hope you enjoy your new ${data.brand} timepiece!
+We hope you enjoy your new ${safe.brand} timepiece!
 
 Best regards,
-${data.employeeName}
+${safe.employeeName}
 ${getStoreName()}`;
         }
     },
@@ -464,14 +421,15 @@ ${getStoreName()}`;
         category: 'Phone Orders',
         fields: ['managerNameOrStoreName', 'customerName', 'customerId', 'employeeName', 'employeeId', 'unitsQuantity', 'totalAmount', 'creditCardVerified', 'needsManagerVerification'],
         generate: (data) => {
-            if (!data.creditCardVerified || data.creditCardVerified.toLowerCase() !== 'yes') {
+            const safe = sanitizeTemplateData(data);
+            if (!safe.creditCardVerified || safe.creditCardVerified.toLowerCase() !== 'yes') {
                 throw new Error('Credit card must be verified before generating this order form.');
             }
 
             let orderStatus = '';
             let closing = '';
 
-            if (data.needsManagerVerification && data.needsManagerVerification.toLowerCase() === 'yes') {
+            if (safe.needsManagerVerification && safe.needsManagerVerification.toLowerCase() === 'yes') {
                 orderStatus = 'Ready for manager verification';
                 closing = 'Please verify and sign off. If you need anything else, please let me know.';
             } else {
@@ -479,90 +437,128 @@ ${getStoreName()}`;
                 closing = 'Let me know if you need anything else.';
             }
 
-            return `Subject: Phone Order Form for ${data.customerName}
+            return `Subject: Phone Order Form for ${safe.customerName}
 
-Hi ${data.managerNameOrStoreName},
+Hi ${safe.managerNameOrStoreName},
 
-Attached is the form for the phone order for ${data.customerName} (${data.customerId}).
+Attached is the form for the phone order for ${safe.customerName} (${safe.customerId}).
 
-Ringing under: ${data.employeeName} (${data.employeeId})
-Units: ${data.unitsQuantity}
-Total: ${data.totalAmount}
+Ringing under: ${safe.employeeName} (${safe.employeeId})
+Units: ${safe.unitsQuantity}
+Total: ${safe.totalAmount}
 
 Order Status: ${orderStatus}
 
 ${closing}
 
 Best regards,
-${data.employeeName}`;
+${safe.employeeName}`;
         }
     },
     'phone-corporate': {
         name: 'Corporate Approval',
         category: 'Phone Orders',
         fields: ['customerName', 'customerId', 'employeeName', 'employeeId', 'unitsQuantity', 'totalAmount', 'fulfillingStore', 'yourName'],
-        generate: (data) => `Subject: Phone Order Approval Request - ${data.customerName}
+        generate: (data) => {
+            const safe = sanitizeTemplateData(data);
+            return `Subject: Phone Order Approval Request - ${safe.customerName}
 
 Hello,
 
-I am forwarding a request for approval on a phone order for ${data.employeeName} (${data.employeeId}).
+I am forwarding a request for approval on a phone order for ${safe.employeeName} (${safe.employeeId}).
 
-There are ${data.unitsQuantity} units totaling ${data.totalAmount}. It will be fulfilled at ${data.fulfillingStore}.
+There are ${safe.unitsQuantity} units totaling ${safe.totalAmount}. It will be fulfilled at ${safe.fulfillingStore}.
 
-Customer: ${data.customerName} (${data.customerId})
+Customer: ${safe.customerName} (${safe.customerId})
 
 I have verified and signed off. Please let us know if you have any questions.
 
 Thank You,
-${data.yourName}`
+${safe.yourName}`;
+        }
     },
     'inter-store-notification': {
         name: 'Inter-Store Notification',
         category: 'Phone Orders',
         fields: ['recipientStoreName', 'customerName', 'trackingNumber'],
-        generate: (data) => `Subject: Phone Order Processed and Shipped - ${data.customerName}
+        generate: (data) => {
+            const safe = sanitizeTemplateData(data);
+            return `Subject: Phone Order Processed and Shipped - ${safe.customerName}
 
-Hi ${data.recipientStoreName} Team,
+Hi ${safe.recipientStoreName} Team,
 
-The phone order for ${data.customerName} has been rung and labeled for shipping.
+The phone order for ${safe.customerName} has been rung and labeled for shipping.
 
-UPS Tracking Number: ${data.trackingNumber}
+UPS Tracking Number: ${safe.trackingNumber}
 
 The package has been prepared and is ready for UPS pickup.
 
-Thank you,`
+Thank you,`;
+        }
     },
     'text-availability': {
         name: 'Availability Response',
         category: 'Text',
         fields: ['customerName', 'modelName', 'price', 'closingTime'],
-        generate: (data) => `Hi ${data.customerName}! Yes, we have the ${data.modelName} in stock. Current price is ${data.price} with our outlet discount. We're open until ${data.closingTime} today if you'd like to stop by, or I can hold it.`
+        generate: (data) => {
+            const safe = sanitizeTemplateData(data);
+            return `Hi ${safe.customerName}! Yes, we have the ${safe.modelName} in stock. Current price is ${safe.price} with our outlet discount. We're open until ${safe.closingTime} today if you'd like to stop by, or I can hold it.`;
+        }
     },
     'text-thank-you': {
         name: 'Thank You',
         category: 'Text',
         fields: ['customerName', 'modelName', 'warrantyLength', 'brand'],
-        generate: (data) => `${data.customerName}, thank you for your purchase today! Your ${data.modelName} comes with a ${data.warrantyLength} warranty. Reach out anytime at ${getStorePhone()} for any questions. Enjoy your new ${data.brand}!`
+        generate: (data) => {
+            const safe = sanitizeTemplateData(data);
+            return `${safe.customerName}, thank you for your purchase today! Your ${safe.modelName} comes with a ${safe.warrantyLength} warranty. Reach out anytime at ${getStorePhone()} for any questions. Enjoy your new ${safe.brand}!`;
+        }
     },
     'text-interest-followup': {
         name: 'Sale Alert',
         category: 'Text',
         fields: ['customerName', 'employeeName', 'modelName', 'discount', 'msrp', 'endDate'],
         generate: (data) => {
-            const msrp = parseFloat(data.msrp) || 0;
-            const discount = parseFloat(data.discount) || 0;
+            const safe = sanitizeTemplateData(data);
+            const msrp = parseFloat(safe.msrp) || 0;
+            const discount = parseFloat(safe.discount) || 0;
             const salePrice = (msrp * (1 - discount / 100)).toFixed(2);
 
-            return `Hi ${data.customerName}! This is ${data.employeeName} from ${getFullStoreLocation()}. The ${data.modelName} you were interested in is on ${data.discount}% OFF promotion (MSRP ${data.msrp} now ${salePrice} plus tax) until ${data.endDate}. Please let me know if you'd like me to hold one for you. Thank you!`;
+            return `Hi ${safe.customerName}! This is ${safe.employeeName} from ${getFullStoreLocation()}. The ${safe.modelName} you were interested in is on ${safe.discount}% OFF promotion (MSRP ${safe.msrp} now ${salePrice} plus tax) until ${safe.endDate}. Please let me know if you'd like me to hold one for you. Thank you!`;
+        }
+    },
+    'weekly-sale': {
+        name: 'Weekly Sale',
+        category: 'Customer Email',
+        fields: ['customerName', 'collectionName', 'discount', 'brand', 'model1', 'price1', 'original1', 'model2', 'price2', 'original2', 'endDate', 'employeeName'],
+        generate: (data) => {
+            const safe = sanitizeTemplateData(data);
+            let modelList = `• ${safe.model1} - Now ${safe.price1} (was ${safe.original1})`;
+            if (safe.model2 && safe.price2) {
+                modelList += `\n• ${safe.model2} - Now ${safe.price2} (was ${safe.original2})`;
+            }
+            return `Subject: ${safe.customerName}, This Week's ${safe.brand} Sale Includes Your Favorites
+
+Hi ${safe.customerName},
+
+I remember you were looking at ${safe.collectionName} pieces during your last visit. Good timing - we just started our ${safe.discount}% off promotion on select ${safe.brand} models this week!
+
+Specifically available in that collection:
+${modelList}
+
+This promotion runs through ${safe.endDate}. Would you like me to check if we have your size preference in stock?
+
+Best regards,
+${safe.employeeName}
+${getStoreName()}`;
         }
     },
     'promotion-email': {
-        name: 'Promotion Email (HTML)',
+        name: 'Promotion Email',
         category: 'Customer Email',
-        fields: ['promoDateRange', 'promoTitle'],
-        customTemplate: true, // Special flag for custom rendering
+        customTemplate: true,
+        fields: ['promoDateRange', 'promoYear', 'promoTitle', 'promoRecipient'],
         generate: (data) => {
-            // This will be called by custom generation logic
             return generatePromotionEmailHTML(data);
         }
     }
@@ -667,8 +663,8 @@ function redo() {
 
 // Update undo/redo button states
 function updateUndoRedoButtons() {
-    const undoBtn = document.getElementById('undoBtn');
-    const redoBtn = document.getElementById('redoBtn');
+    const undoBtn = elements.undoBtn;
+    const redoBtn = elements.redoBtn;
 
     if (undoBtn) {
         undoBtn.disabled = historyIndex <= 0;
@@ -689,18 +685,25 @@ function savePromotionTemplate() {
     renderPromotionEntries(); // Update the UI to show collapsed state
 
     const config = {
-        dateRange: document.getElementById('promoDateRange')?.value || '',
-        year: document.getElementById('promoYear')?.value || '',
-        title: document.getElementById('promoTitle')?.value || '',
-        recipient: document.getElementById('promoRecipient')?.value || '',
+        // Metadata
+        templateType: 'promotion-email',
+        version: '1.0',
+        savedAt: new Date().toISOString(),
+
+        // Form fields
+        dateRange: getDynamicElement('promoDateRange')?.value || '',
+        year: getDynamicElement('promoYear')?.value || '',
+        title: getDynamicElement('promoTitle')?.value || '',
+        recipient: getDynamicElement('promoRecipient')?.value || '',
+
+        // Data arrays
         promotionEntries: JSON.parse(JSON.stringify(promotionEntries)),
         specialHours: JSON.parse(JSON.stringify(specialHours)),
         howToShopItems: JSON.parse(JSON.stringify(howToShopItems)),
         importantNotesItems: JSON.parse(JSON.stringify(importantNotesItems)),
         attachedPDFs: JSON.parse(JSON.stringify(attachedPDFs)),
         generatedSubjectLines: JSON.parse(JSON.stringify(generatedSubjectLines)),
-        selectedSubjectLine: selectedSubjectLine,
-        savedAt: new Date().toISOString()
+        selectedSubjectLine: selectedSubjectLine
     };
 
     localStorage.setItem('savedPromotionTemplate', JSON.stringify(config));
@@ -727,11 +730,28 @@ function importPromotionTemplate() {
         reader.onload = (event) => {
             try {
                 const config = JSON.parse(event.target.result);
+
+                // Additional validation for file imports
+                if (!config || typeof config !== 'object') {
+                    showToast('✗ Invalid template file - not a valid configuration object');
+                    return;
+                }
+
+                // Check if this looks like a promotion template (backwards compatible)
+                if (config.templateType && config.templateType !== 'promotion-email') {
+                    showToast('✗ Invalid template file - not a promotion email template');
+                    return;
+                }
+                if (!('promotionEntries' in config) || !('specialHours' in config)) {
+                    showToast('✗ Invalid template file - missing required promotion template fields');
+                    return;
+                }
+
                 applyImportedConfig(config, true); // true = collapse entries on import
                 showToast('✓ Template imported from file successfully');
             } catch (error) {
                 console.error('Import error:', error);
-                showToast('✗ Error reading template file - Invalid JSON');
+                showToast('✗ Error reading template file - Invalid JSON or corrupted file');
             }
         };
 
@@ -754,21 +774,55 @@ function importPromotionTemplate() {
 
 // Helper function to apply imported configuration
 function applyImportedConfig(config, collapseEntries = true) {
-    if (!config) {
-        showToast('✗ Invalid template data');
+    if (!config || typeof config !== 'object') {
+        showToast('✗ Invalid template data - not an object');
         return;
     }
 
-    // Restore form fields
-    const dateRangeInput = document.getElementById('promoDateRange');
-    const yearInput = document.getElementById('promoYear');
-    const titleInput = document.getElementById('promoTitle');
-    const recipientInput = document.getElementById('promoRecipient');
+    // Check template type if present (backwards compatible)
+    if (config.templateType && config.templateType !== 'promotion-email') {
+        showToast('✗ Invalid template data - wrong template type');
+        return;
+    }
 
-    if (dateRangeInput) dateRangeInput.value = config.dateRange || '';
-    if (yearInput) yearInput.value = config.year || '';
-    if (titleInput) titleInput.value = config.title || '';
-    if (recipientInput) recipientInput.value = config.recipient || '';
+    // Validate required fields exist and are correct types
+    if (!Array.isArray(config.promotionEntries)) {
+        showToast('✗ Invalid template data - promotionEntries must be an array');
+        return;
+    }
+    if (!Array.isArray(config.specialHours)) {
+        showToast('✗ Invalid template data - specialHours must be an array');
+        return;
+    }
+    if (!Array.isArray(config.howToShopItems)) {
+        showToast('✗ Invalid template data - howToShopItems must be an array');
+        return;
+    }
+    if (!Array.isArray(config.importantNotesItems)) {
+        showToast('✗ Invalid template data - importantNotesItems must be an array');
+        return;
+    }
+    if (!Array.isArray(config.attachedPDFs)) {
+        showToast('✗ Invalid template data - attachedPDFs must be an array');
+        return;
+    }
+    if (!Array.isArray(config.generatedSubjectLines)) {
+        showToast('✗ Invalid template data - generatedSubjectLines must be an array');
+        return;
+    }
+
+    // Restore form fields (with delay to ensure DOM is ready)
+    setTimeout(() => {
+        const dateRangeInput = getDynamicElement('promoDateRange');
+        const yearInput = getDynamicElement('promoYear');
+        const titleInput = getDynamicElement('promoTitle');
+        const recipientInput = getDynamicElement('promoRecipient');
+
+        if (dateRangeInput) dateRangeInput.value = config.dateRange || '';
+        if (yearInput) yearInput.value = config.year || '';
+        if (titleInput) titleInput.value = config.title || '';
+        if (recipientInput) recipientInput.value = config.recipient || '';
+    }, 100);
 
     // Restore arrays
     promotionEntries = JSON.parse(JSON.stringify(config.promotionEntries || []));
@@ -826,18 +880,25 @@ function exportPromotionTemplate() {
     if (currentTemplate !== 'promotion-email') return;
 
     const config = {
-        dateRange: document.getElementById('promoDateRange')?.value || '',
-        year: document.getElementById('promoYear')?.value || '',
-        title: document.getElementById('promoTitle')?.value || '',
-        recipient: document.getElementById('promoRecipient')?.value || '',
+        // Metadata
+        templateType: 'promotion-email',
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+
+        // Form fields
+        dateRange: getDynamicElement('promoDateRange')?.value || '',
+        year: getDynamicElement('promoYear')?.value || '',
+        title: getDynamicElement('promoTitle')?.value || '',
+        recipient: getDynamicElement('promoRecipient')?.value || '',
+
+        // Data arrays
         promotionEntries: JSON.parse(JSON.stringify(promotionEntries)),
         specialHours: JSON.parse(JSON.stringify(specialHours)),
         howToShopItems: JSON.parse(JSON.stringify(howToShopItems)),
         importantNotesItems: JSON.parse(JSON.stringify(importantNotesItems)),
         attachedPDFs: JSON.parse(JSON.stringify(attachedPDFs)),
         generatedSubjectLines: JSON.parse(JSON.stringify(generatedSubjectLines)),
-        selectedSubjectLine: selectedSubjectLine,
-        exportedAt: new Date().toISOString()
+        selectedSubjectLine: selectedSubjectLine
     };
 
     const dataStr = JSON.stringify(config, null, 2);
@@ -878,8 +939,9 @@ function loadUserProfile() {
     }
 }
 
-// Cached DOM elements
+// Cached DOM elements for performance optimization
 const elements = {
+    // Core UI elements (already cached)
     searchBox: null,
     clearSearch: null,
     searchResults: null,
@@ -892,11 +954,75 @@ const elements = {
     clearBtn: null,
     copyBtn: null,
     toast: null,
-    outputCard: null
+    outputCard: null,
+
+    // Theme and navigation
+    themeToggle: null,
+    navToggle: null,
+    navToggleText: null,
+    navigation: null,
+
+    // Promotion form elements (most frequently accessed - 8-5 calls each)
+    promoDateRange: null,
+    promoYear: null,
+    promoTitle: null,
+    promoRecipient: null,
+
+    // Promotion UI containers
+    promotionEntriesContainer: null,
+    specialHoursContainer: null,
+    specialHoursReminder: null,
+    howToShopWrapper: null,
+    howToShopItemsContainer: null,
+    importantNotesWrapper: null,
+    importantNotesItemsContainer: null,
+
+    // Subject lines
+    subjectLinesContainer: null,
+    subjectLineDropdown: null,
+    selectedSubjectInput: null,
+    selectedSubjectCard: null,
+    subjectCharCount: null,
+
+    // PDF handling
+    pdfDropzone: null,
+    pdfFileInput: null,
+    attachedPDFsList: null,
+
+    // Template management
+    saveTemplateBtn: null,
+    importTemplateBtn: null,
+    exportTemplateBtn: null,
+    formPlaceholder: null,
+
+    // Undo/Redo
+    undoBtn: null,
+    redoBtn: null,
+
+    // Bulk email
+    bulkEmailList: null,
+    batchSize: null,
+    batchSizeHelp: null,
+    bulkAnalysis: null,
+    bulkStats: null,
+    generateBulkBtn: null,
+
+    // Dynamic elements (lazy cached)
+    openEmailBtn: null,
+    codeArea: null,
+    previewIframe: null,
+    previewContent: null,
+    codeContent: null,
+    copyPreviewBtn: null,
+    addEntryBtn: null,
+    addHourBtn: null,
+    addTierBtn: null,
+    formatStatusText: null
 };
 
-// Cache DOM elements on page load
+// Cache DOM elements on page load for performance optimization
 function cacheElements() {
+    // Core UI elements
     elements.searchBox = document.getElementById('searchBox');
     elements.clearSearch = document.getElementById('clearSearch');
     elements.searchResults = document.getElementById('searchResults');
@@ -907,8 +1033,72 @@ function cacheElements() {
     elements.outputArea = document.getElementById('outputArea');
     elements.generateBtn = document.getElementById('generateBtn');
     elements.clearBtn = document.getElementById('clearBtn');
-        elements.copyBtn = document.getElementById('copyBtn');
-        elements.toast = document.getElementById('toast');    elements.outputCard = document.querySelector('.output-card');
+    elements.copyBtn = document.getElementById('copyBtn');
+    elements.toast = document.getElementById('toast');
+    elements.outputCard = document.querySelector('.output-card');
+
+    // Theme and navigation
+    elements.themeToggle = document.getElementById('themeToggle');
+    elements.navToggle = document.getElementById('navToggle');
+    elements.navToggleText = document.getElementById('navToggleText');
+    elements.navigation = document.getElementById('navigation');
+
+    // Promotion form elements (lazy cached - created dynamically)
+    // elements.promoDateRange = document.getElementById('promoDateRange'); // Lazy cached
+    // elements.promoYear = document.getElementById('promoYear'); // Lazy cached
+    // elements.promoTitle = document.getElementById('promoTitle'); // Lazy cached
+    // elements.promoRecipient = document.getElementById('promoRecipient'); // Lazy cached
+
+    // Promotion UI containers
+    elements.promotionEntriesContainer = document.getElementById('promotionEntriesContainer');
+    elements.specialHoursContainer = document.getElementById('specialHoursContainer');
+    elements.specialHoursReminder = document.getElementById('specialHoursReminder');
+    elements.howToShopWrapper = document.getElementById('howToShopWrapper');
+    elements.howToShopItemsContainer = document.getElementById('howToShopItemsContainer');
+    elements.importantNotesWrapper = document.getElementById('importantNotesWrapper');
+    elements.importantNotesItemsContainer = document.getElementById('importantNotesItemsContainer');
+
+    // Subject lines
+    elements.subjectLinesContainer = document.getElementById('subjectLinesContainer');
+    elements.subjectLineDropdown = document.getElementById('subjectLineDropdown');
+    elements.selectedSubjectInput = document.getElementById('selectedSubjectInput');
+    elements.selectedSubjectCard = document.getElementById('selectedSubjectCard');
+    elements.subjectCharCount = document.getElementById('subjectCharCount');
+
+    // PDF handling
+    elements.pdfDropzone = document.getElementById('pdfDropzone');
+    elements.pdfFileInput = document.getElementById('pdfFileInput');
+    elements.attachedPDFsList = document.getElementById('attachedPDFsList');
+
+    // Template management
+    elements.saveTemplateBtn = document.getElementById('saveTemplateBtn');
+    elements.importTemplateBtn = document.getElementById('importTemplateBtn');
+    elements.exportTemplateBtn = document.getElementById('exportTemplateBtn');
+    elements.formPlaceholder = document.getElementById('formPlaceholder');
+
+    // Undo/Redo
+    elements.undoBtn = document.getElementById('undoBtn');
+    elements.redoBtn = document.getElementById('redoBtn');
+
+    // Bulk email
+    elements.bulkEmailList = document.getElementById('bulkEmailList');
+    elements.batchSize = document.getElementById('batchSize');
+    elements.batchSizeHelp = document.getElementById('batchSizeHelp');
+    // bulkAnalysis and bulkStats are lazy cached (created dynamically)
+    // elements.bulkAnalysis = document.getElementById('bulkAnalysis');
+    // elements.bulkStats = document.getElementById('bulkStats');
+    elements.generateBulkBtn = document.getElementById('generateBulkBtn');
+
+    // Format status
+    elements.formatStatusText = document.getElementById('formatStatusText');
+}
+
+// Lazy cache dynamic elements that may not exist on initial load
+function getDynamicElement(id) {
+    if (!elements[id]) {
+        elements[id] = document.getElementById(id);
+    }
+    return elements[id];
 }
 
 // Show tabbed output for promotion emails
@@ -932,7 +1122,7 @@ function showTabbedOutput() {
             <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Send this promotion to multiple recipients in BCC batches</div>
 
             <div style="margin-bottom: 1rem;">
-                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <label for="bulkEmailList" style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M8 6h13"></path>
                         <path d="M8 12h13"></path>
@@ -948,7 +1138,7 @@ function showTabbedOutput() {
             </div>
 
             <div style="margin-bottom: 1rem;">
-                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <label for="batchSize" style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                         <rect x="7" y="7" width="10" height="4"></rect>
@@ -1074,7 +1264,7 @@ function showTabbedOutput() {
     const copyBtn = document.getElementById('copyPreviewBtn');
     if (copyBtn) {
         copyBtn.addEventListener('click', () => {
-            const codeArea = document.getElementById('codeArea');
+            const codeArea = getDynamicElement('codeArea');
             if (codeArea && codeArea.value) {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(codeArea.value).then(() => {
@@ -1094,7 +1284,7 @@ function showTabbedOutput() {
     }
 
     // Add openEmailBtn handler
-    const openEmailBtn = document.getElementById('openEmailBtn');
+    const openEmailBtn = getDynamicElement('openEmailBtn');
     if (openEmailBtn) {
         openEmailBtn.addEventListener('click', openInEmailClient);
     }
@@ -1169,9 +1359,9 @@ function debounce(func, wait) {
 function updateLivePreview() {
     if (currentTemplate !== 'promotion-email') return;
 
-    const dateRangeInput = document.getElementById('promoDateRange');
-    const yearInput = document.getElementById('promoYear');
-    const titleInput = document.getElementById('promoTitle');
+    const dateRangeInput = getDynamicElement('promoDateRange');
+    const yearInput = getDynamicElement('promoYear');
+    const titleInput = getDynamicElement('promoTitle');
 
     // Only update if we have at least a date range
     if (!dateRangeInput || !dateRangeInput.value.trim()) {
@@ -1187,13 +1377,13 @@ function updateLivePreview() {
     const htmlCode = generatePromotionEmailHTML(data);
 
     // Update code textarea
-    const codeArea = document.getElementById('codeArea');
+    const codeArea = getDynamicElement('codeArea');
     if (codeArea) {
         codeArea.value = htmlCode;
     }
 
     // Update preview iframe
-    const previewIframe = document.getElementById('previewIframe');
+    const previewIframe = getDynamicElement('previewIframe');
     if (previewIframe) {
         const iframeDoc = previewIframe.contentDocument || previewIframe.contentWindow.document;
         iframeDoc.open();
@@ -1523,8 +1713,8 @@ function renderPromotionEntries() {
 
                 <div class="entry-fields" style="display: ${isCollapsed ? 'none' : 'grid'};">
                     <div class="form-group">
-                        <label class="form-label">Brand *</label>
-                        <select class="form-input entry-brand" data-entry-id="${safeId}">
+                        <label class="form-label" for="entry-${safeId}-brand">Brand *</label>
+                        <select class="form-input entry-brand" id="entry-${safeId}-brand" name="entry-${safeId}-brand" data-entry-id="${safeId}">
                             <option value="">Select brand...</option>
                             <option value="Citizen" ${entry.brand === 'Citizen' ? 'selected' : ''}>Citizen</option>
                             <option value="Bulova" ${entry.brand === 'Bulova' ? 'selected' : ''}>Bulova</option>
@@ -1534,18 +1724,18 @@ function renderPromotionEntries() {
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">Discount % *</label>
-                        <input type="text" class="form-input entry-discount" data-entry-id="${safeId}" value="${escapeAttr(entry.discount)}" placeholder="60">
+                        <label class="form-label" for="entry-${safeId}-discount">Discount % *</label>
+                        <input type="text" class="form-input entry-discount" id="entry-${safeId}-discount" name="entry-${safeId}-discount" data-entry-id="${safeId}" value="${escapeAttr(entry.discount)}" placeholder="60">
                     </div>
 
                     <div class="form-group full-width">
-                        <label class="form-label">Collections (comma-separated)</label>
-                        <input type="text" class="form-input entry-collections" data-entry-id="${safeId}" value="${escapeAttr(entry.collections)}" placeholder="Corso, Avion, Marine Star">
+                        <label class="form-label" for="entry-${safeId}-collections">Collections (comma-separated)</label>
+                        <input type="text" class="form-input entry-collections" id="entry-${safeId}-collections" name="entry-${safeId}-collections" data-entry-id="${safeId}" value="${escapeAttr(entry.collections)}" placeholder="Corso, Avion, Marine Star">
                     </div>
 
                     <div class="form-group full-width">
-                        <label class="form-label">Special Callout (optional)</label>
-                        <input type="text" class="form-input entry-callout" data-entry-id="${safeId}" value="${escapeAttr(entry.callout)}" placeholder="Final sale items excluded">
+                        <label class="form-label" for="entry-${safeId}-callout">Special Callout (optional)</label>
+                        <input type="text" class="form-input entry-callout" id="entry-${safeId}-callout" name="entry-${safeId}-callout" data-entry-id="${safeId}" value="${escapeAttr(entry.callout)}" placeholder="Final sale items excluded">
                     </div>
                 </div>
             </div>
@@ -1604,10 +1794,10 @@ function renderSpecialHours() {
             <div class="special-hour-row" data-hour-id="${safeId}">
                 <div class="special-hour-fields">
                     <div class="form-group">
-                        <input type="text" class="form-input hour-day" data-hour-id="${safeId}" value="${escapeAttr(hour.day)}" placeholder="e.g., Friday Nov 29">
+                        <input type="text" class="form-input hour-day" id="hour-${safeId}-day" name="hour-${safeId}-day" data-hour-id="${safeId}" value="${escapeAttr(hour.day)}" placeholder="e.g., Friday Nov 29">
                     </div>
                     <div class="form-group">
-                        <input type="text" class="form-input hour-hours" data-hour-id="${safeId}" value="${escapeAttr(hour.hours)}" placeholder="e.g., 6AM–10PM or CLOSED">
+                        <input type="text" class="form-input hour-hours" id="hour-${safeId}-hours" name="hour-${safeId}-hours" data-hour-id="${safeId}" value="${escapeAttr(hour.hours)}" placeholder="e.g., 6AM–10PM or CLOSED">
                     </div>
                     <div class="hour-controls">
                         <button type="button" class="order-btn" onclick="moveSpecialHourUp(${hour.id})" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
@@ -1708,7 +1898,7 @@ function renderHowToShopItems() {
                         </svg>
                     </div>
                     <div class="form-group">
-                        <input type="text" class="form-input shop-item-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Visit us in-store for outlet-exclusive deals">
+                        <input type="text" class="form-input shop-item-text" id="shop-item-${safeId}-text" name="shop-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Visit us in-store for outlet-exclusive deals">
                     </div>
                     <div class="item-controls">
                         <button type="button" class="item-remove-btn" onclick="removeHowToShopItem(${item.id})" title="Remove">×</button>
@@ -1794,7 +1984,7 @@ function renderImportantNotesItems() {
                         </svg>
                     </div>
                     <div class="form-group">
-                        <input type="text" class="form-input notes-item-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., See attached PDF for complete model details">
+                        <input type="text" class="form-input notes-item-text" id="notes-item-${safeId}-text" name="notes-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., See attached PDF for complete model details">
                     </div>
                     <div class="item-controls">
                         <button type="button" class="item-remove-btn" onclick="removeImportantNotesItem(${item.id})" title="Remove">×</button>
@@ -1920,7 +2110,7 @@ function renderPromotionEmailForm() {
 
     elements.formFields.innerHTML = `
         <div class="form-group">
-            <label class="form-label">Date Range *</label>
+            <label class="form-label" for="promoDateRange">Date Range *</label>
             <div class="input-wrapper">
                 <input type="text" class="form-input" id="promoDateRange" placeholder="Nov 28 - Dec 1" required>
                 <button class="clear-input" data-clear="promoDateRange" title="Clear">×</button>
@@ -1929,7 +2119,7 @@ function renderPromotionEmailForm() {
         </div>
 
         <div class="form-group">
-            <label class="form-label">Year (optional)</label>
+            <label class="form-label" for="promoYear">Year (optional)</label>
             <div class="input-wrapper">
                 <input type="text" class="form-input" id="promoYear" placeholder="Auto-uses current year">
                 <button class="clear-input" data-clear="promoYear" title="Clear">×</button>
@@ -1938,7 +2128,7 @@ function renderPromotionEmailForm() {
         </div>
 
         <div class="form-group">
-            <label class="form-label">Title (optional)</label>
+            <label class="form-label" for="promoTitle">Title (optional)</label>
             <div class="input-wrapper">
                 <input type="text" class="form-input" id="promoTitle" placeholder="Leave blank for auto-generation">
                 <button class="clear-input" data-clear="promoTitle" title="Clear">×</button>
@@ -2028,10 +2218,10 @@ function renderPromotionEmailForm() {
     `;
 
     // Add event listeners
-    const dateRangeInput = document.getElementById('promoDateRange');
-    const yearInput = document.getElementById('promoYear');
-    const titleInput = document.getElementById('promoTitle');
-    const addTierBtn = document.getElementById('addTierBtn');
+    const dateRangeInput = getDynamicElement('promoDateRange');
+    const yearInput = getDynamicElement('promoYear');
+    const titleInput = getDynamicElement('promoTitle');
+    const addTierBtn = getDynamicElement('addTierBtn');
 
     // Bulk email event listeners are now set up in showTabbedOutput()
 
@@ -2153,8 +2343,8 @@ function renderPromotionEmailForm() {
     }
 
     // Wire up undo/redo buttons
-    const undoBtn = document.getElementById('undoBtn');
-    const redoBtn = document.getElementById('redoBtn');
+    const undoBtn = elements.undoBtn;
+    const redoBtn = elements.redoBtn;
 
     if (undoBtn) {
         undoBtn.addEventListener('click', undo);
@@ -2218,6 +2408,21 @@ function renderPromotionEmailForm() {
 
     // Add keyboard shortcuts
     document.addEventListener('keydown', handleUndoRedoShortcuts);
+
+    // Wire up bulk email analysis event listeners
+    const bulkEmailList = document.getElementById('bulkEmailList');
+    const batchSizeInput = document.getElementById('batchSize');
+
+    if (bulkEmailList) {
+        bulkEmailList.addEventListener('input', updateBulkAnalysis);
+    }
+
+    if (batchSizeInput) {
+        batchSizeInput.addEventListener('input', () => {
+            validateBatchSize();
+            updateBulkAnalysis();
+        });
+    }
 
     // Capture initial state
     captureState();
@@ -2307,7 +2512,7 @@ function renderAttachedPDFs() {
         return `
             <div class="attached-pdf-item" data-pdf-id="${pdf.id}">
                 <div class="pdf-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
                         <text x="12" y="17" font-size="6" text-anchor="middle" fill="currentColor">PDF</text>
@@ -2318,14 +2523,13 @@ function renderAttachedPDFs() {
                     <div class="pdf-size">${displaySize}</div>
                 </div>
                 <button class="pdf-remove-btn" onclick="removePDF(${pdf.id})" title="Remove PDF">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
-            </button>
+                </button>
             </div>
-        </div>
-    `;
+        `;
     }).join('');
 }
 
@@ -2342,8 +2546,8 @@ function removePDF(pdfId) {
 
 // Generate subject lines based on promotion data
 function generateSubjectLines() {
-    const dateRange = document.getElementById('promoDateRange')?.value || '';
-    const title = document.getElementById('promoTitle')?.value || '';
+    const dateRange = getDynamicElement('promoDateRange')?.value || '';
+    const title = getDynamicElement('promoTitle')?.value || '';
 
     if (!dateRange && promotionEntries.length === 0) {
         showToast('⚠ Add promotion details first to generate subject lines');
@@ -2433,14 +2637,14 @@ function renderSubjectLines() {
 
     container.innerHTML = `
         <div class="subject-line-dropdown-wrapper">
-            <label class="subject-dropdown-label">Choose a subject line suggestion:</label>
+            <label class="subject-dropdown-label" for="subjectLineDropdown">Choose a subject line suggestion:</label>
             <select id="subjectLineDropdown" class="subject-line-dropdown">
                 <option value="" disabled ${!selectedSubjectLine ? 'selected' : ''}>Select a subject line...</option>
                 ${dropdownOptions}
             </select>
         </div>
         <div id="selectedSubjectCard" class="selected-subject-card" style="display: ${selectedSubjectLine ? 'block' : 'none'};">
-            <label class="subject-card-label">Selected Subject Line (editable):</label>
+            <label class="subject-card-label" for="selectedSubjectInput">Selected Subject Line (editable):</label>
             <div class="subject-card-input-wrapper">
                 <input
                     type="text"
@@ -2557,7 +2761,7 @@ function handleUndoRedoShortcuts(e) {
 // Generate promotion email HTML
 function generatePromotionEmailHTML(data) {
     const dateRange = data.promoDateRange || '';
-    const title = data.promoTitle && data.promoTitle.trim() ? data.promoTitle : generatePromoTitle(dateRange);
+    const title = data.promoTitle && data.promoTitle.trim() ? sanitizeHTML(data.promoTitle) : generatePromoTitle(dateRange);
 
     // Use override year if provided, otherwise use current year
     const year = data.promoYear && data.promoYear.trim() ? data.promoYear.trim() : new Date().getFullYear();
@@ -2573,24 +2777,24 @@ function generatePromotionEmailHTML(data) {
 
         let collectionsHTML = '';
         if (entry.collections && entry.collections.trim()) {
-            const collections = entry.collections.split(',').map(c => c.trim()).filter(c => c);
+            const collections = entry.collections.split(',').map(c => sanitizeHTML(c.trim())).filter(c => c);
             collectionsHTML = collections.map(c => `*${c}`).join(' • ');
         }
 
         brandSections += `
-                <p style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-bottom: 8px;"><b>${entry.brand} - ${entry.discount}% OFF</b></p>`;
+                <p style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-bottom: 8px;"><b>${sanitizeHTML(entry.brand)} - ${sanitizeHTML(entry.discount)}% OFF</b></p>`;
 
         if (collectionsHTML) {
             brandSections += `
                 <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-left: 20px; margin-top: 0; margin-bottom: ${entry.callout ? '5px' : '20px'};">
-                    ${collectionsHTML}
+                    ${sanitizeHTML(collectionsHTML)}
                 </p>`;
         }
 
         if (entry.callout && entry.callout.trim()) {
             brandSections += `
                 <p style="font-size: 13px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-left: 20px; margin-top: 0; margin-bottom: 20px; color: #0066cc; font-style: italic;">
-                    ${entry.callout}
+                    ${sanitizeHTML(entry.callout)}
                 </p>`;
         }
     });
@@ -2630,16 +2834,16 @@ function generatePromotionEmailHTML(data) {
         }
     }
 
-    // Build How to Shop section from array
+    // Build How to Shop section from array (sanitize user inputs)
     let howToShopHTML = howToShopItems
         .filter(item => item.text && item.text.trim())
-        .map(item => `• ${item.text}`)
+        .map(item => `• ${sanitizeHTML(item.text)}`)
         .join('<br>\n                    ');
 
-    // Build Important Notes section from array
+    // Build Important Notes section from array (sanitize user inputs)
     let importantNotesHTML = importantNotesItems
         .filter(item => item.text && item.text.trim())
-        .map(item => `• ${item.text}`)
+        .map(item => `• ${sanitizeHTML(item.text)}`)
         .join('<br>\n                    ');
 
     return `<!DOCTYPE html>
@@ -2822,7 +3026,7 @@ function selectTemplate(key) {
             renderPromotionEmailForm();
             showTabbedOutput();
             elements.clearBtn.disabled = false;
-            const openEmailBtn = document.getElementById('openEmailBtn');
+            const openEmailBtn = getDynamicElement('openEmailBtn');
             if (openEmailBtn) {
                 openEmailBtn.disabled = false;
             }
@@ -2884,11 +3088,11 @@ function selectTemplate(key) {
 
             return `
                 <div class="form-group${fullWidthClass}">
-                    <label class="form-label">${sanitizeHTML(capitalizedLabel)}${requiredMark}</label>
+                    <label class="form-label" for="${safeField}">${sanitizeHTML(capitalizedLabel)}${requiredMark}</label>
                     <div class="input-wrapper">
                         ${isTextarea
-                            ? `<textarea class="form-textarea" data-field="${safeField}" ${config.required ? 'required' : ''} placeholder="${safeExample}">${autoFillValue}</textarea>`
-                            : `<input type="text" class="form-input" data-field="${safeField}" ${config.required ? 'required' : ''} placeholder="${safeExample}" value="${autoFillValue}" list="${datalistId}">${datalistHTML}`
+                            ? `<textarea id="${safeField}" class="form-textarea" data-field="${safeField}" ${config.required ? 'required' : ''} placeholder="${safeExample}">${autoFillValue}</textarea>`
+                            : `<input type="text" id="${safeField}" class="form-input" data-field="${safeField}" ${config.required ? 'required' : ''} placeholder="${safeExample}" value="${autoFillValue}" list="${datalistId}">${datalistHTML}`
                         }
                         <button class="clear-input" data-clear="${safeField}" title="Clear">×</button>
                     </div>
@@ -3059,7 +3263,7 @@ function generateMessage() {
 
         // Handle promotion email specially - force refresh live preview
         if (currentTemplate === 'promotion-email') {
-            const dateRangeInput = document.getElementById('promoDateRange');
+            const dateRangeInput = getDynamicElement('promoDateRange');
 
             if (!dateRangeInput || !dateRangeInput.value.trim()) {
                 showToast('⚠ Date range is required');
@@ -3155,7 +3359,7 @@ function clearAll() {
         `;
 
         elements.clearBtn.disabled = true;
-        const openEmailBtn = document.getElementById('openEmailBtn');
+        const openEmailBtn = getDynamicElement('openEmailBtn');
         if (openEmailBtn) {
             openEmailBtn.disabled = true;
         }
@@ -3244,7 +3448,7 @@ function openInEmailClient() {
 // Open promotion email in email client with subject line and PDF handling
 function openPromotionEmailInClient() {
     // Get HTML content from the code area (used for promotion emails)
-    const codeArea = document.getElementById('codeArea');
+    const codeArea = getDynamicElement('codeArea');
     const htmlContent = codeArea ? codeArea.value : '';
 
     if (!htmlContent) {
@@ -3364,24 +3568,16 @@ function init() {
         loadUserProfile();
         populateDropdown();
 
-        // Event listeners
-        elements.searchBox.addEventListener('input', (e) => {
-            renderSearchResults(e.target.value);
-        });
+    // Event listeners
+    elements.searchBox.addEventListener('input', (e) => {
+        renderSearchResults(e.target.value);
+    });
 
-        elements.clearSearch.addEventListener('click', () => {
-            elements.searchBox.value = '';
-            renderSearchResults('');
-        });
-
-        elements.searchResults.addEventListener('click', (e) => {
-            const item = e.target.closest('.search-result-item');
-            if (item && item.dataset.templateKey) {
-                selectTemplate(item.dataset.templateKey);
-                elements.searchBox.value = '';
-                renderSearchResults('');
-            }
-        });
+    elements.clearSearch.addEventListener('click', () => {
+        elements.searchBox.value = '';
+        renderSearchResults('');
+        elements.searchBox.focus();
+    });
 
         elements.templateSelect.addEventListener('change', (e) => {
             if (e.target.value) {
@@ -3395,12 +3591,12 @@ function init() {
         // Note: openEmailBtn is dynamically added in showTabbedOutput() for promotion emails
 
         // Theme and navigation toggles
-        const themeToggle = document.getElementById('themeToggle');
+        const themeToggle = elements.themeToggle;
         if (themeToggle) {
             themeToggle.addEventListener('click', toggleTheme);
         }
 
-        const navToggle = document.getElementById('navToggle');
+        const navToggle = elements.navToggle;
         if (navToggle) {
             navToggle.addEventListener('click', toggleNavigation);
         }
@@ -3435,8 +3631,8 @@ function isValidEmail(email) {
 }
 
 function validateBatchSize() {
-    const batchSizeInput = document.getElementById('batchSize');
-    const helpText = document.getElementById('batchSizeHelp');
+    const batchSizeInput = getDynamicElement('batchSize');
+    const helpText = getDynamicElement('batchSizeHelp');
 
     if (!batchSizeInput || !helpText) return;
 
@@ -3486,10 +3682,10 @@ function detectDuplicates(emails) {
 }
 
 function updateBulkAnalysis() {
-    const bulkEmailList = document.getElementById('bulkEmailList');
-    const batchSizeInput = document.getElementById('batchSize');
-    const bulkAnalysis = document.getElementById('bulkAnalysis');
-    const bulkStats = document.getElementById('bulkStats');
+    const bulkEmailList = getDynamicElement('bulkEmailList');
+    const batchSizeInput = getDynamicElement('batchSize');
+    const bulkAnalysis = getDynamicElement('bulkAnalysis');
+    const bulkStats = getDynamicElement('bulkStats');
 
     if (!bulkEmailList || !batchSizeInput || !bulkAnalysis || !bulkStats) return;
 
@@ -3627,24 +3823,63 @@ function generateZipFilenameFromHTML(htmlContent) {
 }
 
 function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], format = 'eml', batchNumber = 1) {
+    // DIAGNOSTIC: Log function call with all parameters
+    console.log(`\n>>> createBCCBatchEML called for Batch ${batchNumber}`);
+    console.log(`    recipients parameter type: ${typeof recipients}, isArray: ${Array.isArray(recipients)}`);
+    console.log(`    recipients.length: ${recipients ? recipients.length : 'undefined'}`);
+    if (recipients && recipients.length > 0) {
+        console.log(`    First 3 recipients: ${recipients.slice(0, 3).join(', ')}`);
+        console.log(`    Last recipient: ${recipients[recipients.length - 1]}`);
+    }
+
     // Create EML email with CRLF line endings for Outlook compatibility
     // Note: Mac Outlook (.emltpl) may only display 1 BCC recipient in the UI for security,
     // but all recipients are included when the email is sent.
-    const boundary = '----=_NextPart_' + Date.now();
+    const boundary = '----=_NextPart_' + Date.now() + '_' + batchNumber + '_' + Math.random().toString(36).substr(2, 9);
     const senderEmail = userProfile && userProfile.storeEmail ? userProfile.storeEmail : 'noreply@example.com';
     const senderName = userProfile && userProfile.storeName ? userProfile.storeName : 'Store';
 
     let emlContent = `From: ${senderName} <${senderEmail}>\r\n`;
+    emlContent += `Subject: ${subject}\r\n`;
 
-    // Add BCC recipients as comma-separated list in single header (RFC 822 compliant)
+    // Add Date header with slight offset per batch to ensure uniqueness
+    const now = new Date(Date.now() + (batchNumber * 1000)); // Add 1 second per batch
+    emlContent += `Date: ${now.toUTCString()}\r\n`;
+
+    // Add unique Message-ID to prevent Outlook from treating files as duplicates
+    const messageId = `<batch${batchNumber}.${Date.now()}.${Math.random().toString(36).substr(2, 9)}@citizenstore.local>`;
+    emlContent += `Message-ID: ${messageId}\r\n`;
+
+    // Add BCC recipients with RFC 822 compliant header folding
+    // Long headers must be split across multiple lines (max 998 chars per line, recommended 78)
     if (recipients && recipients.length > 0) {
-        const bccLine = `BCC: ${recipients.join(', ')}\r\n`;
-        emlContent += bccLine;
+        emlContent += `Bcc: `;
+
+        let currentLine = '';
+        for (let i = 0; i < recipients.length; i++) {
+            const recipient = recipients[i];
+            const separator = i < recipients.length - 1 ? ', ' : '';
+            const addition = recipient + separator;
+
+            // Check if adding this recipient would exceed 900 characters (safe limit)
+            if (currentLine.length + addition.length > 900) {
+                // Write current line with folding (CRLF + space for continuation)
+                emlContent += currentLine + '\r\n ';
+                currentLine = addition;
+            } else {
+                currentLine += addition;
+            }
+        }
+
+        // Write final line
+        emlContent += currentLine + '\r\n';
+
+        console.log(`    ✓ BCC header created with ${recipients.length} recipients (folded for RFC 822 compliance)`);
     } else {
-        console.warn('No recipients provided for BCC headers!');
+        console.error(`    ✗ ERROR - No recipients provided for BCC headers!`);
+        console.error('    Recipients array:', recipients);
     }
 
-    emlContent += `Subject: ${subject}\r\n`;
     emlContent += `MIME-Version: 1.0\r\n`;
     emlContent += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
     emlContent += `X-Unsent: 1\r\n`; // Mark as unsent/draft
@@ -3660,6 +3895,27 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
     emlContent += `Content-Type: text/html; charset=utf-8\r\n`;
     emlContent += `Content-Transfer-Encoding: 7bit\r\n\r\n`;
     emlContent += htmlBody + '\r\n\r\n';
+
+    // Add PDF attachments
+    if (pdfAttachments && pdfAttachments.length > 0) {
+        pdfAttachments.forEach(pdf => {
+            // Extract base64 data from data URL (format: data:application/pdf;base64,...)
+            const base64Data = pdf.data.split(',')[1];
+
+            emlContent += `--${boundary}\r\n`;
+            emlContent += `Content-Type: application/pdf; name="${pdf.name}"\r\n`;
+            emlContent += `Content-Transfer-Encoding: base64\r\n`;
+            emlContent += `Content-Disposition: attachment; filename="${pdf.name}"\r\n`;
+            emlContent += `\r\n`;
+
+            // Split base64 data into 76-character lines (RFC 2045 standard)
+            const lines = base64Data.match(/.{1,76}/g) || [];
+            emlContent += lines.join('\r\n');
+            emlContent += `\r\n\r\n`;
+        });
+
+        console.log(`    ✓ Added ${pdfAttachments.length} PDF attachment(s) to batch ${batchNumber}`);
+    }
 
     emlContent += `--${boundary}--\r\n`;
 
@@ -3711,7 +3967,8 @@ async function generateBulkEmailFiles() {
             return;
         }
 
-        const batchSizeInputValue = document.getElementById('batchSize').value;
+        const batchSizeInput = getDynamicElement('batchSize');
+        const batchSizeInputValue = batchSizeInput ? batchSizeInput.value : '500';
         const batchSize = parseInt(batchSizeInputValue);
 
         if (isNaN(batchSize) || batchSize <= 0) {
@@ -3723,7 +3980,7 @@ async function generateBulkEmailFiles() {
         if (batchSize < 50) {
             console.warn('Batch size too small:', batchSize, '- forcing minimum of 50');
             showToast('⚠️ Batch size increased to minimum of 50 emails.');
-            document.getElementById('batchSize').value = '50';
+            if (batchSizeInput) batchSizeInput.value = '50';
             return; // Let user try again with corrected value
         }
 
@@ -3755,9 +4012,9 @@ async function generateBulkEmailFiles() {
         showToast('⏳ Generating email content...');
 
         // Collect promotion data for HTML generation
-        const dateRangeInput = document.getElementById('promoDateRange');
-        const yearInput = document.getElementById('promoYear');
-        const titleInput = document.getElementById('promoTitle');
+    const dateRangeInput = getDynamicElement('promoDateRange');
+    const yearInput = getDynamicElement('promoYear');
+    const titleInput = getDynamicElement('promoTitle');
 
         const data = {
             promoDateRange: dateRangeInput ? dateRangeInput.value : '',
@@ -3782,8 +4039,16 @@ async function generateBulkEmailFiles() {
             batches.push(batch);
         }
 
+        // DIAGNOSTIC: Verify all batches were created correctly
+        console.log('=== BATCH VERIFICATION ===');
+        console.log(`Total emails: ${finalEmails.length}, Batch size: ${batchSize}, Number of batches: ${batches.length}`);
+        batches.forEach((b, idx) => {
+            console.log(`Batch ${idx + 1}: ${b.length} emails - First: ${b[0]}, Last: ${b[b.length-1]}`);
+        });
+        console.log('=========================');
+
         // Get recommended format based on OS (before using it)
-        const format = getRecommendedFormat();
+        let format = getRecommendedFormat();
         if (!format) {
             console.error('Format is undefined, defaulting to eml');
             format = 'eml'; // Fallback
@@ -3800,12 +4065,15 @@ async function generateBulkEmailFiles() {
         // Generate email files for each batch using OS-optimized format
         const emailFiles = [];
         for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i];
+            const batch = [...batches[i]];  // Create defensive copy to avoid reference issues
+            console.log(`Generating batch ${i + 1} of ${batches.length} with ${batch.length} recipients`);
+            console.log(`  First recipient: ${batch[0]}, Last recipient: ${batch[batch.length - 1]}`);
 
             // Get subject line
             const subject = selectedSubjectLine || 'Promotional Sale';
 
             const emailResult = createBCCBatchEML(subject, htmlContent, batch, attachedPDFs, format, i + 1);
+            console.log(`  Generated file: ${emailResult.filename}, size: ${emailResult.data.length} bytes`);
 
             if (!emailResult || !emailResult.data || emailResult.data.length < 100) {
                 throw new Error(`Failed to generate email content for batch ${i + 1}`);
