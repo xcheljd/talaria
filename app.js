@@ -785,30 +785,41 @@ function applyImportedConfig(config, collapseEntries = true) {
         return;
     }
 
-    // Validate required fields exist and are correct types
+    // Validate and normalize required array fields (with backwards compatibility)
     if (!Array.isArray(config.promotionEntries)) {
-        showToast('✗ Invalid template data - promotionEntries must be an array');
-        return;
+        if (config.promotionEntries !== undefined) {
+            showToast('✗ Invalid template data - promotionEntries must be an array');
+            return;
+        }
+        config.promotionEntries = [];
     }
     if (!Array.isArray(config.specialHours)) {
-        showToast('✗ Invalid template data - specialHours must be an array');
-        return;
+        if (config.specialHours !== undefined) {
+            showToast('✗ Invalid template data - specialHours must be an array');
+            return;
+        }
+        config.specialHours = [];
     }
     if (!Array.isArray(config.howToShopItems)) {
-        showToast('✗ Invalid template data - howToShopItems must be an array');
-        return;
+        if (config.howToShopItems !== undefined) {
+            showToast('✗ Invalid template data - howToShopItems must be an array');
+            return;
+        }
+        config.howToShopItems = [];
     }
     if (!Array.isArray(config.importantNotesItems)) {
-        showToast('✗ Invalid template data - importantNotesItems must be an array');
-        return;
+        if (config.importantNotesItems !== undefined) {
+            showToast('✗ Invalid template data - importantNotesItems must be an array');
+            return;
+        }
+        config.importantNotesItems = [];
     }
+    // Attach PDFs and subject lines default to empty arrays if missing (backwards compatible)
     if (!Array.isArray(config.attachedPDFs)) {
-        showToast('✗ Invalid template data - attachedPDFs must be an array');
-        return;
+        config.attachedPDFs = [];
     }
     if (!Array.isArray(config.generatedSubjectLines)) {
-        showToast('✗ Invalid template data - generatedSubjectLines must be an array');
-        return;
+        config.generatedSubjectLines = [];
     }
 
     // Restore form fields (with delay to ensure DOM is ready)
