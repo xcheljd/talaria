@@ -124,7 +124,7 @@ python3 -m http.server 8000
 ### Git & Commit Guidelines
 When using Claude Code for development:
 - **No co-author lines** in commits - keep commits attributed to you
-- Include footer: `🤖 Generated with [Claude Code](https://claude.com/claude-code)`
+- **No Claude Code footers** - clean commit messages only
 - Example commit message:
   ```
   Implement responsive compact layout improvements
@@ -132,8 +132,6 @@ When using Claude Code for development:
   - Reduce vertical spacing for desktop design
   - Add mobile responsiveness for 375px+ viewports
   - Implement 44px touch targets (WCAG compliant)
-
-  🤖 Generated with [Claude Code](https://claude.com/claude-code)
   ```
 
 ### Adding New Templates
