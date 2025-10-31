@@ -5,7 +5,7 @@ const TOAST_DURATION_MS = 2500;
 
 let db = null;
 const DB_NAME = 'CitizenTemplates';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incremented to create bulkEmailRecipients store
 const STORE_NAME = 'promotionPDFs';
 const BULK_EMAIL_STORE = 'bulkEmailRecipients';
 
@@ -729,7 +729,7 @@ ${getStoreName()}`;
         name: 'Promotion Email',
         category: 'Customer Email',
         customTemplate: true,
-        fields: ['promoDateRange', 'promoYear', 'promoTitle', 'promoRecipient'],
+        fields: ['promoDateRange', 'promoYear', 'promoTitle'],
         generate: (data) => {
             return generatePromotionEmailHTML(data);
         }
@@ -866,7 +866,6 @@ function savePromotionTemplate() {
         dateRange: getDynamicElement('promoDateRange')?.value || '',
         year: getDynamicElement('promoYear')?.value || '',
         title: getDynamicElement('promoTitle')?.value || '',
-        recipient: getDynamicElement('promoRecipient')?.value || '',
 
         // Data arrays
         promotionEntries: JSON.parse(JSON.stringify(promotionEntries)),
@@ -1006,12 +1005,10 @@ async function applyImportedConfig(config, collapseEntries = true) {
         const dateRangeInput = getDynamicElement('promoDateRange');
         const yearInput = getDynamicElement('promoYear');
         const titleInput = getDynamicElement('promoTitle');
-        const recipientInput = getDynamicElement('promoRecipient');
 
         if (dateRangeInput) dateRangeInput.value = config.dateRange || '';
         if (yearInput) yearInput.value = config.year || '';
         if (titleInput) titleInput.value = config.title || '';
-        if (recipientInput) recipientInput.value = config.recipient || '';
     }, 100);
 
     // Restore arrays
@@ -1100,7 +1097,6 @@ function exportPromotionTemplate() {
         dateRange: getDynamicElement('promoDateRange')?.value || '',
         year: getDynamicElement('promoYear')?.value || '',
         title: getDynamicElement('promoTitle')?.value || '',
-        recipient: getDynamicElement('promoRecipient')?.value || '',
 
         // Data arrays
         promotionEntries: JSON.parse(JSON.stringify(promotionEntries)),
@@ -1177,7 +1173,6 @@ const elements = {
     promoDateRange: null,
     promoYear: null,
     promoTitle: null,
-    promoRecipient: null,
 
     // Promotion UI containers
     promotionEntriesContainer: null,
@@ -1258,7 +1253,6 @@ function cacheElements() {
     // elements.promoDateRange = document.getElementById('promoDateRange'); // Lazy cached
     // elements.promoYear = document.getElementById('promoYear'); // Lazy cached
     // elements.promoTitle = document.getElementById('promoTitle'); // Lazy cached
-    // elements.promoRecipient = document.getElementById('promoRecipient'); // Lazy cached
 
     // Promotion UI containers
     elements.promotionEntriesContainer = document.getElementById('promotionEntriesContainer');
@@ -1315,6 +1309,20 @@ function getDynamicElement(id) {
 // Show tabbed output for promotion emails
 function showTabbedOutput() {
     if (!elements.outputCard) return;
+
+    // Clear dynamic element cache before rebuilding DOM
+    // This prevents stale references after innerHTML replacement
+    elements.bulkEmailList = null;
+    elements.bulkAnalysis = null;
+    elements.bulkStats = null;
+    elements.batchSize = null;
+    elements.batchSizeHelp = null;
+    elements.codeArea = null;
+    elements.previewIframe = null;
+    elements.previewContent = null;
+    elements.codeContent = null;
+    elements.copyPreviewBtn = null;
+    elements.openEmailBtn = null;
 
     elements.outputCard.innerHTML = `
         <h2 class="section-title">Generated Email</h2>
@@ -1533,6 +1541,10 @@ function showTabbedOutput() {
 function showRegularOutput() {
     if (!elements.outputCard) return;
 
+    // Clear dynamic element cache before rebuilding DOM
+    elements.outputArea = null;
+    elements.copyBtn = null;
+
     elements.outputCard.innerHTML = `
         <h2 class="section-title">Generated Message</h2>
         <textarea class="output-textarea" id="outputArea" placeholder="Your generated message will appear here..." aria-label="Generated message output"></textarea>
@@ -1663,41 +1675,6 @@ function addPromotionEntry() {
         callout: ''
     });
     renderPromotionEntries();
-
-    // Restore form field values and bulk email recipients
-    (async () => {
-        try {
-            // Restore form fields from saved template
-            const savedTemplate = localStorage.getItem('savedPromotionTemplate');
-            if (savedTemplate) {
-                const config = JSON.parse(savedTemplate);
-                const dateRangeInput = getDynamicElement('promoDateRange');
-                const yearInput = getDynamicElement('promoYear');
-                const titleInput = getDynamicElement('promoTitle');
-                const recipientInput = getDynamicElement('promoRecipient');
-
-                if (dateRangeInput) dateRangeInput.value = config.dateRange || '';
-                if (yearInput) yearInput.value = config.year || '';
-                if (titleInput) titleInput.value = config.title || '';
-                if (recipientInput) recipientInput.value = config.recipient || '';
-            }
-
-            // Restore bulk email recipients from IndexedDB
-            const bulkEmailList = document.getElementById('bulkEmailList');
-            if (bulkEmailList) {
-                const savedRecipients = await getBulkEmailRecipientsFromIndexedDB();
-                if (savedRecipients) {
-                    bulkEmailList.value = savedRecipients;
-                    // Wait a tick to ensure DOM is ready, then update analysis
-                    setTimeout(() => {
-                        updateBulkAnalysis();
-                    }, 10);
-                }
-            }
-        } catch (error) {
-            console.warn('Failed to restore template values:', error);
-        }
-    })();
 
     captureState();
 }
@@ -2538,27 +2515,6 @@ function renderPromotionEmailForm() {
         }
     }
 
-    // Recipient input listener
-    const recipientInput = document.getElementById('promoRecipient');
-    if (recipientInput) {
-        recipientInput.addEventListener('input', () => {
-            const clearBtn = document.querySelector('[data-clear="promoRecipient"]');
-            if (clearBtn) {
-                clearBtn.classList.toggle('visible', recipientInput.value.trim().length > 0);
-            }
-        });
-
-        // Clear button
-        const clearRecipientBtn = document.querySelector('[data-clear="promoRecipient"]');
-        if (clearRecipientBtn) {
-            clearRecipientBtn.addEventListener('click', () => {
-                recipientInput.value = '';
-                clearRecipientBtn.classList.remove('visible');
-                recipientInput.focus();
-            });
-        }
-    }
-
     // Add entry button
     const addEntryBtn = document.getElementById('addEntryBtn');
     if (addEntryBtn) {
@@ -2656,20 +2612,7 @@ function renderPromotionEmailForm() {
     // Add keyboard shortcuts
     document.addEventListener('keydown', handleUndoRedoShortcuts);
 
-    // Wire up bulk email analysis event listeners
-    const bulkEmailList = document.getElementById('bulkEmailList');
-    const batchSizeInput = document.getElementById('batchSize');
-
-    if (bulkEmailList) {
-        bulkEmailList.addEventListener('input', updateBulkAnalysis);
-    }
-
-    if (batchSizeInput) {
-        batchSizeInput.addEventListener('input', () => {
-            validateBatchSize();
-            updateBulkAnalysis();
-        });
-    }
+    // Note: Bulk email event listeners are set up in showTabbedOutput() after elements are created
 
     // Capture initial state
     captureState();
@@ -2728,14 +2671,9 @@ function handlePDFFiles(files) {
                 showToast(`⚠ PDF saved to memory but may not persist after refresh`);
             }
 
-            // Add to in-memory array (without the base64 data for localStorage)
-            attachedPDFs.push({
-                id: pdfData.id,
-                name: pdfData.name,
-                size: pdfData.size,
-                type: pdfData.type
-                // Note: 'data' field is NOT included here, it's stored in IndexedDB
-            });
+            // Add to in-memory array with full data (needed for email generation)
+            // Data is also stored in IndexedDB for persistence across page refresh
+            attachedPDFs.push(pdfData);
 
             renderAttachedPDFs();
             debouncedCaptureState();
@@ -3303,13 +3241,29 @@ function selectTemplate(key) {
 
             // Restore bulk email recipients from IndexedDB
             (async () => {
+                // Wait for IndexedDB to be initialized
+                let retries = 0;
+                while (!db && retries < 20) {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    retries++;
+                }
+
+                if (!db) {
+                    console.warn('IndexedDB not initialized, cannot restore bulk emails');
+                    return;
+                }
+
+                // Wait for DOM to be ready and any pending operations to complete
+                await new Promise(resolve => setTimeout(resolve, 200));
+
                 try {
                     const bulkEmailList = document.getElementById('bulkEmailList');
                     if (bulkEmailList) {
                         const savedRecipients = await getBulkEmailRecipientsFromIndexedDB();
                         if (savedRecipients) {
                             bulkEmailList.value = savedRecipients;
-                            updateBulkAnalysis();
+                            // Trigger analysis panel update after restoration
+                            bulkEmailList.dispatchEvent(new Event('input', { bubbles: true }));
                         }
                     }
                 } catch (error) {
@@ -3746,17 +3700,13 @@ function openPromotionEmailInClient() {
     // Get selected subject line
     const subject = selectedSubjectLine || 'Promotional Sale';
 
-    // Get recipient if specified
-    const recipientInput = document.getElementById('promoRecipient');
-    const recipient = recipientInput ? recipientInput.value.trim() : '';
-
     try {
         // Get recommended format based on OS
         const format = getRecommendedFormat();
         const fileExtension = format === 'emltpl' ? '.emltpl' : '.eml';
 
         // Create email file with HTML content and PDF attachments
-        const emlContent = createEMLFile(subject, htmlContent, attachedPDFs, recipient, format);
+        const emlContent = createEMLFile(subject, htmlContent, attachedPDFs, '', format);
 
         // Create blob and download
         const blob = new Blob([emlContent], { type: 'message/rfc822' });
@@ -3833,6 +3783,12 @@ function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '', f
     // Add PDF attachments
     if (pdfAttachments && pdfAttachments.length > 0) {
         pdfAttachments.forEach((pdf, index) => {
+            // Skip PDFs without data (may happen if IndexedDB restore failed)
+            if (!pdf.data) {
+                console.warn(`Skipping PDF ${pdf.name} - no data available (may need to re-upload)`);
+                return;
+            }
+
             // Validate PDF data format (must be data URL with base64 encoding)
             const parts = pdf.data.split(',');
             if (parts.length !== 2 || !parts[0].includes('base64')) {
@@ -4334,6 +4290,12 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
     if (pdfAttachments && pdfAttachments.length > 0) {
         let attachmentCount = 0;
         pdfAttachments.forEach((pdf, index) => {
+            // Skip PDFs without data (may happen if IndexedDB restore failed)
+            if (!pdf.data) {
+                console.warn(`Skipping PDF ${pdf.name} - no data available (may need to re-upload)`);
+                return;
+            }
+
             // Validate PDF data format (must be data URL with base64 encoding)
             const parts = pdf.data.split(',');
             if (parts.length !== 2 || !parts[0].includes('base64')) {
@@ -4484,6 +4446,12 @@ async function generateBulkEmailFiles() {
 
         // Extract date range for ZIP naming
         const zipFilename = generateZipFilenameFromHTML(htmlContent);
+
+        // Check for PDFs without data
+        const missingDataPDFs = attachedPDFs.filter(pdf => !pdf.data);
+        if (missingDataPDFs.length > 0) {
+            showToast(`⚠️ Warning: ${missingDataPDFs.length} PDF(s) missing data and will be skipped. Consider re-uploading PDFs.`);
+        }
 
         // Split emails into batches
         const batches = [];
