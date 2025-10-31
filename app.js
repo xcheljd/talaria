@@ -1664,9 +1664,25 @@ function addPromotionEntry() {
     });
     renderPromotionEntries();
 
-    // Restore bulk email recipients from IndexedDB
+    // Restore form field values and bulk email recipients
     (async () => {
         try {
+            // Restore form fields from saved template
+            const savedTemplate = localStorage.getItem('savedPromotionTemplate');
+            if (savedTemplate) {
+                const config = JSON.parse(savedTemplate);
+                const dateRangeInput = getDynamicElement('promoDateRange');
+                const yearInput = getDynamicElement('promoYear');
+                const titleInput = getDynamicElement('promoTitle');
+                const recipientInput = getDynamicElement('promoRecipient');
+
+                if (dateRangeInput) dateRangeInput.value = config.dateRange || '';
+                if (yearInput) yearInput.value = config.year || '';
+                if (titleInput) titleInput.value = config.title || '';
+                if (recipientInput) recipientInput.value = config.recipient || '';
+            }
+
+            // Restore bulk email recipients from IndexedDB
             const bulkEmailList = document.getElementById('bulkEmailList');
             if (bulkEmailList) {
                 const savedRecipients = await getBulkEmailRecipientsFromIndexedDB();
@@ -1679,7 +1695,7 @@ function addPromotionEntry() {
                 }
             }
         } catch (error) {
-            console.warn('Failed to restore bulk email recipients:', error);
+            console.warn('Failed to restore template values:', error);
         }
     })();
 
