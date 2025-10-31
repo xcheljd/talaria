@@ -121,6 +121,21 @@ python3 -m http.server 8000
 - **Security First** - all user inputs sanitized
 - **Performance Optimized** - DOM caching and efficient algorithms
 
+### Git & Commit Guidelines
+When using Claude Code for development:
+- **No co-author lines** in commits - keep commits attributed to you
+- Include footer: `🤖 Generated with [Claude Code](https://claude.com/claude-code)`
+- Example commit message:
+  ```
+  Implement responsive compact layout improvements
+
+  - Reduce vertical spacing for desktop design
+  - Add mobile responsiveness for 375px+ viewports
+  - Implement 44px touch targets (WCAG compliant)
+
+  🤖 Generated with [Claude Code](https://claude.com/claude-code)
+  ```
+
 ### Adding New Templates
 1. Add entry to `templates` object in `app.js`
 2. Define: `name`, `category`, `fields[]`, `generate()` function
