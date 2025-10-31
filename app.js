@@ -1663,6 +1663,26 @@ function addPromotionEntry() {
         callout: ''
     });
     renderPromotionEntries();
+
+    // Restore bulk email recipients from IndexedDB
+    (async () => {
+        try {
+            const bulkEmailList = document.getElementById('bulkEmailList');
+            if (bulkEmailList) {
+                const savedRecipients = await getBulkEmailRecipientsFromIndexedDB();
+                if (savedRecipients) {
+                    bulkEmailList.value = savedRecipients;
+                    // Wait a tick to ensure DOM is ready, then update analysis
+                    setTimeout(() => {
+                        updateBulkAnalysis();
+                    }, 10);
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to restore bulk email recipients:', error);
+        }
+    })();
+
     captureState();
 }
 
