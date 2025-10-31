@@ -3507,7 +3507,8 @@ function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '', f
     const senderEmail = userProfile && userProfile.storeEmail ? userProfile.storeEmail : 'store@citizenwatchgroup.com';
 
     // Create EML as a draft message to allow editing in Outlook
-    let eml = `From: ${senderName} <${senderEmail}>\r\n`;
+    // Omit From: header to allow user to specify sender
+    let eml = '';
     // Omit To: header entirely to ensure Outlook treats it as editable draft
     eml += `Subject: ${subject}\r\n`;
     // Add Date header (RFC 5322 §3.6.1 - Required, but X-Unsent: 1 keeps as draft)
@@ -3959,7 +3960,8 @@ function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], f
     const senderEmail = userProfile && userProfile.storeEmail ? userProfile.storeEmail : 'noreply@example.com';
     const senderName = userProfile && userProfile.storeName ? userProfile.storeName : 'Store';
 
-    let emlContent = `From: ${senderName} <${senderEmail}>\r\n`;
+    // Omit From: header to allow user to specify sender
+    let emlContent = '';
     emlContent += `Subject: ${subject}\r\n`;
 
     // Add Date header with slight offset per batch to ensure uniqueness
