@@ -2150,7 +2150,7 @@ function renderPromotionEmailForm() {
             <div id="howToShopWrapper"></div>
         </div>
 
-        <div class="form-group full-width" style="margin-top: 1.25rem;">
+        <div class="form-group full-width" style="margin-top: 0.75rem;">
             <div id="importantNotesWrapper"></div>
         </div>
 
