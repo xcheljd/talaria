@@ -173,6 +173,23 @@ function getBulkEmailRecipientsFromIndexedDB() {
     });
 }
 
+// Clear bulk email recipients from IndexedDB
+function clearBulkEmailRecipientsFromIndexedDB() {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            resolve();
+            return;
+        }
+
+        const transaction = db.transaction([BULK_EMAIL_STORE], 'readwrite');
+        const store = transaction.objectStore(BULK_EMAIL_STORE);
+        const request = store.clear();
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve();
+    });
+}
+
 // ===== CUSTOMIZABLE PALETTE SYSTEM (Light / Dark with 5 palettes each) =====
 
 // Initialize theme and palettes from localStorage
@@ -3762,11 +3779,11 @@ function highlightEmptyRequiredFields() {
     });
 }
 
-function clearAll() {
+async function clearAll() {
     if (!currentTemplate) return;
 
     try {
-        // Clear all promotion email arrays
+        // Clear all promotion email arrays and render cleared state
         if (currentTemplate === 'promotion-email') {
             promotionEntries = [];
             specialHours = [];
@@ -3775,10 +3792,40 @@ function clearAll() {
             attachedPDFs = [];
             generatedSubjectLines = [];
             selectedSubjectLine = null;
+
+            // Re-render all sections to show empty state
+            renderPromotionEntries();
+            renderSpecialHours();
+            renderHowToShopSection();
+            renderImportantNotesSection();
             renderAttachedPDFs();
             renderSubjectLines();
+
+            // Clear promotion-specific input fields
+            const dateRangeInput = getDynamicElement('promoDateRange');
+            const yearInput = getDynamicElement('promoYear');
+            const titleInput = getDynamicElement('promoTitle');
+            if (dateRangeInput) dateRangeInput.value = '';
+            if (yearInput) yearInput.value = '';
+            if (titleInput) titleInput.value = '';
+
+            // Clear bulk email field
+            const bulkEmailList = document.getElementById('bulkEmailList');
+            if (bulkEmailList) {
+                bulkEmailList.value = '';
+                // Trigger input event to update the analysis panel
+                bulkEmailList.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+
+            // Clear saved template from localStorage
+            localStorage.removeItem('savedPromotionTemplate');
+
+            // Clear all IndexedDB data
+            await clearAllPDFsFromIndexedDB();
+            await clearBulkEmailRecipientsFromIndexedDB();
         }
 
+        // Clear regular template fields
         const inputs = elements.formFields.querySelectorAll('.form-input, .form-textarea');
         inputs.forEach(input => input.value = '');
 
@@ -3800,6 +3847,8 @@ function clearAll() {
         if (openEmailBtn) {
             openEmailBtn.disabled = true;
         }
+
+        showToast('All fields and saved data cleared');
     } catch (error) {
         console.error('Error clearing form:', error);
         showToast('Error clearing form');
