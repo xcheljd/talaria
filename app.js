@@ -2720,7 +2720,14 @@ function renderAttachedPDFs() {
                     </svg>
                 </div>
                 <div class="pdf-info">
-                    <div class="pdf-name" title="${pdf.name}">${pdf.name}</div>
+                    <div class="pdf-name pdf-name-clickable"
+                         title="Click to preview ${pdf.name}"
+                         onclick="previewPDF(${pdf.id})"
+                         role="button"
+                         tabindex="0"
+                         onkeypress="if(event.key==='Enter') previewPDF(${pdf.id})">
+                        ${pdf.name}
+                    </div>
                     <div class="pdf-size">${displaySize}</div>
                 </div>
                 <button class="pdf-remove-btn" onclick="removePDF(${pdf.id})" title="Remove PDF">
@@ -2750,6 +2757,195 @@ async function removePDF(pdfId) {
     renderAttachedPDFs();
     debouncedCaptureState();
     showToast(`✓ ${pdf.name} removed`);
+}
+
+// ===== PDF Preview Modal Functions =====
+
+let currentPreviewPDF = null;
+let currentBlobUrl = null;
+
+// Preview PDF in modal
+function previewPDF(pdfId) {
+    const pdf = attachedPDFs.find(p => p.id === pdfId);
+    if (!pdf) {
+        showToast('⚠ PDF not found');
+        return;
+    }
+
+    currentPreviewPDF = pdf;
+
+    // Show modal
+    const modal = document.getElementById('pdfPreviewModal');
+    const modalTitle = document.getElementById('pdfModalTitle');
+    const iframe = document.getElementById('pdfModalIframe');
+    const loadingIndicator = document.getElementById('pdfLoadingIndicator');
+    const errorMessage = document.getElementById('pdfErrorMessage');
+
+    if (!modal || !iframe) {
+        console.error('PDF preview modal elements not found');
+        return;
+    }
+
+    // Set title
+    modalTitle.textContent = pdf.name;
+
+    // Reset states
+    loadingIndicator.style.display = 'flex';
+    errorMessage.style.display = 'none';
+    iframe.style.display = 'none';
+    iframe.src = '';
+
+    // Show modal with animation
+    modal.style.display = 'flex';
+    requestAnimationFrame(() => {
+        modal.classList.add('active');
+    });
+
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+
+    // Load PDF
+    setTimeout(() => {
+        try {
+            // Clean up previous blob URL if exists
+            if (currentBlobUrl) {
+                URL.revokeObjectURL(currentBlobUrl);
+                currentBlobUrl = null;
+            }
+
+            // Convert base64 data URL to Blob URL for better browser compatibility
+            const base64Data = pdf.data.split(',')[1];
+            if (!base64Data) {
+                throw new Error('Invalid PDF data format');
+            }
+
+            // Decode base64 to binary
+            const binaryString = atob(base64Data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            // Create blob and blob URL
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            const blobUrl = URL.createObjectURL(blob);
+            currentBlobUrl = blobUrl; // Store for cleanup
+
+            // Set iframe src to blob URL
+            iframe.src = blobUrl;
+
+            // Setup load handlers
+            iframe.onload = () => {
+                loadingIndicator.style.display = 'none';
+                iframe.style.display = 'block';
+            };
+
+            iframe.onerror = () => {
+                loadingIndicator.style.display = 'none';
+                errorMessage.style.display = 'flex';
+                URL.revokeObjectURL(blobUrl); // Clean up
+            };
+
+            // Fallback timeout in case onload doesn't fire
+            setTimeout(() => {
+                if (loadingIndicator.style.display !== 'none') {
+                    loadingIndicator.style.display = 'none';
+                    iframe.style.display = 'block';
+                }
+            }, 3000);
+
+        } catch (error) {
+            console.error('Error loading PDF preview:', error);
+            loadingIndicator.style.display = 'none';
+            errorMessage.style.display = 'flex';
+            // Clean up blob URL on error
+            if (currentBlobUrl) {
+                URL.revokeObjectURL(currentBlobUrl);
+                currentBlobUrl = null;
+            }
+        }
+    }, 100);
+}
+
+// Close PDF preview modal
+function closePDFPreview() {
+    const modal = document.getElementById('pdfPreviewModal');
+    const iframe = document.getElementById('pdfModalIframe');
+
+    if (!modal) return;
+
+    // Animate out
+    modal.classList.remove('active');
+
+    // Wait for animation, then hide
+    setTimeout(() => {
+        modal.style.display = 'none';
+        if (iframe) {
+            iframe.src = ''; // Clear iframe to stop rendering
+        }
+
+        // Clean up blob URL to free memory
+        if (currentBlobUrl) {
+            URL.revokeObjectURL(currentBlobUrl);
+            currentBlobUrl = null;
+        }
+
+        currentPreviewPDF = null;
+
+        // Restore body scroll
+        document.body.style.overflow = '';
+    }, 300);
+}
+
+// Download PDF from preview
+function downloadPDFFromPreview() {
+    if (!currentPreviewPDF) return;
+
+    // Create download link
+    const link = document.createElement('a');
+    link.href = currentPreviewPDF.data;
+    link.download = currentPreviewPDF.name;
+    link.click();
+
+    showToast(`✓ Downloading ${currentPreviewPDF.name}`);
+}
+
+// Initialize PDF preview modal event listeners
+function initPDFPreviewModal() {
+    const modal = document.getElementById('pdfPreviewModal');
+    if (!modal) return;
+
+    const closeBtn = document.getElementById('pdfModalClose');
+    const backdrop = modal.querySelector('.pdf-modal-backdrop');
+    const downloadBtn = document.getElementById('pdfDownloadBtn');
+    const downloadFallback = document.getElementById('pdfDownloadFallback');
+
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closePDFPreview);
+    }
+
+    // Backdrop click
+    if (backdrop) {
+        backdrop.addEventListener('click', closePDFPreview);
+    }
+
+    // Download button
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadPDFFromPreview);
+    }
+
+    // Download fallback (error state)
+    if (downloadFallback) {
+        downloadFallback.addEventListener('click', downloadPDFFromPreview);
+    }
+
+    // ESC key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'flex') {
+            closePDFPreview();
+        }
+    });
 }
 
 // Generate subject lines based on promotion data
@@ -3834,6 +4030,7 @@ async function init() {
         // Initialize theme and navigation
         initTheme();
         initNavigation();
+        initPDFPreviewModal();
 
         cacheElements();
         loadUserProfile();

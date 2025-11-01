@@ -73,6 +73,48 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+    <!-- PDF Preview Modal -->
+    <div id="pdfPreviewModal" class="pdf-preview-modal" style="display: none;">
+        <div class="pdf-modal-backdrop"></div>
+        <div class="pdf-modal-container">
+            <div class="pdf-modal-header">
+                <h3 class="pdf-modal-title" id="pdfModalTitle"></h3>
+                <button class="pdf-modal-close" id="pdfModalClose" aria-label="Close preview">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="pdf-modal-content">
+                <iframe id="pdfModalIframe" class="pdf-modal-iframe" title="PDF Preview"></iframe>
+                <div class="pdf-loading-indicator" id="pdfLoadingIndicator">
+                    <div class="spinner"></div>
+                    <p>Loading PDF...</p>
+                </div>
+                <div class="pdf-error-message" id="pdfErrorMessage" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <p>Unable to preview this PDF</p>
+                    <button class="pdf-download-fallback" id="pdfDownloadFallback">Download Instead</button>
+                </div>
+            </div>
+            <div class="pdf-modal-footer">
+                <button class="pdf-download-btn" id="pdfDownloadBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <script src="app.js"></script>
