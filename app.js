@@ -3793,8 +3793,10 @@ async function clearAll() {
             generatedSubjectLines = [];
             selectedSubjectLine = null;
 
+            // Add one blank discount entry
+            addPromotionEntry();
+
             // Re-render all sections to show empty state
-            renderPromotionEntries();
             renderSpecialHours();
             renderHowToShopSection();
             renderImportantNotesSection();
