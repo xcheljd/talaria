@@ -3793,10 +3793,13 @@ async function clearAll() {
             generatedSubjectLines = [];
             selectedSubjectLine = null;
 
+            // Restore default items for How to Shop and Important Notes
+            initializeDefaultItems();
+
             // Add one blank discount entry
             addPromotionEntry();
 
-            // Re-render all sections to show empty state
+            // Re-render all sections to show empty/default state
             renderSpecialHours();
             renderHowToShopSection();
             renderImportantNotesSection();
