@@ -3823,30 +3823,21 @@ async function clearAll() {
             // Clear all IndexedDB data
             await clearAllPDFsFromIndexedDB();
             await clearBulkEmailRecipientsFromIndexedDB();
+        } else {
+            // Clear regular template fields
+            const inputs = elements.formFields.querySelectorAll('.form-input, .form-textarea');
+            inputs.forEach(input => input.value = '');
+
+            // Clear radio buttons
+            const radios = elements.formFields.querySelectorAll('input[type="radio"]');
+            radios.forEach(radio => radio.checked = false);
         }
 
-        // Clear regular template fields
-        const inputs = elements.formFields.querySelectorAll('.form-input, .form-textarea');
-        inputs.forEach(input => input.value = '');
+        // Clear output area
+        elements.outputArea.value = '';
 
-        // Reset to regular output
-        showRegularOutput();
-
-        elements.formSectionTitle.textContent = 'Template Fields';
-        currentTemplate = null;
-        elements.templateSelect.value = '';
-
-        elements.formFields.innerHTML = `
-            <div class="placeholder-message" id="formPlaceholder">
-                <p>Select a template to begin</p>
-            </div>
-        `;
-
-        elements.clearBtn.disabled = true;
-        const openEmailBtn = getDynamicElement('openEmailBtn');
-        if (openEmailBtn) {
-            openEmailBtn.disabled = true;
-        }
+        // Scroll to top of page
+        window.scrollTo({ top: 0, behavior: 'smooth' });
 
         showToast('All fields and saved data cleared');
     } catch (error) {
