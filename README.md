@@ -99,8 +99,6 @@ python3 -m http.server 8000
 ├── start.html              # User profile configuration
 ├── styles.css              # Complete styling with theme system
 ├── app.js                  # Application logic (4000+ lines)
-├── CLAUDE.md              # Development guidelines for Claude Code
-├── EMAIL_STANDARDS_AUDIT.md # RFC compliance audit and implementation
 ├── README.md              # This file
 └── CHANGELOG.md           # Version history and commit tracking
 ```
@@ -176,14 +174,13 @@ Track changes using Git commit history and `CHANGELOG.md`.
 
 ## 🤝 Contributing
 
-This project uses Claude Code (claude.ai/code) for development. See `CLAUDE.md` for development guidelines.
+This project uses Claude Code (claude.ai/code) for development.
 
 ### Development Workflow
-1. Review `EMAIL_STANDARDS_AUDIT.md` for compliance status
-2. Follow established patterns for new features
-3. Test performance impact of changes in multiple browsers
-4. Update documentation as needed
-5. Review commit history and CHANGELOG for context
+1. Follow established patterns for new features
+2. Test performance impact of changes in multiple browsers
+3. Update documentation as needed
+4. Review commit history and CHANGELOG for context
 
 ## 📄 License & Support
 
