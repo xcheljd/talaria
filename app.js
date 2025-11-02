@@ -324,18 +324,18 @@ function getFullStoreLocation() {
 
 // Template metadata with help text
 const templateHelp = {
-    'new-customer-welcome': 'Use after a customer visits the store for the first time. Adds them to VIP list.',
+    'new-customer-welcome': 'Use after a customer visits the store for the first time. Adds them to VIP list. (Enhanced: editable subject, EML download)',
     'back-in-stock': 'Follow up when a previously unavailable item is back. Include hold deadline.',
     'thank-you-warranty': 'Send after purchase to explain warranty registration and care tips.',
-    'weekly-sale': 'Personalized sale notification for customers who showed interest in specific collections.',
-    'new-model-arrival': 'Alert interested customers when a specific model they asked about arrives.',
-    'limited-edition': 'High-priority notification for VIP collectors about exclusive pieces.',
-    'vip-reconnection': 'Re-engage customers who haven\'t visited in a while. Mention store evolution.',
-    'phone-confirmation': 'Immediate confirmation after taking a phone order. Include all order details.',
-    'phone-shipped': 'Send when order ships with UPS tracking. Mention signature requirement.',
-    'phone-under-500': 'Internal approval request for phone orders under $500. Manager verification.',
-    'phone-corporate': 'Corporate/bulk order approval. Include purpose and fulfilling store.',
-    'inter-store-notification': 'Notify receiving store that order is prepared and ready for pickup.',
+    'weekly-sale': 'Personalized sale notification for customers who showed interest in specific collections. (Enhanced: editable subject, EML download)',
+    'new-model-arrival': 'Alert interested customers when a specific model they asked about arrives. (Enhanced: editable subject, EML download)',
+    'limited-edition': 'High-priority notification for VIP collectors about exclusive pieces. (Enhanced: editable subject, EML download)',
+    'vip-reconnection': 'Re-engage customers who haven\'t visited in a while. Mention store evolution. (Enhanced: editable subject, EML download)',
+    'phone-confirmation': 'Immediate confirmation after taking a phone order. Include all order details. (Enhanced: editable subject, EML download)',
+    'phone-shipped': 'Send when order ships with UPS tracking. Mention signature requirement. (Enhanced: editable subject, EML download)',
+    'phone-under-500': 'Internal approval request for phone orders under $500. Manager verification. (Enhanced: editable subject, EML download)',
+    'phone-corporate': 'Corporate/bulk order approval. Include purpose and fulfilling store. (Enhanced: editable subject, EML download)',
+    'inter-store-notification': 'Notify receiving store that order is prepared and ready for pickup. (Enhanced: editable subject, EML download)',
     'text-availability': 'Quick response to customer inquiry about specific model availability.',
     'text-thank-you': 'Post-purchase thank you via text. Keep it brief and friendly.',
     'text-interest-followup': 'Follow up on specific watch customer showed interest in. Use after store visit.',
@@ -428,6 +428,9 @@ const templates = {
     'new-customer-welcome': {
         name: 'New Customer Welcome',
         category: 'Customer Email',
+        hasEditableSubject: true,
+        supportsEML: true,
+        supportsMailto: true,
         fields: ['customerName', 'employeeName'],
         generate: (data) => {
             const safe = sanitizeTemplateData(data);
@@ -449,6 +452,9 @@ ${getStoreName()}`;
     'new-model-arrival': {
         name: 'New Model Arrival',
         category: 'Customer Email',
+        hasEditableSubject: true,
+        supportsEML: true,
+        supportsMailto: true,
         fields: ['customerName', 'brand', 'modelName', 'modelNumber', 'keyFeature1', 'keyFeature2', 'keyFeature3', 'price', 'employeeName'],
         generate: (data) => {
             const safe = sanitizeTemplateData(data);
@@ -480,6 +486,9 @@ ${getStoreName()}`;
     'limited-edition': {
         name: 'Limited Edition',
         category: 'Customer Email',
+        hasEditableSubject: true,
+        supportsEML: true,
+        supportsMailto: true,
         fields: ['customerName', 'brand', 'modelName', 'modelNumber', 'limitedDetails', 'price', 'quantityAvailable', 'employeeName'],
         generate: (data) => {
             const safe = sanitizeTemplateData(data);
@@ -508,6 +517,9 @@ P.S. - Given the limited availability, I'm only reaching out to our most valued 
     'vip-reconnection': {
         name: 'VIP Reconnection',
         category: 'Customer Email',
+        hasEditableSubject: true,
+        supportsEML: true,
+        supportsMailto: true,
         fields: ['clientName', 'employeeName'],
         generate: (data) => {
             const safe = sanitizeTemplateData(data);
@@ -539,6 +551,9 @@ P.S. - We now carry everything from current season pieces to discontinued treasu
     'phone-confirmation': {
         name: 'Confirmation',
         category: 'Phone Orders',
+        hasEditableSubject: true,
+        supportsEML: true,
+        supportsMailto: true,
         fields: ['customerName', 'brand', 'modelName', 'modelNumber', 'price', 'discount', 'totalAmount', 'customerAddress', 'carrier', 'trackingNumber', 'employeeName'],
         generate: (data) => {
             const safe = sanitizeTemplateData(data);
@@ -576,6 +591,9 @@ ${getStoreName()}`;
     'phone-shipped': {
         name: 'Shipped with Tracking',
         category: 'Phone Orders',
+        hasEditableSubject: true,
+        supportsEML: true,
+        supportsMailto: true,
         fields: ['customerName', 'brand', 'modelName', 'modelNumber', 'trackingNumber', 'customerAddress', 'employeeName'],
         generate: (data) => {
             const safe = sanitizeTemplateData(data);
@@ -608,6 +626,9 @@ ${getStoreName()}`;
     'phone-under-500': {
         name: 'Under $500 Request',
         category: 'Phone Orders',
+        hasEditableSubject: true,
+        supportsEML: true,
+        supportsMailto: true,
         fields: ['managerNameOrStoreName', 'customerName', 'customerId', 'employeeName', 'employeeId', 'unitsQuantity', 'totalAmount', 'creditCardVerified', 'needsManagerVerification'],
         generate: (data) => {
             const safe = sanitizeTemplateData(data);
@@ -647,6 +668,9 @@ ${safe.employeeName}`;
     'phone-corporate': {
         name: 'Corporate Approval',
         category: 'Phone Orders',
+        hasEditableSubject: true,
+        supportsEML: true,
+        supportsMailto: true,
         fields: ['customerName', 'customerId', 'employeeName', 'employeeId', 'unitsQuantity', 'totalAmount', 'fulfillingStore', 'yourName'],
         generate: (data) => {
             const safe = sanitizeTemplateData(data);
@@ -669,6 +693,9 @@ ${safe.yourName}`;
     'inter-store-notification': {
         name: 'Inter-Store Notification',
         category: 'Phone Orders',
+        hasEditableSubject: true,
+        supportsEML: true,
+        supportsMailto: true,
         fields: ['recipientStoreName', 'customerName', 'trackingNumber'],
         generate: (data) => {
             const safe = sanitizeTemplateData(data);
@@ -719,6 +746,9 @@ Thank you,`;
     'weekly-sale': {
         name: 'Weekly Sale',
         category: 'Customer Email',
+        hasEditableSubject: true,
+        supportsEML: true,
+        supportsMailto: true,
         fields: ['customerName', 'collectionName', 'discount', 'brand', 'model1', 'price1', 'original1', 'model2', 'price2', 'original2', 'endDate', 'employeeName'],
         generate: (data) => {
             const safe = sanitizeTemplateData(data);
@@ -1591,13 +1621,46 @@ function showRegularOutput() {
     // Clear dynamic element cache before rebuilding DOM
     elements.outputArea = null;
     elements.copyBtn = null;
+    elements.subjectLineContainer = null;
+    elements.sendEmailBtn = null;
+    elements.downloadEmailBtn = null;
+
+    // Check if current template has enhanced features
+    const template = templates[currentTemplate];
+    const hasEnhancedFeatures = template && template.hasEditableSubject;
+
+    let subjectLineSection = '';
+    let buttonGroup = '';
+
+    if (hasEnhancedFeatures) {
+        // Enhanced templates get subject line editing and dual email options
+        subjectLineSection = `
+            <div id="subjectLineContainer" class="subject-line-section" style="margin-bottom: 1.5rem;">
+                <div id="subjectLineContent"></div>
+            </div>
+        `;
+
+        buttonGroup = `
+            <div class="button-group">
+                <button class="btn" id="copyBtn" title="Copy the message to clipboard">Copy Message</button>
+                <button class="btn" id="sendEmailBtn" title="Open your default email client with this message">Send Email</button>
+                <button class="btn" id="downloadEmailBtn" title="Download an Outlook-compatible EML file">Download Email File</button>
+            </div>
+        `;
+    } else {
+        // Simple templates keep the original single button
+        buttonGroup = `
+            <div class="button-group">
+                <button class="btn" id="copyBtn">Copy Message</button>
+            </div>
+        `;
+    }
 
     elements.outputCard.innerHTML = `
         <h2 class="section-title">Generated Message</h2>
+        ${subjectLineSection}
         <textarea class="output-textarea" id="outputArea" placeholder="Your generated message will appear here..." aria-label="Generated message output"></textarea>
-        <div class="button-group">
-            <button class="btn" id="copyBtn">Copy Message</button>
-        </div>
+        ${buttonGroup}
     `;
 
     // Re-cache the output area
@@ -1607,6 +1670,38 @@ function showRegularOutput() {
     const copyBtn = document.getElementById('copyBtn');
     if (copyBtn) {
         copyBtn.addEventListener('click', copyToClipboard);
+    }
+
+    // Add enhanced feature handlers if applicable
+    if (hasEnhancedFeatures) {
+        const sendEmailBtn = document.getElementById('sendEmailBtn');
+        const downloadEmailBtn = document.getElementById('downloadEmailBtn');
+
+        if (sendEmailBtn) {
+            sendEmailBtn.addEventListener('click', () => {
+                const content = elements.outputArea ? elements.outputArea.value : '';
+                if (content) {
+                    openEmailClientUniversal(currentTemplate, content);
+                }
+            });
+        }
+
+        if (downloadEmailBtn) {
+            downloadEmailBtn.addEventListener('click', () => {
+                // Use original message content for EML (preserves formatting)
+                // or fallback to textarea content if original not available
+                const content = window.originalMessageContent || (elements.outputArea ? elements.outputArea.value : '');
+                if (content) {
+                    downloadEmailFile(currentTemplate, content);
+                }
+            });
+        }
+
+        // Render editable subject line
+        const subjectLineContent = document.getElementById('subjectLineContent');
+        if (subjectLineContent) {
+            renderEditableSubjectLine(subjectLineContent, '');
+        }
     }
 }
 
@@ -3128,6 +3223,7 @@ function renderSubjectLines() {
                     class="subject-card-input"
                     value="${selectedSubjectLine || ''}"
                     placeholder="Your subject line..."
+                    title="Edit the email subject line. Changes will be reflected in both Send Email and Download Email File options."
                 >
                 <div class="subject-card-meta">
                     <span class="char-count ${selectedSubjectLine && selectedSubjectLine.length <= 50 ? 'optimal' : 'warning'}" id="subjectCharCount">
@@ -3811,7 +3907,27 @@ function generateMessage() {
         });
 
         const message = template.generate(data);
-        elements.outputArea.value = message;
+
+        // Handle enhanced features for templates that support them
+        if (template.hasEditableSubject) {
+            const subjectLine = extractSubjectLine(message);
+            const subjectLineContent = document.getElementById('subjectLineContent');
+            if (subjectLineContent) {
+                renderEditableSubjectLine(subjectLineContent, subjectLine);
+            }
+
+            // Store original message for EML creation (preserves formatting)
+            window.originalMessageContent = message;
+
+            // Remove subject from message content for textarea display (eliminate redundancy)
+            const messageWithoutSubject = message.replace(/^Subject:\s*.+\r?\n/, '').trim();
+            elements.outputArea.value = messageWithoutSubject;
+        } else {
+            // For non-enhanced templates, show the full message as before
+            elements.outputArea.value = message;
+            // Clear original message content for non-enhanced templates
+            window.originalMessageContent = null;
+        }
     } catch (error) {
         console.error('Error generating message:', error);
         elements.outputArea.value = '';
@@ -4281,6 +4397,236 @@ function encodeFilename(filename) {
     // Format: filename*=charset'language'percent-encoded-value
     const encodedFilename = encodeURIComponent(filename);
     return `filename*=UTF-8''${encodedFilename}`;
+}
+
+// ===== Universal Email Template Functions =====
+
+// Extract subject line from template output
+function extractSubjectLine(templateOutput) {
+    const match = templateOutput.match(/^Subject:\s*(.+)$/m);
+    return match ? match[1] : '';
+}
+
+// Render editable subject line interface
+function renderEditableSubjectLine(container, currentSubject) {
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="selected-subject-card" style="display: block;">
+            <label class="subject-card-label" for="subjectLineInput" style="display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                Subject Line (customizable)
+            </label>
+            <div class="subject-card-input-wrapper">
+                <input
+                    type="text"
+                    id="subjectLineInput"
+                    class="subject-card-input"
+                    value="${currentSubject || ''}"
+                    placeholder="Enter subject line..."
+                >
+                <div class="subject-card-meta">
+                    <span class="char-count ${currentSubject && currentSubject.length <= 50 ? 'optimal' : 'warning'}" id="subjectCharCount">
+                        ${currentSubject ? currentSubject.length : 0} chars ${currentSubject && currentSubject.length <= 50 ? '✓' : currentSubject && currentSubject.length > 50 ? '(>50)' : ''}
+                    </span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add event listener to update subject line
+    const input = container.querySelector('#subjectLineInput');
+    if (input) {
+        // Initialize window.currentSubjectLine with the current value
+        window.currentSubjectLine = currentSubject || '';
+
+        input.addEventListener('input', (e) => {
+            // Store the current subject line for use in email functions
+            window.currentSubjectLine = e.target.value;
+
+            // Update character count
+            const charCount = document.getElementById('subjectCharCount');
+            if (charCount) {
+                const length = e.target.value.length;
+                const isOptimal = length <= 50;
+                charCount.className = `char-count ${isOptimal ? 'optimal' : 'warning'}`;
+                charCount.textContent = `${length} chars ${isOptimal ? '✓' : '(>50)'}`;
+            }
+        });
+    }
+}
+
+// Universal EML file creation for any email template
+function createGenericEMLFile(subject, body, attachments = [], format = 'eml') {
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substr(2, 9);
+    const boundary = '----=_NextPart_' + timestamp + '_' + randomId;
+    const messageId = `<single.${timestamp}.${randomId}@citizenstore.local>`;
+    const date = new Date().toUTCString();
+
+    // Get user profile for sender information
+    const senderName = userProfile && userProfile.storeName ? userProfile.storeName : 'Citizen Company Store';
+    const senderEmail = userProfile && userProfile.storeEmail ? userProfile.storeEmail : 'store@citizenwatchgroup.com';
+
+    // Create EML as a draft message to allow editing in Outlook
+    let eml = '';
+    eml += `Subject: ${subject}\r\n`;
+    eml += `Date: ${date}\r\n`;
+    eml += `Message-ID: ${messageId}\r\n`;
+    eml += `MIME-Version: 1.0\r\n`;
+    eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
+    eml += `X-Unsent: 1\r\n`; // Mark as unsent/draft
+    eml += `X-Outlook-Message-Flag: \r\n`; // Outlook draft flag
+    eml += `X-Microsoft-Headers: ; name="draft"\r\n`; // Microsoft draft marker
+    eml += `X-Mailer: Microsoft Outlook 16.0\r\n`; // Identify as Outlook-generated
+    eml += `X-Msg-Status: 00000000\r\n`; // Draft message status
+    eml += `X-Outlook-Template: 1\r\n`; // Mark as Outlook template
+    eml += `Message-Class: IPM.Note\r\n`; // Outlook message classification
+    eml += `\r\n`;
+    eml += `This is a multi-part message in MIME format.\r\n`;
+    eml += `\r\n`;
+
+    // Add text body part (for simple email templates)
+    eml += `--${boundary}\r\n`;
+    eml += `Content-Type: text/plain; charset=utf-8\r\n`;
+    eml += `Content-Transfer-Encoding: quoted-printable\r\n`;
+    eml += `\r\n`;
+
+    // Encode body in quoted-printable format (RFC 2045 compliant)
+    let encodedBody = body.replace(/\r?\n/g, '\r\n'); // Ensure CRLF line endings
+
+    // First encode CRLF sequences to prevent conflicts
+    encodedBody = encodedBody.replace(/\r\n/g, '=0D=0A'); // Encode CRLF sequences
+
+    // Then encode other special characters
+    encodedBody = encodedBody.replace(/=/g, '=3D'); // Encode equals signs
+
+    // Break long lines at 76 characters (quoted-printable standard)
+    // Split by encoded line breaks and process each line
+    const lines = encodedBody.split('=0D=0A');
+    const wrappedLines = lines.map(line => {
+        if (line.length <= 76) return line;
+        // Break long lines with soft line breaks (= at end)
+        const chunks = [];
+        for (let i = 0; i < line.length; i += 75) {
+            chunks.push(line.substr(i, 75));
+        }
+        return chunks.join('=\r\n');
+    });
+
+    encodedBody = wrappedLines.join('=0D=0A');
+    eml += encodedBody;
+    eml += `\r\n\r\n`;
+
+    // Add PDF attachments if provided
+    if (attachments && attachments.length > 0) {
+        attachments.forEach((pdf, index) => {
+            // Skip PDFs without data
+            if (!pdf.data) {
+                console.warn(`Skipping PDF ${pdf.name} - no data available`);
+                return;
+            }
+
+            // Validate PDF data format
+            const parts = pdf.data.split(',');
+            if (parts.length !== 2 || !parts[0].includes('base64')) {
+                console.error(`Invalid PDF data format for attachment ${index + 1} (${pdf.name})`);
+                return;
+            }
+
+            const base64Data = parts[1];
+            if (!base64Data || base64Data.length === 0) {
+                console.error(`Empty PDF data for attachment ${index + 1} (${pdf.name})`);
+                return;
+            }
+
+            eml += `--${boundary}\r\n`;
+            eml += `Content-Type: application/pdf; name="${pdf.name}"\r\n`;
+            eml += `Content-Transfer-Encoding: base64\r\n`;
+            eml += `Content-Disposition: attachment; ${encodeFilename(pdf.name)}\r\n`;
+            eml += `\r\n`;
+
+            // Split base64 data into 76-character lines
+            const lines = base64Data.match(/.{1,76}/g) || [];
+            eml += lines.join('\r\n');
+            eml += `\r\n\r\n`;
+        });
+    }
+
+    // End boundary
+    eml += `--${boundary}--\r\n`;
+
+    return eml;
+}
+
+// Universal email client opening with smart detection
+function openEmailClientUniversal(templateType, content, subject = null) {
+    try {
+        // Use edited subject line if available, otherwise extract from content
+        const emailSubject = window.currentSubjectLine || subject || extractSubjectLine(content);
+
+        // Use mailto: for all enhanced templates (they support both mailto and EML)
+        const body = encodeURIComponent(content);
+        window.location.href = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${body}`;
+        showToast('✓ Opening email client...');
+
+    } catch (error) {
+        console.error('Email client error:', error);
+        showToast('⚠ Failed to open email client');
+    }
+}
+
+// Download email file for any template
+function downloadEmailFile(templateType, content, subject = null) {
+    try {
+        const emailSubject = window.currentSubjectLine || subject || extractSubjectLine(content);
+        const format = getRecommendedFormat();
+        const fileExtension = format === 'emltpl' ? '.emltpl' : '.eml';
+
+        // Normalize line endings to CRLF (RFC 5322 compliant) FIRST
+        let emlBody = (window.originalMessageContent || content).replace(/\r?\n/g, '\r\n');
+
+        // Remove subject line using CRLF-aware regex
+        if (emlBody.startsWith('Subject:')) {
+            emlBody = emlBody.replace(/^Subject:\s*.+\r\n/, '');
+        }
+
+        // Store the properly formatted EML body for email clients
+        window.originalMessageContent = emlBody;
+
+        // Create EML file
+        const emlContent = createGenericEMLFile(emailSubject, emlBody, [], format);
+
+        // Create blob and download
+        const blob = new Blob([emlContent], { type: 'message/rfc822' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${templateType}-email-${new Date().toISOString().split('T')[0]}${fileExtension}`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        showToast(`✓ Email file created! Opening in your email client...`);
+
+    } catch (error) {
+        console.error('Email file creation error:', error);
+        showToast('⚠ Failed to create email file');
+    }
+}
+
+// Check if template is complex (needs EML download vs simple mailto)
+function isComplexEmail(templateType) {
+    // Currently only promotion-email is complex, but this can be extended
+    return templateType === 'promotion-email';
+}
+
+// Get recommended format based on OS (EML for Windows, EMLTPL for Mac)
+function getRecommendedFormat() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    return userAgent.includes('mac') ? 'emltpl' : 'eml';
 }
 
 function validateBatchSize() {

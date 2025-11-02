@@ -10,6 +10,7 @@ A modern, secure, and performant web application for generating professional com
 - **Text Message Templates**: Quick availability checks, thank you messages, sale alerts
 - **Promotion Email Builder**: Advanced HTML email builder with PDF attachments, drag-and-drop reordering, and bulk BCC generation
 - **Inter-store Templates**: Store-to-store notifications and internal communications
+- **Enhanced Email Features**: Editable subject lines, EML/EMLTPL download, Outlook compatibility for 10+ email templates
 
 ### Advanced Features
 - **Promotion Email Builder**: Complex HTML email generation with:
@@ -26,11 +27,23 @@ A modern, secure, and performant web application for generating professional com
   - Loading indicators and error handling
   - Seamless integration with promotion email builder
 
+- **Enhanced Email Templates**: 10 professional email templates with editable subjects and Outlook EML download
+- **Dual Email Options**: Choose between simple mailto links or Outlook-compatible EML file downloads
+- **Subject Line Editing**: Customize email subjects for all enhanced templates with real-time preview
+- **EML/EMLTPL Export**: Generate Outlook-compatible email files with proper MIME encoding and line endings
 - **User Profile Management**: Store-specific configuration (name, phone, location, employee details)
 - **Theme System**: Light/dark mode with 5 palettes each (10 total themes)
 - **Search & Navigation**: Real-time template search and collapsible navigation
 - **Undo/Redo System**: 50-level history for all changes
 - **Export Options**: Copy to clipboard, email client integration, file downloads
+
+### Enhanced Email Features (v1.3.0)
+- **Editable Subject Lines**: Customize email subjects for 10 professional email templates
+- **EML/EMLTPL Download**: Generate Outlook-compatible email files with proper MIME encoding
+- **Dual Email Options**: Choose between simple mailto links or advanced EML file downloads
+- **Cross-Platform Compatibility**: EML files work in Outlook, Mac Mail, Gmail, and other clients
+- **RFC Compliance**: Proper quoted-printable encoding and CRLF line endings
+- **Backward Compatibility**: Existing text templates continue to work unchanged
 
 ### Performance & Security
 - **35-40% faster load times** through DOM element caching
@@ -150,6 +163,14 @@ python3 -m http.server 8000
 4. Review console for any errors or warnings
 
 ## 📈 Version History
+
+### v1.3.0 (November 2, 2025)
+- ✅ **Enhanced Email Templates**: 10 professional email templates now support editable subject lines and EML download
+- ✅ **Dual Email Options**: Choose between mailto links or Outlook-compatible EML file downloads for enhanced templates
+- ✅ **Subject Line Editing**: Real-time subject line editing with character count and validation
+- ✅ **EML/EMLTPL Export**: Generate RFC-compliant email files with quoted-printable encoding and CRLF line endings
+- ✅ **Cross-Platform Compatibility**: EML files work seamlessly in Outlook, Mac Mail, and other email clients
+- ✅ **Backward Compatibility**: Existing text templates continue to work without changes
 
 ### v1.2.0 (November 1, 2025)
 - ✅ **PDF Preview Modal**: Interactive PDF preview with iframe display for attached files
