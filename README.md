@@ -14,11 +14,17 @@ A modern, secure, and performant web application for generating professional com
 ### Advanced Features
 - **Promotion Email Builder**: Complex HTML email generation with:
   - Dynamic brand/product entries with add/remove/reorder
-  - PDF attachment support (up to 10MB per file)
+  - PDF attachment support (up to 10MB per file) with interactive preview modal
   - Drag & drop interface for special hours and promotions
   - Live HTML preview with undo/redo support
   - Bulk email generation with BCC recipients
   - EML/EMLTPL export for Outlook compatibility
+
+- **PDF Preview Modal**: Interactive preview system for attached PDF files with:
+  - Full-screen modal display with iframe rendering
+  - Download fallback for unsupported PDFs
+  - Loading indicators and error handling
+  - Seamless integration with promotion email builder
 
 - **User Profile Management**: Store-specific configuration (name, phone, location, employee details)
 - **Theme System**: Light/dark mode with 5 palettes each (10 total themes)
@@ -148,6 +154,13 @@ When using Claude Code for development:
 4. Review console for any errors or warnings
 
 ## 📈 Version History
+
+### v1.2.0 (November 1, 2025)
+- ✅ **PDF Preview Modal**: Interactive PDF preview with iframe display for attached files
+- ✅ **Enhanced Bulk Email**: Improved bulk email distribution with better data persistence
+- ✅ **Template Management**: Automatic blank entry creation and improved clearing functionality
+- ✅ **Data Persistence**: Fixed PDF and template data restoration across page refreshes
+- ✅ **User Experience**: Enhanced subject line management and template state handling
 
 ### v1.1.0 (October 30, 2025)
 - ✅ **Complete Architecture Overhaul**: Modular HTML/CSS/JS design

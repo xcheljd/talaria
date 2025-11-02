@@ -2,6 +2,31 @@
 
 All notable changes to the Communication Template Generator will be documented in this file.
 
+## [1.2.0] - 2025-11-01
+
+### Added
+- **PDF Preview Modal**: New modal interface for previewing attached PDF files with iframe display
+- **Enhanced Bulk Email Features**: Improved bulk email distribution with better restoration and persistence
+- **Template Management**: Added automatic blank entry creation after clearing promotion templates
+- **Default Content Restoration**: How to Shop and Important Notes sections now restore default items when cleared
+
+### Fixed
+- **PDF Preview Persistence**: Fixed PDF preview failing after page refresh by improving IndexedDB integration
+- **Template Clearing**: Clear button now properly removes all data and resets UI state
+- **Bulk Email Restoration**: Fixed issues with bulk email recipient list restoration from localStorage
+- **Form Field Values**: Restored proper form field value loading when templates are selected
+- **Data Persistence**: Improved PDF and template data persistence across sessions
+
+### Improved
+- **Subject Line Management**: Updated subject line labels and improved user interface
+- **Template State Management**: Better handling of template state during clearing and restoration
+- **User Experience**: Enhanced template management workflow with better visual feedback
+- **Code Cleanup**: Removed unused files and references from project
+
+### Security
+- **Input Sanitization**: Maintained comprehensive XSS protection across all new features
+- **Data Validation**: Enhanced validation for PDF uploads and bulk email processing
+
 ## [1.1.0] - 2025-10-22
 
 ### Changed
