@@ -126,9 +126,7 @@ python3 -m http.server 8000
 - **Performance Optimized** - DOM caching and efficient algorithms
 
 ### Git & Commit Guidelines
-When using Claude Code for development:
 - **No co-author lines** in commits - keep commits attributed to you
-- **No Claude Code footers** - clean commit messages only
 - Example commit message:
   ```
   Implement responsive compact layout improvements
@@ -173,8 +171,6 @@ When using Claude Code for development:
 Track changes using Git commit history and `CHANGELOG.md`.
 
 ## 🤝 Contributing
-
-This project uses Claude Code (claude.ai/code) for development.
 
 ### Development Workflow
 1. Follow established patterns for new features
