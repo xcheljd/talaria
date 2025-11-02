@@ -864,7 +864,7 @@ function updateUndoRedoButtons() {
 }
 
 // Save promotion template configuration to localStorage
-function savePromotionTemplate() {
+async function savePromotionTemplate() {
     if (currentTemplate !== 'promotion-email') return;
 
     // Collapse all entries before saving
@@ -872,6 +872,20 @@ function savePromotionTemplate() {
         entryCollapsedStates[entry.id] = true;
     });
     renderPromotionEntries(); // Update the UI to show collapsed state
+
+    // Ensure all PDFs with data are saved to IndexedDB
+    if (attachedPDFs.length > 0 && db) {
+        for (const pdf of attachedPDFs) {
+            if (pdf.data) {
+                try {
+                    await savePDFToIndexedDB(pdf);
+                    console.log(`Re-saved PDF ${pdf.name} to IndexedDB during template save`);
+                } catch (error) {
+                    console.warn(`Failed to save PDF ${pdf.name} to IndexedDB:`, error);
+                }
+            }
+        }
+    }
 
     const config = {
         // Metadata
@@ -1040,15 +1054,31 @@ async function applyImportedConfig(config, collapseEntries = true) {
     attachedPDFs = [];
     const pdfMetadata = config.attachedPDFs || [];
 
+    // Wait for IndexedDB to be initialized before trying to restore PDFs
+    if (pdfMetadata.length > 0) {
+        let retries = 0;
+        while (!db && retries < 20) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            retries++;
+        }
+
+        if (!db) {
+            console.warn('IndexedDB not initialized after waiting, PDFs may not have data');
+        }
+    }
+
     for (const metadata of pdfMetadata) {
         try {
             // Try to get full PDF data from IndexedDB
+            console.log(`Attempting to restore PDF ${metadata.name} with ID:`, metadata.id);
             const fullPdfData = await getPDFFromIndexedDB(metadata.id);
             if (fullPdfData && fullPdfData.data) {
                 // Use full data from IndexedDB
+                console.log(`Successfully restored PDF ${metadata.name} from IndexedDB`);
                 attachedPDFs.push(fullPdfData);
             } else {
                 // Fallback: use metadata only (data field missing but structure preserved)
+                console.warn(`PDF ${metadata.name} (ID: ${metadata.id}) data not found in IndexedDB, using metadata only. This PDF will not be previewable.`);
                 attachedPDFs.push(metadata);
             }
         } catch (error) {
@@ -2680,9 +2710,22 @@ function handlePDFFiles(files) {
                 data: e.target.result // base64 data URL
             };
 
+            // Wait for IndexedDB to be initialized before saving
+            let retries = 0;
+            while (!db && retries < 20) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+                retries++;
+            }
+
             // Save PDF data to IndexedDB
             try {
-                await savePDFToIndexedDB(pdfData);
+                if (db) {
+                    await savePDFToIndexedDB(pdfData);
+                    console.log(`PDF ${file.name} saved to IndexedDB with ID:`, pdfData.id);
+                } else {
+                    console.warn('IndexedDB not initialized, PDF will not persist after refresh');
+                    showToast(`⚠ PDF saved to memory but may not persist after refresh`);
+                }
             } catch (error) {
                 console.warn('Failed to save PDF to IndexedDB:', error);
                 showToast(`⚠ PDF saved to memory but may not persist after refresh`);
@@ -2726,6 +2769,14 @@ function renderAttachedPDFs() {
         const sizeKB = (pdf.size / 1024).toFixed(1);
         const sizeMB = (pdf.size / (1024 * 1024)).toFixed(2);
         const displaySize = pdf.size > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
+        const hasData = !!pdf.data;
+
+        // If PDF has no data, show warning and disable preview
+        const clickableClass = hasData ? 'pdf-name-clickable' : 'pdf-name-disabled';
+        const clickHandler = hasData ? `onclick="previewPDF(${pdf.id})"` : '';
+        const keyHandler = hasData ? `onkeypress="if(event.key==='Enter') previewPDF(${pdf.id})"` : '';
+        const titleText = hasData ? `Click to preview ${pdf.name}` : `${pdf.name} - Preview unavailable (data not loaded)`;
+        const warningIcon = !hasData ? '<span style="color: #ff9800; margin-left: 0.5rem;" title="Preview unavailable">⚠</span>' : '';
 
         return `
             <div class="attached-pdf-item" data-pdf-id="${pdf.id}">
@@ -2737,13 +2788,12 @@ function renderAttachedPDFs() {
                     </svg>
                 </div>
                 <div class="pdf-info">
-                    <div class="pdf-name pdf-name-clickable"
-                         title="Click to preview ${pdf.name}"
-                         onclick="previewPDF(${pdf.id})"
-                         role="button"
-                         tabindex="0"
-                         onkeypress="if(event.key==='Enter') previewPDF(${pdf.id})">
-                        ${pdf.name}
+                    <div class="pdf-name ${clickableClass}"
+                         title="${titleText}"
+                         ${clickHandler}
+                         ${hasData ? 'role="button" tabindex="0"' : ''}
+                         ${keyHandler}>
+                        ${pdf.name}${warningIcon}
                     </div>
                     <div class="pdf-size">${displaySize}</div>
                 </div>
@@ -2828,6 +2878,11 @@ function previewPDF(pdfId) {
             if (currentBlobUrl) {
                 URL.revokeObjectURL(currentBlobUrl);
                 currentBlobUrl = null;
+            }
+
+            // Check if PDF data exists
+            if (!pdf.data) {
+                throw new Error('PDF data not available. The PDF may not have been loaded from storage correctly.');
             }
 
             // Convert base64 data URL to Blob URL for better browser compatibility
