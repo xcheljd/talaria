@@ -1,6 +1,6 @@
 # Citizen Communication Template Generator
 
-A modern, secure, and performant web application for generating professional communication templates for Citizen Company Store operations.
+A modern, secure, and performant web application for generating professional communication templates for retail operations.
 
 ## 🚀 Key Features
 
@@ -180,7 +180,7 @@ Track changes using Git commit history and `CHANGELOG.md`.
 
 ## 📄 License & Support
 
-This is an internal tool for Citizen Company Store operations. See commit history for change tracking and support information.
+This is an internal tool for retail operations. See commit history for change tracking and support information.
 
 ---
 
