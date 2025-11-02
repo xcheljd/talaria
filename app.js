@@ -3120,7 +3120,7 @@ function renderSubjectLines() {
             </select>
         </div>
         <div id="selectedSubjectCard" class="selected-subject-card" style="display: ${selectedSubjectLine ? 'block' : 'none'};">
-            <label class="subject-card-label" for="selectedSubjectInput">Selected Subject Line (editable):</label>
+            <label class="subject-card-label" for="selectedSubjectInput">Selected Subject Line (customizable):</label>
             <div class="subject-card-input-wrapper">
                 <input
                     type="text"
