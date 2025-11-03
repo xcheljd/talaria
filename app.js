@@ -322,6 +322,25 @@ function getFullStoreLocation() {
     return `Citizen Company Store at ${getStoreLocation()}`;
 }
 
+function getEmployeeSignature() {
+    const name = userProfile && userProfile.employeeName ? userProfile.employeeName : 'Employee Name';
+    const title = userProfile && userProfile.jobTitle ? userProfile.jobTitle : 'Sales Associate';
+    const storeName = userProfile && userProfile.storeName ? userProfile.storeName : 'Citizen Company Store';
+    const storeLocation = userProfile && userProfile.storeLocation ? userProfile.storeLocation : 'Orlando Premium Outlets';
+    const address = userProfile && userProfile.storeAddress ? userProfile.storeAddress : '';
+    const phone = userProfile && userProfile.storePhone ? userProfile.storePhone : '555-123-4567';
+    
+    return `${name} │ ${title}
+______________________________________________________________________
+Citizen Watch America - ${storeName}
+${address ? address.replace(/\n/g, '\n') : ''}
+Tel/SMS: ${phone}
+
+Alpina | Bulova | Citizen | Frederique Constant
+
+Please consider the environment before printing this e-mail`;
+}
+
 // Template metadata with help text
 const templateHelp = {
     'new-customer-welcome': 'Use after a customer visits the store for the first time. Adds them to VIP list. (Enhanced: editable subject, EML download)',
@@ -444,9 +463,7 @@ I've added you to our VIP email list for weekly promotional updates featuring ex
 
 Please don't hesitate to reach out by replying to this email or call the store at ${getStorePhone()}. I would be happy to check availability on any models you're considering.
 
-Best regards,
-${safe.employeeName}
-${getStoreName()}`;
+${getEmployeeSignature()}`;
         }
     },
     'new-model-arrival': {
@@ -478,9 +495,7 @@ Would you like to schedule a time to see it in person? Please reply to this emai
 
 Looking forward to hearing from you!
 
-Best regards,
-${safe.employeeName}
-${getStoreName()}`;
+${getEmployeeSignature()}`;
         }
     },
     'limited-edition': {
@@ -507,9 +522,7 @@ This is truly a special piece that won't last long. I'd love to show it to you i
 
 Can you stop by this week, or would you like me to hold one for you? Please reply to this email or call the store at ${getStorePhone()}.
 
-Best regards,
-${safe.employeeName}
-${getStoreName()}
+${getEmployeeSignature()}
 
 P.S. - Given the limited availability, I'm only reaching out to our most valued collectors. Let me know if you're interested!`;
         }
@@ -541,9 +554,7 @@ No purchase necessary - I just want to reconnect and ensure your watches are wor
 
 Would you have time this week or next to stop by? I'd love to show you how we've evolved while maintaining the exceptional values and service you remember.
 
-Best regards,
-${safe.employeeName}
-${getStoreName()}
+${getEmployeeSignature()}
 
 P.S. - We now carry everything from current season pieces to discontinued treasures, giving you more options than ever before.`;
         }
@@ -583,9 +594,7 @@ If you have any questions, please don't hesitate to contact us at ${getStorePhon
 
 Thank you for shopping with ${getStoreName()}!
 
-Best regards,
-${safe.employeeName}
-${getStoreName()}`;
+${getEmployeeSignature()}`;
         }
     },
     'phone-shipped': {
@@ -618,9 +627,7 @@ If you have any questions about your order or need any assistance, please don't 
 
 We hope you enjoy your new ${safe.brand} timepiece!
 
-Best regards,
-${safe.employeeName}
-${getStoreName()}`;
+${getEmployeeSignature()}`;
         }
     },
     'phone-under-500': {
@@ -659,10 +666,7 @@ Total: ${safe.totalAmount}
 
 Order Status: ${orderStatus}
 
-${closing}
-
-Best regards,
-${safe.employeeName}`;
+${getEmployeeSignature()}`;
         }
     },
     'phone-corporate': {
@@ -767,9 +771,7 @@ ${modelList}
 
 This promotion runs through ${safe.endDate}. Would you like me to check if we have your size preference in stock?
 
-Best regards,
-${safe.employeeName}
-${getStoreName()}`;
+${getEmployeeSignature()}`;
         }
     },
     'promotion-email': {

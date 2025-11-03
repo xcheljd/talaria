@@ -304,8 +304,8 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    background: var(--bg-primary);
-    color: var(--text-primary);
+    background: var(--bg-primary, #fdfaf7);
+    color: var(--text-primary, #2a2420);
     line-height: 1.7;
     transition: background-color var(--transition-theme), color var(--transition-theme);
 }
