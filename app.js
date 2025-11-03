@@ -1713,6 +1713,7 @@ function showRegularOutput() {
 
     elements.outputCard.innerHTML = `
         <h2 class="section-title">Generated Message</h2>
+        ${subjectLineSection}
 
         <!-- Output Tabs -->
         <div class="output-tabs">
@@ -1739,7 +1740,6 @@ function showRegularOutput() {
 
         <!-- HTML Tab Content -->
         <div class="output-content" id="htmlContent">
-            ${subjectLineSection}
             <textarea class="output-textarea" id="outputArea" placeholder="Your generated message will appear here..." aria-label="Generated message output"></textarea>
         </div>
 
