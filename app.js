@@ -1713,8 +1713,36 @@ function showRegularOutput() {
 
     elements.outputCard.innerHTML = `
         <h2 class="section-title">Generated Message</h2>
-        ${subjectLineSection}
-        <textarea class="output-textarea" id="outputArea" placeholder="Your generated message will appear here..." aria-label="Generated message output"></textarea>
+
+        <!-- Output Tabs -->
+        <div class="output-tabs">
+            <button class="output-tab active" data-tab="preview" title="Preview how the email looks in an email client">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                Preview
+            </button>
+            <button class="output-tab" data-tab="html" title="View the raw HTML code">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+                HTML
+            </button>
+        </div>
+
+        <!-- Preview Tab Content -->
+        <div class="output-content active" id="previewContent">
+            <iframe class="email-preview" id="emailPreview" title="Email preview"></iframe>
+        </div>
+
+        <!-- HTML Tab Content -->
+        <div class="output-content" id="htmlContent">
+            ${subjectLineSection}
+            <textarea class="output-textarea" id="outputArea" placeholder="Your generated message will appear here..." aria-label="Generated message output"></textarea>
+        </div>
+
         ${buttonGroup}
     `;
 
@@ -1726,6 +1754,38 @@ function showRegularOutput() {
     if (copyBtn) {
         copyBtn.addEventListener('click', copyToClipboard);
     }
+
+    // Add tab switching for preview/HTML
+    const tabs = elements.outputCard.querySelectorAll('.output-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            // Prevent clicking disabled tabs
+            if (tab.disabled) {
+                return;
+            }
+
+            const tabName = tab.dataset.tab;
+
+            // Deactivate all tabs and content
+            elements.outputCard.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+            elements.outputCard.querySelectorAll('.output-content').forEach(content => content.classList.remove('active'));
+
+            // Activate clicked tab and corresponding content
+            tab.classList.add('active');
+            const contentId = tabName === 'preview' ? 'previewContent' : 'htmlContent';
+            const contentElement = document.getElementById(contentId);
+            if (contentElement) {
+                contentElement.classList.add('active');
+            }
+
+            // If preview tab is clicked, update the preview
+            if (tabName === 'preview') {
+                updateEmailPreview();
+            }
+        });
+    });
 
     // Add enhanced feature handlers if applicable
     if (hasEnhancedFeatures) {
@@ -5422,37 +5482,53 @@ These files are safe to open with Microsoft Outlook on Windows and Mac.
 // =====================================
 
 function initializeOutputTabs() {
-    const tabs = document.querySelectorAll('.output-tab');
-    const contentAreas = document.querySelectorAll('.output-content');
+    // Wait for DOM to be ready
+    const checkAndInitTabs = () => {
+        const tabs = document.querySelectorAll('.output-tab');
+        if (tabs.length === 0) {
+            // Tabs not yet in DOM, retry
+            setTimeout(checkAndInitTabs, 100);
+            return;
+        }
 
-    tabs.forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            // Prevent clicking disabled tabs
-            if (tab.disabled) {
+        const contentAreas = document.querySelectorAll('.output-content');
+
+        tabs.forEach(tab => {
+            // Remove any existing listeners (in case of re-initialization)
+            const newTab = tab.cloneNode(true);
+            tab.parentNode.replaceChild(newTab, tab);
+
+            newTab.addEventListener('click', (e) => {
                 e.preventDefault();
-                return;
-            }
 
-            const tabName = tab.dataset.tab;
+                // Prevent clicking disabled tabs
+                if (newTab.disabled) {
+                    return;
+                }
 
-            // Deactivate all tabs and content
-            tabs.forEach(t => t.classList.remove('active'));
-            contentAreas.forEach(content => content.classList.remove('active'));
+                const tabName = newTab.dataset.tab;
 
-            // Activate clicked tab and corresponding content
-            tab.classList.add('active');
-            const contentId = tabName === 'preview' ? 'previewContent' : 'htmlContent';
-            const contentElement = document.getElementById(contentId);
-            if (contentElement) {
-                contentElement.classList.add('active');
-            }
+                // Deactivate all tabs and content
+                document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.output-content').forEach(content => content.classList.remove('active'));
 
-            // If preview tab is clicked, update the preview
-            if (tabName === 'preview') {
-                updateEmailPreview();
-            }
+                // Activate clicked tab and corresponding content
+                newTab.classList.add('active');
+                const contentId = tabName === 'preview' ? 'previewContent' : 'htmlContent';
+                const contentElement = document.getElementById(contentId);
+                if (contentElement) {
+                    contentElement.classList.add('active');
+                }
+
+                // If preview tab is clicked, update the preview
+                if (tabName === 'preview') {
+                    updateEmailPreview();
+                }
+            });
         });
-    });
+    };
+
+    checkAndInitTabs();
 }
 
 function updateEmailPreview() {
