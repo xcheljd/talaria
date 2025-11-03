@@ -3395,10 +3395,10 @@ function generatePromotionEmailHTML(data) {
             storeHours = userProfile.storeHours;
         }
 
-        // Build Google Maps link with priority: coordinates > address
-        if (userProfile.storeMapCoords && userProfile.storeMapCoords.trim()) {
-            // Priority 1: Use coordinates if available
-            storeMapLink = `https://www.google.com/maps?q=${encodeURIComponent(userProfile.storeMapCoords)}`;
+        // Build Google Maps link with priority: Plus Code > address
+        if (userProfile.storePlusCode && userProfile.storePlusCode.trim()) {
+            // Priority 1: Use Plus Code if available
+            storeMapLink = `https://www.google.com/maps?q=${encodeURIComponent(userProfile.storePlusCode)}`;
         } else if (userProfile.storeAddress && userProfile.storeAddress.trim()) {
             // Priority 2: Use address text for search if no coordinates
             const addressForSearch = userProfile.storeAddress.replace(/<br>/g, ' ').replace(/\n/g, ' ');
