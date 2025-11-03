@@ -3769,6 +3769,7 @@ function selectTemplate(key) {
 
         elements.outputArea.value = '';
         elements.clearBtn.disabled = false;
+        elements.generateBtn.disabled = false;  // Enable Generate button when template is selected
     } catch (error) {
         console.error('Error selecting template:', error);
         showToast('Error loading template');
@@ -3989,9 +3990,13 @@ function generateMessage() {
         setTimeout(() => {
             updateEmailPreview();
         }, 0);
+
+        // Enable Copy button since there's now content
+        elements.copyBtn.disabled = false;
     } catch (error) {
         console.error('Error generating message:', error);
         elements.outputArea.value = '';
+        elements.copyBtn.disabled = true;  // Disable Copy button on error
         showToast('⚠ ' + error.message);
     }
 }
@@ -4072,6 +4077,9 @@ async function clearAll() {
 
         // Clear output area
         elements.outputArea.value = '';
+
+        // Disable Copy button since there's no content
+        elements.copyBtn.disabled = true;
 
         // Scroll to top of page
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4346,6 +4354,11 @@ async function init() {
                 selectTemplate(e.target.value);
             }
         });
+
+        // Set initial button states
+        elements.generateBtn.disabled = true;
+        elements.clearBtn.disabled = true;
+        elements.copyBtn.disabled = true;
 
         elements.generateBtn.addEventListener('click', generateMessage);
         elements.clearBtn.addEventListener('click', clearAll);
