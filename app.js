@@ -5474,21 +5474,22 @@ function updateEmailPreview() {
     // Look for common HTML tags like <p>, <div>, <ul>, <li>, <strong>, <br>, etc.
     const isHtml = /<\s*(p|div|ul|li|ol|strong|b|em|i|a|table|tr|td|span|br|hr|h[1-6])[\s>]/i.test(content);
 
-    // Show/hide preview tab based on content type
+    // Always show both tabs, but disable preview if not HTML
+    const htmlTab = document.querySelector('.output-tab[data-tab="html"]');
+
     if (previewTab) {
         if (isHtml) {
-            previewTab.style.display = 'flex';
+            // Enable preview for HTML content
             previewTab.disabled = false;
         } else {
-            previewTab.style.display = 'none';
-            // If preview tab is hidden and it's active, switch to HTML tab
+            // Disable preview for non-HTML content and switch to HTML tab if needed
+            previewTab.disabled = true;
             if (previewTab.classList.contains('active')) {
                 previewTab.classList.remove('active');
-                document.querySelector('.output-tab[data-tab="html"]').classList.add('active');
+                if (htmlTab) htmlTab.classList.add('active');
                 previewContent.classList.remove('active');
                 htmlContent.classList.add('active');
             }
-            previewTab.disabled = true;
         }
     }
 
@@ -5506,11 +5507,16 @@ function wrapHtmlForEmailPreview(htmlContent) {
     let subject = 'Email Preview';
     let bodyContent = htmlContent;
 
-    // First try to extract from original message with Subject line
+    // First try to extract from original message with Subject line (stored when message is generated)
     if (window.originalMessageContent) {
         const subjectMatch = window.originalMessageContent.match(/^Subject:\s*(.+)/m);
         if (subjectMatch) {
             subject = subjectMatch[1];
+            // Use the body from original message (everything after Subject line)
+            bodyContent = window.originalMessageContent.replace(/^Subject:.+\n/m, '').trim();
+        } else {
+            // Original message exists but no subject
+            bodyContent = window.originalMessageContent;
         }
     } else {
         // Fallback: try to extract from the provided content
