@@ -442,18 +442,49 @@
             </div>
 
             <form class="start-form" id="setupForm">
-                <div class="form-group">
-                    <label class="form-label">Your Name *</label>
-                    <div class="input-wrapper">
-                        <input
-                            type="text"
-                            class="form-input"
-                            id="employeeName"
-                            placeholder="e.g., John Smith"
-                            required
-                        >
-                    </div>
-                </div>
+                 <div class="form-group">
+                     <label class="form-label">Your Name *</label>
+                     <div class="input-wrapper">
+                         <input
+                             type="text"
+                             class="form-input"
+                             id="employeeName"
+                             placeholder="e.g., John Smith"
+                             required
+                         >
+                     </div>
+                 </div>
+
+                 <div class="form-group">
+                     <label class="form-label">Job Title *</label>
+                     <div class="input-wrapper">
+                         <select class="form-input" id="jobTitle" required>
+                             <option value="">Select your job title...</option>
+                             <option value="Sales Associate">Sales Associate</option>
+                             <option value="Sales Associate/Keyholder">Sales Associate/Keyholder</option>
+                             <option value="Assistant Store Manager">Assistant Store Manager</option>
+                             <option value="Associate Store Manager">Associate Store Manager</option>
+                             <option value="Store Manager">Store Manager</option>
+                             <option value="Area Manager">Area Manager</option>
+                             <option value="Regional Manager">Regional Manager</option>
+                             <option value="District Manager">District Manager</option>
+                         </select>
+                     </div>
+                 </div>
+
+                 <div class="form-group" id="companyEmailGroup" style="display: none;">
+                     <label class="form-label">Company Email *</label>
+                     <div class="input-wrapper">
+                         <input
+                             type="email"
+                             class="form-input"
+                             id="companyEmail"
+                             placeholder="your.name@citizenwatchgroup.com"
+                         >
+                     </div>
+                     <div class="field-help">Required for management positions</div>
+                     <div class="field-error" id="companyEmailError"></div>
+                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Store Name *</label>
@@ -726,6 +757,9 @@
         const toast = document.getElementById('toast');
         
         // Field elements
+        const jobTitleInput = document.getElementById('jobTitle');
+        const companyEmailInput = document.getElementById('companyEmail');
+        const companyEmailGroup = document.getElementById('companyEmailGroup');
         const storePhoneInput = document.getElementById('storePhone');
         const storeNameInput = document.getElementById('storeName');
         const storeLocationInput = document.getElementById('storeLocation');
@@ -734,6 +768,35 @@
         const storePlusCodeInput = document.getElementById('storePlusCode');
         const storeHoursInput = document.getElementById('storeHours');
         const storeDirectionsInput = document.getElementById('storeDirections');
+
+        // Helper function to check if job title requires company email
+        function requiresCompanyEmail(jobTitle) {
+            const managementTitles = [
+                'Assistant Store Manager',
+                'Associate Store Manager',
+                'Store Manager',
+                'Area Manager',
+                'Regional Manager',
+                'District Manager'
+            ];
+            return managementTitles.includes(jobTitle);
+        }
+
+        // Toggle company email field visibility
+        function toggleCompanyEmailField() {
+            const jobTitle = jobTitleInput.value;
+            const requiresEmail = requiresCompanyEmail(jobTitle);
+
+            if (requiresEmail) {
+                companyEmailGroup.style.display = 'block';
+                companyEmailInput.required = true;
+            } else {
+                companyEmailGroup.style.display = 'none';
+                companyEmailInput.required = false;
+                companyEmailInput.value = '';
+                hideError('companyEmailError');
+            }
+        }
 
         // Validation functions
         function validatePhone(phone) {
@@ -785,17 +848,52 @@
             if (!plusCode || plusCode.trim() === '') {
                 return { isValid: true, error: null }; // Optional field
             }
-            
+
             // Plus Code format: 2-4 characters + "+" + 2-3 characters (e.g., 849VCWC8+R9)
             const plusCodeRegex = /^[A-Z0-9]{2,4}\+[A-Z0-9]{2,3}$/i;
             const fullPlusCodeRegex = /^[A-Z0-9]{8}\+[A-Z0-9]{3}$/i; // Full format like 849VCWC8+R9
-            
+
             const trimmed = plusCode.trim().toUpperCase();
-            
+
             return {
                 isValid: plusCodeRegex.test(trimmed),
                 formatted: trimmed,
                 error: !plusCodeRegex.test(trimmed) ? 'Invalid Plus Code format (e.g., 849VCWC8+R9)' : null
+            };
+        }
+
+        function validateCompanyEmail(email, jobTitle) {
+            if (!requiresCompanyEmail(jobTitle)) {
+                return { isValid: true, error: null }; // Not required
+            }
+
+            if (!email || email.trim() === '') {
+                return {
+                    isValid: false,
+                    error: 'Company email is required for management positions'
+                };
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const citizenRegex = /^[^\s@]+@citizenwatchgroup\.com$/i;
+
+            if (!emailRegex.test(email)) {
+                return {
+                    isValid: false,
+                    error: 'Invalid email format'
+                };
+            }
+
+            if (!citizenRegex.test(email)) {
+                return {
+                    isValid: false,
+                    error: 'Company email must be @citizenwatchgroup.com'
+                };
+            }
+
+            return {
+                isValid: true,
+                error: null
             };
         }
 
@@ -819,6 +917,9 @@
                 inputElement.classList.remove('input-error');
             }
         }
+
+        // Job title change handler
+        jobTitleInput.addEventListener('change', toggleCompanyEmailField);
 
         // Real-time validation
         storePhoneInput.addEventListener('blur', function() {
@@ -859,6 +960,15 @@
             }
         });
 
+        companyEmailInput.addEventListener('blur', function() {
+            const validation = validateCompanyEmail(this.value, jobTitleInput.value);
+            if (validation.isValid) {
+                hideError('companyEmailError');
+            } else {
+                showError('companyEmailError', validation.error);
+            }
+        });
+
         // Export Profile Function
         function exportProfile() {
             const exportBtn = document.getElementById('exportProfileBtn');
@@ -871,26 +981,28 @@
                 const profileData = {
                     version: '1.0',
                     exportDate: new Date().toISOString(),
-                    profile: {
-                        employeeName: document.getElementById('employeeName').value.trim(),
-                        storeName: storeNameInput.value.trim(),
-                        storeLocation: storeLocationInput.value.trim(),
-                        storePhone: storePhoneInput.value.trim(),
-                        storeEmail: storeEmailInput.value.trim(),
-                        storeAddress: storeAddressInput.value.trim(),
-                        storePlusCode: storePlusCodeInput.value.trim(),
-                        storeHours: storeHoursInput.value.trim(),
-                        storeDirections: storeDirectionsInput.value.trim(),
-                        // Theme preferences
-                        lightPalette: localStorage.getItem('lightPalette') || 'pastel',
-                        darkPalette: localStorage.getItem('darkPalette') || 'midnight-blue',
-                        currentMode: localStorage.getItem('currentMode') || 'light'
-                    }
+                     profile: {
+                         employeeName: document.getElementById('employeeName').value.trim(),
+                         jobTitle: jobTitleInput.value.trim(),
+                         companyEmail: companyEmailInput.value.trim(),
+                         storeName: storeNameInput.value.trim(),
+                         storeLocation: storeLocationInput.value.trim(),
+                         storePhone: storePhoneInput.value.trim(),
+                         storeEmail: storeEmailInput.value.trim(),
+                         storeAddress: storeAddressInput.value.trim(),
+                         storePlusCode: storePlusCodeInput.value.trim(),
+                         storeHours: storeHoursInput.value.trim(),
+                         storeDirections: storeDirectionsInput.value.trim(),
+                         // Theme preferences
+                         lightPalette: localStorage.getItem('lightPalette') || 'pastel',
+                         darkPalette: localStorage.getItem('darkPalette') || 'midnight-blue',
+                         currentMode: localStorage.getItem('currentMode') || 'light'
+                     }
                 };
 
-                // Validate that required fields are not empty
-                const requiredFields = ['employeeName', 'storeName', 'storeLocation', 'storePhone', 'storeEmail', 'storeHours'];
-                const missingFields = requiredFields.filter(field => !profileData.profile[field]);
+                 // Validate that required fields are not empty
+                 const requiredFields = ['employeeName', 'jobTitle', 'storeName', 'storeLocation', 'storePhone', 'storeEmail', 'storeHours'];
+                 const missingFields = requiredFields.filter(field => !profileData.profile[field]);
                 
                 if (missingFields.length > 0) {
                     exportBtn.classList.remove('loading');
@@ -955,9 +1067,9 @@
 
                             const profile = importedData.profile;
                             
-                            // Validate required fields exist
-                            const requiredFields = ['employeeName', 'storeName', 'storeLocation', 'storePhone', 'storeEmail', 'storeHours'];
-                            const missingFields = requiredFields.filter(field => !profile[field]);
+                             // Validate required fields exist
+                             const requiredFields = ['employeeName', 'jobTitle', 'storeName', 'storeLocation', 'storePhone', 'storeEmail', 'storeHours'];
+                             const missingFields = requiredFields.filter(field => !profile[field]);
                             
                             if (missingFields.length > 0) {
                                 throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
@@ -981,16 +1093,21 @@
                                 throw new Error('Invalid store hours format');
                             }
 
-                            // Fill form fields with imported data
-                            document.getElementById('employeeName').value = profile.employeeName || '';
-                            storeNameInput.value = profile.storeName || '';
-                            storeLocationInput.value = profile.storeLocation || '';
-                            storePhoneInput.value = phoneValidation.formatted;
-                            storeEmailInput.value = profile.storeEmail || '';
-                            storeAddressInput.value = profile.storeAddress || '';
-                            storePlusCodeInput.value = profile.storePlusCode || '';
-                            storeHoursInput.value = profile.storeHours || '';
-                            storeDirectionsInput.value = profile.storeDirections || '';
+                             // Fill form fields with imported data
+                             document.getElementById('employeeName').value = profile.employeeName || '';
+                             jobTitleInput.value = profile.jobTitle || '';
+                             companyEmailInput.value = profile.companyEmail || '';
+                             storeNameInput.value = profile.storeName || '';
+                             storeLocationInput.value = profile.storeLocation || '';
+                             storePhoneInput.value = phoneValidation.formatted;
+                             storeEmailInput.value = profile.storeEmail || '';
+                             storeAddressInput.value = profile.storeAddress || '';
+                             storePlusCodeInput.value = profile.storePlusCode || '';
+                             storeHoursInput.value = profile.storeHours || '';
+                             storeDirectionsInput.value = profile.storeDirections || '';
+
+                             // Update company email field visibility after setting job title
+                             toggleCompanyEmailField();
 
                             // Restore theme preferences
                             if (profile.lightPalette) {
@@ -1048,17 +1165,22 @@
             const userData = localStorage.getItem('userProfile');
             if (userData) {
                 try {
-                    const data = JSON.parse(userData);
-                    if (data.employeeName) document.getElementById('employeeName').value = data.employeeName;
-                    if (data.storeName) storeNameInput.value = data.storeName;
-                    if (data.storeLocation) storeLocationInput.value = data.storeLocation;
-                    if (data.storePhone) storePhoneInput.value = data.storePhone;
-                    if (data.storeEmail) storeEmailInput.value = data.storeEmail;
-                    if (data.storeAddress) storeAddressInput.value = data.storeAddress;
-                    if (data.storePlusCode) storePlusCodeInput.value = data.storePlusCode;
-                    if (data.storeHours) storeHoursInput.value = data.storeHours;
-                    if (data.storeDirections) storeDirectionsInput.value = data.storeDirections;
-                } catch (e) {
+                     const data = JSON.parse(userData);
+                     if (data.employeeName) document.getElementById('employeeName').value = data.employeeName;
+                     if (data.jobTitle) jobTitleInput.value = data.jobTitle;
+                     if (data.companyEmail) companyEmailInput.value = data.companyEmail;
+                     if (data.storeName) storeNameInput.value = data.storeName;
+                     if (data.storeLocation) storeLocationInput.value = data.storeLocation;
+                     if (data.storePhone) storePhoneInput.value = data.storePhone;
+                     if (data.storeEmail) storeEmailInput.value = data.storeEmail;
+                     if (data.storeAddress) storeAddressInput.value = data.storeAddress;
+                     if (data.storePlusCode) storePlusCodeInput.value = data.storePlusCode;
+                     if (data.storeHours) storeHoursInput.value = data.storeHours;
+                     if (data.storeDirections) storeDirectionsInput.value = data.storeDirections;
+
+                     // Update company email field visibility after loading data
+                     toggleCompanyEmailField();
+                 } catch (e) {
                     console.error('Error loading user data:', e);
                 }
             }
@@ -1101,12 +1223,15 @@
             // Clear previous errors
             hideError('phoneError');
             hideError('emailError');
+            hideError('companyEmailError');
             hideError('hoursError');
             hideError('plusCodeError');
 
             // Get form data
             const userData = {
                 employeeName: document.getElementById('employeeName').value.trim(),
+                jobTitle: jobTitleInput.value.trim(),
+                companyEmail: companyEmailInput.value.trim(),
                 storeName: storeNameInput.value.trim(),
                 storeLocation: storeLocationInput.value.trim(),
                 storePhone: storePhoneInput.value.trim(),
@@ -1120,6 +1245,11 @@
             // Validate required fields
             if (!userData.employeeName) {
                 showToast('Please enter your name');
+                return;
+            }
+
+            if (!userData.jobTitle) {
+                showToast('Please select your job title');
                 return;
             }
 
@@ -1146,6 +1276,14 @@
             if (!emailValidation.isValid) {
                 showError('emailError', emailValidation.error);
                 showToast('Please correct the email address');
+                return;
+            }
+
+            // Validate company email (if required)
+            const companyEmailValidation = validateCompanyEmail(userData.companyEmail, userData.jobTitle);
+            if (!companyEmailValidation.isValid) {
+                showError('companyEmailError', companyEmailValidation.error);
+                showToast('Please correct the company email');
                 return;
             }
 

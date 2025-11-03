@@ -322,23 +322,60 @@ function getFullStoreLocation() {
     return `Citizen Company Store at ${getStoreLocation()}`;
 }
 
-function getEmployeeSignature() {
+function getEmployeeSignature(format = 'text') {
     const name = userProfile && userProfile.employeeName ? userProfile.employeeName : 'Employee Name';
     const title = userProfile && userProfile.jobTitle ? userProfile.jobTitle : 'Sales Associate';
+    const companyEmail = userProfile && userProfile.companyEmail ? userProfile.companyEmail : '';
     const storeName = userProfile && userProfile.storeName ? userProfile.storeName : 'Citizen Company Store';
     const storeLocation = userProfile && userProfile.storeLocation ? userProfile.storeLocation : 'Orlando Premium Outlets';
     const address = userProfile && userProfile.storeAddress ? userProfile.storeAddress : '';
     const phone = userProfile && userProfile.storePhone ? userProfile.storePhone : '555-123-4567';
-    
-    return `${name} │ ${title}
+
+    if (format === 'html') {
+        // HTML version with Outlook-compatible styling (matching example.eml format)
+        // Extract email prefix and domain for proper formatting
+        let emailPrefix = '';
+        let emailDomain = '';
+        if (companyEmail) {
+            const emailParts = companyEmail.split('@');
+            emailPrefix = emailParts[0];
+            emailDomain = emailParts.length > 1 ? '@' + emailParts[1] : '';
+        }
+
+        const emailLine = companyEmail ? `<p style="text-align: left; text-indent: 0px; margin: 0in;"><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: black;">Email: &nbsp;</span><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: blue;"><u>${emailPrefix}<a href="mailto:${companyEmail}" title="mailto:${companyEmail}" style="margin-top: 0px; margin-bottom: 0px;">${emailDomain}</a></u></span><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: black;">&nbsp;&nbsp;</span></p>` : '';
+
+        return `<div id="ms-outlook-mobile-signature">
+<p dir="ltr" style="text-align: left; text-indent: 0px; background-color: rgb(255, 255, 255); margin: 0in;">
+<span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 9pt; color: black;"><b>${name}</b> | ${title}&nbsp;</span></p>
+<p dir="ltr" style="text-align: left; text-indent: 0px; background-color: rgb(255, 255, 255); margin: 0in;">
+<span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: black;"><b><u>_____________________________________________________________________________________________________________</u></b></span></p>
+<p style="text-align: left; text-indent: 0px; margin: 0in;"><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: rgb(47, 47, 47);"><b>Citizen Watch America</b></span></p>
+<p style="text-align: left; text-indent: 0px; margin: 0in;"><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: rgb(47, 47, 47);"><b>Citizen Company Store - ${storeName}</b></span></p>
+${address ? address.split('\n').map(line => `<p style="text-align: left; text-indent: 0px; margin: 0in;"><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: black;">${line}</span></p>`).join('') : ''}
+<p style="text-align: left; text-indent: 0px; margin: 0in;"><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: black;">Tel/SMS: ${phone}</span></p>
+<p style="text-align: left; text-indent: 0px; margin: 0in;"><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: rgb(0, 0, 0);">&nbsp;</span></p>
+${emailLine}
+<p style="text-align: left; text-indent: 0px; margin: 0in;"><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: blue;"><u><a href="https://us.alpinawatches.com/" title="https://us.alpinawatches.com/" style="margin-top: 0px; margin-bottom: 0px;">Alpina</a></u></span><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: rgb(0, 0, 0);">&nbsp;|</span><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: blue;"><u><a href="https://www.bulova.com/" title="https://www.bulova.com/" style="margin-top: 0px; margin-bottom: 0px;">Bulova</a></u></span><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: rgb(0, 0, 0);">&nbsp;|</span><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: blue;"><u><a href="https://www.citizenwatch.com/" title="https://www.citizenwatch.com/" style="margin-top: 0px; margin-bottom: 0px;">Citizen</a></u></span><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: rgb(0, 0, 0);">&nbsp;|</span><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: blue;"><u><a href="https://us.frederiqueconstant.com/" title="https://us.frederiqueconstant.com/" style="margin-top: 0px; margin-bottom: 0px;">Frederique Constant</a></u></span></p>
+<p style="text-align: left; text-indent: 0px; margin: 0in;"><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: rgb(0, 0, 0);">&nbsp;</span></p>
+<p style="text-align: left; text-indent: 0px; margin: 0in;"><span style="font-family: &quot;Century Gothic&quot;, sans-serif; font-size: 8pt; color: rgb(12, 136, 42);"><b>Please consider the environment before printing this e-mail</b></span></p>
+</div>`;
+    } else {
+        // Plain text version for non-HTML contexts
+        const emailLine = companyEmail ? `Email: ${companyEmail}\n` : '';
+
+        return `${name} | ${title}
 ______________________________________________________________________
-Citizen Watch America - ${storeName}
+Citizen Watch America
+
+Citizen Company Store - ${storeName}
 ${address ? address.replace(/\n/g, '\n') : ''}
 Tel/SMS: ${phone}
 
+${emailLine}
 Alpina | Bulova | Citizen | Frederique Constant
 
 Please consider the environment before printing this e-mail`;
+    }
 }
 
 // Template metadata with help text
@@ -455,15 +492,15 @@ const templates = {
             const safe = sanitizeTemplateData(data);
             return `Subject: Welcome to Citizen Company Store - Your VIP Access
 
-Hi ${safe.customerName},
+<p>Hi ${safe.customerName},</p>
 
-Thank you for visiting our Citizen Company Store outlet location! It was a pleasure helping you explore our offerings today.
+<p>Thank you for visiting our Citizen Company Store outlet location! It was a pleasure helping you explore our offerings today.</p>
 
-I've added you to our VIP email list for weekly promotional updates featuring exclusive outlet pricing on our timepieces.
+<p>I've added you to our VIP email list for weekly promotional updates featuring exclusive outlet pricing on our timepieces.</p>
 
-Please don't hesitate to reach out by replying to this email or call the store at ${getStorePhone()}. I would be happy to check availability on any models you're considering.
+<p>Please don't hesitate to reach out by replying to this email or call the store at ${getStorePhone()}. I would be happy to check availability on any models you're considering.</p>
 
-${getEmployeeSignature()}`;
+${getEmployeeSignature('html')}`;
         }
     },
     'new-model-arrival': {
@@ -475,27 +512,29 @@ ${getEmployeeSignature()}`;
         fields: ['customerName', 'brand', 'modelName', 'modelNumber', 'keyFeature1', 'keyFeature2', 'keyFeature3', 'price', 'employeeName'],
         generate: (data) => {
             const safe = sanitizeTemplateData(data);
-            let features = `• ${safe.keyFeature1}`;
-            if (safe.keyFeature2) features += `\n• ${safe.keyFeature2}`;
-            if (safe.keyFeature3) features += `\n• ${safe.keyFeature3}`;
+            let featuresList = `<li>${safe.keyFeature1}</li>`;
+            if (safe.keyFeature2) featuresList += `<li>${safe.keyFeature2}</li>`;
+            if (safe.keyFeature3) featuresList += `<li>${safe.keyFeature3}</li>`;
             return `Subject: Great News! ${safe.modelName} Now Available
 
-Hi ${safe.customerName},
+<p>Hi ${safe.customerName},</p>
 
-Great news! The ${safe.brand} ${safe.modelName} (${safe.modelNumber}) you were interested in has arrived at our store.
+<p>Great news! The ${safe.brand} ${safe.modelName} (${safe.modelNumber}) you were interested in has arrived at our store.</p>
 
-Key Features:
-${features}
+<p><strong>Key Features:</strong></p>
+<ul style="margin-left: 20px;">
+${featuresList}
+</ul>
 
-Current price: ${safe.price}
+<p><strong>Current price:</strong> ${safe.price}</p>
 
-I'd be happy to set up an appointment to show you all the features of this watch and let you try it on. This model tends to generate a lot of interest, so I wanted to reach out to you first.
+<p>I'd be happy to set up an appointment to show you all the features of this watch and let you try it on. This model tends to generate a lot of interest, so I wanted to reach out to you first.</p>
 
-Would you like to schedule a time to see it in person? Please reply to this email or call the store at ${getStorePhone()}.
+<p>Would you like to schedule a time to see it in person? Please reply to this email or call the store at ${getStorePhone()}.</p>
 
-Looking forward to hearing from you!
+<p>Looking forward to hearing from you!</p>
 
-${getEmployeeSignature()}`;
+${getEmployeeSignature('html')}`;
         }
     },
     'limited-edition': {
@@ -509,22 +548,22 @@ ${getEmployeeSignature()}`;
             const safe = sanitizeTemplateData(data);
             return `Subject: Exclusive: Limited Edition ${safe.modelName} Available
 
-Hi ${safe.customerName},
+<p>Hi ${safe.customerName},</p>
 
-I wanted to reach out to you personally because we just received a ${safe.brand} ${safe.modelName} (${safe.modelNumber}) - ${safe.limitedDetails}.
+<p>I wanted to reach out to you personally because we just received a ${safe.brand} ${safe.modelName} (${safe.modelNumber}) - ${safe.limitedDetails}.</p>
 
-As someone who appreciates fine timepieces and unique additions to your collection, I thought you'd want to know about this immediately.
+<p>As someone who appreciates fine timepieces and unique additions to your collection, I thought you'd want to know about this immediately.</p>
 
-Price: ${safe.price}
-Availability: Only ${safe.quantityAvailable} available
+<p><strong>Price:</strong> ${safe.price}<br>
+<strong>Availability:</strong> Only ${safe.quantityAvailable} available</p>
 
-This is truly a special piece that won't last long. I'd love to show it to you in person and discuss how it could complement your collection.
+<p>This is truly a special piece that won't last long. I'd love to show it to you in person and discuss how it could complement your collection.</p>
 
-Can you stop by this week, or would you like me to hold one for you? Please reply to this email or call the store at ${getStorePhone()}.
+<p>Can you stop by this week, or would you like me to hold one for you? Please reply to this email or call the store at ${getStorePhone()}.</p>
 
-${getEmployeeSignature()}
+${getEmployeeSignature('html')}
 
-P.S. - Given the limited availability, I'm only reaching out to our most valued collectors. Let me know if you're interested!`;
+<p style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 15px;"><em>P.S. - Given the limited availability, I'm only reaching out to our most valued collectors. Let me know if you're interested!</em></p>`;
         }
     },
     'vip-reconnection': {
@@ -538,25 +577,27 @@ P.S. - Given the limited availability, I'm only reaching out to our most valued 
             const safe = sanitizeTemplateData(data);
             return `Subject: Your Store Has Evolved - We'd Love to Show You What's New
 
-Hi ${safe.clientName},
+<p>Hi ${safe.clientName},</p>
 
-I was reviewing our VIP client records and noticed it's been a while since your last visit. I wanted to personally reach out because our store has undergone some exciting changes that I think you'll appreciate.
+<p>I was reviewing our VIP client records and noticed it's been a while since your last visit. I wanted to personally reach out because our store has undergone some exciting changes that I think you'll appreciate.</p>
 
-We're now a hybrid store - combining the outlet values you love with access to current season merchandise. This means alongside our clearance deals, you can now find the latest releases and expanded brand offerings.
+<p>We're now a hybrid store - combining the outlet values you love with access to current season merchandise. This means alongside our clearance deals, you can now find the latest releases and expanded brand offerings.</p>
 
-To welcome you back, I'd like to offer you a complimentary watch service visit. Bring in any of your timepieces and I'll:
-- Set and synchronize all your watches
-- Perform atomic time synchronization resets
-- Help with any complicated functions you're having trouble with
-- Show you our new brand offerings and store layout
+<p>To welcome you back, I'd like to offer you a complimentary watch service visit. Bring in any of your timepieces and I'll:</p>
+<ul style="margin-left: 20px;">
+<li>Set and synchronize all your watches</li>
+<li>Perform atomic time synchronization resets</li>
+<li>Help with any complicated functions you're having trouble with</li>
+<li>Show you our new brand offerings and store layout</li>
+</ul>
 
-No purchase necessary - I just want to reconnect and ensure your watches are working perfectly.
+<p>No purchase necessary - I just want to reconnect and ensure your watches are working perfectly.</p>
 
-Would you have time this week or next to stop by? I'd love to show you how we've evolved while maintaining the exceptional values and service you remember.
+<p>Would you have time this week or next to stop by? I'd love to show you how we've evolved while maintaining the exceptional values and service you remember.</p>
 
-${getEmployeeSignature()}
+${getEmployeeSignature('html')}
 
-P.S. - We now carry everything from current season pieces to discontinued treasures, giving you more options than ever before.`;
+<p style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 15px;"><em>P.S. - We now carry everything from current season pieces to discontinued treasures, giving you more options than ever before.</em></p>`;
         }
     },
     'phone-confirmation': {
@@ -570,31 +611,35 @@ P.S. - We now carry everything from current season pieces to discontinued treasu
             const safe = sanitizeTemplateData(data);
             let trackingInfo = '';
             if (safe.trackingNumber) {
-                trackingInfo = `\n\nTracking Number: ${safe.trackingNumber}`;
+                trackingInfo = `<p><strong>Tracking Number:</strong> ${safe.trackingNumber}</p>`;
             }
             return `Subject: Order Confirmation - ${safe.modelName}
 
-Hi ${safe.customerName},
+<p>Hi ${safe.customerName},</p>
 
-Thank you for your phone order! This email confirms the following:
+<p>Thank you for your phone order! This email confirms the following:</p>
 
-Order Details:
-Item: ${safe.brand} ${safe.modelName}
-Model #: ${safe.modelNumber}
-Price: ${safe.price} (includes ${safe.discount}% outlet discount)
-Shipping: $20 flat-rate ground shipping
-Total: ${safe.totalAmount}
+<p><strong>Order Details:</strong></p>
+<ul style="margin-left: 20px; list-style: none;">
+<li><strong>Item:</strong> ${safe.brand} ${safe.modelName}</li>
+<li><strong>Model #:</strong> ${safe.modelNumber}</li>
+<li><strong>Price:</strong> ${safe.price} (includes ${safe.discount}% outlet discount)</li>
+<li><strong>Shipping:</strong> $20 flat-rate ground shipping</li>
+<li><strong>Total:</strong> ${safe.totalAmount}</li>
+</ul>
 
-Shipping Information:
-${safe.customerAddress}
+<p><strong>Shipping Information:</strong><br>
+${safe.customerAddress}</p>
 
-Your order will ship within 1-2 business days via ${safe.carrier}. You'll receive tracking information at this email address once shipped.${trackingInfo}
+<p>Your order will ship within 1-2 business days via ${safe.carrier}. You'll receive tracking information at this email address once shipped.</p>
 
-If you have any questions, please don't hesitate to contact us at ${getStorePhone()}.
+${trackingInfo}
 
-Thank you for shopping with ${getStoreName()}!
+<p>If you have any questions, please don't hesitate to contact us at ${getStorePhone()}.</p>
 
-${getEmployeeSignature()}`;
+<p>Thank you for shopping with ${getStoreName()}!</p>
+
+${getEmployeeSignature('html')}`;
         }
     },
     'phone-shipped': {
@@ -608,26 +653,26 @@ ${getEmployeeSignature()}`;
             const safe = sanitizeTemplateData(data);
             return `Subject: Your Watch Order - Tracking Information
 
-Hi ${safe.customerName},
+<p>Hi ${safe.customerName},</p>
 
-Thank you for your recent purchase from ${getStoreName()}! We're pleased to confirm that your order has been shipped and is on its way to you.
+<p>Thank you for your recent purchase from ${getStoreName()}! We're pleased to confirm that your order has been shipped and is on its way to you.</p>
 
-Tracking Information:
-UPS Tracking Number: ${safe.trackingNumber}
+<p><strong>Tracking Information:</strong><br>
+UPS Tracking Number: ${safe.trackingNumber}</p>
 
-You can track your shipment at the link above or visit ups.com and enter your tracking number.
+<p>You can track your shipment at the link above or visit ups.com and enter your tracking number.</p>
 
-Your package requires an adult signature upon delivery to ensure safe receipt of your timepiece.
+<p>Your package requires an adult signature upon delivery to ensure safe receipt of your timepiece.</p>
 
-Order Details:
-Watch Model: ${safe.modelNumber} - ${safe.modelName}
-Shipping Address: ${safe.customerAddress}
+<p><strong>Order Details:</strong><br>
+Watch Model: ${safe.modelNumber} - ${safe.modelName}<br>
+Shipping Address: ${safe.customerAddress}</p>
 
-If you have any questions about your order or need any assistance, please don't hesitate to reach out. I'm here to help!
+<p>If you have any questions about your order or need any assistance, please don't hesitate to reach out. I'm here to help!</p>
 
-We hope you enjoy your new ${safe.brand} timepiece!
+<p>We hope you enjoy your new ${safe.brand} timepiece!</p>
 
-${getEmployeeSignature()}`;
+${getEmployeeSignature('html')}`;
         }
     },
     'phone-under-500': {
@@ -656,17 +701,19 @@ ${getEmployeeSignature()}`;
 
             return `Subject: Phone Order Form for ${safe.customerName}
 
-Hi ${safe.managerNameOrStoreName},
+<p>Hi ${safe.managerNameOrStoreName},</p>
 
-Attached is the form for the phone order for ${safe.customerName} (${safe.customerId}).
+<p>Attached is the form for the phone order for ${safe.customerName} (${safe.customerId}).</p>
 
-Ringing under: ${safe.employeeName} (${safe.employeeId})
-Units: ${safe.unitsQuantity}
-Total: ${safe.totalAmount}
+<p><strong>Ringing under:</strong> ${safe.employeeName} (${safe.employeeId})<br>
+<strong>Units:</strong> ${safe.unitsQuantity}<br>
+<strong>Total:</strong> ${safe.totalAmount}</p>
 
-Order Status: ${orderStatus}
+<p><strong>Order Status:</strong> ${orderStatus}</p>
 
-${getEmployeeSignature()}`;
+<p>${closing}</p>
+
+${getEmployeeSignature('html')}`;
         }
     },
     'phone-corporate': {
@@ -680,18 +727,20 @@ ${getEmployeeSignature()}`;
             const safe = sanitizeTemplateData(data);
             return `Subject: Phone Order Approval Request - ${safe.customerName}
 
-Hello,
+<p>Hello,</p>
 
-I am forwarding a request for approval on a phone order for ${safe.employeeName} (${safe.employeeId}).
+<p>I am forwarding a request for approval on a phone order for ${safe.employeeName} (${safe.employeeId}).</p>
 
-There are ${safe.unitsQuantity} units totaling ${safe.totalAmount}. It will be fulfilled at ${safe.fulfillingStore}.
+<p>There are ${safe.unitsQuantity} units totaling ${safe.totalAmount}. It will be fulfilled at ${safe.fulfillingStore}.</p>
 
-Customer: ${safe.customerName} (${safe.customerId})
+<p><strong>Customer:</strong> ${safe.customerName} (${safe.customerId})</p>
 
-I have verified and signed off. Please let us know if you have any questions.
+<p>I have verified and signed off. Please let us know if you have any questions.</p>
 
-Thank You,
-${safe.yourName}`;
+<p>Thank You,<br>
+${safe.yourName}</p>
+
+${getEmployeeSignature('html')}`;
         }
     },
     'inter-store-notification': {
@@ -705,15 +754,17 @@ ${safe.yourName}`;
             const safe = sanitizeTemplateData(data);
             return `Subject: Phone Order Processed and Shipped - ${safe.customerName}
 
-Hi ${safe.recipientStoreName} Team,
+<p>Hi ${safe.recipientStoreName} Team,</p>
 
-The phone order for ${safe.customerName} has been rung and labeled for shipping.
+<p>The phone order for ${safe.customerName} has been rung and labeled for shipping.</p>
 
-UPS Tracking Number: ${safe.trackingNumber}
+<p><strong>UPS Tracking Number:</strong> ${safe.trackingNumber}</p>
 
-The package has been prepared and is ready for UPS pickup.
+<p>The package has been prepared and is ready for UPS pickup.</p>
 
-Thank you,`;
+<p>Thank you,</p>
+
+${getEmployeeSignature('html')}`;
         }
     },
     'text-availability': {
@@ -756,22 +807,24 @@ Thank you,`;
         fields: ['customerName', 'collectionName', 'discount', 'brand', 'model1', 'price1', 'original1', 'model2', 'price2', 'original2', 'endDate', 'employeeName'],
         generate: (data) => {
             const safe = sanitizeTemplateData(data);
-            let modelList = `• ${safe.model1} - Now ${safe.price1} (was ${safe.original1})`;
+            let modelList = `<li>${safe.model1} - <strong>Now ${safe.price1}</strong> (was ${safe.original1})</li>`;
             if (safe.model2 && safe.price2) {
-                modelList += `\n• ${safe.model2} - Now ${safe.price2} (was ${safe.original2})`;
+                modelList += `<li>${safe.model2} - <strong>Now ${safe.price2}</strong> (was ${safe.original2})</li>`;
             }
             return `Subject: ${safe.customerName}, This Week's ${safe.brand} Sale Includes Your Favorites
 
-Hi ${safe.customerName},
+<p>Hi ${safe.customerName},</p>
 
-I remember you were looking at ${safe.collectionName} pieces during your last visit. Good timing - we just started our ${safe.discount}% off promotion on select ${safe.brand} models this week!
+<p>I remember you were looking at ${safe.collectionName} pieces during your last visit. Good timing - we just started our ${safe.discount}% off promotion on select ${safe.brand} models this week!</p>
 
-Specifically available in that collection:
+<p><strong>Specifically available in that collection:</strong></p>
+<ul style="margin-left: 20px;">
 ${modelList}
+</ul>
 
-This promotion runs through ${safe.endDate}. Would you like me to check if we have your size preference in stock?
+<p>This promotion runs through ${safe.endDate}. Would you like me to check if we have your size preference in stock?</p>
 
-${getEmployeeSignature()}`;
+${getEmployeeSignature('html')}`;
         }
     },
     'promotion-email': {
@@ -3930,6 +3983,12 @@ function generateMessage() {
             // Clear original message content for non-enhanced templates
             window.originalMessageContent = null;
         }
+
+        // Always update preview with the new content
+        // This will show/hide the preview tab based on HTML detection
+        setTimeout(() => {
+            updateEmailPreview();
+        }, 0);
     } catch (error) {
         console.error('Error generating message:', error);
         elements.outputArea.value = '';
@@ -4145,8 +4204,23 @@ function openPromotionEmailInClient() {
     }
 }
 
+// Process HTML content to ensure signatures use proper HTML formatting for EML
+function processHTMLForEML(htmlBody) {
+    // Replace plain text signature with HTML signature
+    const plainSignature = getEmployeeSignature('text');
+    const htmlSignature = getEmployeeSignature('html');
+
+    // Escape special regex characters in the plain signature
+    const escapedPlainSignature = plainSignature.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Replace the plain text signature with HTML signature
+    return htmlBody.replace(new RegExp(escapedPlainSignature.replace(/\n/g, '\\s*'), 'g'), htmlSignature);
+}
+
 // Create EML file format with HTML body and PDF attachments
 function createEMLFile(subject, htmlBody, pdfAttachments = [], recipient = '', format = 'eml') {
+    // Process HTML to ensure signatures are properly formatted
+    htmlBody = processHTMLForEML(htmlBody);
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substr(2, 9);
     const boundary = '----=_NextPart_' + timestamp + '_' + randomId;
@@ -4249,6 +4323,8 @@ async function init() {
         initTheme();
         initNavigation();
         initPDFPreviewModal();
+        initializeOutputTabs();
+        initializeOutputUpdates();
 
         cacheElements();
         loadUserProfile();
@@ -4461,11 +4537,11 @@ function renderEditableSubjectLine(container, currentSubject) {
     }
 }
 
-// Universal EML file creation for any email template
+// Universal EML file creation for any email template (matching example.eml format)
 function createGenericEMLFile(subject, body, attachments = [], format = 'eml') {
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substr(2, 9);
-    const boundary = '----=_NextPart_' + timestamp + '_' + randomId;
+    const boundary = `_000_${timestamp}${randomId}@citizenstore.local`;
     const messageId = `<single.${timestamp}.${randomId}@citizenstore.local>`;
     const date = new Date().toUTCString();
 
@@ -4478,49 +4554,123 @@ function createGenericEMLFile(subject, body, attachments = [], format = 'eml') {
     eml += `Subject: ${subject}\r\n`;
     eml += `Date: ${date}\r\n`;
     eml += `Message-ID: ${messageId}\r\n`;
+    eml += `Content-Language: en-US\r\n`;
+    eml += `Content-Type: multipart/alternative; boundary="${boundary}"\r\n`;
     eml += `MIME-Version: 1.0\r\n`;
-    eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
-    eml += `X-Unsent: 1\r\n`; // Mark as unsent/draft
-    eml += `X-Outlook-Message-Flag: \r\n`; // Outlook draft flag
-    eml += `X-Microsoft-Headers: ; name="draft"\r\n`; // Microsoft draft marker
-    eml += `X-Mailer: Microsoft Outlook 16.0\r\n`; // Identify as Outlook-generated
-    eml += `X-Msg-Status: 00000000\r\n`; // Draft message status
-    eml += `X-Outlook-Template: 1\r\n`; // Mark as Outlook template
-    eml += `Message-Class: IPM.Note\r\n`; // Outlook message classification
-    eml += `\r\n`;
-    eml += `This is a multi-part message in MIME format.\r\n`;
+    eml += `X-Mailer: Microsoft Outlook 16.0\r\n`;
+    eml += `X-Unsent: 1\r\n`;
     eml += `\r\n`;
 
-    // Add text body part (for simple email templates)
+    // Add plain text body part
     eml += `--${boundary}\r\n`;
-    eml += `Content-Type: text/plain; charset=utf-8\r\n`;
+    eml += `Content-Type: text/plain; charset="utf-8"\r\n`;
     eml += `Content-Transfer-Encoding: quoted-printable\r\n`;
     eml += `\r\n`;
 
-    // Encode body in quoted-printable format (RFC 2045 compliant)
-    let encodedBody = body.replace(/\r?\n/g, '\r\n'); // Ensure CRLF line endings
+    // Convert body to plain text and encode in quoted-printable
+    let plainBody = body.replace(/<[^>]*>/g, ''); // Strip HTML tags
+    plainBody = plainBody.replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+    plainBody = plainBody.replace(/\r?\n/g, '\r\n'); // Ensure CRLF
 
-    // First encode CRLF sequences to prevent conflicts
-    encodedBody = encodedBody.replace(/\r\n/g, '=0D=0A'); // Encode CRLF sequences
+    // Encode in quoted-printable (soft line breaks at 76 chars)
+    let encodedPlain = '';
+    let lineLength = 0;
+    for (let i = 0; i < plainBody.length; i++) {
+        const char = plainBody[i];
+        const code = plainBody.charCodeAt(i);
 
-    // Then encode other special characters
-    encodedBody = encodedBody.replace(/=/g, '=3D'); // Encode equals signs
-
-    // Break long lines at 76 characters (quoted-printable standard)
-    // Split by encoded line breaks and process each line
-    const lines = encodedBody.split('=0D=0A');
-    const wrappedLines = lines.map(line => {
-        if (line.length <= 76) return line;
-        // Break long lines with soft line breaks (= at end)
-        const chunks = [];
-        for (let i = 0; i < line.length; i += 75) {
-            chunks.push(line.substr(i, 75));
+        if (char === '\r' && plainBody[i + 1] === '\n') {
+            encodedPlain += '\r\n';
+            lineLength = 0;
+            i++;
+        } else if (char === ' ' && plainBody[i + 1] === '\n') {
+            encodedPlain += '=20\r\n';
+            lineLength = 0;
+            i++;
+        } else if ((code >= 33 && code <= 60) || (code >= 62 && code <= 126)) {
+            if (lineLength >= 75) {
+                encodedPlain += '=\r\n';
+                lineLength = 0;
+            }
+            encodedPlain += char;
+            lineLength++;
+        } else if (char === ' ' || char === '\t') {
+            if (lineLength >= 75) {
+                encodedPlain += '=\r\n';
+                lineLength = 0;
+            }
+            encodedPlain += char;
+            lineLength++;
+        } else {
+            if (lineLength >= 73) {
+                encodedPlain += '=\r\n';
+                lineLength = 0;
+            }
+            encodedPlain += '=' + code.toString(16).toUpperCase().padStart(2, '0');
+            lineLength += 3;
         }
-        return chunks.join('=\r\n');
-    });
+    }
+    eml += encodedPlain;
+    eml += `\r\n\r\n`;
 
-    encodedBody = wrappedLines.join('=0D=0A');
-    eml += encodedBody;
+    // Add HTML body part with proper document structure
+    eml += `--${boundary}\r\n`;
+    eml += `Content-Type: text/html; charset="utf-8"\r\n`;
+    eml += `Content-Transfer-Encoding: quoted-printable\r\n`;
+    eml += `\r\n`;
+
+    // Build HTML with proper structure (matching example.eml)
+    const htmlContent = `<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+<div dir="ltr" style="font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);">
+<br>
+</div>
+${body}
+</body>
+</html>`;
+
+    // Encode HTML in quoted-printable with soft line breaks
+    let encodedHtml = '';
+    let htmlLineLength = 0;
+    for (let i = 0; i < htmlContent.length; i++) {
+        const char = htmlContent[i];
+        const code = htmlContent.charCodeAt(i);
+
+        if (char === '\r' && htmlContent[i + 1] === '\n') {
+            encodedHtml += '\r\n';
+            htmlLineLength = 0;
+            i++;
+        } else if (char === ' ' && htmlContent[i + 1] === '\n') {
+            encodedHtml += '=20\r\n';
+            htmlLineLength = 0;
+            i++;
+        } else if ((code >= 33 && code <= 60) || (code >= 62 && code <= 126)) {
+            if (htmlLineLength >= 75) {
+                encodedHtml += '=\r\n';
+                htmlLineLength = 0;
+            }
+            encodedHtml += char;
+            htmlLineLength++;
+        } else if (char === ' ' || char === '\t') {
+            if (htmlLineLength >= 75) {
+                encodedHtml += '=\r\n';
+                htmlLineLength = 0;
+            }
+            encodedHtml += char;
+            htmlLineLength++;
+        } else {
+            if (htmlLineLength >= 73) {
+                encodedHtml += '=\r\n';
+                htmlLineLength = 0;
+            }
+            encodedHtml += '=' + code.toString(16).toUpperCase().padStart(2, '0');
+            htmlLineLength += 3;
+        }
+    }
+    eml += encodedHtml;
     eml += `\r\n\r\n`;
 
     // Add PDF attachments if provided
@@ -4835,6 +4985,9 @@ function generateZipFilenameFromHTML(htmlContent) {
 }
 
 function createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments = [], format = 'eml', batchNumber = 1) {
+    // Process HTML to ensure signatures are properly formatted
+    htmlBody = processHTMLForEML(htmlBody);
+
     // RFC 5322 §3.4 - Validate email addresses in BCC recipients
     // Filter out invalid email addresses and log warnings
     const validRecipients = recipients.filter(email => {
@@ -5251,6 +5404,276 @@ These files are safe to open with Microsoft Outlook on Windows and Mac.
     }
 }
 
+// =====================================
+// OUTPUT TABS FUNCTIONALITY
+// =====================================
+
+function initializeOutputTabs() {
+    const tabs = document.querySelectorAll('.output-tab');
+    const contentAreas = document.querySelectorAll('.output-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            // Prevent clicking disabled tabs
+            if (tab.disabled) {
+                e.preventDefault();
+                return;
+            }
+
+            const tabName = tab.dataset.tab;
+
+            // Deactivate all tabs and content
+            tabs.forEach(t => t.classList.remove('active'));
+            contentAreas.forEach(content => content.classList.remove('active'));
+
+            // Activate clicked tab and corresponding content
+            tab.classList.add('active');
+            const contentId = tabName === 'preview' ? 'previewContent' : 'htmlContent';
+            const contentElement = document.getElementById(contentId);
+            if (contentElement) {
+                contentElement.classList.add('active');
+            }
+
+            // If preview tab is clicked, update the preview
+            if (tabName === 'preview') {
+                updateEmailPreview();
+            }
+        });
+    });
+}
+
+function updateEmailPreview() {
+    const outputArea = document.getElementById('outputArea');
+    const emailPreview = document.getElementById('emailPreview');
+    const previewTab = document.querySelector('.output-tab[data-tab="preview"]');
+    const previewContent = document.getElementById('previewContent');
+    const htmlContent = document.getElementById('htmlContent');
+
+    if (!outputArea || !emailPreview) return;
+
+    const content = outputArea.value;
+    if (!content) {
+        emailPreview.srcdoc = '<p style="padding: 20px; color: #999;">No content to preview</p>';
+        return;
+    }
+
+    // Check if content contains HTML elements
+    // Look for common HTML tags like <p>, <div>, <ul>, <li>, <strong>, <br>, etc.
+    const isHtml = /<\s*(p|div|ul|li|ol|strong|b|em|i|a|table|tr|td|span|br|hr|h[1-6])[\s>]/i.test(content);
+
+    // Show/hide preview tab based on content type
+    if (previewTab) {
+        if (isHtml) {
+            previewTab.style.display = 'flex';
+            previewTab.disabled = false;
+        } else {
+            previewTab.style.display = 'none';
+            // If preview tab is hidden and it's active, switch to HTML tab
+            if (previewTab.classList.contains('active')) {
+                previewTab.classList.remove('active');
+                document.querySelector('.output-tab[data-tab="html"]').classList.add('active');
+                previewContent.classList.remove('active');
+                htmlContent.classList.add('active');
+            }
+            previewTab.disabled = true;
+        }
+    }
+
+    // Only render preview if content is HTML
+    if (isHtml) {
+        // Wrap the content in a proper HTML email template
+        const emailTemplate = wrapHtmlForEmailPreview(content);
+        // Use srcdoc to set iframe content (prevents CORS issues)
+        emailPreview.srcdoc = emailTemplate;
+    }
+}
+
+function wrapHtmlForEmailPreview(htmlContent) {
+    // Try to get subject from original message content (if available) or from textarea
+    let subject = 'Email Preview';
+    let bodyContent = htmlContent;
+
+    // First try to extract from original message with Subject line
+    if (window.originalMessageContent) {
+        const subjectMatch = window.originalMessageContent.match(/^Subject:\s*(.+)/m);
+        if (subjectMatch) {
+            subject = subjectMatch[1];
+        }
+    } else {
+        // Fallback: try to extract from the provided content
+        const subjectMatch = htmlContent.match(/^Subject:\s*(.+)/m);
+        if (subjectMatch) {
+            subject = subjectMatch[1];
+            bodyContent = htmlContent.replace(/^Subject:.+\n/m, '').trim();
+        }
+    }
+
+    // Create a proper HTML email template that looks like an email client
+    const template = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(subject)}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .email-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .email-header {
+            background: #f9f9f9;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 20px;
+        }
+
+        .email-subject {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .email-meta {
+            font-size: 12px;
+            color: #999;
+            line-height: 1.6;
+        }
+
+        .email-body {
+            padding: 24px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .email-body p {
+            margin-bottom: 12px;
+        }
+
+        .email-body ul,
+        .email-body ol {
+            margin: 12px 0 12px 24px;
+        }
+
+        .email-body li {
+            margin-bottom: 6px;
+        }
+
+        .email-body strong,
+        .email-body b {
+            font-weight: 600;
+            color: #222;
+        }
+
+        .email-body a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        .email-body a:hover {
+            text-decoration: underline;
+        }
+
+        /* HTML signature styling */
+        .ms-outlook-mobile-signature {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 12px;
+        }
+
+        /* Tables for structured content */
+        .email-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+        }
+
+        .email-body table td,
+        .email-body table th {
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            text-align: left;
+        }
+
+        .email-body table th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            .email-container {
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .email-header,
+            .email-body {
+                padding: 16px;
+            }
+
+            .email-subject {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <div class="email-subject">${escapeHtml(subject)}</div>
+            <div class="email-meta">
+                <strong>From:</strong> Citizen Communication System<br>
+                <strong>Date:</strong> ${new Date().toLocaleString()}<br>
+                <strong>Status:</strong> Preview
+            </div>
+        </div>
+        <div class="email-body">
+            ${bodyContent}
+        </div>
+    </div>
+</body>
+</html>`;
+
+    return template;
+}
+
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+// Update preview when output changes
+function initializeOutputUpdates() {
+    const outputArea = document.getElementById('outputArea');
+    if (outputArea) {
+        outputArea.addEventListener('change', updateEmailPreview);
+    }
+}
 
 
 // Start the application when DOM is ready

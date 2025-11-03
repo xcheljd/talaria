@@ -64,9 +64,38 @@
 
         <div class="card output-card">
             <h2 class="section-title">Generated Message</h2>
-            <textarea class="output-textarea" id="outputArea" placeholder="Your generated message will appear here..." aria-label="Generated message output"></textarea>
+
+            <!-- Output Tabs -->
+            <div class="output-tabs">
+                <button class="output-tab active" data-tab="preview" title="Preview how the email looks in an email client">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    Preview
+                </button>
+                <button class="output-tab" data-tab="html" title="View the raw HTML code">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                    HTML
+                </button>
+            </div>
+
+            <!-- Preview Tab Content -->
+            <div class="output-content active" id="previewContent">
+                <iframe class="email-preview" id="emailPreview" title="Email preview"></iframe>
+            </div>
+
+            <!-- HTML Tab Content -->
+            <div class="output-content" id="htmlContent">
+                <textarea class="output-textarea" id="outputArea" placeholder="Your generated message will appear here..." aria-label="Generated message output"></textarea>
+            </div>
+
             <div class="button-group">
                 <button class="btn" id="copyBtn">Copy Message</button>
+                <button class="btn" id="downloadEmlBtn" style="display: none;">Download EML</button>
             </div>
         </div>
     </div>
