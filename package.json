@@ -1,0 +1,40 @@
+{
+  "name": "citizen-communication-templates",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && cp dist-helpers/* dist/",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint src/js/**/*.js",
+    "format": "prettier --write \"src/js/**/*.js\" \"src/css/**/*.css\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xcheljd/citizen-communication-templates.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/xcheljd/citizen-communication-templates/issues"
+  },
+  "homepage": "https://github.com/xcheljd/citizen-communication-templates#readme",
+  "description": "",
+  "devDependencies": {
+    "@vitejs/plugin-legacy": "^7.2.1",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2",
+    "vite": "^7.1.12"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  }
+}

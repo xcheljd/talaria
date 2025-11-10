@@ -1,6 +1,7 @@
 # Operating System Files
 .DS_Store
 .DS_Store?
+**/.DS_Store
 ._*
 .Spotlight-V100
 .Trashes
@@ -11,6 +12,8 @@ Desktop.ini
 # Editor and IDE Files
 .vscode/
 .idea/
+.obsidian/
+.claude/
 *.swp
 *.swo
 *.swn
@@ -25,6 +28,9 @@ Desktop.ini
 
 # Node modules (if needed in future)
 node_modules/
+
+# Build output
+# dist/ - Now tracked for deployment
 
 # Environment files (if needed in future)
 .env

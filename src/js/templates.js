@@ -1,0 +1,783 @@
+import { appState } from './state.js';
+
+// Helper function to sanitize HTML and prevent XSS
+export function sanitizeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Helper function to escape HTML attributes
+export function escapeAttr(str) {
+  return str.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+}
+
+// Sanitize template data to prevent XSS attacks
+export function sanitizeTemplateData(data) {
+  const sanitized = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      sanitized[key] = sanitizeHTML(value);
+    } else {
+      sanitized[key] = value; // Keep non-string values as-is
+    }
+  }
+  return sanitized;
+}
+
+// Helper functions to get store info from user profile
+export function getStorePhone() {
+  return appState.userProfile && appState.userProfile.storePhone
+    ? appState.userProfile.storePhone
+    : '702-357-8990';
+}
+
+export function getStoreName() {
+  return appState.userProfile && appState.userProfile.storeName
+    ? appState.userProfile.storeName
+    : 'Citizen Company Store';
+}
+
+export function getStoreLocation() {
+  return appState.userProfile && appState.userProfile.storeLocation
+    ? appState.userProfile.storeLocation
+    : 'the South Premium Outlets';
+}
+
+export function getFullStoreLocation() {
+  return `Citizen Company Store at ${getStoreLocation()}`;
+}
+
+/**
+ * Generate employee signature in text or HTML format
+ * @param {string} format - 'text' for plain text, 'html' for HTML
+ * @returns {string} Formatted signature
+ */
+export function getEmployeeSignature(format = 'text') {
+  const name =
+    appState.userProfile && appState.userProfile.employeeName
+      ? appState.userProfile.employeeName
+      : 'Employee Name';
+  const title =
+    appState.userProfile && appState.userProfile.jobTitle
+      ? appState.userProfile.jobTitle
+      : 'Sales Associate';
+  const storeName =
+    appState.userProfile && appState.userProfile.storeName
+      ? appState.userProfile.storeName
+      : 'Citizen Company Store';
+  const address =
+    appState.userProfile && appState.userProfile.storeAddress
+      ? appState.userProfile.storeAddress
+      : '';
+  const phone =
+    appState.userProfile && appState.userProfile.storePhone
+      ? appState.userProfile.storePhone
+      : '555-123-4567';
+  const plusCode =
+    appState.userProfile && appState.userProfile.storePlusCode
+      ? appState.userProfile.storePlusCode
+      : '';
+  const email =
+    appState.userProfile && appState.userProfile.storeEmail
+      ? appState.userProfile.storeEmail
+      : '';
+
+  if (format === 'html') {
+    // Helper function to escape HTML (inline for simplicity)
+    const esc = (str) => {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    };
+
+    // Split email for partial hyperlink formatting
+    let emailHTML = '';
+    if (email) {
+      const emailParts = email.split('@');
+      const emailPrefix = emailParts[0] || '';
+      const emailDomain = emailParts[1] || '';
+      emailHTML = `<p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
+        Email: ${esc(emailPrefix)}<a href="mailto:${esc(email)}" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">@${esc(emailDomain)}</a>
+    </p>`;
+    }
+
+    return `<div style="font-family: 'Century Gothic', Aptos, Arial, sans-serif; font-size: 9pt; color: #000000;">
+    <p style="margin: 0; padding: 0;">
+        <strong style="font-size: 9pt;">${esc(name)} │ ${esc(title)}</strong>
+    </p>
+    <p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
+        ______________________________________________________________________
+    </p>
+    <p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
+        <strong>Citizen Watch America</strong> - ${esc(storeName)}
+    </p>
+    ${
+      address
+        ? `<p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
+        ${esc(address).replace(/\n/g, '<br>')}
+    </p>`
+        : ''
+    }
+    <p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
+        Tel/SMS: ${esc(phone)}
+    </p>
+    ${
+      plusCode
+        ? `<p style="margin: 0; padding: 0; font-size: 8pt;">
+        <a href="https://maps.google.com/?q=${encodeURIComponent(plusCode)}" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">View on Google Maps</a>
+    </p>`
+        : ''
+    }
+    ${emailHTML}
+    <p style="margin: 4px 0; padding: 0; font-size: 8pt;">
+        <a href="https://us.alpinawatches.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Alpina</a> |
+        <a href="https://www.bulova.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Bulova</a> |
+        <a href="https://www.citizenwatch.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Citizen</a> |
+        <a href="https://us.frederiqueconstant.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Frederique Constant</a>
+    </p>
+    <p style="margin: 4px 0; padding: 0; font-size: 8pt; color: #0c8822;">
+        <strong>Please consider the environment before printing this e-mail</strong>
+    </p>
+</div>`;
+  }
+
+  // Default: plain text format
+  return `${name} │ ${title}
+______________________________________________________________________
+Citizen Watch America - ${storeName}
+${address ? address.replace(/\n/g, '\n') : ''}
+Tel/SMS: ${phone}
+
+Alpina | Bulova | Citizen | Frederique Constant
+
+Please consider the environment before printing this e-mail`;
+}
+
+/**
+ * Convert plain text email body to HTML format
+ * Handles paragraphs, lists, and signature integration
+ * @param {string} textBody - Plain text email content (without signature)
+ * @returns {string} HTML-formatted email body
+ */
+export function convertTextToHTML(textBody) {
+  if (!textBody) return '';
+
+  // Helper function to escape HTML
+  const esc = (str) => {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  };
+
+  // Remove plain text signature if present (will be replaced with HTML version)
+  let bodyWithoutSig = textBody;
+  const sigMarkers = [
+    /\n\n-{5,}\n/, // Dashes separator
+    /______+/,
+    /\n\n[A-Z][a-z]+ [A-Z][a-z]+ │ /,
+  ];
+
+  for (const marker of sigMarkers) {
+    const match = bodyWithoutSig.match(marker);
+    if (match) {
+      bodyWithoutSig = bodyWithoutSig.substring(0, match.index).trim();
+      break;
+    }
+  }
+
+  // Split into paragraphs (double line break)
+  const paragraphs = bodyWithoutSig.split(/\n\n+/);
+  const htmlParagraphs = paragraphs.map((para) => {
+    const lines = para.split('\n');
+
+    // Check if this is a list (all non-empty lines start with bullet/dash)
+    const isList =
+      lines.some((line) => line.trim()) &&
+      lines.every((line) => {
+        const trimmed = line.trim();
+        return !trimmed || trimmed.startsWith('•') || trimmed.startsWith('-');
+      });
+
+    if (isList) {
+      const listItems = lines
+        .filter((line) => line.trim())
+        .map((line) => {
+          const text = line.replace(/^[•-]\s*/, '').trim();
+          return `        <li style="margin: 5px 0;">${esc(text)}</li>`;
+        })
+        .join('\n');
+      return `    <ul style="margin: 10px 0; padding-left: 20px; font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt;">
+${listItems}
+    </ul>`;
+    } else {
+      // Regular paragraph - convert single line breaks to <br>
+      const htmlContent = para
+        .split('\n')
+        .map((line) => esc(line))
+        .join('<br>');
+      return `    <p style="margin: 10px 0; font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);">${htmlContent}</p>`;
+    }
+  });
+
+  // Get HTML signature
+  const htmlSignature = getEmployeeSignature('html');
+
+  // Build complete HTML body (not full document - just the body content for preview/EML)
+  const html = `${htmlParagraphs.join('\n')}
+
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+${htmlSignature}
+    </div>`;
+
+  return html;
+}
+
+// Template metadata with help text
+export const templateHelp = {
+  'new-customer-welcome':
+    'Use after a customer visits the store for the first time. Adds them to VIP list. (Enhanced: editable subject, EML download)',
+  'back-in-stock':
+    'Follow up when a previously unavailable item is back. Include hold deadline.',
+  'thank-you-warranty':
+    'Send after purchase to explain warranty registration and care tips.',
+  'weekly-sale':
+    'Personalized sale notification for customers who showed interest in specific collections. (Enhanced: editable subject, EML download)',
+  'new-model-arrival':
+    'Alert interested customers when a specific model they asked about arrives. (Enhanced: editable subject, EML download)',
+  'limited-edition':
+    'High-priority notification for VIP collectors about exclusive pieces. (Enhanced: editable subject, EML download)',
+  'vip-reconnection':
+    "Re-engage customers who haven't visited in a while. Mention store evolution. (Enhanced: editable subject, EML download)",
+  'phone-confirmation':
+    'Immediate confirmation after taking a phone order. Include all order details. (Enhanced: editable subject, EML download)',
+  'phone-shipped':
+    'Send when order ships with UPS tracking. Mention signature requirement. (Enhanced: editable subject, EML download)',
+  'phone-under-500':
+    'Internal approval request for phone orders under $500. Manager verification. (Enhanced: editable subject, EML download)',
+  'phone-corporate':
+    'Corporate/bulk order approval. Include purpose and fulfilling store. (Enhanced: editable subject, EML download)',
+  'inter-store-notification':
+    'Notify receiving store that order is prepared and ready for pickup. (Enhanced: editable subject, EML download)',
+  'text-availability':
+    'Quick response to customer inquiry about specific model availability.',
+  'text-thank-you':
+    'Post-purchase thank you via text. Keep it brief and friendly.',
+  'text-interest-followup':
+    'Follow up on specific watch customer showed interest in. Use after store visit.',
+  'promotion-email':
+    'Generate HTML email for weekly promotions with discount tiers. Auto-generates title based on dates.',
+};
+
+// Field examples and validation rules
+export const fieldConfig = {
+  customerName: { example: 'John Smith', required: true },
+  employeeName: { example: 'Your name', required: true },
+  yourName: { example: 'Your name', required: true },
+  clientName: { example: 'John Smith', required: true },
+  brand: {
+    example: 'Citizen',
+    required: true,
+    suggestions: ['Citizen', 'Bulova', 'Frederique Constant'],
+  },
+  modelName: { example: 'Eco-Drive Promaster', required: true },
+  modelNumber: { example: 'BN0150-28E', required: false },
+  price: { example: '299', required: true, validation: 'currency' },
+  discount: {
+    example: '20',
+    required: true,
+    validation: 'number',
+    dependent: true,
+  },
+  msrp: {
+    example: '399',
+    required: true,
+    validation: 'currency',
+    dependent: true,
+  },
+  quantity: { example: '2', required: true, validation: 'number' },
+  unitsQuantity: { example: '1', required: true, validation: 'number' },
+  totalAmount: { example: '299.00', required: true, validation: 'currency' },
+  closingTime: { example: '9:00 PM', required: true },
+  endDate: { example: 'Sunday', required: true },
+  holdDeadline: { example: 'Friday 5PM', required: true },
+  trackingNumber: {
+    example: '1Z999AA10123456784',
+    required: false,
+    validation: 'tracking',
+  },
+  customerId: { example: 'C12345', required: true },
+  employeeId: { example: 'E789', required: true },
+  warrantyLength: { example: '5-year', required: true },
+  warrantyYears: { example: '5', required: true, validation: 'number' },
+  carrier: {
+    example: 'UPS',
+    required: true,
+    suggestions: ['UPS', 'FedEx', 'USPS'],
+  },
+  // Promotion Email fields
+  promoDateRange: { example: 'Nov 28 - Dec 1', required: true },
+  promoYear: { example: '2024-2025', required: false },
+  promoTitle: { example: 'Leave blank for auto-generation', required: false },
+  promoBrand: {
+    example: 'Citizen',
+    required: true,
+    suggestions: ['Citizen', 'Bulova', 'Alpina', 'Frederique Constant'],
+  },
+  promoDiscount: { example: '60', required: true, validation: 'number' },
+  promoCollections: { example: 'Corso, Avion, Marine Star', required: false },
+  promoCallout: { example: 'Optional special note', required: false },
+};
+
+export function getFieldSuggestions(field) {
+  const config = fieldConfig[field] || {};
+  return config.suggestions || [];
+}
+
+export function formatPhoneNumber(value) {
+  const numbers = value.replace(/\D/g, '');
+  if (numbers.length <= 3) return numbers;
+  if (numbers.length <= 6) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+  return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`;
+}
+
+export function validateTracking(value) {
+  // UPS: 1Z followed by 16 characters
+  const upsPattern = /^1Z[0-9A-Z]{16}$/i;
+  // FedEx: 12 or 14 digits
+  const fedexPattern = /^\d{12}(\d{2})?$/;
+  // USPS: 20 or 22 digits
+  const uspsPattern = /^\d{20}(\d{2})?$/;
+
+  return (
+    upsPattern.test(value) ||
+    fedexPattern.test(value) ||
+    uspsPattern.test(value)
+  );
+}
+
+export const templates = {
+  'new-customer-welcome': {
+    name: 'New Customer Welcome',
+    category: 'Customer Email',
+    hasEditableSubject: true,
+    supportsEML: true,
+    supportsMailto: true,
+    fields: ['customerName', 'employeeName'],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      return `Subject: Welcome to Citizen Company Store - Your VIP Access
+
+Hi ${safe.customerName},
+
+Thank you for visiting our Citizen Company Store outlet location! It was a pleasure helping you explore our offerings today.
+
+I've added you to our VIP email list for weekly promotional updates featuring exclusive outlet pricing on our timepieces.
+
+Please don't hesitate to reach out by replying to this email or call the store at ${getStorePhone()}. I would be happy to check availability on any models you're considering.
+
+${getEmployeeSignature()}`;
+    },
+  },
+  'new-model-arrival': {
+    name: 'New Model Arrival',
+    category: 'Customer Email',
+    hasEditableSubject: true,
+    supportsEML: true,
+    supportsMailto: true,
+    fields: [
+      'customerName',
+      'brand',
+      'modelName',
+      'modelNumber',
+      'keyFeature1',
+      'keyFeature2',
+      'keyFeature3',
+      'price',
+      'employeeName',
+    ],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      let features = `• ${safe.keyFeature1}`;
+      if (safe.keyFeature2) features += `\n• ${safe.keyFeature2}`;
+      if (safe.keyFeature3) features += `\n• ${safe.keyFeature3}`;
+      return `Subject: Great News! ${safe.modelName} Now Available
+
+Hi ${safe.customerName},
+
+Great news! The ${safe.brand} ${safe.modelName} (${safe.modelNumber}) you were interested in has arrived at our store.
+
+Key Features:
+${features}
+
+Current price: ${safe.price}
+
+I'd be happy to set up an appointment to show you all the features of this watch and let you try it on. This model tends to generate a lot of interest, so I wanted to reach out to you first.
+
+Would you like to schedule a time to see it in person? Please reply to this email or call the store at ${getStorePhone()}.
+
+Looking forward to hearing from you!
+
+${getEmployeeSignature()}`;
+    },
+  },
+  'limited-edition': {
+    name: 'Limited Edition',
+    category: 'Customer Email',
+    hasEditableSubject: true,
+    supportsEML: true,
+    supportsMailto: true,
+    fields: [
+      'customerName',
+      'brand',
+      'modelName',
+      'modelNumber',
+      'limitedDetails',
+      'price',
+      'quantityAvailable',
+      'employeeName',
+    ],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      return `Subject: Exclusive: Limited Edition ${safe.modelName} Available
+
+Hi ${safe.customerName},
+
+I wanted to reach out to you personally because we just received a ${safe.brand} ${safe.modelName} (${safe.modelNumber}) - ${safe.limitedDetails}.
+
+As someone who appreciates fine timepieces and unique additions to your collection, I thought you'd want to know about this immediately.
+
+Price: ${safe.price}
+Availability: Only ${safe.quantityAvailable} available
+
+This is truly a special piece that won't last long. I'd love to show it to you in person and discuss how it could complement your collection.
+
+Can you stop by this week, or would you like me to hold one for you? Please reply to this email or call the store at ${getStorePhone()}.
+
+${getEmployeeSignature()}
+
+P.S. - Given the limited availability, I'm only reaching out to our most valued collectors. Let me know if you're interested!`;
+    },
+  },
+  'vip-reconnection': {
+    name: 'VIP Reconnection',
+    category: 'Customer Email',
+    hasEditableSubject: true,
+    supportsEML: true,
+    supportsMailto: true,
+    fields: ['clientName', 'employeeName'],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      return `Subject: Your Store Has Evolved - We'd Love to Show You What's New
+
+Hi ${safe.clientName},
+
+I was reviewing our VIP client records and noticed it's been a while since your last visit. I wanted to personally reach out because our store has undergone some exciting changes that I think you'll appreciate.
+
+We're now a hybrid store - combining the outlet values you love with access to current season merchandise. This means alongside our clearance deals, you can now find the latest releases and expanded brand offerings.
+
+To welcome you back, I'd like to offer you a complimentary watch service visit. Bring in any of your timepieces and I'll:
+- Set and synchronize all your watches
+- Perform atomic time synchronization resets
+- Help with any complicated functions you're having trouble with
+- Show you our new brand offerings and store layout
+
+No purchase necessary - I just want to reconnect and ensure your watches are working perfectly.
+
+Would you have time this week or next to stop by? I'd love to show you how we've evolved while maintaining the exceptional values and service you remember.
+
+${getEmployeeSignature()}
+
+P.S. - We now carry everything from current season pieces to discontinued treasures, giving you more options than ever before.`;
+    },
+  },
+  'phone-confirmation': {
+    name: 'Confirmation',
+    category: 'Phone Orders',
+    hasEditableSubject: true,
+    supportsEML: true,
+    supportsMailto: true,
+    fields: [
+      'customerName',
+      'brand',
+      'modelName',
+      'modelNumber',
+      'price',
+      'discount',
+      'totalAmount',
+      'customerAddress',
+      'carrier',
+      'trackingNumber',
+      'employeeName',
+    ],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      let trackingInfo = '';
+      if (safe.trackingNumber) {
+        trackingInfo = `\n\nTracking Number: ${safe.trackingNumber}`;
+      }
+      return `Subject: Order Confirmation - ${safe.modelName}
+
+Hi ${safe.customerName},
+
+Thank you for your phone order! This email confirms the following:
+
+Order Details:
+Item: ${safe.brand} ${safe.modelName}
+Model #: ${safe.modelNumber}
+Price: ${safe.price} (includes ${safe.discount}% outlet discount)
+Shipping: $20 flat-rate ground shipping
+Total: ${safe.totalAmount}
+
+Shipping Information:
+${safe.customerAddress}
+
+Your order will ship within 1-2 business days via ${safe.carrier}. You'll receive tracking information at this email address once shipped.${trackingInfo}
+
+If you have any questions, please don't hesitate to contact us at ${getStorePhone()}.
+
+Thank you for shopping with ${getStoreName()}!
+
+${getEmployeeSignature()}`;
+    },
+  },
+  'phone-shipped': {
+    name: 'Shipped with Tracking',
+    category: 'Phone Orders',
+    hasEditableSubject: true,
+    supportsEML: true,
+    supportsMailto: true,
+    fields: [
+      'customerName',
+      'brand',
+      'modelName',
+      'modelNumber',
+      'trackingNumber',
+      'customerAddress',
+      'employeeName',
+    ],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      return `Subject: Your Watch Order - Tracking Information
+
+Hi ${safe.customerName},
+
+Thank you for your recent purchase from ${getStoreName()}! We're pleased to confirm that your order has been shipped and is on its way to you.
+
+Tracking Information:
+UPS Tracking Number: ${safe.trackingNumber}
+
+You can track your shipment at the link above or visit ups.com and enter your tracking number.
+
+Your package requires an adult signature upon delivery to ensure safe receipt of your timepiece.
+
+Order Details:
+Watch Model: ${safe.modelNumber} - ${safe.modelName}
+Shipping Address: ${safe.customerAddress}
+
+If you have any questions about your order or need any assistance, please don't hesitate to reach out. I'm here to help!
+
+We hope you enjoy your new ${safe.brand} timepiece!
+
+${getEmployeeSignature()}`;
+    },
+  },
+  'phone-under-500': {
+    name: 'Under $500 Request',
+    category: 'Phone Orders',
+    hasEditableSubject: true,
+    supportsEML: true,
+    supportsMailto: true,
+    fields: [
+      'managerNameOrStoreName',
+      'customerName',
+      'customerId',
+      'employeeName',
+      'employeeId',
+      'unitsQuantity',
+      'totalAmount',
+      'creditCardVerified',
+      'needsManagerVerification',
+    ],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      if (
+        !safe.creditCardVerified ||
+        safe.creditCardVerified.toLowerCase() !== 'yes'
+      ) {
+        throw new Error(
+          'Credit card must be verified before generating this order form.'
+        );
+      }
+
+      let orderStatus = '';
+
+      if (
+        safe.needsManagerVerification &&
+        safe.needsManagerVerification.toLowerCase() === 'yes'
+      ) {
+        orderStatus = 'Ready for manager verification';
+      } else {
+        orderStatus = 'Credit card manager verified - Ready for processing';
+      }
+
+      return `Subject: Phone Order Form for ${safe.customerName}
+
+Hi ${safe.managerNameOrStoreName},
+
+Attached is the form for the phone order for ${safe.customerName} (${safe.customerId}).
+
+Ringing under: ${safe.employeeName} (${safe.employeeId})
+Units: ${safe.unitsQuantity}
+Total: ${safe.totalAmount}
+
+Order Status: ${orderStatus}
+
+${getEmployeeSignature()}`;
+    },
+  },
+  'phone-corporate': {
+    name: 'Corporate Approval',
+    category: 'Phone Orders',
+    hasEditableSubject: true,
+    supportsEML: true,
+    supportsMailto: true,
+    fields: [
+      'customerName',
+      'customerId',
+      'employeeName',
+      'employeeId',
+      'unitsQuantity',
+      'totalAmount',
+      'fulfillingStore',
+      'yourName',
+    ],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      return `Subject: Phone Order Approval Request - ${safe.customerName}
+
+Hello,
+
+I am forwarding a request for approval on a phone order for ${safe.employeeName} (${safe.employeeId}).
+
+There are ${safe.unitsQuantity} units totaling ${safe.totalAmount}. It will be fulfilled at ${safe.fulfillingStore}.
+
+Customer: ${safe.customerName} (${safe.customerId})
+
+I have verified and signed off. Please let us know if you have any questions.
+
+Thank You,
+${safe.yourName}`;
+    },
+  },
+  'inter-store-notification': {
+    name: 'Inter-Store Notification',
+    category: 'Phone Orders',
+    hasEditableSubject: true,
+    supportsEML: true,
+    supportsMailto: true,
+    fields: ['recipientStoreName', 'customerName', 'trackingNumber'],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      return `Subject: Phone Order Processed and Shipped - ${safe.customerName}
+
+Hi ${safe.recipientStoreName} Team,
+
+The phone order for ${safe.customerName} has been rung and labeled for shipping.
+
+UPS Tracking Number: ${safe.trackingNumber}
+
+The package has been prepared and is ready for UPS pickup.
+
+Thank you,`;
+    },
+  },
+  'text-availability': {
+    name: 'Availability Response',
+    category: 'Text',
+    fields: ['customerName', 'modelName', 'price', 'closingTime'],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      return `Hi ${safe.customerName}! Yes, we have the ${safe.modelName} in stock. Current price is ${safe.price} with our outlet discount. We're open until ${safe.closingTime} today if you'd like to stop by, or I can hold it.`;
+    },
+  },
+  'text-thank-you': {
+    name: 'Thank You',
+    category: 'Text',
+    fields: ['customerName', 'modelName', 'warrantyLength', 'brand'],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      return `${safe.customerName}, thank you for your purchase today! Your ${safe.modelName} comes with a ${safe.warrantyLength} warranty. Reach out anytime at ${getStorePhone()} for any questions. Enjoy your new ${safe.brand}!`;
+    },
+  },
+  'text-interest-followup': {
+    name: 'Sale Alert',
+    category: 'Text',
+    fields: [
+      'customerName',
+      'employeeName',
+      'modelName',
+      'discount',
+      'msrp',
+      'endDate',
+    ],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      const msrp = parseFloat(safe.msrp) || 0;
+      const discount = parseFloat(safe.discount) || 0;
+      const salePrice = (msrp * (1 - discount / 100)).toFixed(2);
+
+      return `Hi ${safe.customerName}! This is ${safe.employeeName} from ${getFullStoreLocation()}. The ${safe.modelName} you were interested in is on ${safe.discount}% OFF promotion (MSRP ${safe.msrp} now ${salePrice} plus tax) until ${safe.endDate}. Please let me know if you'd like me to hold one for you. Thank you!`;
+    },
+  },
+  'weekly-sale': {
+    name: 'Weekly Sale',
+    category: 'Customer Email',
+    hasEditableSubject: true,
+    supportsEML: true,
+    supportsMailto: true,
+    fields: [
+      'customerName',
+      'collectionName',
+      'discount',
+      'brand',
+      'model1',
+      'price1',
+      'original1',
+      'model2',
+      'price2',
+      'original2',
+      'endDate',
+      'employeeName',
+    ],
+    generate: (data) => {
+      const safe = sanitizeTemplateData(data);
+      let modelList = `• ${safe.model1} - Now ${safe.price1} (was ${safe.original1})`;
+      if (safe.model2 && safe.price2) {
+        modelList += `\n• ${safe.model2} - Now ${safe.price2} (was ${safe.original2})`;
+      }
+      return `Subject: ${safe.customerName}, This Week's ${safe.brand} Sale Includes Your Favorites
+
+Hi ${safe.customerName},
+
+I remember you were looking at ${safe.collectionName} pieces during your last visit. Good timing - we just started our ${safe.discount}% off promotion on select ${safe.brand} models this week!
+
+Specifically available in that collection:
+${modelList}
+
+This promotion runs through ${safe.endDate}. Would you like me to check if we have your size preference in stock?
+
+${getEmployeeSignature()}`;
+    },
+  },
+  'promotion-email': {
+    name: 'Promotion Email',
+    category: 'Customer Email',
+    customTemplate: true,
+    fields: ['promoDateRange', 'promoYear', 'promoTitle'],
+    generate: () => {
+      // Custom template handled separately
+      return '';
+    },
+  },
+};
