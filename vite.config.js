@@ -1,17 +1,8 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
-import legacy from '@vitejs/plugin-legacy';
 
 export default defineConfig({
-  plugins: [
-    legacy({
-      targets: ['defaults', 'not IE 11'],
-      // Render legacy chunks as system modules to avoid CORS issues
-      renderLegacyChunks: true,
-      // Modernize polyfills to reduce bundle size
-      modernPolyfills: true,
-    }),
-  ],
+  plugins: [],
   // Configure as multi-page app with two entry points
   build: {
     rollupOptions: {
@@ -20,15 +11,13 @@ export default defineConfig({
         start: resolve(__dirname, 'start.html'),
       },
       output: {
-        // Use es format but inline everything
+        // Use es format - requires local server due to CORS
         format: 'es',
-        // Inline all dynamic imports to avoid module splitting
-        inlineDynamicImports: false,
       },
     },
     // Output to dist folder
     outDir: 'dist',
-    // Enable relative paths for file:// protocol compatibility
+    // Enable relative paths for server compatibility
     assetsDir: 'assets',
   },
   // Base path for assets - use relative for offline compatibility

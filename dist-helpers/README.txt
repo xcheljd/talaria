@@ -1,35 +1,24 @@
-CITIZEN COMMUNICATION TEMPLATE GENERATOR
-=========================================
+COMMUNICATION TEMPLATE GENERATOR
+=================================
 
-HOW TO RUN:
+HOW TO RUN THE APP:
+-------------------
 
-Option 1: Direct Opening (Recommended for modern browsers)
------------------------------------------------------------
-Simply double-click "index.html" to open in your browser.
-This works in Chrome, Firefox, Safari, and Edge (latest versions).
+OPTION 1: Double-click START_SERVER.command
+  - This will start a local web server on port 8081
+  - Open your browser and go to: http://localhost:8081
+  - Press Ctrl+C in the terminal to stop the server
 
-Option 2: Local Server (If Option 1 doesn't work)
---------------------------------------------------
-Mac/Linux:
-  - Double-click "START_SERVER.command"
-  - Open browser to: http://localhost:8000
+OPTION 2: Use any web server
+  - The app requires a web server due to ES modules
+  - You can use Python: python3 -m http.server 8081
+  - Or use Node: npx serve -p 8081
+  - Or use any other web server of your choice
 
-Windows:
-  - Double-click "START_SERVER.bat"
-  - Open browser to: http://localhost:8000
+WHY A SERVER IS REQUIRED:
+-------------------------
+Modern JavaScript modules (ES modules) don't work when opening HTML files 
+directly (file:// protocol) due to browser security restrictions (CORS).
+A simple local web server solves this by serving files via http://.
 
-TROUBLESHOOTING:
-----------------
-If visuals don't appear:
-1. Try hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac)
-2. Make sure you're using a modern browser (Chrome 61+, Firefox 60+, Safari 11+, Edge 16+)
-3. Use Option 2 (local server) instead
-
-SYSTEM REQUIREMENTS:
---------------------
-- Modern web browser (Chrome, Firefox, Safari, or Edge)
-- For Option 2: Python 3 installed (comes pre-installed on Mac/Linux)
-
-SUPPORT:
---------
-For issues, contact your system administrator.
+The server runs only on your computer and doesn't require internet.
