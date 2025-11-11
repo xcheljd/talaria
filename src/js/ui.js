@@ -3291,8 +3291,11 @@ export function attachEventListeners() {
         selectTemplate(templateKey);
         elements.searchResults.classList.remove('visible');
         elements.searchBox.value = '';
-        elements.searchBox.blur();
         elements.clearSearch.classList.remove('visible');
+        // Blur search box after template selection (with slight delay to ensure it takes effect)
+        setTimeout(() => {
+          elements.searchBox.blur();
+        }, 100);
       }
     });
   }
