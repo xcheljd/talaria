@@ -984,9 +984,30 @@ export async function applyImportedConfig(config, collapseEntries = true) {
     const yearInput = getDynamicElement('promoYear');
     const titleInput = getDynamicElement('promoTitle');
 
-    if (dateRangeInput) dateRangeInput.value = config.dateRange || '';
-    if (yearInput) yearInput.value = config.year || '';
-    if (titleInput) titleInput.value = config.title || '';
+    if (dateRangeInput) {
+      dateRangeInput.value = config.dateRange || '';
+      // Show clear button if field has content
+      const clearBtn = document.querySelector('[data-clear="promoDateRange"]');
+      if (clearBtn && dateRangeInput.value.trim()) {
+        clearBtn.classList.add('visible');
+      }
+    }
+    if (yearInput) {
+      yearInput.value = config.year || '';
+      // Show clear button if field has content
+      const clearBtn = document.querySelector('[data-clear="promoYear"]');
+      if (clearBtn && yearInput.value.trim()) {
+        clearBtn.classList.add('visible');
+      }
+    }
+    if (titleInput) {
+      titleInput.value = config.title || '';
+      // Show clear button if field has content
+      const clearBtn = document.querySelector('[data-clear="promoTitle"]');
+      if (clearBtn && titleInput.value.trim()) {
+        clearBtn.classList.add('visible');
+      }
+    }
   }, 100);
 
   // Restore arrays
@@ -1540,17 +1561,26 @@ export function renderPromotionEntries() {
 
                     <div class="form-group">
                         <label class="form-label" for="entry-${safeId}-discount">Discount % *</label>
-                        <input type="text" class="form-input entry-discount" id="entry-${safeId}-discount" name="entry-${safeId}-discount" data-entry-id="${safeId}" value="${escapeAttr(entry.discount)}" placeholder="60">
+                        <div class="input-wrapper">
+                            <input type="text" class="form-input entry-discount" id="entry-${safeId}-discount" name="entry-${safeId}-discount" data-entry-id="${safeId}" value="${escapeAttr(entry.discount)}" placeholder="60">
+                            <button class="clear-input" data-clear="entry-${safeId}-discount" title="Clear">×</button>
+                        </div>
                     </div>
 
                     <div class="form-group full-width">
                         <label class="form-label" for="entry-${safeId}-collections">Collections (comma-separated)</label>
-                        <input type="text" class="form-input entry-collections" id="entry-${safeId}-collections" name="entry-${safeId}-collections" data-entry-id="${safeId}" value="${escapeAttr(entry.collections)}" placeholder="Corso, Avion, Marine Star">
+                        <div class="input-wrapper">
+                            <input type="text" class="form-input entry-collections" id="entry-${safeId}-collections" name="entry-${safeId}-collections" data-entry-id="${safeId}" value="${escapeAttr(entry.collections)}" placeholder="Corso, Avion, Marine Star">
+                            <button class="clear-input" data-clear="entry-${safeId}-collections" title="Clear">×</button>
+                        </div>
                     </div>
 
                     <div class="form-group full-width">
                         <label class="form-label" for="entry-${safeId}-callout">Special Callout (optional)</label>
-                        <input type="text" class="form-input entry-callout" id="entry-${safeId}-callout" name="entry-${safeId}-callout" data-entry-id="${safeId}" value="${escapeAttr(entry.callout)}" placeholder="Final sale items excluded">
+                        <div class="input-wrapper">
+                            <input type="text" class="form-input entry-callout" id="entry-${safeId}-callout" name="entry-${safeId}-callout" data-entry-id="${safeId}" value="${escapeAttr(entry.callout)}" placeholder="Final sale items excluded">
+                            <button class="clear-input" data-clear="entry-${safeId}-callout" title="Clear">×</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1607,6 +1637,34 @@ export function renderPromotionEntries() {
     });
   });
 
+  // Attach event listeners for clear buttons in promotion entries
+  container.querySelectorAll('.clear-input').forEach((clearBtn) => {
+    const fieldId = clearBtn.dataset.clear;
+    const input = document.getElementById(fieldId);
+
+    if (input) {
+      // Show/hide clear button based on input value
+      const updateClearVisibility = () => {
+        clearBtn.classList.toggle('visible', input.value.trim().length > 0);
+      };
+
+      // Initialize visibility
+      updateClearVisibility();
+
+      // Update on input
+      input.addEventListener('input', updateClearVisibility);
+
+      // Clear button click handler
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        clearBtn.classList.remove('visible');
+        input.focus();
+        // Trigger the existing input event to update entry data and preview
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  });
+
   // Update preview after rendering entries
   updateLivePreview();
 }
@@ -1643,10 +1701,16 @@ export function renderSpecialHours() {
             <div class="special-hour-row" data-hour-id="${safeId}">
                 <div class="special-hour-fields">
                     <div class="form-group">
-                        <input type="text" class="form-input hour-day" id="hour-${safeId}-day" name="hour-${safeId}-day" data-hour-id="${safeId}" value="${escapeAttr(hour.day)}" placeholder="e.g., Friday Nov 29">
+                        <div class="input-wrapper">
+                            <input type="text" class="form-input hour-day" id="hour-${safeId}-day" name="hour-${safeId}-day" data-hour-id="${safeId}" value="${escapeAttr(hour.day)}" placeholder="e.g., Friday Nov 29">
+                            <button class="clear-input" data-clear="hour-${safeId}-day" title="Clear">×</button>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <input type="text" class="form-input hour-hours" id="hour-${safeId}-hours" name="hour-${safeId}-hours" data-hour-id="${safeId}" value="${escapeAttr(hour.hours)}" placeholder="e.g., 6AM–10PM or CLOSED">
+                        <div class="input-wrapper">
+                            <input type="text" class="form-input hour-hours" id="hour-${safeId}-hours" name="hour-${safeId}-hours" data-hour-id="${safeId}" value="${escapeAttr(hour.hours)}" placeholder="e.g., 6AM–10PM or CLOSED">
+                            <button class="clear-input" data-clear="hour-${safeId}-hours" title="Clear">×</button>
+                        </div>
                     </div>
                     <div class="hour-controls">
                         <button type="button" class="order-btn" data-action="move-hour-up" data-hour-id="${hour.id}" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
@@ -1689,6 +1753,34 @@ export function renderSpecialHours() {
         }
       });
     });
+
+  // Attach event listeners for clear buttons in special hours
+  container.querySelectorAll('.clear-input').forEach((clearBtn) => {
+    const fieldId = clearBtn.dataset.clear;
+    const input = document.getElementById(fieldId);
+
+    if (input) {
+      // Show/hide clear button based on input value
+      const updateClearVisibility = () => {
+        clearBtn.classList.toggle('visible', input.value.trim().length > 0);
+      };
+
+      // Initialize visibility
+      updateClearVisibility();
+
+      // Update on input
+      input.addEventListener('input', updateClearVisibility);
+
+      // Clear button click handler
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        clearBtn.classList.remove('visible');
+        input.focus();
+        // Trigger the existing input event to update hour data and preview
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  });
 
   // Update preview after rendering hours
   updateLivePreview();
@@ -1736,7 +1828,10 @@ function renderHowToShopItems() {
                         </svg>
                     </div>
                     <div class="form-group">
-                        <input type="text" class="form-input shop-item-text" id="shop-item-${safeId}-text" name="shop-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Visit us in-store for outlet-exclusive deals">
+                        <div class="input-wrapper">
+                            <input type="text" class="form-input shop-item-text" id="shop-item-${safeId}-text" name="shop-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Visit us in-store for outlet-exclusive deals">
+                            <button class="clear-input" data-clear="shop-item-${safeId}-text" title="Clear">×</button>
+                        </div>
                     </div>
                     <div class="item-controls">
                         <button type="button" class="item-remove-btn" data-action="remove-how-to-shop-item" data-item-id="${item.id}" title="Remove">×</button>
@@ -1782,6 +1877,34 @@ function renderHowToShopItems() {
         removeHowToShopItem(itemId);
       });
     });
+
+  // Attach event listeners for clear buttons in How to Shop items
+  container.querySelectorAll('.clear-input').forEach((clearBtn) => {
+    const fieldId = clearBtn.dataset.clear;
+    const input = document.getElementById(fieldId);
+
+    if (input) {
+      // Show/hide clear button based on input value
+      const updateClearVisibility = () => {
+        clearBtn.classList.toggle('visible', input.value.trim().length > 0);
+      };
+
+      // Initialize visibility
+      updateClearVisibility();
+
+      // Update on input
+      input.addEventListener('input', updateClearVisibility);
+
+      // Clear button click handler
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        clearBtn.classList.remove('visible');
+        input.focus();
+        // Trigger the existing input event to update item data and preview
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  });
 }
 
 // Render How to Shop section (wrapper with expand/collapse)
@@ -1848,7 +1971,10 @@ function renderImportantNotesItems() {
                         </svg>
                     </div>
                     <div class="form-group">
-                        <input type="text" class="form-input important-notes-item-text" id="important-notes-item-${safeId}-text" name="important-notes-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Important safety information or key details">
+                        <div class="input-wrapper">
+                            <input type="text" class="form-input important-notes-item-text" id="important-notes-item-${safeId}-text" name="important-notes-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Important safety information or key details">
+                            <button class="clear-input" data-clear="important-notes-item-${safeId}-text" title="Clear">×</button>
+                        </div>
                     </div>
                     <div class="item-controls">
                         <button type="button" class="item-remove-btn" data-action="remove-important-notes-item" data-item-id="${item.id}" title="Remove">×</button>
@@ -1894,6 +2020,34 @@ function renderImportantNotesItems() {
         removeImportantNotesItem(itemId);
       });
     });
+
+  // Attach event listeners for clear buttons in Important Notes items
+  container.querySelectorAll('.clear-input').forEach((clearBtn) => {
+    const fieldId = clearBtn.dataset.clear;
+    const input = document.getElementById(fieldId);
+
+    if (input) {
+      // Show/hide clear button based on input value
+      const updateClearVisibility = () => {
+        clearBtn.classList.toggle('visible', input.value.trim().length > 0);
+      };
+
+      // Initialize visibility
+      updateClearVisibility();
+
+      // Update on input
+      input.addEventListener('input', updateClearVisibility);
+
+      // Clear button click handler
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        clearBtn.classList.remove('visible');
+        input.focus();
+        // Trigger the existing input event to update item data and preview
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  });
 }
 
 // Render Important Notes section (wrapper with expand/collapse)
@@ -3306,7 +3460,9 @@ export async function openPromotionEmailInClient(subject, htmlBody) {
   const link = document.createElement('a');
   link.href = url;
   const safeSubject = subject.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  link.download = `${safeSubject}.eml`;
+  const format = getRecommendedFormat();
+  const extension = format === 'emltpl' ? '.emltpl' : '.eml';
+  link.download = `${safeSubject}${extension}`;
   link.click();
 
   // Clean up
@@ -3531,20 +3687,26 @@ export async function generateBulkEmailFiles() {
   showToast(`✓ ${batches.length} email files generated successfully`);
 }
 
-// Quoted-printable encoder
+// Quoted-printable encoder with UTF-8 support
 export function encodeQuotedPrintable(str) {
+  // Use TextEncoder to properly handle UTF-8 encoding including surrogate pairs (emojis)
+  const encoder = new TextEncoder();
+  const utf8Bytes = encoder.encode(str);
+
+  // Now encode the UTF-8 bytes using quoted-printable
   let result = '';
-  for (let i = 0; i < str.length; i++) {
-    const c = str[i];
-    const code = c.charCodeAt(0);
+  for (let i = 0; i < utf8Bytes.length; i++) {
+    const byte = utf8Bytes[i];
+    const c = String.fromCharCode(byte);
+
     if (c === '=') {
       result += '=3D';
-    } else if (code < 32 || code > 126) {
-      if (code === 9 || code === 10 || code === 13) {
+    } else if (byte < 32 || byte > 126) {
+      if (byte === 9 || byte === 10 || byte === 13) {
         result += c;
       } else {
-        const hex = code.toString(16).toUpperCase();
-        result += '=' + (hex.length === 1 ? '0' : '') + hex;
+        const hex = byte.toString(16).toUpperCase().padStart(2, '0');
+        result += '=' + hex;
       }
     } else {
       result += c;
@@ -3640,7 +3802,9 @@ export function downloadEmailFile(templateId, content) {
       const link = document.createElement('a');
       link.href = url;
       const safeSubject = subject.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-      link.download = `${safeSubject}.eml`;
+      const format = getRecommendedFormat();
+      const extension = format === 'emltpl' ? '.emltpl' : '.eml';
+      link.download = `${safeSubject}${extension}`;
       link.click();
       URL.revokeObjectURL(url);
     }
@@ -4006,6 +4170,52 @@ export function selectTemplate(key) {
     setTimeout(() => {
       attachEventListeners();
     }, 0);
+
+    // Add event delegation for clear buttons in regular templates
+    elements.formFields.addEventListener('click', (e) => {
+      if (e.target.classList.contains('clear-input')) {
+        const fieldId = e.target.dataset.clear;
+        const input = document.getElementById(fieldId);
+        if (input) {
+          input.value = '';
+          e.target.classList.remove('visible');
+          input.focus();
+          updateEmailPreview();
+        }
+      }
+    });
+
+    // Add input listeners to show/hide clear buttons based on content
+    elements.formFields.addEventListener('input', (e) => {
+      if (
+        e.target.classList.contains('form-input') ||
+        e.target.classList.contains('form-textarea')
+      ) {
+        const fieldId = e.target.id;
+        const clearBtn = elements.formFields.querySelector(
+          `[data-clear="${fieldId}"]`
+        );
+        if (clearBtn) {
+          clearBtn.classList.toggle(
+            'visible',
+            e.target.value.trim().length > 0
+          );
+        }
+      }
+    });
+
+    // Initialize clear button visibility for pre-filled fields
+    const allInputs = elements.formFields.querySelectorAll(
+      '.form-input, .form-textarea'
+    );
+    allInputs.forEach((input) => {
+      const clearBtn = elements.formFields.querySelector(
+        `[data-clear="${input.id}"]`
+      );
+      if (clearBtn && input.value.trim().length > 0) {
+        clearBtn.classList.add('visible');
+      }
+    });
 
     // Clear output area with fresh reference
     const outputArea = document.getElementById('outputArea');
