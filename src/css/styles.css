@@ -496,6 +496,19 @@ body {
   color: var(--text-tertiary);
 }
 
+/* Override browser autofill styling for search box */
+.search-box:-webkit-autofill,
+.search-box:-webkit-autofill:hover,
+.search-box:-webkit-autofill:focus,
+.search-box:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-secondary) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  box-shadow: 0 0 0 1000px var(--bg-secondary) inset !important;
+  color: var(--text-primary) !important;
+  border: 2px solid var(--border-subtle) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 .clear-search {
   position: absolute;
   right: 8px;
