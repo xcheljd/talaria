@@ -62,10 +62,9 @@ export function getEmployeeSignature(format = 'text') {
     appState.userProfile && appState.userProfile.jobTitle
       ? appState.userProfile.jobTitle
       : 'Sales Associate';
-  const storeName =
-    appState.userProfile && appState.userProfile.storeName
-      ? appState.userProfile.storeName
-      : 'Citizen Company Store';
+  // Use store location (e.g., "the South Premium Outlets")
+  const storeLocation = getStoreLocation();
+  // Get store address from profile
   const address =
     appState.userProfile && appState.userProfile.storeAddress
       ? appState.userProfile.storeAddress
@@ -74,14 +73,20 @@ export function getEmployeeSignature(format = 'text') {
     appState.userProfile && appState.userProfile.storePhone
       ? appState.userProfile.storePhone
       : '555-123-4567';
-  const plusCode =
-    appState.userProfile && appState.userProfile.storePlusCode
-      ? appState.userProfile.storePlusCode
+  const jobTitle =
+    appState.userProfile && appState.userProfile.jobTitle
+      ? appState.userProfile.jobTitle.toLowerCase()
       : '';
-  const email =
-    appState.userProfile && appState.userProfile.storeEmail
-      ? appState.userProfile.storeEmail
-      : '';
+  // Determine email based on job title
+  let email = '';
+  const managerTitles = ['manager', 'director', 'supervisor', 'assistant manager'];
+  const isManager = managerTitles.some(t => jobTitle.includes(t));
+
+  if (isManager && appState.userProfile && appState.userProfile.companyEmail) {
+    email = appState.userProfile.companyEmail;
+  } else if (appState.userProfile && appState.userProfile.storeEmail) {
+    email = appState.userProfile.storeEmail;
+  }
 
   if (format === 'html') {
     // Helper function to escape HTML (inline for simplicity)
@@ -97,23 +102,26 @@ export function getEmployeeSignature(format = 'text') {
       const emailParts = email.split('@');
       const emailPrefix = emailParts[0] || '';
       const emailDomain = emailParts[1] || '';
-      emailHTML = `<p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
+      emailHTML = `<p style="margin: 10px 0 0 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
         Email: ${esc(emailPrefix)}<a href="mailto:${esc(email)}" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">@${esc(emailDomain)}</a>
     </p>`;
     }
 
     return `<div style="font-family: 'Century Gothic', Aptos, Arial, sans-serif; font-size: 9pt; color: #000000;">
     <p style="margin: 0; padding: 0;">
-        <strong style="font-size: 9pt;">${esc(name)} │ ${esc(title)}</strong>
+        <strong style="font-size: 9pt;">${esc(name)}</strong> │ ${esc(title)}
     </p>
     <p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
-        ______________________________________________________________________
+        <strong>______________________________________________________________________</strong>
     </p>
     <p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
-        <strong>Citizen Watch America</strong> - ${esc(storeName)}
+        <strong>Citizen Watch America</strong>
+    </p>
+    <p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
+        <strong>Citizen Company Store - ${esc(storeLocation)}</strong>
     </p>
     ${
-      address
+      address && address.trim()
         ? `<p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
         ${esc(address).replace(/\n/g, '<br>')}
     </p>`
@@ -122,13 +130,6 @@ export function getEmployeeSignature(format = 'text') {
     <p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
         Tel/SMS: ${esc(phone)}
     </p>
-    ${
-      plusCode
-        ? `<p style="margin: 0; padding: 0; font-size: 8pt;">
-        <a href="https://maps.google.com/?q=${encodeURIComponent(plusCode)}" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">View on Google Maps</a>
-    </p>`
-        : ''
-    }
     ${emailHTML}
     <p style="margin: 4px 0; padding: 0; font-size: 8pt;">
         <a href="https://us.alpinawatches.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Alpina</a> |
@@ -145,10 +146,11 @@ export function getEmployeeSignature(format = 'text') {
   // Default: plain text format
   return `${name} │ ${title}
 ______________________________________________________________________
-Citizen Watch America - ${storeName}
+Citizen Watch America
+Citizen Company Store - ${storeLocation}
 ${address ? address.replace(/\n/g, '\n') : ''}
 Tel/SMS: ${phone}
-
+${email ? `\nEmail: ${email}` : ''}
 Alpina | Bulova | Citizen | Frederique Constant
 
 Please consider the environment before printing this e-mail`;
@@ -376,6 +378,7 @@ I've added you to our VIP email list for weekly promotional updates featuring ex
 
 Please don't hesitate to reach out by replying to this email or call the store at ${getStorePhone()}. I would be happy to check availability on any models you're considering.
 
+Best regards,
 ${getEmployeeSignature()}`;
     },
   },
@@ -418,6 +421,7 @@ Would you like to schedule a time to see it in person? Please reply to this emai
 
 Looking forward to hearing from you!
 
+Best regards,
 ${getEmployeeSignature()}`;
     },
   },
@@ -454,6 +458,7 @@ This is truly a special piece that won't last long. I'd love to show it to you i
 
 Can you stop by this week, or would you like me to hold one for you? Please reply to this email or call the store at ${getStorePhone()}.
 
+Best regards,
 ${getEmployeeSignature()}
 
 P.S. - Given the limited availability, I'm only reaching out to our most valued collectors. Let me know if you're interested!`;
@@ -486,6 +491,7 @@ No purchase necessary - I just want to reconnect and ensure your watches are wor
 
 Would you have time this week or next to stop by? I'd love to show you how we've evolved while maintaining the exceptional values and service you remember.
 
+Best regards,
 ${getEmployeeSignature()}
 
 P.S. - We now carry everything from current season pieces to discontinued treasures, giving you more options than ever before.`;
@@ -538,6 +544,7 @@ If you have any questions, please don't hesitate to contact us at ${getStorePhon
 
 Thank you for shopping with ${getStoreName()}!
 
+Best regards,
 ${getEmployeeSignature()}`;
     },
   },
@@ -579,6 +586,7 @@ If you have any questions about your order or need any assistance, please don't 
 
 We hope you enjoy your new ${safe.brand} timepiece!
 
+Best regards,
 ${getEmployeeSignature()}`;
     },
   },
@@ -633,6 +641,7 @@ Total: ${safe.totalAmount}
 
 Order Status: ${orderStatus}
 
+Best regards,
 ${getEmployeeSignature()}`;
     },
   },
@@ -666,7 +675,7 @@ Customer: ${safe.customerName} (${safe.customerId})
 
 I have verified and signed off. Please let us know if you have any questions.
 
-Thank You,
+Best regards,
 ${safe.yourName}`;
     },
   },
@@ -689,7 +698,8 @@ UPS Tracking Number: ${safe.trackingNumber}
 
 The package has been prepared and is ready for UPS pickup.
 
-Thank you,`;
+Best regards,
+${getEmployeeSignature()}`;
     },
   },
   'text-availability': {

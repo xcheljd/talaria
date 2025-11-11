@@ -46,6 +46,7 @@ import {
   getStorePhone,
   getStoreName,
   getStoreLocation,
+  getEmployeeSignature,
   convertTextToHTML,
   sanitizeHTML,
   escapeAttr,
@@ -553,6 +554,11 @@ export function showRegularOutput() {
         elements.htmlContentRegular.classList.remove('active');
       }
 
+      // Restore original plain text output (if it was converted to HTML)
+      if (elements.outputArea && window.originalMessageContent) {
+        elements.outputArea.value = window.originalMessageContent;
+      }
+
       // Update preview iframe
       updateEmailPreview();
     });
@@ -569,6 +575,60 @@ export function showRegularOutput() {
       }
       if (elements.previewContentRegular) {
         elements.previewContentRegular.classList.remove('active');
+      }
+
+      // Convert plain text output to HTML and display it
+      if (elements.outputArea) {
+        const plainTextContent = elements.outputArea.value;
+        if (plainTextContent) {
+          // Extract subject and body
+          let subject = 'Email';
+          let plainTextBody = plainTextContent;
+          const subjectMatch = plainTextContent.match(/^Subject:\s*(.+)/m);
+          if (subjectMatch) {
+            subject = subjectMatch[1];
+            plainTextBody = plainTextContent.replace(/^Subject:.+\n/m, '').trim();
+          }
+
+          // Remove signature from plain text
+          let bodyWithoutSig = plainTextBody;
+          const bestRegardsMatch = plainTextBody.match(/\n\nBest regards,/);
+          if (bestRegardsMatch) {
+            bodyWithoutSig = plainTextBody.substring(0, bestRegardsMatch.index + bestRegardsMatch[0].length).trim();
+          }
+
+          // Convert body to HTML
+          const htmlBody = plainTextToPreviewHTML(bodyWithoutSig);
+
+          // Get HTML signature
+          const htmlSignature = getEmployeeSignature('html');
+
+          // Create complete HTML document
+          const htmlDocument = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(subject)}</title>
+</head>
+<body style="font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0); margin: 0; padding: 20px; background-color: #ffffff;">
+    <div style="max-width: 600px; margin: 0 auto;">
+        <div style="padding: 10px; background-color: #f5f5f5; border-bottom: 2px solid #ddd; margin-bottom: 20px;">
+            <div style="font-size: 14pt; font-weight: 600; color: #333;">${escapeHtml(subject)}</div>
+        </div>
+        <div>
+            ${htmlBody}
+            <div style="margin-top: 5px; padding-top: 10px;">
+                ${htmlSignature}
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+
+          // Display in textarea with syntax highlighting (show raw HTML)
+          elements.outputArea.value = htmlDocument;
+        }
       }
     });
   }
@@ -3308,10 +3368,11 @@ export function generateMessage() {
 
   // Collect data and validate
   template.fields.forEach((field) => {
-    const input = getDynamicElement(field.id);
+    const input = getDynamicElement(field);
     if (input) {
-      data[field.id] = input.value;
-      if (field.validation) {
+      data[field] = input.value;
+      const config = fieldConfig[field] || {};
+      if (config.validation) {
         if (!validateField(input)) {
           allFieldsValid = false;
           if (!firstInvalidField) {
@@ -3483,43 +3544,46 @@ export async function createEMLFile(
   htmlBody,
   attachments = []
 ) {
-  const boundaryMixed = `----mixed=${Date.now().toString(16)}`;
-  const boundaryRelated = `----related=${Date.now().toString(16)}`;
+  // Generate boundary using Outlook-style format
+  const timestamp = Date.now().toString(16);
+  const boundary = `_000_DM6PR11MB2683${timestamp}DM6PR11MB2683namp_`;
 
-  let eml = `From: "${fromName}" <${fromEmail}>\r\n`;
-  if (to) eml += `To: ${to}\r\n`;
-  if (bcc) eml += `Bcc: ${bcc}\r\n`;
-  eml += `Subject: ${subject}\r\n`;
-  eml += `MIME-Version: 1.0\r\n`;
-  eml += `Content-Type: multipart/mixed; boundary="${boundaryMixed}"\r\n\r\n`;
+  let eml = `Subject: ${subject}\r\n`;
+  eml += `Content-Language: en-US\r\n`;
+  eml += `X-MS-Has-Attach:\r\n`;
+  eml += `X-MS-TNEF-Correlator:\r\n`;
+  eml += `Content-Type: multipart/alternative; boundary="${boundary}"\r\n`;
+  eml += `MIME-Version: 1.0\r\n\r\n`;
 
-  // Mixed part (contains related part and attachments)
-  eml += `--${boundaryMixed}\r\n`;
-  eml += `Content-Type: multipart/related; boundary="${boundaryRelated}"\r\n\r\n`;
+  // Plain text part
+  eml += `--${boundary}\r\n`;
+  eml += `Content-Type: text/plain; charset="utf-8"\r\n`;
+  eml += `Content-Transfer-Encoding: quoted-printable\r\n\r\n`;
 
-  // Related part (contains HTML body)
-  eml += `--${boundaryRelated}\r\n`;
-  eml += `Content-Type: text/html; charset=utf-8\r\n`;
+  // Extract plain text from HTML body for plain text part
+  const plainTextContent = extractPlainText(htmlBody);
+  eml += `${encodeQuotedPrintable(plainTextContent)}\r\n\r\n`;
+
+  // HTML part
+  eml += `--${boundary}\r\n`;
+  eml += `Content-Type: text/html; charset="utf-8"\r\n`;
   eml += `Content-Transfer-Encoding: quoted-printable\r\n\r\n`;
   eml += `${encodeQuotedPrintable(htmlBody)}\r\n\r\n`;
 
-  // End of related part
-  eml += `--${boundaryRelated}--\r\n`;
+  // End boundary
+  eml += `--${boundary}--\r\n`;
 
-  // Add attachments
+  // Add attachments if present (would require separate handling)
   for (const pdf of attachments) {
     if (pdf.data) {
       const base64Data = pdf.data.split(',')[1];
-      eml += `--${boundaryMixed}\r\n`;
+      eml += `--${boundary}\r\n`;
       eml += `Content-Type: ${pdf.type}; name="${pdf.name}"\r\n`;
       eml += `Content-Disposition: attachment; filename="${pdf.name}"\r\n`;
       eml += `Content-Transfer-Encoding: base64\r\n\r\n`;
       eml += `${base64Data}\r\n`;
     }
   }
-
-  // End of mixed part
-  eml += `--${boundaryMixed}--\r\n`;
 
   return eml;
 }
@@ -3690,6 +3754,53 @@ export async function generateBulkEmailFiles() {
   showToast(`✓ ${batches.length} email files generated successfully`);
 }
 
+// Extract plain text from HTML for the text/plain part of EML
+export function extractPlainText(htmlBody) {
+  // Create a temporary div and set its innerHTML to parse the HTML
+  const temp = document.createElement('div');
+  temp.innerHTML = htmlBody;
+
+  // Get all text content and reconstruct with line breaks
+  let plainText = '';
+
+  const processNode = (node) => {
+    if (node.nodeType === 3) { // Text node
+      plainText += node.textContent;
+    } else if (node.nodeType === 1) { // Element node
+      const tagName = node.tagName.toLowerCase();
+
+      // Add line breaks for block elements
+      if (tagName === 'p' || tagName === 'div' || tagName === 'h1' ||
+          tagName === 'h2' || tagName === 'h3' || tagName === 'br') {
+        if (plainText && !plainText.endsWith('\r\n')) {
+          plainText += '\r\n\r\n';
+        }
+      }
+
+      // Process child nodes
+      for (let i = 0; i < node.childNodes.length; i++) {
+        processNode(node.childNodes[i]);
+      }
+
+      // Add line breaks after block elements
+      if ((tagName === 'p' || tagName === 'div') && node.nextSibling) {
+        if (!plainText.endsWith('\r\n')) {
+          plainText += '\r\n';
+        }
+      }
+    }
+  };
+
+  processNode(temp);
+
+  // Clean up excessive line breaks
+  plainText = plainText
+    .replace(/\r\n\r\n\r\n+/g, '\r\n\r\n')
+    .trim() + '\r\n';
+
+  return plainText;
+}
+
 // Quoted-printable encoder with UTF-8 support
 export function encodeQuotedPrintable(str) {
   // Use TextEncoder to properly handle UTF-8 encoding including surrogate pairs (emojis)
@@ -3783,14 +3894,51 @@ export function downloadEmailFile(templateId, content) {
   if (!template) return;
 
   let subject = '';
-  let body = content;
+  let plainTextBody = content;
 
   if (template.hasEditableSubject) {
     subject = window.currentSubjectLine || extractSubjectLine(content);
-    body = body.replace(/^Subject:.*\r?\n/im, '');
+    plainTextBody = content.replace(/^Subject:.*\r?\n/im, '');
   } else {
     subject = extractSubjectLine(content);
-    body = body.replace(/^Subject:.*\r?\n/im, '');
+    plainTextBody = content.replace(/^Subject:.*\r?\n/im, '');
+  }
+
+  // Check if content is HTML or plain text
+  const isHTML = isHTMLContent(plainTextBody);
+  let htmlBody;
+
+  if (isHTML) {
+    // Already HTML, use as-is
+    htmlBody = plainTextBody;
+  } else {
+    // Plain text - convert to HTML
+    let bodyWithoutSig = plainTextBody;
+    const bestRegardsMatch = plainTextBody.match(/\n\nBest regards,/);
+    if (bestRegardsMatch) {
+      bodyWithoutSig = plainTextBody.substring(0, bestRegardsMatch.index + bestRegardsMatch[0].length).trim();
+    }
+
+    // Convert body to HTML
+    const htmlBodyContent = plainTextToPreviewHTML(bodyWithoutSig);
+
+    // Get HTML signature
+    const htmlSignature = getEmployeeSignature('html');
+
+    // Build complete HTML document in Outlook format
+    htmlBody = `<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+<div dir="ltr" style="font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);">
+${htmlBodyContent}
+</div>
+<div id="ms-outlook-mobile-signature">
+${htmlSignature}
+</div>
+</body>
+</html>`;
   }
 
   const fromName =
@@ -3798,7 +3946,7 @@ export function downloadEmailFile(templateId, content) {
   const fromEmail = appState.userProfile.email || 'store@citizenwatchgroup.com';
 
   // Create EML file content
-  createEMLFile(fromName, fromEmail, '', '', subject, body, []).then(
+  createEMLFile(fromName, fromEmail, '', '', subject, htmlBody, []).then(
     (emlContent) => {
       const blob = new Blob([emlContent], { type: 'message/rfc822' });
       const url = URL.createObjectURL(blob);
@@ -3859,6 +4007,54 @@ export function init() {
 
 // Search tracking variable
 
+// Simple HTML conversion for email preview (handles basic formatting without signature processing)
+function plainTextToPreviewHTML(plainText) {
+  // Helper to escape HTML
+  const esc = (str) => {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  };
+
+  // Split into paragraphs (double line break = new paragraph)
+  const paragraphs = plainText.split(/\n\n+/);
+
+  const htmlParagraphs = paragraphs.map((para) => {
+    // Skip empty paragraphs
+    if (!para.trim()) return '';
+
+    const lines = para.split('\n');
+
+    // Check if this is a list (all non-empty lines start with bullet/dash)
+    const isList = lines.some((line) => line.trim()) &&
+      lines.every((line) => {
+        const trimmed = line.trim();
+        return !trimmed || trimmed.startsWith('•') || trimmed.startsWith('-');
+      });
+
+    if (isList) {
+      const listItems = lines
+        .filter((line) => line.trim())
+        .map((line) => {
+          const text = line.replace(/^[•-]\s*/, '').trim();
+          return `        <li style="margin: 5px 0;">${esc(text)}</li>`;
+        })
+        .join('\n');
+      return `    <ul style="margin: 10px 0; padding-left: 20px; font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt;">
+${listItems}
+    </ul>`;
+    } else {
+      // Regular paragraph - convert single line breaks to <br>
+      const htmlContent = lines
+        .map((line) => esc(line))
+        .join('<br>');
+      return `    <p style="margin: 10px 0; font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);">${htmlContent}</p>`;
+    }
+  });
+
+  return htmlParagraphs.filter(p => p).join('\n');
+}
+
 // Update email preview for regular templates
 export function updateEmailPreview() {
   const outputArea = document.getElementById('outputArea');
@@ -3881,36 +4077,114 @@ export function updateEmailPreview() {
   const htmlTab = document.querySelector('.output-tab[data-tab="html"]');
 
   if (previewTab) {
+    // Enable preview tab for both HTML and plain text content
+    previewTab.disabled = false;
+    previewTab.style.opacity = '1';
+    previewTab.style.cursor = 'pointer';
+
+    // Ensure preview is active
+    previewTab.classList.add('active');
+    if (htmlTab) htmlTab.classList.remove('active');
+    if (previewContent) previewContent.classList.add('active');
+    if (htmlContent) htmlContent.classList.remove('active');
+
+    let htmlTemplate;
     if (isHTML) {
-      // Enable preview tab for HTML content
-      previewTab.disabled = false;
-      previewTab.style.opacity = '1';
-      previewTab.style.cursor = 'pointer';
-
       // Wrap HTML content in email template
-      const htmlTemplate = wrapHtmlForEmailPreview(content);
-      emailPreview.srcdoc = htmlTemplate;
+      htmlTemplate = wrapHtmlForEmailPreview(content);
     } else {
-      // Disable preview tab for plain text
-      previewTab.disabled = true;
-      previewTab.style.opacity = '0.5';
-      previewTab.style.cursor = 'not-allowed';
+      // For plain text: extract subject, body, and render with proper HTML signature
+      let subject = 'Email Preview';
+      let plainTextBody = content;
 
-      // Switch to HTML tab
-      previewTab.classList.remove('active');
-      if (htmlTab) htmlTab.classList.add('active');
-
-      if (previewContent) {
-        previewContent.classList.remove('active');
-      }
-      if (htmlContent) {
-        htmlContent.classList.add('active');
+      // Extract subject line if present
+      const subjectMatch = content.match(/^Subject:\s*(.+)/m);
+      if (subjectMatch) {
+        subject = subjectMatch[1];
+        plainTextBody = content.replace(/^Subject:.+\n/m, '').trim();
       }
 
-      // Show message in iframe
-      emailPreview.srcdoc =
-        '<p style="padding: 20px; color: #999;">Preview not available for plain text content</p>';
+      // Remove plain text signature and get HTML signature instead
+      let bodyWithoutSig = plainTextBody;
+      // Look for "Best regards," followed by signature
+      const bestRegardsMatch = bodyWithoutSig.match(/\n\nBest regards,/);
+      if (bestRegardsMatch) {
+        // Keep everything up to and including the "Best regards," line (without the trailing newline)
+        bodyWithoutSig = bodyWithoutSig.substring(0, bestRegardsMatch.index + bestRegardsMatch[0].length).trim();
+      } else {
+        // Fallback: look for the underscores marker
+        const underscoreMatch = bodyWithoutSig.match(/______+/);
+        if (underscoreMatch) {
+          // Find the start of the signature (the line before the underscores)
+          // Look for the preceding double newline
+          const beforeUnderscores = bodyWithoutSig.substring(0, underscoreMatch.index);
+          const lastDoubleNewline = beforeUnderscores.lastIndexOf('\n\n');
+          if (lastDoubleNewline !== -1) {
+            bodyWithoutSig = beforeUnderscores.substring(0, lastDoubleNewline).trim();
+          }
+        }
+      }
+
+      // Convert body to HTML
+      const htmlBody = plainTextToPreviewHTML(bodyWithoutSig);
+
+      // Get HTML signature
+      const htmlSignature = getEmployeeSignature('html');
+
+      // Create full HTML document for preview
+      htmlTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(subject)}</title>
+    <style>
+        body {
+            font-family: Aptos, Arial, Helvetica, sans-serif;
+            font-size: 12pt;
+            color: rgb(0, 0, 0);
+            margin: 0;
+            padding: 20px;
+            background-color: #ffffff;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .email-header {
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .email-subject {
+            font-size: 14pt;
+            font-weight: 600;
+            color: #333;
+        }
+        .email-body a {
+            color: #0000ee;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <div class="email-subject">${escapeHtml(subject)}</div>
+        </div>
+        <div class="email-body">
+            ${htmlBody}
+            <div style="margin-top: 5px; padding-top: 10px;">
+                ${htmlSignature}
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
     }
+
+    emailPreview.srcdoc = htmlTemplate;
   }
 }
 

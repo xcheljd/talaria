@@ -464,7 +464,7 @@
                              <option value="Sales Associate/Keyholder">Sales Associate/Keyholder</option>
                              <option value="Assistant Store Manager">Assistant Store Manager</option>
                              <option value="Associate Store Manager">Associate Store Manager</option>
-                             <option value="Store Manager">Store Manager</option>
+                             <option value="General Manager">General Manager</option>
                              <option value="Area Manager">Area Manager</option>
                              <option value="Regional Manager">Regional Manager</option>
                              <option value="District Manager">District Manager</option>
@@ -482,7 +482,7 @@
                              placeholder="your.name@citizenwatchgroup.com"
                          >
                      </div>
-                     <div class="field-help">Required for management positions</div>
+                     <div class="field-help">Required for management positions — Used in email signatures for managers and above</div>
                      <div class="field-error" id="companyEmailError"></div>
                  </div>
 
@@ -511,7 +511,7 @@
                             required
                         >
                     </div>
-                    <div class="field-help">Format: "the [Mall Name]" or "[Shopping Center]"</div>
+                    <div class="field-help">Format: "the [Mall Name]" or "[Shopping Center]" — Used in email signatures</div>
                 </div>
 
                 <div class="form-group">
@@ -538,6 +538,7 @@
                             style="min-height: 80px;"
                         ></textarea>
                     </div>
+                    <div class="field-help">Used in email signatures. Include street, city, state, and ZIP code</div>
                 </div>
 
                 <div class="form-group">
@@ -552,7 +553,7 @@
                             required
                         >
                     </div>
-                    <div class="field-help">Format: 555-123-4567 or (555) 123-4567</div>
+                    <div class="field-help">Format: 555-123-4567 or (555) 123-4567 — Used in email signatures</div>
                     <div class="field-error" id="phoneError"></div>
                 </div>
 
@@ -567,7 +568,7 @@
                             required
                         >
                     </div>
-                    <div class="field-help">Use @citizenwatchgroup.com for company email</div>
+                    <div class="field-help">Use @citizenwatchgroup.com for company email — Used in email signatures for non-manager staff</div>
                     <div class="field-error" id="emailError"></div>
                 </div>
 
@@ -789,7 +790,7 @@
             const managementTitles = [
                 'Assistant Store Manager',
                 'Associate Store Manager',
-                'Store Manager',
+                'General Manager',
                 'Area Manager',
                 'Regional Manager',
                 'District Manager'
