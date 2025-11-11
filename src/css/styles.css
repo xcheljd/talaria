@@ -910,7 +910,11 @@ body {
 .form-input:-webkit-autofill,
 .form-input:-webkit-autofill:hover,
 .form-input:-webkit-autofill:focus,
-.form-input:-webkit-autofill:active {
+.form-input:-webkit-autofill:active,
+.form-textarea:-webkit-autofill,
+.form-textarea:-webkit-autofill:hover,
+.form-textarea:-webkit-autofill:focus,
+.form-textarea:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px var(--bg-secondary) inset !important;
   -webkit-text-fill-color: var(--text-primary) !important;
   box-shadow: 0 0 0 1000px var(--bg-secondary) inset !important;
