@@ -3270,6 +3270,32 @@ export function attachEventListeners() {
     renderSearchResults('');
   });
 
+  // Close search dropdown when clicking outside
+  const searchContainer = document.querySelector('.search-container');
+  document.addEventListener('click', (e) => {
+    if (
+      searchContainer &&
+      !searchContainer.contains(e.target) &&
+      elements.searchResults
+    ) {
+      elements.searchResults.classList.remove('visible');
+    }
+  });
+
+  // Handle search result clicks via event delegation
+  if (elements.searchResults) {
+    elements.searchResults.addEventListener('click', (e) => {
+      const resultItem = e.target.closest('.search-result-item');
+      if (resultItem && resultItem.dataset.templateKey) {
+        const templateKey = resultItem.dataset.templateKey;
+        selectTemplate(templateKey);
+        elements.searchResults.classList.remove('visible');
+        elements.searchBox.value = '';
+        elements.clearSearch.classList.remove('visible');
+      }
+    });
+  }
+
   // Initial call to update select arrows
   updateSelectArrows();
 }
