@@ -4066,6 +4066,15 @@ ${listItems}
   return htmlParagraphs.filter((p) => p).join('\n');
 }
 
+// Clear email preview iframe
+export function clearEmailPreview() {
+  const emailPreview = document.getElementById('emailPreview');
+  if (emailPreview) {
+    emailPreview.srcdoc =
+      '<p style="padding: 20px; color: #999;">No content to preview</p>';
+  }
+}
+
 // Update email preview for regular templates
 export function updateEmailPreview() {
   const outputArea = document.getElementById('outputArea');
@@ -4317,6 +4326,9 @@ export function selectTemplate(key) {
 
     currentTemplate = key;
     const template = templates[key];
+
+    // Clear the preview iframe immediately
+    clearEmailPreview();
 
     // Save selected template to localStorage for persistence across refreshes
     localStorage.setItem('selectedTemplate', key);
