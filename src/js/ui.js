@@ -4327,8 +4327,13 @@ export function selectTemplate(key) {
     currentTemplate = key;
     const template = templates[key];
 
-    // Clear the preview iframe immediately
+    // Clear the preview iframe, output, and cached content immediately
     clearEmailPreview();
+    window.originalMessageContent = '';
+    const outputElem = getDynamicElement('outputArea');
+    if (outputElem) {
+      outputElem.value = '';
+    }
 
     // Save selected template to localStorage for persistence across refreshes
     localStorage.setItem('selectedTemplate', key);
