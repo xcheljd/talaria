@@ -2209,6 +2209,9 @@ export function renderPromotionEmailForm() {
   // Replace existing title
   existingTitle.replaceWith(headerContainer);
 
+  // Update reference to new h2 element for future template switches
+  elements.formSectionTitle = headerContainer.querySelector('h2');
+
   elements.formFields.innerHTML = `
         <div class="form-group">
             <label class="form-label" for="promoDateRange">Date Range *</label>
@@ -4027,7 +4030,19 @@ export function selectTemplate(key) {
     localStorage.setItem('selectedTemplate', key);
 
     elements.templateSelect.value = key;
-    elements.formSectionTitle.textContent = `${template.name} Fields`;
+
+    // If coming from promotion email template, restore the original h2 element structure
+    const headerWrapper = document.querySelector('.section-header-with-controls');
+    if (headerWrapper) {
+      const originalH2 = document.createElement('h2');
+      originalH2.id = 'formSectionTitle';
+      originalH2.className = 'section-title';
+      originalH2.textContent = `${template.name} Fields`;
+      headerWrapper.replaceWith(originalH2);
+      elements.formSectionTitle = originalH2;
+    } else {
+      elements.formSectionTitle.textContent = `${template.name} Fields`;
+    }
 
     const placeholder = document.getElementById('formPlaceholder');
     if (placeholder) {
