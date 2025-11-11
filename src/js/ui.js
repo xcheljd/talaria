@@ -587,14 +587,18 @@ export function showRegularOutput() {
           const subjectMatch = plainTextContent.match(/^Subject:\s*(.+)/m);
           if (subjectMatch) {
             subject = subjectMatch[1];
-            plainTextBody = plainTextContent.replace(/^Subject:.+\n/m, '').trim();
+            plainTextBody = plainTextContent
+              .replace(/^Subject:.+\n/m, '')
+              .trim();
           }
 
           // Remove signature from plain text
           let bodyWithoutSig = plainTextBody;
           const bestRegardsMatch = plainTextBody.match(/\n\nBest regards,/);
           if (bestRegardsMatch) {
-            bodyWithoutSig = plainTextBody.substring(0, bestRegardsMatch.index + bestRegardsMatch[0].length).trim();
+            bodyWithoutSig = plainTextBody
+              .substring(0, bestRegardsMatch.index + bestRegardsMatch[0].length)
+              .trim();
           }
 
           // Convert body to HTML
@@ -3764,14 +3768,22 @@ export function extractPlainText(htmlBody) {
   let plainText = '';
 
   const processNode = (node) => {
-    if (node.nodeType === 3) { // Text node
+    if (node.nodeType === 3) {
+      // Text node
       plainText += node.textContent;
-    } else if (node.nodeType === 1) { // Element node
+    } else if (node.nodeType === 1) {
+      // Element node
       const tagName = node.tagName.toLowerCase();
 
       // Add line breaks for block elements
-      if (tagName === 'p' || tagName === 'div' || tagName === 'h1' ||
-          tagName === 'h2' || tagName === 'h3' || tagName === 'br') {
+      if (
+        tagName === 'p' ||
+        tagName === 'div' ||
+        tagName === 'h1' ||
+        tagName === 'h2' ||
+        tagName === 'h3' ||
+        tagName === 'br'
+      ) {
         if (plainText && !plainText.endsWith('\r\n')) {
           plainText += '\r\n\r\n';
         }
@@ -3794,9 +3806,7 @@ export function extractPlainText(htmlBody) {
   processNode(temp);
 
   // Clean up excessive line breaks
-  plainText = plainText
-    .replace(/\r\n\r\n\r\n+/g, '\r\n\r\n')
-    .trim() + '\r\n';
+  plainText = plainText.replace(/\r\n\r\n\r\n+/g, '\r\n\r\n').trim() + '\r\n';
 
   return plainText;
 }
@@ -3916,7 +3926,9 @@ export function downloadEmailFile(templateId, content) {
     let bodyWithoutSig = plainTextBody;
     const bestRegardsMatch = plainTextBody.match(/\n\nBest regards,/);
     if (bestRegardsMatch) {
-      bodyWithoutSig = plainTextBody.substring(0, bestRegardsMatch.index + bestRegardsMatch[0].length).trim();
+      bodyWithoutSig = plainTextBody
+        .substring(0, bestRegardsMatch.index + bestRegardsMatch[0].length)
+        .trim();
     }
 
     // Convert body to HTML
@@ -4026,7 +4038,8 @@ function plainTextToPreviewHTML(plainText) {
     const lines = para.split('\n');
 
     // Check if this is a list (all non-empty lines start with bullet/dash)
-    const isList = lines.some((line) => line.trim()) &&
+    const isList =
+      lines.some((line) => line.trim()) &&
       lines.every((line) => {
         const trimmed = line.trim();
         return !trimmed || trimmed.startsWith('•') || trimmed.startsWith('-');
@@ -4045,14 +4058,12 @@ ${listItems}
     </ul>`;
     } else {
       // Regular paragraph - convert single line breaks to <br>
-      const htmlContent = lines
-        .map((line) => esc(line))
-        .join('<br>');
+      const htmlContent = lines.map((line) => esc(line)).join('<br>');
       return `    <p style="margin: 10px 0; font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);">${htmlContent}</p>`;
     }
   });
 
-  return htmlParagraphs.filter(p => p).join('\n');
+  return htmlParagraphs.filter((p) => p).join('\n');
 }
 
 // Update email preview for regular templates
@@ -4110,17 +4121,24 @@ export function updateEmailPreview() {
       const bestRegardsMatch = bodyWithoutSig.match(/\n\nBest regards,/);
       if (bestRegardsMatch) {
         // Keep everything up to and including the "Best regards," line (without the trailing newline)
-        bodyWithoutSig = bodyWithoutSig.substring(0, bestRegardsMatch.index + bestRegardsMatch[0].length).trim();
+        bodyWithoutSig = bodyWithoutSig
+          .substring(0, bestRegardsMatch.index + bestRegardsMatch[0].length)
+          .trim();
       } else {
         // Fallback: look for the underscores marker
         const underscoreMatch = bodyWithoutSig.match(/______+/);
         if (underscoreMatch) {
           // Find the start of the signature (the line before the underscores)
           // Look for the preceding double newline
-          const beforeUnderscores = bodyWithoutSig.substring(0, underscoreMatch.index);
+          const beforeUnderscores = bodyWithoutSig.substring(
+            0,
+            underscoreMatch.index
+          );
           const lastDoubleNewline = beforeUnderscores.lastIndexOf('\n\n');
           if (lastDoubleNewline !== -1) {
-            bodyWithoutSig = beforeUnderscores.substring(0, lastDoubleNewline).trim();
+            bodyWithoutSig = beforeUnderscores
+              .substring(0, lastDoubleNewline)
+              .trim();
           }
         }
       }
@@ -4306,7 +4324,9 @@ export function selectTemplate(key) {
     elements.templateSelect.value = key;
 
     // If coming from promotion email template, restore the original h2 element structure
-    const headerWrapper = document.querySelector('.section-header-with-controls');
+    const headerWrapper = document.querySelector(
+      '.section-header-with-controls'
+    );
     if (headerWrapper) {
       const originalH2 = document.createElement('h2');
       originalH2.id = 'formSectionTitle';
