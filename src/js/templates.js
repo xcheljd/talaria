@@ -1,4 +1,8 @@
 import { appState } from './state.js';
+import { getEmployeeSignature as signatureFunction } from './signature.js';
+
+// Re-export for backward compatibility
+export const getEmployeeSignature = signatureFunction;
 
 // Helper function to sanitize HTML and prevent XSS
 export function sanitizeHTML(str) {
@@ -48,113 +52,8 @@ export function getFullStoreLocation() {
   return `Citizen Company Store at ${getStoreLocation()}`;
 }
 
-/**
- * Generate employee signature in text or HTML format
- * @param {string} format - 'text' for plain text, 'html' for HTML
- * @returns {string} Formatted signature
- */
-export function getEmployeeSignature(format = 'text') {
-  const name =
-    appState.userProfile && appState.userProfile.employeeName
-      ? appState.userProfile.employeeName
-      : 'Employee Name';
-  const title =
-    appState.userProfile && appState.userProfile.jobTitle
-      ? appState.userProfile.jobTitle
-      : 'Sales Associate';
-  // Use store location (e.g., "the South Premium Outlets")
-  const storeLocation = getStoreLocation();
-  // Get store address from profile
-  const address =
-    appState.userProfile && appState.userProfile.storeAddress
-      ? appState.userProfile.storeAddress
-      : '';
-  const phone =
-    appState.userProfile && appState.userProfile.storePhone
-      ? appState.userProfile.storePhone
-      : '555-123-4567';
-  const jobTitle =
-    appState.userProfile && appState.userProfile.jobTitle
-      ? appState.userProfile.jobTitle.toLowerCase()
-      : '';
-  // Determine email based on job title
-  let email = '';
-  const managerTitles = ['manager', 'director', 'supervisor', 'assistant manager'];
-  const isManager = managerTitles.some(t => jobTitle.includes(t));
-
-  if (isManager && appState.userProfile && appState.userProfile.companyEmail) {
-    email = appState.userProfile.companyEmail;
-  } else if (appState.userProfile && appState.userProfile.storeEmail) {
-    email = appState.userProfile.storeEmail;
-  }
-
-  if (format === 'html') {
-    // Helper function to escape HTML (inline for simplicity)
-    const esc = (str) => {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    };
-
-    // Split email for partial hyperlink formatting
-    let emailHTML = '';
-    if (email) {
-      const emailParts = email.split('@');
-      const emailPrefix = emailParts[0] || '';
-      const emailDomain = emailParts[1] || '';
-      emailHTML = `<p style="margin: 10px 0 0 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
-        Email: ${esc(emailPrefix)}<a href="mailto:${esc(email)}" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">@${esc(emailDomain)}</a>
-    </p>`;
-    }
-
-    return `<div style="font-family: 'Century Gothic', Aptos, Arial, sans-serif; font-size: 9pt; color: #000000;">
-    <p style="margin: 0; padding: 0;">
-        <strong style="font-size: 9pt;">${esc(name)}</strong> │ ${esc(title)}
-    </p>
-    <p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
-        <strong>______________________________________________________________________</strong>
-    </p>
-    <p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
-        <strong>Citizen Watch America</strong>
-    </p>
-    <p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
-        <strong>Citizen Company Store - ${esc(storeLocation)}</strong>
-    </p>
-    ${
-      address && address.trim()
-        ? `<p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
-        ${esc(address).replace(/\n/g, '<br>')}
-    </p>`
-        : ''
-    }
-    <p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
-        Tel/SMS: ${esc(phone)}
-    </p>
-    ${emailHTML}
-    <p style="margin: 4px 0; padding: 0; font-size: 8pt;">
-        <a href="https://us.alpinawatches.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Alpina</a> |
-        <a href="https://www.bulova.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Bulova</a> |
-        <a href="https://www.citizenwatch.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Citizen</a> |
-        <a href="https://us.frederiqueconstant.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Frederique Constant</a>
-    </p>
-    <p style="margin: 4px 0; padding: 0; font-size: 8pt; color: #0c8822;">
-        <strong>Please consider the environment before printing this e-mail</strong>
-    </p>
-</div>`;
-  }
-
-  // Default: plain text format
-  return `${name} │ ${title}
-______________________________________________________________________
-Citizen Watch America
-Citizen Company Store - ${storeLocation}
-${address ? address.replace(/\n/g, '\n') : ''}
-Tel/SMS: ${phone}
-${email ? `\nEmail: ${email}` : ''}
-Alpina | Bulova | Citizen | Frederique Constant
-
-Please consider the environment before printing this e-mail`;
-}
+// Note: getEmployeeSignature() has been moved to signature.js module
+// Import at top of file: import { getEmployeeSignature } from './signature.js';
 
 /**
  * Convert plain text email body to HTML format
