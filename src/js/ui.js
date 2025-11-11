@@ -3291,6 +3291,7 @@ export function attachEventListeners() {
         selectTemplate(templateKey);
         elements.searchResults.classList.remove('visible');
         elements.searchBox.value = '';
+        elements.searchBox.blur();
         elements.clearSearch.classList.remove('visible');
       }
     });
