@@ -3289,13 +3289,10 @@ export function attachEventListeners() {
       if (resultItem && resultItem.dataset.templateKey) {
         const templateKey = resultItem.dataset.templateKey;
         selectTemplate(templateKey);
-        elements.searchResults.classList.remove('visible');
         elements.searchBox.value = '';
+        elements.searchBox.classList.remove('active');
         elements.clearSearch.classList.remove('visible');
-        // Blur search box after template selection (with slight delay to ensure it takes effect)
-        setTimeout(() => {
-          elements.searchBox.blur();
-        }, 100);
+        elements.searchResults.classList.remove('visible');
       }
     });
   }
