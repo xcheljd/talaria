@@ -1,5 +1,5 @@
 import { appState } from './state.js';
-import { getEmployeeSignature as signatureFunction } from './signature.js';
+import { getEmployeeSignature as signatureFunction } from './shared/signature.js';
 
 // Re-export for backward compatibility
 export const getEmployeeSignature = signatureFunction;
@@ -166,8 +166,6 @@ export const templateHelp = {
     'Post-purchase thank you via text. Keep it brief and friendly.',
   'text-interest-followup':
     'Follow up on specific watch customer showed interest in. Use after store visit.',
-  'promotion-email':
-    'Generate HTML email for weekly promotions with discount tiers. Auto-generates title based on dates.',
 };
 
 // Field examples and validation rules
@@ -175,7 +173,6 @@ export const fieldConfig = {
   customerName: { example: 'John Smith', required: true },
   employeeName: { example: 'Your name', required: true },
   yourName: { example: 'Your name', required: true },
-  clientName: { example: 'John Smith', required: true },
   brand: {
     example: 'Citizen',
     required: true,
@@ -228,6 +225,45 @@ export const fieldConfig = {
   promoDiscount: { example: '60', required: true, validation: 'number' },
   promoCollections: { example: 'Corso, Avion, Marine Star', required: false },
   promoCallout: { example: 'Optional special note', required: false },
+  // Additional fields for email templates
+  keyFeature1: { example: 'Eco-Drive technology', required: false },
+  keyFeature2: { example: 'Solar powered', required: false },
+  keyFeature3: { example: 'Water resistant to 200m', required: false },
+  limitedDetails: {
+    example: 'Limited to 100 pieces worldwide',
+    required: true,
+  },
+  quantityAvailable: { example: '5', required: true, validation: 'number' },
+  customerAddress: {
+    example: '123 Main St, City, State 12345',
+    required: true,
+  },
+  managerNameOrStoreName: {
+    example: 'Store Manager or Store Name',
+    required: true,
+  },
+  creditCardVerified: {
+    example: 'Yes',
+    required: true,
+    suggestions: ['Yes', 'No'],
+  },
+  needsManagerVerification: {
+    example: 'Yes',
+    required: true,
+    suggestions: ['Yes', 'No'],
+  },
+  fulfillingStore: { example: 'Las Vegas Premium Outlets', required: true },
+  recipientStoreName: {
+    example: 'Los Angeles Premium Outlets',
+    required: true,
+  },
+  collectionName: { example: 'Eco-Drive Collection', required: true },
+  model1: { example: 'Eco-Drive Promaster', required: true },
+  price1: { example: '299', required: true, validation: 'currency' },
+  original1: { example: '399', required: true, validation: 'currency' },
+  model2: { example: 'Eco-Drive Satellite Wave', required: false },
+  price2: { example: '349', required: false, validation: 'currency' },
+  original2: { example: '449', required: false, validation: 'currency' },
 };
 
 export function getFieldSuggestions(field) {
@@ -257,6 +293,64 @@ export function validateTracking(value) {
   );
 }
 
+/**
+ * Validate required fields for a template
+ * @param {Object} data - Template data
+ * @param {Array} fields - Array of field names
+ * @throws {Error} If required fields are missing or empty
+ */
+export function validateRequiredFields(data, fields) {
+  const missingFields = [];
+
+  fields.forEach((field) => {
+    const config = fieldConfig[field];
+    if (config && config.required) {
+      const value = data[field];
+      if (
+        value === undefined ||
+        value === null ||
+        value.toString().trim() === ''
+      ) {
+        missingFields.push(field);
+      }
+    }
+  });
+
+  if (missingFields.length > 0) {
+    throw new Error(
+      `Required fields are missing or empty: ${missingFields.join(', ')}`
+    );
+  }
+}
+
+/**
+ * Generate a standard email greeting
+ * @param {string} customerName - Name of the customer
+ * @returns {string} Formatted greeting
+ */
+export function generateGreeting(customerName) {
+  return `Hi ${customerName},\n\n`;
+}
+
+/**
+ * Generate a standard email closing
+ * @returns {string} Formatted closing with signature
+ */
+export function generateClosing() {
+  return `\n\nBest regards,\n${getEmployeeSignature()}`;
+}
+
+/**
+ * Calculate sale price from MSRP and discount
+ * @param {number} msrp - Manufacturer's suggested retail price
+ * @param {number} discount - Discount percentage
+ * @returns {string} Formatted sale price
+ */
+export function calculateSalePrice(msrp, discount) {
+  const salePrice = (msrp * (1 - discount / 100)).toFixed(2);
+  return salePrice;
+}
+
 export const templates = {
   'new-customer-welcome': {
     name: 'New Customer Welcome',
@@ -266,19 +360,15 @@ export const templates = {
     supportsMailto: true,
     fields: ['customerName', 'employeeName'],
     generate: (data) => {
+      validateRequiredFields(data, ['customerName', 'employeeName']);
       const safe = sanitizeTemplateData(data);
       return `Subject: Welcome to Citizen Company Store - Your VIP Access
 
-Hi ${safe.customerName},
-
-Thank you for visiting our Citizen Company Store outlet location! It was a pleasure helping you explore our offerings today.
+${generateGreeting(safe.customerName)}Thank you for visiting our Citizen Company Store outlet location! It was a pleasure helping you explore our offerings today.
 
 I've added you to our VIP email list for weekly promotional updates featuring exclusive outlet pricing on our timepieces.
 
-Please don't hesitate to reach out by replying to this email or call the store at ${getStorePhone()}. I would be happy to check availability on any models you're considering.
-
-Best regards,
-${getEmployeeSignature()}`;
+Please don't hesitate to reach out by replying to this email or call the store at ${getStorePhone()}. I would be happy to check availability on any models you're considering.${generateClosing()}`;
     },
   },
   'new-model-arrival': {
@@ -299,15 +389,23 @@ ${getEmployeeSignature()}`;
       'employeeName',
     ],
     generate: (data) => {
+      validateRequiredFields(data, [
+        'customerName',
+        'brand',
+        'modelName',
+        'modelNumber',
+        'keyFeature1',
+        'price',
+        'employeeName',
+      ]);
       const safe = sanitizeTemplateData(data);
-      let features = `• ${safe.keyFeature1}`;
-      if (safe.keyFeature2) features += `\n• ${safe.keyFeature2}`;
-      if (safe.keyFeature3) features += `\n• ${safe.keyFeature3}`;
+      const features = [safe.keyFeature1, safe.keyFeature2, safe.keyFeature3]
+        .filter((feature) => feature && feature.trim())
+        .map((feature) => `• ${feature}`)
+        .join('\n');
       return `Subject: Great News! ${safe.modelName} Now Available
 
-Hi ${safe.customerName},
-
-Great news! The ${safe.brand} ${safe.modelName} (${safe.modelNumber}) you were interested in has arrived at our store.
+${generateGreeting(safe.customerName)}Great news! The ${safe.brand} ${safe.modelName} (${safe.modelNumber}) you were interested in has arrived at our store.
 
 Key Features:
 ${features}
@@ -318,10 +416,7 @@ I'd be happy to set up an appointment to show you all the features of this watch
 
 Would you like to schedule a time to see it in person? Please reply to this email or call the store at ${getStorePhone()}.
 
-Looking forward to hearing from you!
-
-Best regards,
-${getEmployeeSignature()}`;
+Looking forward to hearing from you!${generateClosing()}`;
     },
   },
   'limited-edition': {
@@ -341,6 +436,16 @@ ${getEmployeeSignature()}`;
       'employeeName',
     ],
     generate: (data) => {
+      validateRequiredFields(data, [
+        'customerName',
+        'brand',
+        'modelName',
+        'modelNumber',
+        'limitedDetails',
+        'price',
+        'quantityAvailable',
+        'employeeName',
+      ]);
       const safe = sanitizeTemplateData(data);
       return `Subject: Exclusive: Limited Edition ${safe.modelName} Available
 
@@ -369,12 +474,12 @@ P.S. - Given the limited availability, I'm only reaching out to our most valued 
     hasEditableSubject: true,
     supportsEML: true,
     supportsMailto: true,
-    fields: ['clientName', 'employeeName'],
+    fields: ['customerName', 'employeeName'],
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
       return `Subject: Your Store Has Evolved - We'd Love to Show You What's New
 
-Hi ${safe.clientName},
+ Hi ${safe.customerName},
 
 I was reviewing our VIP client records and noticed it's been a while since your last visit. I wanted to personally reach out because our store has undergone some exciting changes that I think you'll appreciate.
 
@@ -416,6 +521,18 @@ P.S. - We now carry everything from current season pieces to discontinued treasu
       'employeeName',
     ],
     generate: (data) => {
+      validateRequiredFields(data, [
+        'customerName',
+        'brand',
+        'modelName',
+        'modelNumber',
+        'price',
+        'discount',
+        'totalAmount',
+        'customerAddress',
+        'carrier',
+        'employeeName',
+      ]);
       const safe = sanitizeTemplateData(data);
       let trackingInfo = '';
       if (safe.trackingNumber) {
@@ -460,9 +577,20 @@ ${getEmployeeSignature()}`;
       'modelNumber',
       'trackingNumber',
       'customerAddress',
+      'carrier',
       'employeeName',
     ],
     generate: (data) => {
+      validateRequiredFields(data, [
+        'customerName',
+        'brand',
+        'modelName',
+        'modelNumber',
+        'trackingNumber',
+        'customerAddress',
+        'carrier',
+        'employeeName',
+      ]);
       const safe = sanitizeTemplateData(data);
       return `Subject: Your Watch Order - Tracking Information
 
@@ -558,7 +686,6 @@ ${getEmployeeSignature()}`;
       'unitsQuantity',
       'totalAmount',
       'fulfillingStore',
-      'yourName',
     ],
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
@@ -574,8 +701,8 @@ Customer: ${safe.customerName} (${safe.customerId})
 
 I have verified and signed off. Please let us know if you have any questions.
 
-Best regards,
-${safe.yourName}`;
+ Best regards,
+ ${getEmployeeSignature()}`;
     },
   },
   'inter-store-notification': {
@@ -631,10 +758,30 @@ ${getEmployeeSignature()}`;
       'endDate',
     ],
     generate: (data) => {
+      validateRequiredFields(data, [
+        'customerName',
+        'employeeName',
+        'modelName',
+        'discount',
+        'msrp',
+        'endDate',
+      ]);
       const safe = sanitizeTemplateData(data);
-      const msrp = parseFloat(safe.msrp) || 0;
-      const discount = parseFloat(safe.discount) || 0;
-      const salePrice = (msrp * (1 - discount / 100)).toFixed(2);
+
+      // Validate numeric fields
+      const msrp = parseFloat(safe.msrp);
+      const discount = parseFloat(safe.discount);
+
+      if (isNaN(msrp) || msrp <= 0) {
+        throw new Error('MSRP must be a valid positive number');
+      }
+      if (isNaN(discount) || discount < 0 || discount > 100) {
+        throw new Error(
+          'Discount must be a valid percentage between 0 and 100'
+        );
+      }
+
+      const salePrice = calculateSalePrice(msrp, discount);
 
       return `Hi ${safe.customerName}! This is ${safe.employeeName} from ${getFullStoreLocation()}. The ${safe.modelName} you were interested in is on ${safe.discount}% OFF promotion (MSRP ${safe.msrp} now ${salePrice} plus tax) until ${safe.endDate}. Please let me know if you'd like me to hold one for you. Thank you!`;
     },
@@ -661,10 +808,17 @@ ${getEmployeeSignature()}`;
     ],
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
-      let modelList = `• ${safe.model1} - Now ${safe.price1} (was ${safe.original1})`;
-      if (safe.model2 && safe.price2) {
-        modelList += `\n• ${safe.model2} - Now ${safe.price2} (was ${safe.original2})`;
-      }
+      const models = [
+        { name: safe.model1, price: safe.price1, original: safe.original1 },
+        { name: safe.model2, price: safe.price2, original: safe.original2 },
+      ].filter((model) => model.name && model.price);
+
+      const modelList = models
+        .map(
+          (model) =>
+            `• ${model.name} - Now ${model.price} (was ${model.original})`
+        )
+        .join('\n');
       return `Subject: ${safe.customerName}, This Week's ${safe.brand} Sale Includes Your Favorites
 
 Hi ${safe.customerName},
@@ -679,14 +833,6 @@ This promotion runs through ${safe.endDate}. Would you like me to check if we ha
 ${getEmployeeSignature()}`;
     },
   },
-  'promotion-email': {
-    name: 'Promotion Email',
-    category: 'Customer Email',
-    customTemplate: true,
-    fields: ['promoDateRange', 'promoYear', 'promoTitle'],
-    generate: () => {
-      // Custom template handled separately
-      return '';
-    },
-  },
+  // Note: promotion-email template has been moved to standalone promotion app
+  // See /promotion.html for the Promotion Email Generator
 };

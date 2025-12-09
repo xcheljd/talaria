@@ -603,6 +603,35 @@
 
                 <div class="form-section-divider"></div>
 
+                <!-- Electron download folder selection (optional) -->
+                <div class="form-group full-width" id="downloadFolderGroup">
+                    <label class="form-label">Download Folder (Desktop app)</label>
+                    <div class="input-wrapper" style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="downloadFolderPath"
+                            placeholder="Using system Downloads folder"
+                            readonly
+                            style="flex: 1;"
+                        >
+                        <button
+                            type="button"
+                            class="template-action-btn"
+                            id="chooseDownloadFolderBtn"
+                            style="flex-shrink: 0; white-space: nowrap;"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Choose Folder
+                        </button>
+                    </div>
+                    <div class="field-help">Used by the desktop (Electron) app to save EML/EMLTPL and ZIP files. In a regular browser, your default Downloads folder is always used.</div>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">Light Mode Color Palette</label>
                     <div class="input-wrapper">
@@ -665,7 +694,9 @@
             </div>
 
             <div class="skip-link">
-                <a href="index.html">Skip for now</a>
+                <a href="index.html">Go to Templates</a>
+                <span style="margin: 0 0.5rem; color: var(--text-tertiary);">|</span>
+                <a href="promotion.html">Go to Promotions</a>
             </div>
         </div>
     </div>
@@ -675,7 +706,7 @@
     <script>
         // Theme System - Matches main app.js
         function initTheme() {
-            const savedMode = localStorage.getItem('currentMode') || 'light';
+            const savedMode = localStorage.getItem('theme') || 'light';
             const lightPalette = localStorage.getItem('lightPalette') || 'pastel';
             const darkPalette = localStorage.getItem('darkPalette') || 'midnight-blue';
 
@@ -713,7 +744,7 @@
             const newMode = currentMode === 'light' ? 'dark' : 'light';
 
             document.documentElement.setAttribute('data-theme', newMode);
-            localStorage.setItem('currentMode', newMode);
+            localStorage.setItem('theme', newMode);
             updateThemeIndicator(newMode);
 
             // Update dropdown arrows to match new theme
@@ -1012,7 +1043,7 @@
                          // Theme preferences
                          lightPalette: localStorage.getItem('lightPalette') || 'pastel',
                          darkPalette: localStorage.getItem('darkPalette') || 'midnight-blue',
-                         currentMode: localStorage.getItem('currentMode') || 'light'
+                         currentMode: localStorage.getItem('theme') || 'light'
                      }
                 };
 
@@ -1137,7 +1168,7 @@
                                 setDarkPalette(profile.darkPalette);
                             }
                             if (profile.currentMode) {
-                                localStorage.setItem('currentMode', profile.currentMode);
+                                localStorage.setItem('theme', profile.currentMode);
                                 document.documentElement.setAttribute('data-theme', profile.currentMode);
                                 updateThemeIndicator(profile.currentMode);
                             }
@@ -1198,6 +1229,51 @@
                      toggleCompanyEmailField();
                  } catch (e) {
                     console.error('Error loading user data:', e);
+                }
+            }
+
+            // Initialize download folder UI (Electron-aware)
+            const downloadFolderInput = document.getElementById('downloadFolderPath');
+            const chooseDownloadFolderBtn = document.getElementById('chooseDownloadFolderBtn');
+
+            if (downloadFolderInput && chooseDownloadFolderBtn) {
+                if (window.electronAPI && typeof window.electronAPI.getDownloadDir === 'function') {
+                    // In Electron: fetch current dir from main and wire the button
+                    window.electronAPI
+                        .getDownloadDir()
+                        .then((dir) => {
+                            if (dir) {
+                                downloadFolderInput.value = dir;
+                            }
+                        })
+                        .catch((err) => {
+                            console.error('Error getting download dir from Electron:', err);
+                            // Fallback to any locally remembered value
+                            const localDir = localStorage.getItem('downloadFolderPath');
+                            if (localDir) {
+                                downloadFolderInput.value = localDir;
+                            }
+                        });
+
+                    chooseDownloadFolderBtn.addEventListener('click', async () => {
+                        try {
+                            const dir = await window.electronAPI.chooseDownloadDir();
+                            if (dir) {
+                                downloadFolderInput.value = dir;
+                                // Store for display only; actual path is owned by Electron main.
+                                localStorage.setItem('downloadFolderPath', dir);
+                                showToast(`Download folder set to: ${dir}`);
+                            }
+                        } catch (err) {
+                            console.error('Error choosing download folder:', err);
+                            showToast('Error choosing download folder');
+                        }
+                    });
+                } else {
+                    // In a regular browser: indicate that the system Downloads folder is used
+                    downloadFolderInput.value = 'Browser: uses system Downloads folder';
+                    chooseDownloadFolderBtn.disabled = true;
+                    chooseDownloadFolderBtn.textContent = 'Desktop app only';
                 }
             }
         });

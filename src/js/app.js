@@ -1,6 +1,6 @@
 // Import dependencies
-import { initIndexedDB } from './db.js';
-import { initTheme } from './theme.js';
+import { initIndexedDB } from './shared/db.js';
+import { initTheme } from './shared/theme.js';
 import { init } from './ui.js';
 
 // Start the application

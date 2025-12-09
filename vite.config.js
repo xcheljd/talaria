@@ -3,12 +3,13 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [],
-  // Configure as multi-page app with two entry points
+  // Configure as multi-page app with three entry points
   build: {
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
         start: resolve(__dirname, 'start.html'),
+        promotion: resolve(__dirname, 'promotion.html'),
       },
       output: {
         // Use es format - requires local server due to CORS

@@ -1,5 +1,5 @@
-import { appState } from './state.js';
-import { sanitizeHTML } from './templates.js';
+import { appState } from '../state.js';
+import { sanitizeHTML } from '../templates.js';
 
 /**
  * Signature Module

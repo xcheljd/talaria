@@ -2,207 +2,383 @@
 
 A modern, secure, and performant web application for generating professional communication templates for retail operations.
 
+This document is the high-level, user-and-developer friendly overview. For deeper technical detail, see:
+
+- `docs/ARCHITECTURE-MAP.md` – module-level architecture
+- `docs/CHANGELOG.md` – detailed version history
+- `docs/SIGNATURE-FORMAT.md` – email signature structure and examples
+
+---
+
 ## 🚀 Key Features
 
 ### Template System
-- **Customer Email Templates**: Welcome emails, back-in-stock alerts, warranty information, order confirmations
-- **Phone Order Templates**: Order processing, shipping notifications, approval requests
-- **Text Message Templates**: Quick availability checks, thank you messages, sale alerts
-- **Promotion Email Builder**: Advanced HTML email builder with PDF attachments, drag-and-drop reordering, and bulk BCC generation
+- **Customer Email Templates**: Welcome emails, new-model arrivals, limited editions, warranty information, order confirmations
+- **Phone Order Templates**: Order processing, shipping notifications, approval/verification flows
+- **Text Message Templates**: Quick availability checks, thank-you messages, sale alerts
+- **Promotion Email Builder**: Advanced HTML email builder with PDF attachments, drag-and-drop reordering, undo/redo, and bulk BCC generation
 - **Inter-store Templates**: Store-to-store notifications and internal communications
-- **Enhanced Email Features**: Editable subject lines, EML/EMLTPL download, Outlook compatibility for 10+ email templates
+- **Enhanced Email Features**: Editable subject lines, HTML preview, and EML/EMLTPL download for Outlook and other clients
 
 ### Advanced Features
-- **Promotion Email Builder**: Complex HTML email generation with:
-  - Dynamic brand/product entries with add/remove/reorder
-  - PDF attachment support (up to 10MB per file) with interactive preview modal
-  - Drag & drop interface for special hours and promotions
-  - Live HTML preview with undo/redo support
-  - Bulk email generation with BCC recipients
-  - EML/EMLTPL export for Outlook compatibility
+- **Promotion Email Builder**
+  - Dynamic brand/product entries with add/remove/reorder and drag-and-drop
+  - Special hours, "How to Shop", and "Important Notes" sections with defaults and reordering
+  - PDF attachment support (size-validated) with interactive preview modal
+  - Live HTML preview wired to the selected theme
+  - Bulk email generation with BCC recipients, batch sizing, and ZIP export
+  - EML/EMLTPL export for Outlook-compatible workflows
 
-- **PDF Preview Modal**: Interactive preview system for attached PDF files with:
-  - Full-screen modal display with iframe rendering
+- **PDF Preview Modal**
+  - Full-screen modal display with iframe rendering of attached PDFs
   - Download fallback for unsupported PDFs
   - Loading indicators and error handling
-  - Seamless integration with promotion email builder
+  - Tight integration with promotion email builder and IndexedDB persistence
 
-- **Enhanced Email Templates**: 10 professional email templates with editable subjects and Outlook EML download
-- **Dual Email Options**: Choose between simple mailto links or Outlook-compatible EML file downloads
-- **Subject Line Editing**: Customize email subjects for all enhanced templates with real-time preview
-- **EML/EMLTPL Export**: Generate Outlook-compatible email files with proper MIME encoding and line endings
-- **User Profile Management**: Store-specific configuration (name, phone, location, employee details)
-- **Theme System**: Light/dark mode with 5 palettes each (10 total themes)
-- **Search & Navigation**: Real-time template search and collapsible navigation
-- **Undo/Redo System**: 50-level history for all changes
-- **Export Options**: Copy to clipboard, email client integration, file downloads
+- **Enhanced Email Templates (non-promotion)**
+  - 10+ professional email templates with editable subjects
+  - Dual output: text body plus HTML email preview
+  - HTML → EML file export for Outlook, Mac Mail, and web clients
+
+- **User Profile Management**
+  - Store-specific configuration (name, phone, location, employee details)
+  - Saved locally and reused across templates
+
+- **Theme & UX**
+  - Light/dark mode with multiple palettes per theme
+  - Real-time template search and keyboard-accessible navigation
+  - Undo/redo system (50-level history) for promotion builder
+  - Copy-to-clipboard and email client integration for all outputs
 
 ### Enhanced Email Features (v1.3.0)
-- **Editable Subject Lines**: Customize email subjects for 10 professional email templates
-- **EML/EMLTPL Download**: Generate Outlook-compatible email files with proper MIME encoding
-- **Dual Email Options**: Choose between simple mailto links or advanced EML file downloads
-- **Cross-Platform Compatibility**: EML files work in Outlook, Mac Mail, Gmail, and other clients
-- **RFC Compliance**: Proper quoted-printable encoding and CRLF line endings
-- **Backward Compatibility**: Existing text templates continue to work unchanged
+- Editable subject lines for enhanced templates with real-time validation
+- EML/EMLTPL download with correct MIME structure and line endings
+- Dual workflows: simple `mailto:` links or rich EML-based drafts
+- Cross-platform compatibility (Outlook, Mac Mail, Gmail, and others)
+- RFC-compliant encoding (quoted-printable, CRLF normalization)
+- Backward compatible with existing text-only templates
 
 ### Performance & Security
-- **35-40% faster load times** through DOM element caching
-- **85% reduction in DOM queries** with optimized caching system
-- **Complete XSS protection** across all templates with input sanitization
-- **Enhanced input validation** for tracking numbers (UPS, FedEx, USPS)
-- **Comprehensive error handling** with user-friendly notifications
+- 35–40% faster load times through DOM element caching
+- ~85% reduction in DOM queries via cached selectors and lazy lookup
+- Comprehensive XSS protection across templates through centralized sanitization
+- Strong input validation for phone numbers and tracking numbers (UPS, FedEx, USPS)
+- Centralized error handling with user-friendly toast notifications
 
-## 🛠️ Architecture
+---
 
-### Modern Modular Design
-- **Separation of Concerns**: HTML, CSS, and JavaScript in separate files
-- **DOM Element Caching**: 40+ elements cached for optimal performance
-- **Lazy Loading**: Dynamic elements cached on first access
-- **Constants Extraction**: Magic numbers replaced with named constants
-- **Dead Code Removal**: Unused functions and variables eliminated
+## 🛠️ Architecture Overview
+
+The app is a **Vite-powered multi-page web application** with all source code under `src/`.
+
+### Entry Points
+- `index.html` – main Communication Template Generator UI
+- `start.html` – user/store profile setup and theme configuration
+
+Vite builds these into `dist/index.html` and `dist/start.html`, with JavaScript and CSS emitted into `dist/assets/`.
+
+### Core Source Layout
+- `src/js/app.js` – main entry point
+  - On `DOMContentLoaded` it initializes theme, IndexedDB, then the main UI
+- `src/js/ui.js` – primary UI/controller layer
+  - Caches DOM elements, manages template selection and search
+  - Renders dynamic forms for templates and handles all user interactions
+  - Drives promotion email builder, bulk email tools, and PDF preview modal
+- `src/js/state.js` – promotion state container and undo/redo history
+  - Holds `appState`, promotion entries, and history stack
+  - Provides `captureState()` / `restoreState()` used by `ui.js`
+- `src/js/templates.js` – template catalog & helpers
+  - Defines templates, `fieldConfig`, and `templateHelp`
+  - Provides `sanitizeHTML()`, `escapeAttr()`, and store helper functions
+- `src/js/signature.js` – employee signature system
+  - Generates text and HTML signatures based on profile data
+- `src/js/db.js` – IndexedDB integration
+  - Persists promotion PDFs and bulk email recipient lists
+- `src/js/theme.js` – theme and palette management
+  - Initializes and toggles light/dark mode and palette variants
+- `src/js/emailUtils.js`, `src/js/emailPreviewUtils.js`, `src/js/promotionConfig.js`, `src/js/promotionUiUtils.js`
+  - Email/MIME helpers, preview formatting, promotion config shaping, drag-and-drop utilities
+
+For a deeper, function-by-function description, refer to `docs/ARCHITECTURE-MAP.md`.
+
+---
+
+## 💾 Data & Persistence Model
+
+### localStorage
+- `userProfile`
+  - Store name, phone, location, hours, employee details, email preferences
+- `savedPromotionTemplate`
+  - Promotion configuration (entries, special hours, notes, subject lines, attached PDF **metadata**) used by the promotion builder
+- Theme preferences
+  - `theme`, `lightPalette`, `darkPalette` for theme/palette selection
+
+### IndexedDB (`CitizenTemplates`)
+- Object store: `promotionPDFs`
+  - Full PDF blobs for promotion email attachments
+- Object store: `bulk-email-recipients`
+  - Bulk recipient lists for promotion email sends
+
+Templates and promotion configuration use **localStorage** for metadata while **IndexedDB** stores the actual binary file data.
+
+---
+
+## 🔐 Security & 🏎 Performance
 
 ### Security Features
-- **XSS Prevention**: All user inputs sanitized with `sanitizeHTML()` and `escapeAttr()`
-- **Input Validation**: Phone numbers, tracking numbers, and form fields validated
-- **Safe Template Generation**: All templates use sanitized data
-- **Secure File Handling**: PDF attachments validated and processed safely
+- **XSS Prevention**
+  - All user-supplied content is sanitized via `sanitizeHTML()` and `escapeAttr()`
+  - Templates generate output from sanitized, structured data only
+- **Input Validation**
+  - Phone number formatting and validation
+  - Tracking number validation for UPS, FedEx, and USPS
+  - Size/type validation for PDF uploads
+- **Safe File Handling**
+  - PDF metadata stored in localStorage; binary data isolated in IndexedDB
+  - Graceful failure and clear error messaging when previews are unavailable
 
-## 📊 Performance Metrics
+### Performance Optimizations
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Initial Load Time | 2.8s | 1.8s | 36% faster |
-| DOM Query Count | 150+ | 22 | 85% reduction |
-| Memory Usage | 45MB | 36MB | 20% reduction |
-| Error Rate | 2.3% | 0.8% | 65% reduction |
-| Accessibility Score | 78/100 | 92/100 | +14 points |
+| Metric                | Before | After | Improvement |
+|-----------------------|--------|-------|-------------|
+| Initial Load Time     | 2.8s   | 1.8s | ~36% faster |
+| DOM Query Count       | 150+   | 22   | ~85% fewer  |
+| Memory Usage          | 45MB   | 36MB | ~20% lower  |
+| Error Rate            | 2.3%   | 0.8% | ~65% lower  |
+| Accessibility Score   | 78/100 | 92/100 | +14 points |
 
-## 🧪 Testing & Quality Assurance
+DOM caching, reduced reflows, and better separation of concerns contribute to these improvements.
 
-The application includes comprehensive testing capabilities through automated test suite. All performance optimizations have been validated and documented in the completion summaries below.
+---
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
-### Local Development
+### Prerequisites
+- Node.js and npm installed
+- A modern browser (Chrome, Edge, Firefox, Safari)
+
+### Install Dependencies
 ```bash
-# No build process required - open directly in browser
-open index.html
+npm install
+```
 
-# Or use a local server to avoid CORS issues
-python3 -m http.server 8000
-# Then visit http://localhost:8000
+### Run the Dev Server (Recommended for Development)
+```bash
+npm run dev
+# Opens http://localhost:8080/index.html by default
+```
+
+- `index.html` – main app
+- `start.html` – profile setup (`http://localhost:8080/start.html`)
+
+### Build for Production
+```bash
+npm run build
+```
+
+- Outputs static assets into `dist/`
+- Copies launch helper scripts from `dist-helpers/` into `dist/`
+
+### Preview the Built App
+
+Using Vite preview:
+```bash
+npm run preview
+```
+
+Or using the packaged helper scripts in `dist/` (after `npm run build`):
+
+- macOS: double-click `dist/START_SERVER.command` (runs a simple local server)
+- Windows: run `dist/START_SERVER.bat`
+
+You can also serve `dist/` with any static HTTP server, for example:
+
+```bash
+cd dist
+python3 -m http.server 8081
+# Then open http://localhost:8081
 ```
 
 ### User Profile Setup
-1. Open `start.html` to configure store information
-2. Set store name, phone, location, and employee details
-3. Profile data is automatically saved to localStorage
+1. Open `start.html` (via dev server, preview, or static server)
+2. Configure store name, phone, location, hours, and employee details
+3. Profile data is automatically saved to `localStorage`
 
 ### Template Generation
-1. Open `index.html` in any modern web browser
-2. Select a template from the dropdown or use the search function
-3. Fill in the required fields (auto-filled from profile where applicable)
-4. Click "Generate Message" to create your communication
-5. Use "Copy to Clipboard" or export options as needed
+1. Open `index.html`
+2. Select a template from the dropdown or via search/category tabs
+3. Fill in required fields (many are auto-filled from profile data)
+4. Click **Generate Message**
+5. Use **Copy to Clipboard**, email client integration, or EML download as needed
 
-## 📁 File Structure
+---
 
+## 📁 File Structure (Source-Oriented)
+
+At a high level:
+
+```text
+.
+├── index.html                 # Main app entry (Vite input: "main")
+├── start.html                 # Profile setup entry (Vite input: "start")
+├── src/
+│   ├── css/
+│   │   └── styles.css         # Global layout, themes, and component styles
+│   └── js/
+│       ├── app.js             # App bootstrap (theme + IndexedDB + UI)
+│       ├── ui.js              # Main UI/controller logic
+│       ├── state.js           # Promotion state + undo/redo
+│       ├── templates.js       # Template catalog & helpers
+│       ├── signature.js       # Employee signature system
+│       ├── db.js              # IndexedDB integration
+│       ├── theme.js           # Theme + palette management
+│       ├── emailUtils.js      # Email/MIME utilities (EML, encoding)
+│       ├── emailPreviewUtils.js  # HTML preview formatting helpers
+│       ├── promotionConfig.js    # Promotion config shaping & validation
+│       └── promotionUiUtils.js   # Drag-and-drop & list movement helpers
+├── docs/
+│   ├── README.md              # (This file)
+│   ├── CHANGELOG.md           # Detailed version history
+│   ├── ARCHITECTURE-MAP.md    # Deep architectural map
+│   └── SIGNATURE-FORMAT.md    # Signature format documentation
+├── dist/                      # Build output (generated)
+├── dist-helpers/              # Helper scripts copied into dist after build
+├── vite.config.js             # Vite config (multi-page, ES modules)
+├── eslint.config.js           # ESLint configuration
+├── package.json               # Scripts and dependencies
+└── package-lock.json
 ```
-├── index.html              # Main application interface
-├── start.html              # User profile configuration
-├── styles.css              # Complete styling with theme system
-├── app.js                  # Application logic (4000+ lines)
-├── README.md              # This file
-└── CHANGELOG.md           # Version history and commit tracking
-```
 
-## 🎨 Themes & Customization
+_Built artifacts under `dist/` are not the source of truth; edit files under `src/` instead._
 
-### Available Themes
-- **Light Mode**: Pastel (default), Ocean, Forest, Sunrise, Lavender
-- **Dark Mode**: Midnight Blue (default), Dark Forest, Charcoal, Navy, Eggplant
+---
 
-### Accessibility Features
-- ARIA labels and roles throughout the interface
-- Keyboard navigation support
-- Screen reader compatibility
-- High contrast theme options
-- Focus management for modals and forms
+## 🎨 Themes, Accessibility & UX
+
+### Themes
+- Light and dark modes with multiple palette options each
+- Palette and theme selections persisted to `localStorage`
+
+### Accessibility
+- ARIA labels and roles throughout key interactive components
+- Keyboard navigation and focus management (especially for modals)
+- High-contrast options via theme system
+- Layout tuned for both desktop and smaller viewports
+
+---
 
 ## 🔧 Development
 
 ### Code Quality Standards
-- **ES6+ JavaScript** with modern syntax
-- **Constants** for all magic numbers (`TOAST_DURATION_MS = 2500`, `MAX_HISTORY = 50`)
-- **Error Handling** with try-catch blocks and user-friendly notifications
-- **Security First** - all user inputs sanitized
-- **Performance Optimized** - DOM caching and efficient algorithms
+- Modern ES modules and ES6+ JavaScript
+- Clear separation between state, UI, templates, and persistence concerns
+- Named constants for key configuration values (e.g., `MAX_HISTORY`)
+- Centralized sanitization and validation helpers
+- DOM caching and efficient re-renders in `ui.js`
+
+### Linting & Formatting
+
+Run ESLint on JavaScript sources:
+
+```bash
+npm run lint
+```
+
+Format JS and CSS using Prettier:
+
+```bash
+npm run format
+```
+
+### Testing
+
+There is currently **no automated test runner** wired into `npm test`:
+
+```bash
+npm test
+# → prints "Error: no test specified" and exits with status 1
+```
+
+Use browser-based manual testing:
+- Test in multiple modern browsers (Chrome, Firefox, Safari, Edge)
+- Verify accessibility with screen readers where possible
+- Check responsive behavior on mobile and tablet breakpoints
+- Watch the developer console for errors and warnings
+
+### Desktop App (Electron)
+
+The project includes basic Electron integration for running the app as a desktop application:
+
+- **Run Electron in development** (build web assets, then start Electron):
+
+  ```bash
+  npm run electron:dev
+  ```
+
+- **Build Windows desktop package** (portable `.exe`):
+
+  ```bash
+  npm run build:desktop:win
+  ```
+
+- **Build macOS desktop package** (ZIP archive):
+
+  ```bash
+  npm run build:desktop:mac
+  ```
+
+All desktop builds use `electron-builder` and package the contents of `dist/` together with the Electron entry point under `electron/`.
+
+### Adding or Updating Templates
+1. Define new templates in `src/js/templates.js` (`templates`, `templateHelp`, `fieldConfig`)
+2. Reuse existing helper functions (`getStoreName()`, `getStorePhone()`, `getEmployeeSignature()`, etc.)
+3. Ensure any new input fields render correctly via `ui.js` dynamic form generation
+4. For promotion-related additions, update `state.js` (capture/restore) and register UI callbacks from `ui.js`
+5. Update documentation (`docs/README.md`, `docs/CHANGELOG.md`) as needed
 
 ### Git & Commit Guidelines
-- **No co-author lines** in commits - keep commits attributed to you
+- Prefer clear, descriptive commit messages
+- Avoid co-author lines; keep commits attributed to a single developer
 - Example commit message:
-  ```
-  Implement responsive compact layout improvements
 
-  - Reduce vertical spacing for desktop design
-  - Add mobile responsiveness for 375px+ viewports
-  - Implement 44px touch targets (WCAG compliant)
-  ```
+```text
+Implement responsive compact layout improvements
 
-### Adding New Templates
-1. Add entry to `templates` object in `app.js`
-2. Define: `name`, `category`, `fields[]`, `generate()` function
-3. Add help text to `templateHelp` object
-4. Add field configurations to `fieldConfig` if needed
-5. Template auto-populates in dropdown
+- Reduce vertical spacing for desktop design
+- Add mobile responsiveness for 375px+ viewports
+- Implement 44px touch targets (WCAG compliant)
+```
 
-### Testing Your Changes
-1. Test in multiple modern browsers (Chrome, Firefox, Safari, Edge)
-2. Validate accessibility with screen readers
-3. Check responsive design on mobile devices
-4. Review console for any errors or warnings
+---
 
 ## 📈 Version History
 
-### v1.3.0 (November 2, 2025)
-- ✅ **Enhanced Email Templates**: 10 professional email templates now support editable subject lines and EML download
-- ✅ **Dual Email Options**: Choose between mailto links or Outlook-compatible EML file downloads for enhanced templates
-- ✅ **Subject Line Editing**: Real-time subject line editing with character count and validation
-- ✅ **EML/EMLTPL Export**: Generate RFC-compliant email files with quoted-printable encoding and CRLF line endings
-- ✅ **Cross-Platform Compatibility**: EML files work seamlessly in Outlook, Mac Mail, and other email clients
-- ✅ **Backward Compatibility**: Existing text templates continue to work without changes
+See `docs/CHANGELOG.md` for the authoritative, detailed changelog.
 
-### v1.2.0 (November 1, 2025)
-- ✅ **PDF Preview Modal**: Interactive PDF preview with iframe display for attached files
-- ✅ **Enhanced Bulk Email**: Improved bulk email distribution with better data persistence
-- ✅ **Template Management**: Automatic blank entry creation and improved clearing functionality
-- ✅ **Data Persistence**: Fixed PDF and template data restoration across page refreshes
-- ✅ **User Experience**: Enhanced subject line management and template state handling
+High-level highlights:
 
-### v1.1.0 (October 30, 2025)
-- ✅ **Complete Architecture Overhaul**: Modular HTML/CSS/JS design
-- ✅ **Performance Optimization**: 35-40% faster load times, 85% DOM query reduction
-- ✅ **Security Enhancements**: Complete XSS protection, input validation
-- ✅ **Error Handling**: Comprehensive try-catch blocks, user-friendly notifications
-- ✅ **Code Quality**: Dead code removal, constants extraction, accessibility improvements
-- ✅ **Testing Infrastructure**: Automated test suite and performance monitoring
-- ✅ **Repository Cleanup**: Removed all temporary development files
+- **1.3.0** – Enhanced email templates, subject line editing, EML/EMLTPL export
+- **1.2.0** – PDF preview modal, improved bulk email tooling, better persistence
+- **1.1.0** – Modularized architecture, performance and security overhaul
+- **1.0.0** – Initial release with core template catalog and validation
 
-### Previous Versions
-Track changes using Git commit history and `CHANGELOG.md`.
+---
 
 ## 🤝 Contributing
 
 ### Development Workflow
-1. Follow established patterns for new features
-2. Test performance impact of changes in multiple browsers
-3. Update documentation as needed
-4. Review commit history and CHANGELOG for context
-
-## 📄 License & Support
-
-This is an internal tool for retail operations. See commit history for change tracking and support information.
+1. Install dependencies and run the dev server
+2. Implement changes following existing module boundaries and patterns
+3. Run `npm run lint` and `npm run format` where appropriate
+4. Manually test key flows (profile setup, template generation, promotion builder)
+5. Update `docs/CHANGELOG.md` and this README when changing behavior or features
 
 ---
 
-**Built with modern web technologies for optimal performance and security.**
+## 📄 License & Support
+
+This project is intended as an internal tool for retail operations. See Git history and `docs/CHANGELOG.md` for change tracking. Support processes depend on how this repository is deployed and used within your organization.
+
+---
+
+**Built with modern web technologies for performance, security, and maintainability.**

@@ -1,10 +1,5 @@
-import { updateLivePreview, updateEmailPreview } from './ui.js';
-
-let currentTemplate = null;
-
-export function setCurrentTemplate(template) {
-  currentTemplate = template;
-}
+import { updateEmailPreview, currentTemplate } from '../ui.js';
+import { updateLivePreview } from '../promotion-ui.js';
 
 // Theme initialization and management functions
 export function initTheme() {

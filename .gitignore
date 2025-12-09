@@ -35,3 +35,16 @@ node_modules/
 # Environment files (if needed in future)
 .env
 .env.local
+
+# Local backup artifacts
+backup/
+*.backup
+
+# Node/package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local Warp agent rules file (not committed)
+WARP.md
