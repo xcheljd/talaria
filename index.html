@@ -5,8 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Communication Template Generator</title>
     <link rel="stylesheet" href="/src/css/styles.css" />
+    <script>
+      (function() {
+        var theme = localStorage.getItem('theme') || 'light';
+        var lightPalette = localStorage.getItem('lightPalette') || 'pastel';
+        var darkPalette = localStorage.getItem('darkPalette') || 'midnight-blue';
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.setAttribute('data-light-palette', lightPalette);
+        document.documentElement.setAttribute('data-dark-palette', darkPalette);
+      })();
+    </script>
   </head>
   <body>
+    <div class="page-content">
     <div class="header">
       <div class="header-top">
         <h1>Communication Template Generator</h1>
@@ -55,13 +66,15 @@
         </div>
       </div>
       <div class="navigation" id="navigation">
-        <select
-          class="template-select"
-          id="templateSelect"
-          aria-label="Select template"
-        >
-          <option value="">Select a template...</option>
-        </select>
+        <div class="select-wrapper">
+          <select
+            class="template-select"
+            id="templateSelect"
+            aria-label="Select template"
+          >
+            <option value="">Select a template...</option>
+          </select>
+        </div>
 
         <div class="search-container">
           <input
@@ -287,6 +300,7 @@
           </button>
         </div>
       </div>
+    </div>
     </div>
 
     <!-- Vite will automatically bundle and inject the JavaScript -->

@@ -34,7 +34,12 @@ import {
   sanitizeHTML,
   escapeAttr,
 } from './templates.js';
-import { toggleTheme, updateSelectArrows } from './shared/theme.js';
+import { toggleTheme } from './shared/theme.js';
+import {
+  eyePreviewIcon,
+  codeBracketsIcon,
+  emailIcon,
+} from './shared/icons.js';
 import {
   parseEmailList,
   isValidEmail,
@@ -146,17 +151,11 @@ export function showRegularOutput() {
         <!-- Output Tabs -->
         <div class="output-tabs">
             <button class="output-tab active" data-tab="preview" title="Preview how the email looks in an email client">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                </svg>
+                ${eyePreviewIcon({ size: 16 })}
                 Preview
             </button>
             <button class="output-tab" data-tab="html" title="View the raw HTML code">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="16 18 22 12 16 6"></polyline>
-                    <polyline points="8 6 2 12 8 18"></polyline>
-                </svg>
+                ${codeBracketsIcon({ size: 16 })}
                 HTML
             </button>
         </div>
@@ -386,10 +385,7 @@ export function writeEmptyStateToIframe(iframe) {
         </head>
         <body>
             <div class="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                    <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
+                ${emailIcon({ size: 80 })}
                 <h3>No Preview Yet</h3>
                 <p>Fill in the form and click Generate to see your email preview</p>
             </div>
@@ -492,8 +488,6 @@ export function attachEventListeners() {
     });
   }
 
-  // Initial call to update select arrows
-  updateSelectArrows();
 }
 
 // Update calculated fields based on user input

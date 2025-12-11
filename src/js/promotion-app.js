@@ -11,6 +11,7 @@ import {
 } from './shared/db.js';
 import { resetToDefaults } from './promotion-ui.js';
 import { initTheme, toggleTheme } from './shared/theme.js';
+import { initPageTransitions } from './shared/pageTransitions.js';
 import { promotionState } from './promotion-state.js';
 import {
   init as initPromotionUI,
@@ -20,6 +21,7 @@ import {
   updateHowToShopEmail,
   generateSubjectLines,
   updateLivePreview,
+  writeEmptyStateToIframe,
 } from './promotion-ui.js';
 import {
   parseEmailList,
@@ -29,6 +31,7 @@ import {
   generateZipFilenameFromHTML,
 } from './shared/emailUtils.js';
 import { appState } from './state.js';
+import { warningIcon } from './shared/icons.js';
 
 // Initialize the promotion app when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
@@ -48,10 +51,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize theme first (must happen before UI renders)
   initTheme();
 
+  // Initialize page transitions
+  initPageTransitions();
+
   // Set up theme toggle button
   const themeToggle = document.getElementById('themeToggle');
   if (themeToggle) {
     themeToggle.addEventListener('click', toggleTheme);
+  }
+
+  // Write empty state to preview iframe immediately to prevent white flash
+  const previewIframe = document.getElementById('previewIframe');
+  if (previewIframe) {
+    writeEmptyStateToIframe(previewIframe);
   }
 
   // Initialize IndexedDB for PDF storage and recipients
@@ -449,9 +461,7 @@ function setupOutputButtons() {
       if (duplicateCount > 0) {
         statsHTML += `
           <span class="duplicate-warning">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-            </svg>
+            ${warningIcon({ size: 14 })}
             ${duplicateCount} duplicate${duplicateCount > 1 ? 's' : ''} removed
           </span>
         `;

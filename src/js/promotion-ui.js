@@ -26,6 +26,17 @@ import {
   validateAndNormalizeImportedConfig,
 } from './promotionConfig.js';
 import {
+  chevronIcon,
+  dragHandleIcon,
+  closeIcon,
+  emailIcon,
+  uploadIcon,
+  pdfIcon,
+  boldIcon,
+  italicIcon,
+  underlineIcon,
+} from './shared/icons.js';
+import {
   moveItemInArray,
   setupDragAndDrop,
   setupClearButtons,
@@ -161,10 +172,7 @@ export function writeEmptyStateToIframe(iframe) {
         </head>
         <body>
             <div class="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                    <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
+                ${emailIcon({ size: 80 })}
                 <h3>No Preview Yet</h3>
                 <p>Begin filling in the promotion details to start seeing a preview</p>
             </div>
@@ -177,9 +185,6 @@ export function writeEmptyStateToIframe(iframe) {
 // Current PDF preview state
 let currentPreviewPDF = null;
 let currentBlobUrl = null;
-
-// Flag to prevent duplicate renders
-let isRenderingPromotionForm = false;
 
 // ===== LIVE PREVIEW FUNCTIONS =====
 // Get CSS that simulates email client dark mode color inversion
@@ -619,10 +624,6 @@ export async function applyImportedConfig(rawConfig, collapseEntries = true) {
     });
   }
 
-  // Ensure sections start collapsed when importing templates
-  promotionState.howToShopExpanded = false;
-  promotionState.importantNotesExpanded = false;
-
   // Re-render all sections
   renderPromotionEntries();
   renderSpecialHours();
@@ -865,17 +866,10 @@ export function renderPromotionEntries() {
                 <div class="entry-header">
                     <div class="entry-header-left">
                         <div class="drag-handle" title="Drag to reorder">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                <circle cx="4" cy="3" r="1.5"/>
-                                <circle cx="4" cy="8" r="1.5"/>
-                                <circle cx="4" cy="13" r="1.5"/>
-                                <circle cx="12" cy="3" r="1.5"/>
-                                <circle cx="12" cy="8" r="1.5"/>
-                                <circle cx="12" cy="13" r="1.5"/>
-                            </svg>
+                            ${dragHandleIcon({ size: 16 })}
                         </div>
-                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-up" data-entry-id="${entry.id}" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
-                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-down" data-entry-id="${entry.id}" title="Move down" ${isLast ? 'disabled' : ''}>▼</button>
+                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-up" data-entry-id="${entry.id}" title="Move up" ${isFirst ? 'disabled' : ''}>${chevronIcon('up', { size: 10 })}</button>
+                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-down" data-entry-id="${entry.id}" title="Move down" ${isLast ? 'disabled' : ''}>${chevronIcon('down', { size: 10 })}</button>
                         <span class="entry-number">Entry ${index + 1}</span>
                         ${isCollapsed ? `<span class="entry-summary">${escapeHtml(summaryText)}</span>` : ''}
                     </div>
@@ -884,10 +878,7 @@ export function renderPromotionEntries() {
                             ${isCollapsed ? 'Expand' : 'Collapse'}
                         </button>
                         <button type="button" class="entry-remove-btn btn-base btn-icon-base btn-icon-danger" data-action="remove" data-entry-id="${entry.id}" title="Remove" aria-label="Remove entry">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                            ${closeIcon({ size: 16 })}
                         </button>
                     </div>
                 </div>
@@ -1024,7 +1015,7 @@ export function updateSpecialHourData(e) {
 
 // Render all special hours
 export function renderSpecialHours() {
-  const container = document.getElementById('specialHoursContainer');
+  const container = document.getElementById('specialHoursListContainer');
   if (!container) return;
 
   container.innerHTML = promotionState.specialHours
@@ -1049,13 +1040,10 @@ export function renderSpecialHours() {
                         </div>
                     </div>
                     <div class="hour-controls">
-                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-hour-up" data-hour-id="${hour.id}" title="Move up" ${isFirst ? 'disabled' : ''}>▲</button>
-                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-hour-down" data-hour-id="${hour.id}" title="Move down" ${isLast ? 'disabled' : ''}>▼</button>
+                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-hour-up" data-hour-id="${hour.id}" title="Move up" ${isFirst ? 'disabled' : ''}>${chevronIcon('up', { size: 10 })}</button>
+                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-hour-down" data-hour-id="${hour.id}" title="Move down" ${isLast ? 'disabled' : ''}>${chevronIcon('down', { size: 10 })}</button>
                         <button type="button" class="hour-remove-btn btn-base btn-icon-base btn-icon-danger" data-action="remove-hour" data-hour-id="${hour.id}" title="Remove" aria-label="Remove special hour">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                            ${closeIcon({ size: 16 })}
                         </button>
                     </div>
                 </div>
@@ -1114,7 +1102,7 @@ export function renderSpecialHours() {
 // Add a new How to Shop item
 export function addHowToShopItem() {
   const itemId = Date.now();
-  promotionState.howToShopItems.push({ id: itemId, text: '' });
+  promotionState.howToShopItems.push({ id: itemId, text: '', bold: false, italic: false, underline: false });
   renderHowToShopSection();
 }
 
@@ -1140,10 +1128,34 @@ export function moveHowToShopItemDown(itemId) {
     }
 }
 
-// Toggle How to Shop section
-export function toggleHowToShop() {
-  promotionState.howToShopExpanded = !promotionState.howToShopExpanded;
-  renderHowToShopSection();
+// Toggle bold formatting on How to Shop item
+export function toggleHowToShopItemBold(itemId) {
+  const item = promotionState.howToShopItems.find((i) => i.id === itemId);
+  if (item) {
+    item.bold = !item.bold;
+    renderHowToShopSection();
+    updateLivePreview();
+  }
+}
+
+// Toggle italic formatting on How to Shop item
+export function toggleHowToShopItemItalic(itemId) {
+  const item = promotionState.howToShopItems.find((i) => i.id === itemId);
+  if (item) {
+    item.italic = !item.italic;
+    renderHowToShopSection();
+    updateLivePreview();
+  }
+}
+
+// Toggle underline formatting on How to Shop item
+export function toggleHowToShopItemUnderline(itemId) {
+  const item = promotionState.howToShopItems.find((i) => i.id === itemId);
+  if (item) {
+    item.underline = !item.underline;
+    renderHowToShopSection();
+    updateLivePreview();
+  }
 }
 
 // Render How to Shop items (called when expanded)
@@ -1152,35 +1164,34 @@ function renderHowToShopItems() {
   if (!container) return;
 
   container.innerHTML = promotionState.howToShopItems
-    .map((item) => {
+    .map((item, index) => {
       const safeId = escapeAttr(String(item.id));
+      const isFirst = index === 0;
+      const isLast = index === promotionState.howToShopItems.length - 1;
 
       return `
             <div class="editable-item-row" data-item-id="${safeId}" draggable="true">
-                <div class="editable-item-fields">
-                    <div class="drag-handle" title="Drag to reorder">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <circle cx="4" cy="3" r="1.5"/>
-                            <circle cx="4" cy="8" r="1.5"/>
-                            <circle cx="4" cy="13" r="1.5"/>
-                            <circle cx="12" cy="3" r="1.5"/>
-                            <circle cx="12" cy="8" r="1.5"/>
-                            <circle cx="12" cy="13" r="1.5"/>
-                        </svg>
-                    </div>
-                    <div class="form-group">
-                        <div class="input-wrapper">
-                            <input type="text" class="form-input shop-item-text" id="shop-item-${safeId}-text" name="shop-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Visit us in-store for outlet-exclusive deals">
-                            <button class="clear-input" data-clear="shop-item-${safeId}-text" title="Clear">×</button>
+                <div class="entry-header">
+                    <div class="entry-header-left">
+                        <div class="drag-handle" title="Drag to reorder">
+                            ${dragHandleIcon({ size: 16 })}
                         </div>
+                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-up-how-to-shop" data-item-id="${item.id}" title="Move up" ${isFirst ? 'disabled' : ''}>${chevronIcon('up', { size: 10 })}</button>
+                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-down-how-to-shop" data-item-id="${item.id}" title="Move down" ${isLast ? 'disabled' : ''}>${chevronIcon('down', { size: 10 })}</button>
+                        <button type="button" class="format-btn btn-base btn-secondary-base btn-xs" data-action="toggle-bold-how-to-shop" data-item-id="${item.id}" title="Bold" ${item.bold ? 'data-active="true"' : ''}>${boldIcon({ size: 14 })}</button>
+                        <button type="button" class="format-btn btn-base btn-secondary-base btn-xs" data-action="toggle-italic-how-to-shop" data-item-id="${item.id}" title="Italic" ${item.italic ? 'data-active="true"' : ''}>${italicIcon({ size: 14 })}</button>
+                        <button type="button" class="format-btn btn-base btn-secondary-base btn-xs" data-action="toggle-underline-how-to-shop" data-item-id="${item.id}" title="Underline" ${item.underline ? 'data-active="true"' : ''}>${underlineIcon({ size: 14 })}</button>
                     </div>
-                    <div class="item-controls">
+                    <div class="entry-controls">
                         <button type="button" class="item-remove-btn btn-base btn-icon-base btn-icon-danger" data-action="remove-how-to-shop-item" data-item-id="${item.id}" title="Remove" aria-label="Remove shopping item">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                            ${closeIcon({ size: 16 })}
                         </button>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 0.5rem;">
+                    <div class="input-wrapper">
+                        <input type="text" class="form-input shop-item-text" id="shop-item-${safeId}-text" name="shop-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Visit us in-store for outlet-exclusive deals">
+                        <button class="clear-input" data-clear="shop-item-${safeId}-text" title="Clear">×</button>
                     </div>
                 </div>
             </div>
@@ -1227,6 +1238,53 @@ function renderHowToShopItems() {
       });
     });
 
+  // Attach event listeners for move buttons
+  container
+    .querySelectorAll('[data-action="move-up-how-to-shop"]')
+    .forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const itemId = parseInt(e.currentTarget.dataset.itemId);
+        moveHowToShopItemUp(itemId);
+      });
+    });
+
+  container
+    .querySelectorAll('[data-action="move-down-how-to-shop"]')
+    .forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const itemId = parseInt(e.currentTarget.dataset.itemId);
+        moveHowToShopItemDown(itemId);
+      });
+    });
+
+  // Attach event listeners for format buttons
+  container
+    .querySelectorAll('[data-action="toggle-bold-how-to-shop"]')
+    .forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const itemId = parseInt(e.currentTarget.dataset.itemId);
+        toggleHowToShopItemBold(itemId);
+      });
+    });
+
+  container
+    .querySelectorAll('[data-action="toggle-italic-how-to-shop"]')
+    .forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const itemId = parseInt(e.currentTarget.dataset.itemId);
+        toggleHowToShopItemItalic(itemId);
+      });
+    });
+
+  container
+    .querySelectorAll('[data-action="toggle-underline-how-to-shop"]')
+    .forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const itemId = parseInt(e.currentTarget.dataset.itemId);
+        toggleHowToShopItemUnderline(itemId);
+      });
+    });
+
   // Attach event listeners for clear buttons in How to Shop items
   setupClearButtons(container);
 }
@@ -1236,40 +1294,16 @@ export function renderHowToShopSection() {
   const wrapper = document.getElementById('howToShopWrapper');
   if (!wrapper) return;
 
-  if (!promotionState.howToShopExpanded) {
-    // Collapsed state - show summary
-    const itemCount = promotionState.howToShopItems.filter(
-      (item) => item.text && item.text.trim()
-    ).length;
-    wrapper.innerHTML = `
-            <div class="collapsible-section-header" data-action="toggle-how-to-shop">
-                <span class="section-label">How to Shop (${itemCount} items)</span>
-                <button type="button" class="edit-section-btn btn-base btn-secondary-base">Expand</button>
-            </div>
-        `;
-  } else {
-    // Expanded state - show all items
-    wrapper.innerHTML = `
-            <div class="collapsible-section-header expanded" data-action="toggle-how-to-shop">
-                <span class="section-label">How to Shop</span>
-                <button type="button" class="edit-section-btn btn-base btn-secondary-base">Collapse</button>
-            </div>
-            <div class="collapsible-section-content">
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                    <button type="button" class="btn btn-base btn-primary-base" data-action="add-how-to-shop-item" style="padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
-                </div>
-                <div id="howToShopItemsContainer"></div>
-            </div>
-        `;
-    // Render the items
-    renderHowToShopItems();
-  }
+  // Always show expanded content (card-level collapse handles hiding)
+  wrapper.innerHTML = `
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+        <button type="button" class="btn btn-base btn-primary-base" data-action="add-how-to-shop-item" style="padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
+    </div>
+    <div id="howToShopItemsContainer"></div>
+  `;
 
-  // Attach event listener for toggle button
-  const header = wrapper.querySelector('[data-action="toggle-how-to-shop"]');
-  if (header) {
-    header.addEventListener('click', toggleHowToShop);
-  }
+  // Render the items
+  renderHowToShopItems();
 
   // Update preview after rendering
   updateLivePreview();
@@ -1280,7 +1314,7 @@ export function renderHowToShopSection() {
 // Add a new Important Notes item
 export function addImportantNotesItem() {
   const itemId = Date.now();
-  promotionState.importantNotesItems.push({ id: itemId, text: '' });
+  promotionState.importantNotesItems.push({ id: itemId, text: '', bold: false, italic: false, underline: false });
   renderImportantNotesSection();
 }
 
@@ -1305,11 +1339,34 @@ export function moveImportantNotesItemDown(itemId) {
     }
 }
 
-// Toggle Important Notes section
-export function toggleImportantNotes() {
-  promotionState.importantNotesExpanded =
-    !promotionState.importantNotesExpanded;
-  renderImportantNotesSection();
+// Toggle bold formatting on Important Notes item
+export function toggleImportantNotesItemBold(itemId) {
+  const item = promotionState.importantNotesItems.find((i) => i.id === itemId);
+  if (item) {
+    item.bold = !item.bold;
+    renderImportantNotesSection();
+    updateLivePreview();
+  }
+}
+
+// Toggle italic formatting on Important Notes item
+export function toggleImportantNotesItemItalic(itemId) {
+  const item = promotionState.importantNotesItems.find((i) => i.id === itemId);
+  if (item) {
+    item.italic = !item.italic;
+    renderImportantNotesSection();
+    updateLivePreview();
+  }
+}
+
+// Toggle underline formatting on Important Notes item
+export function toggleImportantNotesItemUnderline(itemId) {
+  const item = promotionState.importantNotesItems.find((i) => i.id === itemId);
+  if (item) {
+    item.underline = !item.underline;
+    renderImportantNotesSection();
+    updateLivePreview();
+  }
 }
 
 // Render Important Notes items (called when expanded)
@@ -1318,35 +1375,34 @@ function renderImportantNotesItems() {
   if (!container) return;
 
   container.innerHTML = promotionState.importantNotesItems
-    .map((item) => {
+    .map((item, index) => {
       const safeId = escapeAttr(String(item.id));
+      const isFirst = index === 0;
+      const isLast = index === promotionState.importantNotesItems.length - 1;
 
       return `
             <div class="editable-item-row" data-item-id="${safeId}" draggable="true">
-                <div class="editable-item-fields">
-                    <div class="drag-handle" title="Drag to reorder">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <circle cx="4" cy="3" r="1.5"/>
-                            <circle cx="4" cy="8" r="1.5"/>
-                            <circle cx="4" cy="13" r="1.5"/>
-                            <circle cx="12" cy="3" r="1.5"/>
-                            <circle cx="12" cy="8" r="1.5"/>
-                            <circle cx="12" cy="13" r="1.5"/>
-                        </svg>
-                    </div>
-                    <div class="form-group">
-                        <div class="input-wrapper">
-                            <input type="text" class="form-input important-notes-item-text" id="important-notes-item-${safeId}-text" name="important-notes-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Important safety information or key details">
-                            <button class="clear-input" data-clear="important-notes-item-${safeId}-text" title="Clear">×</button>
+                <div class="entry-header">
+                    <div class="entry-header-left">
+                        <div class="drag-handle" title="Drag to reorder">
+                            ${dragHandleIcon({ size: 16 })}
                         </div>
+                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-up-important-notes" data-item-id="${item.id}" title="Move up" ${isFirst ? 'disabled' : ''}>${chevronIcon('up', { size: 10 })}</button>
+                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-down-important-notes" data-item-id="${item.id}" title="Move down" ${isLast ? 'disabled' : ''}>${chevronIcon('down', { size: 10 })}</button>
+                        <button type="button" class="format-btn btn-base btn-secondary-base btn-xs" data-action="toggle-bold-important-notes" data-item-id="${item.id}" title="Bold" ${item.bold ? 'data-active="true"' : ''}>${boldIcon({ size: 14 })}</button>
+                        <button type="button" class="format-btn btn-base btn-secondary-base btn-xs" data-action="toggle-italic-important-notes" data-item-id="${item.id}" title="Italic" ${item.italic ? 'data-active="true"' : ''}>${italicIcon({ size: 14 })}</button>
+                        <button type="button" class="format-btn btn-base btn-secondary-base btn-xs" data-action="toggle-underline-important-notes" data-item-id="${item.id}" title="Underline" ${item.underline ? 'data-active="true"' : ''}>${underlineIcon({ size: 14 })}</button>
                     </div>
-                    <div class="item-controls">
+                    <div class="entry-controls">
                         <button type="button" class="item-remove-btn btn-base btn-icon-base btn-icon-danger" data-action="remove-important-notes-item" data-item-id="${item.id}" title="Remove" aria-label="Remove important note">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                            ${closeIcon({ size: 16 })}
                         </button>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 0.5rem;">
+                    <div class="input-wrapper">
+                        <input type="text" class="form-input important-notes-item-text" id="important-notes-item-${safeId}-text" name="important-notes-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Important safety information or key details">
+                        <button class="clear-input" data-clear="important-notes-item-${safeId}-text" title="Clear">×</button>
                     </div>
                 </div>
             </div>
@@ -1395,6 +1451,53 @@ function renderImportantNotesItems() {
       });
     });
 
+  // Attach event listeners for move buttons
+  container
+    .querySelectorAll('[data-action="move-up-important-notes"]')
+    .forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const itemId = parseInt(e.currentTarget.dataset.itemId);
+        moveImportantNotesItemUp(itemId);
+      });
+    });
+
+  container
+    .querySelectorAll('[data-action="move-down-important-notes"]')
+    .forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const itemId = parseInt(e.currentTarget.dataset.itemId);
+        moveImportantNotesItemDown(itemId);
+      });
+    });
+
+  // Attach event listeners for format buttons
+  container
+    .querySelectorAll('[data-action="toggle-bold-important-notes"]')
+    .forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const itemId = parseInt(e.currentTarget.dataset.itemId);
+        toggleImportantNotesItemBold(itemId);
+      });
+    });
+
+  container
+    .querySelectorAll('[data-action="toggle-italic-important-notes"]')
+    .forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const itemId = parseInt(e.currentTarget.dataset.itemId);
+        toggleImportantNotesItemItalic(itemId);
+      });
+    });
+
+  container
+    .querySelectorAll('[data-action="toggle-underline-important-notes"]')
+    .forEach((button) => {
+      button.addEventListener('click', (e) => {
+        const itemId = parseInt(e.currentTarget.dataset.itemId);
+        toggleImportantNotesItemUnderline(itemId);
+      });
+    });
+
   // Attach event listeners for clear buttons in Important Notes items
   setupClearButtons(container);
 }
@@ -1404,42 +1507,16 @@ export function renderImportantNotesSection() {
   const wrapper = document.getElementById('importantNotesWrapper');
   if (!wrapper) return;
 
-  if (!promotionState.importantNotesExpanded) {
-    // Collapsed state - show summary
-    const itemCount = promotionState.importantNotesItems.filter(
-      (item) => item.text && item.text.trim()
-    ).length;
-    wrapper.innerHTML = `
-            <div class="collapsible-section-header" data-action="toggle-important-notes">
-                <span class="section-label">Important Notes (${itemCount} items)</span>
-                <button type="button" class="edit-section-btn btn-base btn-secondary-base">Expand</button>
-            </div>
-        `;
-  } else {
-    // Expanded state - show all items
-    wrapper.innerHTML = `
-            <div class="collapsible-section-header expanded" data-action="toggle-important-notes">
-                <span class="section-label">Important Notes</span>
-                <button type="button" class="edit-section-btn btn-base btn-secondary-base">Collapse</button>
-            </div>
-            <div class="collapsible-section-content">
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                    <button type="button" class="btn btn-base btn-primary-base" data-action="add-important-notes-item" style="padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
-                </div>
-                <div id="importantNotesItemsContainer"></div>
-            </div>
-        `;
-    // Render the items
-    renderImportantNotesItems();
-  }
+  // Always show expanded content (card-level collapse handles hiding)
+  wrapper.innerHTML = `
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+        <button type="button" class="btn btn-base btn-primary-base" data-action="add-important-notes-item" style="padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
+    </div>
+    <div id="importantNotesItemsContainer"></div>
+  `;
 
-  // Attach event listener for toggle button
-  const header = wrapper.querySelector(
-    '[data-action="toggle-important-notes"]'
-  );
-  if (header) {
-    header.addEventListener('click', toggleImportantNotes);
-  }
+  // Render the items
+  renderImportantNotesItems();
 
   // Update preview after rendering
   updateLivePreview();
@@ -1472,6 +1549,9 @@ function ensureStoreDirectionsImportantNote() {
     promotionState.importantNotesItems.push({
       id: Date.now() + 14,
       text: `Find us at ${directions}`,
+      bold: false,
+      italic: false,
+      underline: false,
     });
   }
 }
@@ -1497,25 +1577,34 @@ export function initializeDefaultItems() {
       {
         id: Date.now() + 1,
         text: 'Visit us in-store for outlet-exclusive deals',
+        bold: false,
+        italic: false,
+        underline: false,
       },
-      { id: Date.now() + 2, text: `Call ${storePhone} for availability` },
-      { id: Date.now() + 3, text: '$20 flat-rate ground shipping in US' },
-      { id: Date.now() + 4, text: `Email ${storeEmail}` },
+      { id: Date.now() + 2, text: `Call ${storePhone} for availability`, bold: false, italic: false, underline: false },
+      { id: Date.now() + 3, text: '$20 flat-rate ground shipping in US', bold: false, italic: false, underline: false },
+      { id: Date.now() + 4, text: `Email ${storeEmail}`, bold: false, italic: false, underline: false },
     ];
   }
 
   if (promotionState.importantNotesItems.length === 0) {
     promotionState.importantNotesItems = [
-      { id: Date.now() + 10, text: '*Select models only' },
+      { id: Date.now() + 10, text: '*Select models only', bold: false, italic: false, underline: false },
       {
         id: Date.now() + 11,
         text: 'See attached PDF for complete model details',
+        bold: false,
+        italic: false,
+        underline: false,
       },
       {
         id: Date.now() + 12,
         text: 'Limited availability - while supplies last',
+        bold: false,
+        italic: false,
+        underline: false,
       },
-      { id: Date.now() + 13, text: 'Email response time up to 48 hours' },
+      { id: Date.now() + 13, text: 'Email response time up to 48 hours', bold: false, italic: false, underline: false },
     ];
 
     // Add store directions / location notes if available
@@ -1644,11 +1733,7 @@ export function renderAttachedPDFs() {
       return `
             <div class="attached-pdf-item" data-pdf-id="${pdf.id}">
                 <div class="pdf-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <text x="12" y="17" font-size="6" text-anchor="middle" fill="currentColor">PDF</text>
-                    </svg>
+                    ${pdfIcon()}
                 </div>
                 <div class="pdf-info">
                     <div class="pdf-name ${clickableClass}"
@@ -1659,10 +1744,7 @@ export function renderAttachedPDFs() {
                     <div class="pdf-size">${displaySize}</div>
                 </div>
                 <button class="pdf-remove-btn btn-base btn-icon-base btn-icon-danger" data-action="remove-pdf" data-pdf-id="${pdf.id}" title="Remove PDF" aria-label="Remove PDF attachment">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
+                    ${closeIcon({ size: 16 })}
                 </button>
             </div>
         `;
@@ -1843,10 +1925,12 @@ export function renderSubjectLines() {
   container.innerHTML = `
         <div class="subject-line-dropdown-wrapper">
             <label class="subject-dropdown-label" for="subjectLineDropdown">Choose a subject line suggestion:</label>
-            <select id="subjectLineDropdown" class="subject-line-dropdown">
-                <option value="" disabled ${!promotionState.selectedSubjectLine ? 'selected' : ''}>Select a subject line...</option>
-                ${dropdownOptions}
-            </select>
+            <div class="select-wrapper">
+                <select id="subjectLineDropdown" class="subject-line-dropdown">
+                    <option value="" disabled ${!promotionState.selectedSubjectLine ? 'selected' : ''}>Select a subject line...</option>
+                    ${dropdownOptions}
+                </select>
+            </div>
         </div>
         <div id="selectedSubjectCard" class="selected-subject-card" style="display: ${displayValue ? 'block' : 'none'};">
             <label class="subject-card-label" for="selectedSubjectInput">Selected Subject Line (customizable):</label>
@@ -2122,6 +2206,15 @@ export function selectSubjectLine(index) {
 
 // ===== EMAIL HTML GENERATION =====
 
+// Helper function to apply formatting to item text
+function formatItemText(item) {
+  let text = escapeHtml(item.text);
+  if (item.bold) text = `<strong>${text}</strong>`;
+  if (item.italic) text = `<em>${text}</em>`;
+  if (item.underline) text = `<u>${text}</u>`;
+  return text;
+}
+
 // Generate the final HTML for the promotion email
 export function generatePromotionEmailHTML(data) {
   const dateRange = data.promoDateRange || '';
@@ -2219,13 +2312,13 @@ export function generatePromotionEmailHTML(data) {
   // Build How to Shop section from array
   let howToShopHTML = promotionState.howToShopItems
     .filter((item) => item.text && item.text.trim())
-    .map((item) => `• ${escapeHtml(item.text)}`)
+    .map((item) => `• ${formatItemText(item)}`)
     .join('<br>\n                    ');
 
   // Build Important Notes section from array
   let importantNotesHTML = promotionState.importantNotesItems
     .filter((item) => item.text && item.text.trim())
-    .map((item) => `• ${escapeHtml(item.text)}`)
+    .map((item) => `• ${formatItemText(item)}`)
     .join('<br>\n                    ');
 
   return `<!DOCTYPE html>
@@ -2320,293 +2413,6 @@ ${brandSections}
 </html>`;
 }
 
-// ===== MAIN FORM RENDERING =====
-
-// Render the promotion email form
-export function renderPromotionEmailForm() {
-  // Prevent duplicate renders
-  if (isRenderingPromotionForm) {
-    return;
-  }
-
-  isRenderingPromotionForm = true;
-
-  // Check if there's a saved template in localStorage
-  const savedTemplateStr = localStorage.getItem('savedPromotionTemplate');
-  let savedConfig = null;
-
-  if (savedTemplateStr) {
-    try {
-      savedConfig = JSON.parse(savedTemplateStr);
-    } catch (e) {
-      console.error('Error parsing saved template:', e);
-      savedConfig = null;
-    }
-  }
-
-  // Clear state arrays - will be populated either from saved template or defaults
-  promotionState.promotionEntries = [];
-  promotionState.specialHours = [];
-  promotionState.howToShopItems = [];
-  promotionState.importantNotesItems = [];
-  promotionState.attachedPDFs = [];
-  promotionState.generatedSubjectLines = [];
-  promotionState.selectedSubjectLine = null;
-
-  // Get form elements - support both main app (formFields) and standalone app (promotionFormContainer)
-  const formSectionTitle = document.getElementById('formSectionTitle');
-  const formFields =
-    document.getElementById('formFields') ||
-    document.getElementById('promotionFormContainer');
-  const isStandaloneApp = !!document.getElementById('promotionFormContainer');
-
-  if (!formFields) {
-    console.error('Form container not found');
-    isRenderingPromotionForm = false;
-    return;
-  }
-
-  // Update section header to include undo/redo buttons (only for main app integration)
-  if (formSectionTitle && !isStandaloneApp) {
-    const existingTitle = formSectionTitle;
-
-    // Create new header structure
-    const headerContainer = document.createElement('div');
-    headerContainer.className = 'section-header-with-controls';
-    headerContainer.innerHTML = `
-          <h2 class="section-title" style="margin-bottom: 0;">Promotion Email (HTML) Fields</h2>
-          <div class="section-header-controls">
-              <button type="button" class="undo-redo-btn btn-base btn-icon-base" id="undoBtn" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
-                  <span>↶ Undo</span>
-              </button>
-              <button type="button" class="undo-redo-btn btn-base btn-icon-base" id="redoBtn" title="Redo (Ctrl+Y)" aria-label="Redo" disabled>
-                  <span>↷ Redo</span>
-              </button>
-          </div>
-      `;
-
-    // Replace existing title
-    existingTitle.replaceWith(headerContainer);
-  }
-
-  formFields.innerHTML = `
-        <div class="form-group">
-            <label class="form-label" for="promoDateRange">Date Range *</label>
-            <div class="input-wrapper">
-                <input type="text" class="form-input" id="promoDateRange" placeholder="Nov 28 - Dec 1" required>
-                <button class="clear-input" data-clear="promoDateRange" title="Clear">×</button>
-            </div>
-            <div class="field-help">Used for auto-title generation and display</div>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label" for="promoYear">Year (optional)</label>
-            <div class="input-wrapper">
-                <input type="text" class="form-input" id="promoYear" placeholder="Auto-uses current year">
-                <button class="clear-input" data-clear="promoYear" title="Clear">×</button>
-            </div>
-            <div class="field-help">Override for cross-year sales (e.g., Dec 30 - Jan 3)</div>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label" for="promoTitle">Title (optional)</label>
-            <div class="input-wrapper">
-                <input type="text" class="form-input" id="promoTitle" placeholder="Leave blank for auto-generation">
-                <button class="clear-input" data-clear="promoTitle" title="Clear">×</button>
-            </div>
-            <div class="field-help">Auto-generates based on date (Black Friday, Holiday Sale, etc.)</div>
-        </div>
-
-
-
-        <div class="form-group full-width" style="margin-top: 1.25rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                <label class="form-label" style="margin-bottom: 0;">Discount Entries</label>
-                <button type="button" class="btn btn-base btn-primary-base" id="addEntryBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Entry</button>
-            </div>
-            <div id="promotionEntriesContainer"></div>
-        </div>
-
-        <div class="form-group full-width" style="margin-top: 1.25rem;">
-            <div id="howToShopWrapper"></div>
-        </div>
-
-        <div class="form-group full-width" style="margin-top: 0.75rem;">
-            <div id="importantNotesWrapper"></div>
-        </div>
-
-        <div class="form-group full-width" style="margin-top: 1.25rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                <label class="form-label" style="margin-bottom: 0;">Special Hours (optional)</label>
-                <button type="button" class="btn btn-base btn-primary-base" id="addHourBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Special Hours</button>
-            </div>
-            <div class="field-help" style="margin-bottom: 0.75rem;">For holidays or special sale hours (e.g., Black Friday extended hours)</div>
-            <div id="specialHoursContainer"></div>
-            <div id="specialHoursReminder" style="display: none; background: #fff3cd; border-left: 3px solid #ffc107; padding: 1rem; margin-top: 1rem;">
-                <strong>⚠️ Reminder:</strong> Don't forget to update your special hours on Yelp and Google Maps!
-            </div>
-        </div>
-    `;
-
-  // Wire up main form field event listeners
-  const dateRangeInput = document.getElementById('promoDateRange');
-  const yearInput = document.getElementById('promoYear');
-  const titleInput = document.getElementById('promoTitle');
-
-  if (dateRangeInput) {
-    dateRangeInput.addEventListener('input', () => {
-      const clearBtn = document.querySelector('[data-clear="promoDateRange"]');
-      if (clearBtn)
-        clearBtn.classList.toggle(
-          'visible',
-          dateRangeInput.value.trim().length > 0
-        );
-      updateLivePreview();
-    });
-    const clearBtn = document.querySelector('[data-clear="promoDateRange"]');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        dateRangeInput.value = '';
-        clearBtn.classList.remove('visible');
-        dateRangeInput.focus();
-        updateLivePreview();
-      });
-    }
-  }
-
-  if (yearInput) {
-    yearInput.addEventListener('input', () => {
-      const clearBtn = document.querySelector('[data-clear="promoYear"]');
-      if (clearBtn)
-        clearBtn.classList.toggle('visible', yearInput.value.trim().length > 0);
-      updateLivePreview();
-    });
-    const clearBtn = document.querySelector('[data-clear="promoYear"]');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        yearInput.value = '';
-        clearBtn.classList.remove('visible');
-        yearInput.focus();
-        updateLivePreview();
-      });
-    }
-  }
-
-  if (titleInput) {
-    titleInput.addEventListener('input', () => {
-      const clearBtn = document.querySelector('[data-clear="promoTitle"]');
-      if (clearBtn)
-        clearBtn.classList.toggle(
-          'visible',
-          titleInput.value.trim().length > 0
-        );
-      updateLivePreview();
-    });
-    const clearBtn = document.querySelector('[data-clear="promoTitle"]');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        titleInput.value = '';
-        clearBtn.classList.remove('visible');
-        titleInput.focus();
-        updateLivePreview();
-      });
-    }
-  }
-
-  // Wire up add entry and add hour buttons
-  const addEntryBtn = document.getElementById('addEntryBtn');
-  if (addEntryBtn) {
-    addEntryBtn.addEventListener('click', addPromotionEntry);
-  }
-
-  const addHourBtn = document.getElementById('addHourBtn');
-  if (addHourBtn) {
-    addHourBtn.addEventListener('click', addSpecialHour);
-  }
-
-  // Wire up start over button
-  const startOverBtn = document.getElementById('startOverBtn');
-  if (startOverBtn) {
-    startOverBtn.addEventListener('click', resetToDefaults);
-  }
-
-  // Wire up PDF preview modal buttons
-  const pdfModalClose = document.getElementById('pdfModalClose');
-  const pdfModalBackdrop = document.querySelector('.pdf-modal-backdrop');
-  const pdfDownloadBtn = document.getElementById('pdfDownloadBtn');
-  const pdfDownloadFallback = document.getElementById('pdfDownloadFallback');
-
-  if (pdfModalClose) {
-    pdfModalClose.addEventListener('click', closePDFPreview);
-  }
-  if (pdfModalBackdrop) {
-    pdfModalBackdrop.addEventListener('click', closePDFPreview);
-  }
-  if (pdfDownloadBtn) {
-    pdfDownloadBtn.addEventListener('click', downloadPDFFromPreview);
-  }
-  if (pdfDownloadFallback) {
-    pdfDownloadFallback.addEventListener('click', downloadPDFFromPreview);
-  }
-
-  // Add escape key to close modal
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      const modal = document.getElementById('pdfPreviewModal');
-      if (modal && modal.style.display !== 'none') {
-        closePDFPreview();
-      }
-    }
-  });
-
-  // Wire up duplicated buttons
-  const saveTemplateBtnDuplicate = document.getElementById(
-    'saveTemplateBtnDuplicate'
-  );
-  const importTemplateBtnDuplicate = document.getElementById(
-    'importTemplateBtnDuplicate'
-  );
-  const exportTemplateBtnDuplicate = document.getElementById(
-    'exportTemplateBtnDuplicate'
-  );
-  const startOverBtnDuplicate = document.getElementById(
-    'startOverBtnDuplicate'
-  );
-
-  if (saveTemplateBtnDuplicate) {
-    saveTemplateBtnDuplicate.addEventListener('click', savePromotionTemplate);
-  }
-  if (importTemplateBtnDuplicate) {
-    importTemplateBtnDuplicate.addEventListener(
-      'click',
-      importPromotionTemplate
-    );
-  }
-  if (exportTemplateBtnDuplicate) {
-    exportTemplateBtnDuplicate.addEventListener(
-      'click',
-      exportPromotionTemplate
-    );
-  }
-  if (startOverBtnDuplicate) {
-    startOverBtnDuplicate.addEventListener('click', resetToDefaults);
-  }
-
-  // Load saved template or initialize defaults
-  // This must happen after form HTML is created so containers exist
-  if (savedConfig) {
-    // Load saved template data
-    applyImportedConfig(savedConfig, true);
-  } else {
-    // No saved template - initialize with defaults
-    initializeDefaultItems();
-    addPromotionEntry();
-  }
-
-  // Reset the rendering flag
-  isRenderingPromotionForm = false;
-}
-
 // ===== PDF SECTION FOR CENTER COLUMN =====
 
 // Initialize PDF section in the center column
@@ -2620,11 +2426,7 @@ function initPDFSection() {
       <div class="pdf-upload-dropzone" id="pdfDropzone">
         <input type="file" id="pdfFileInput" accept=".pdf,application/pdf" multiple style="display: none;">
         <div class="dropzone-content">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
+          ${uploadIcon({ size: 48 })}
           <p class="dropzone-text">Click to upload or drag and drop PDF files</p>
           <p class="dropzone-hint">Maximum 10MB per file</p>
         </div>
@@ -2770,6 +2572,193 @@ export async function resetToDefaults() {
   showToast('Reset to defaults completed');
 }
 
+// ===== CARD-SPECIFIC RENDER FUNCTIONS =====
+
+// Render Basic Details card (Date Range, Year, Title)
+function renderBasicDetailsForm() {
+  const container = document.getElementById('basicDetailsContainer');
+  if (!container) {
+    console.error('Basic details container not found');
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="form-group">
+        <label class="form-label" for="promoDateRange">Date Range *</label>
+        <div class="input-wrapper">
+            <input type="text" class="form-input" id="promoDateRange" placeholder="Nov 28 - Dec 1" required>
+            <button class="clear-input" data-clear="promoDateRange" title="Clear">×</button>
+        </div>
+        <div class="field-help">Used for auto-title generation and display</div>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" for="promoYear">Year (optional)</label>
+        <div class="input-wrapper">
+            <input type="text" class="form-input" id="promoYear" placeholder="Auto-uses current year">
+            <button class="clear-input" data-clear="promoYear" title="Clear">×</button>
+        </div>
+        <div class="field-help">Override for cross-year sales (e.g., Dec 30 - Jan 3)</div>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" for="promoTitle">Title (optional)</label>
+        <div class="input-wrapper">
+            <input type="text" class="form-input" id="promoTitle" placeholder="Leave blank for auto-generation">
+            <button class="clear-input" data-clear="promoTitle" title="Clear">×</button>
+        </div>
+        <div class="field-help">Auto-generates based on date (Black Friday, Holiday Sale, etc.)</div>
+    </div>
+  `;
+
+  // Wire up form field event listeners
+  const dateRangeInput = document.getElementById('promoDateRange');
+  const yearInput = document.getElementById('promoYear');
+  const titleInput = document.getElementById('promoTitle');
+
+  if (dateRangeInput) {
+    dateRangeInput.addEventListener('input', () => {
+      const clearBtn = document.querySelector('[data-clear="promoDateRange"]');
+      if (clearBtn)
+        clearBtn.classList.toggle(
+          'visible',
+          dateRangeInput.value.trim().length > 0
+        );
+      updateLivePreview();
+    });
+    const clearBtn = document.querySelector('[data-clear="promoDateRange"]');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        dateRangeInput.value = '';
+        clearBtn.classList.remove('visible');
+        dateRangeInput.focus();
+        updateLivePreview();
+      });
+    }
+  }
+
+  if (yearInput) {
+    yearInput.addEventListener('input', () => {
+      const clearBtn = document.querySelector('[data-clear="promoYear"]');
+      if (clearBtn)
+        clearBtn.classList.toggle('visible', yearInput.value.trim().length > 0);
+      updateLivePreview();
+    });
+    const clearBtn = document.querySelector('[data-clear="promoYear"]');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        yearInput.value = '';
+        clearBtn.classList.remove('visible');
+        yearInput.focus();
+        updateLivePreview();
+      });
+    }
+  }
+
+  if (titleInput) {
+    titleInput.addEventListener('input', () => {
+      const clearBtn = document.querySelector('[data-clear="promoTitle"]');
+      if (clearBtn)
+        clearBtn.classList.toggle(
+          'visible',
+          titleInput.value.trim().length > 0
+        );
+      updateLivePreview();
+    });
+    const clearBtn = document.querySelector('[data-clear="promoTitle"]');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        titleInput.value = '';
+        clearBtn.classList.remove('visible');
+        titleInput.focus();
+        updateLivePreview();
+      });
+    }
+  }
+}
+
+// Render Discount Entries card
+function renderDiscountEntriesSection() {
+  const container = document.getElementById('discountEntriesContainer');
+  if (!container) {
+    console.error('Discount entries container not found');
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="form-group full-width">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <label class="form-label" style="margin-bottom: 0;">Promotion Entries</label>
+            <button type="button" class="btn btn-base btn-primary-base" id="addEntryBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Entry</button>
+        </div>
+        <div id="promotionEntriesContainer"></div>
+    </div>
+  `;
+
+  // Wire up add entry button
+  const addEntryBtn = document.getElementById('addEntryBtn');
+  if (addEntryBtn) {
+    addEntryBtn.addEventListener('click', addPromotionEntry);
+  }
+}
+
+// Render Special Hours card
+function renderSpecialHoursSection() {
+  const cardContainer = document.getElementById('specialHoursContainer');
+  if (!cardContainer) {
+    console.error('Special hours card container not found');
+    return;
+  }
+
+  cardContainer.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <label class="form-label" style="margin-bottom: 0;">Special Hours</label>
+        <button type="button" class="btn btn-base btn-primary-base" id="addHourBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Special Hours</button>
+    </div>
+    <div class="field-help" style="margin-bottom: 0.75rem;">For holidays or special sale hours (e.g., Black Friday extended hours)</div>
+    <div id="specialHoursListContainer"></div>
+    <div id="specialHoursReminder" style="display: none; background: #fff3cd; border-left: 3px solid #ffc107; padding: 1rem; margin-top: 1rem;">
+        <strong>⚠️ Reminder:</strong> Don't forget to update your special hours on Yelp and Google Maps!
+    </div>
+  `;
+
+  // Wire up add hour button
+  const addHourBtn = document.getElementById('addHourBtn');
+  if (addHourBtn) {
+    addHourBtn.addEventListener('click', addSpecialHour);
+  }
+}
+
+// Render How to Shop card
+function renderHowToShopCardSection() {
+  const container = document.getElementById('howToShopContainer');
+  if (!container) {
+    console.error('How to shop container not found');
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="form-group full-width">
+        <div id="howToShopWrapper"></div>
+    </div>
+  `;
+}
+
+// Render Important Notes card
+function renderImportantNotesCardSection() {
+  const container = document.getElementById('importantNotesContainer');
+  if (!container) {
+    console.error('Important notes container not found');
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="form-group full-width">
+        <div id="importantNotesWrapper"></div>
+    </div>
+  `;
+}
+
 // ===== INITIALIZATION =====
 
 // Initialize the promotion UI module
@@ -2778,8 +2767,34 @@ export function init() {
   // This is required for updateLivePreview, save/import/export functions to work
   setCurrentTemplate('promotion-email');
 
-  // Render the promotion email form
-  renderPromotionEmailForm();
+  // Check if there's a saved template in localStorage
+  const savedTemplateStr = localStorage.getItem('savedPromotionTemplate');
+  let savedConfig = null;
+
+  if (savedTemplateStr) {
+    try {
+      savedConfig = JSON.parse(savedTemplateStr);
+    } catch (e) {
+      console.error('Error parsing saved template:', e);
+      savedConfig = null;
+    }
+  }
+
+  // Clear state arrays - will be populated either from saved template or defaults
+  promotionState.promotionEntries = [];
+  promotionState.specialHours = [];
+  promotionState.howToShopItems = [];
+  promotionState.importantNotesItems = [];
+  promotionState.attachedPDFs = [];
+  promotionState.generatedSubjectLines = [];
+  promotionState.selectedSubjectLine = null;
+
+  // Render all card sections
+  renderBasicDetailsForm();
+  renderDiscountEntriesSection();
+  renderSpecialHoursSection();
+  renderHowToShopCardSection();
+  renderImportantNotesCardSection();
 
   // Initialize PDF section in center column
   initPDFSection();
@@ -2787,7 +2802,80 @@ export function init() {
   // Update format status display (shows OS-specific file format info)
   updateFormatStatus();
 
-  // Render all dynamic sections after form is created
+  // Wire up PDF preview modal buttons
+  const pdfModalClose = document.getElementById('pdfModalClose');
+  const pdfModalBackdrop = document.querySelector('.pdf-modal-backdrop');
+  const pdfDownloadBtn = document.getElementById('pdfDownloadBtn');
+  const pdfDownloadFallback = document.getElementById('pdfDownloadFallback');
+
+  if (pdfModalClose) {
+    pdfModalClose.addEventListener('click', closePDFPreview);
+  }
+  if (pdfModalBackdrop) {
+    pdfModalBackdrop.addEventListener('click', closePDFPreview);
+  }
+  if (pdfDownloadBtn) {
+    pdfDownloadBtn.addEventListener('click', downloadPDFFromPreview);
+  }
+  if (pdfDownloadFallback) {
+    pdfDownloadFallback.addEventListener('click', downloadPDFFromPreview);
+  }
+
+  // Add escape key to close modal
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('pdfPreviewModal');
+      if (modal && modal.style.display !== 'none') {
+        closePDFPreview();
+      }
+    }
+  });
+
+  // Wire up duplicated buttons in output card
+  const saveTemplateBtnDuplicate = document.getElementById(
+    'saveTemplateBtnDuplicate'
+  );
+  const importTemplateBtnDuplicate = document.getElementById(
+    'importTemplateBtnDuplicate'
+  );
+  const exportTemplateBtnDuplicate = document.getElementById(
+    'exportTemplateBtnDuplicate'
+  );
+  const startOverBtnDuplicate = document.getElementById(
+    'startOverBtnDuplicate'
+  );
+
+  if (saveTemplateBtnDuplicate) {
+    saveTemplateBtnDuplicate.addEventListener('click', savePromotionTemplate);
+  }
+  if (importTemplateBtnDuplicate) {
+    importTemplateBtnDuplicate.addEventListener(
+      'click',
+      importPromotionTemplate
+    );
+  }
+  if (exportTemplateBtnDuplicate) {
+    exportTemplateBtnDuplicate.addEventListener(
+      'click',
+      exportPromotionTemplate
+    );
+  }
+  if (startOverBtnDuplicate) {
+    startOverBtnDuplicate.addEventListener('click', resetToDefaults);
+  }
+
+  // Load saved template or initialize defaults
+  // This must happen after card HTML is created so containers exist
+  if (savedConfig) {
+    // Load saved template data
+    applyImportedConfig(savedConfig, true);
+  } else {
+    // No saved template - initialize with defaults
+    initializeDefaultItems();
+    addPromotionEntry();
+  }
+
+  // Render all dynamic sections after cards are created and state is initialized
   renderPromotionEntries();
   renderSpecialHours();
   renderHowToShopSection();

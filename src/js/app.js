@@ -1,12 +1,16 @@
 // Import dependencies
 import { initIndexedDB } from './shared/db.js';
 import { initTheme } from './shared/theme.js';
+import { initPageTransitions } from './shared/pageTransitions.js';
 import { init } from './ui.js';
 
 // Start the application
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize theme first (must happen before UI renders)
   initTheme();
+
+  // Initialize page transitions
+  initPageTransitions();
 
   // Initialize IndexedDB
   await initIndexedDB();

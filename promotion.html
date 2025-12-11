@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Promotion Email Generator</title>
     <link rel="stylesheet" href="/src/css/promotion-styles.css" />
+    <script>
+      (function() {
+        var theme = localStorage.getItem('theme') || 'light';
+        var lightPalette = localStorage.getItem('lightPalette') || 'pastel';
+        var darkPalette = localStorage.getItem('darkPalette') || 'midnight-blue';
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.setAttribute('data-light-palette', lightPalette);
+        document.documentElement.setAttribute('data-dark-palette', darkPalette);
+      })();
+    </script>
   </head>
   <body>
     <div class="header">
@@ -64,13 +74,123 @@
       </div>
     </div>
 
+    <div class="page-content">
     <div class="container three-column">
       <!-- Left Column: Promo Body Details -->
       <div class="left-column">
-        <div class="card">
-          <h2 class="section-title">Promotion Details</h2>
-          <div id="promotionFormContainer"></div>
-          <div id="promotionActionsContainer"></div>
+        <!-- Card 1: Basic Details (expanded by default) -->
+        <div class="card collapsible" id="basicDetailsCard">
+          <div class="card-header" data-toggle="collapse">
+            <h2 class="section-title">Basic Details</h2>
+            <button
+              class="collapse-toggle btn-base btn-icon-base btn-icon-sm"
+              aria-label="Toggle section"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
+          <div class="card-content" id="basicDetailsContainer"></div>
+        </div>
+
+        <!-- Card 2: Discount Entries (expanded by default) -->
+        <div class="card collapsible" id="discountEntriesCard">
+          <div class="card-header" data-toggle="collapse">
+            <h2 class="section-title">Discount Entries</h2>
+            <button
+              class="collapse-toggle btn-base btn-icon-base btn-icon-sm"
+              aria-label="Toggle section"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
+          <div class="card-content" id="discountEntriesContainer"></div>
+        </div>
+
+        <!-- Card 3: How to Shop (collapsed by default) -->
+        <div class="card collapsible collapsed" id="howToShopCard">
+          <div class="card-header" data-toggle="collapse">
+            <h2 class="section-title">How to Shop</h2>
+            <button
+              class="collapse-toggle btn-base btn-icon-base btn-icon-sm"
+              aria-label="Toggle section"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
+          <div class="card-content" id="howToShopContainer"></div>
+        </div>
+
+        <!-- Card 4: Important Notes (collapsed by default) -->
+        <div class="card collapsible collapsed" id="importantNotesCard">
+          <div class="card-header" data-toggle="collapse">
+            <h2 class="section-title">Important Notes</h2>
+            <button
+              class="collapse-toggle btn-base btn-icon-base btn-icon-sm"
+              aria-label="Toggle section"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
+          <div class="card-content" id="importantNotesContainer"></div>
+        </div>
+
+        <!-- Card 5: Special Hours (collapsed by default) -->
+        <div class="card collapsible collapsed" id="specialHoursCard">
+          <div class="card-header" data-toggle="collapse">
+            <h2 class="section-title">Special Hours</h2>
+            <button
+              class="collapse-toggle btn-base btn-icon-base btn-icon-sm"
+              aria-label="Toggle section"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
+          <div class="card-content" id="specialHoursContainer"></div>
         </div>
       </div>
 
@@ -218,13 +338,8 @@
                       data-direction="up"
                       aria-label="Increase"
                     >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <polyline points="18 15 12 9 6 15"></polyline>
+                      <svg viewBox="0 0 12 12" fill="currentColor" width="12" height="12">
+                        <path d="M1.707 8.707L6 4.414l4.293 4.293a1 1 0 001.414-1.414l-5-5a1 1 0 00-1.414 0l-5 5a1 1 0 101.414 1.414z"/>
                       </svg>
                     </button>
                     <button
@@ -233,13 +348,8 @@
                       data-direction="down"
                       aria-label="Decrease"
                     >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <polyline points="6 9 12 15 18 9"></polyline>
+                      <svg viewBox="0 0 12 12" fill="currentColor" width="12" height="12">
+                        <path d="M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z"/>
                       </svg>
                     </button>
                   </div>
@@ -272,9 +382,11 @@
           </div>
         </div>
       </div>
+    </div>
+    </div>
 
-      <!-- Right Column: Preview/HTML -->
-      <div class="right-column">
+    <!-- Right Column: Preview/HTML (outside page-content to preserve fixed positioning) -->
+    <div class="right-column">
         <div class="card output-card sticky-preview" id="outputCard">
           <h2 class="section-title">Email Preview</h2>
           <div class="output-tabs">
@@ -369,7 +481,6 @@
           </div>
         </div>
       </div>
-    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -448,6 +559,7 @@
           </button>
         </div>
       </div>
+    </div>
     </div>
 
     <script type="module" src="/src/js/promotion-app.js"></script>

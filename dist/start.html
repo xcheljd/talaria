@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Setup - Communication Template Generator</title>
+    <script>
+      (function() {
+        var theme = localStorage.getItem('theme') || 'light';
+        var lightPalette = localStorage.getItem('lightPalette') || 'pastel';
+        var darkPalette = localStorage.getItem('darkPalette') || 'midnight-blue';
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.setAttribute('data-light-palette', lightPalette);
+        document.documentElement.setAttribute('data-dark-palette', darkPalette);
+      })();
+    </script>
     <style>
         .start-container {
             max-width: 600px;
@@ -420,9 +430,10 @@
             }
         }
     </style>
-  <link rel="stylesheet" crossorigin href="./assets/styles-Cjk6UcLA.css">
+  <link rel="stylesheet" crossorigin href="./assets/styles-BnjwujhM.css">
 </head>
 <body>
+    <div class="page-content">
     <!-- Theme Toggle -->
     <div class="start-theme-toggle">
         <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
@@ -458,17 +469,19 @@
                  <div class="form-group">
                      <label class="form-label">Job Title *</label>
                      <div class="input-wrapper">
-                         <select class="form-input" id="jobTitle" required>
-                             <option value="">Select your job title...</option>
-                             <option value="Sales Associate">Sales Associate</option>
-                             <option value="Sales Associate/Keyholder">Sales Associate/Keyholder</option>
-                             <option value="Assistant Store Manager">Assistant Store Manager</option>
-                             <option value="Associate Store Manager">Associate Store Manager</option>
-                             <option value="General Manager">General Manager</option>
-                             <option value="Area Manager">Area Manager</option>
-                             <option value="Regional Manager">Regional Manager</option>
-                             <option value="District Manager">District Manager</option>
-                         </select>
+                         <div class="select-wrapper">
+                             <select class="form-input" id="jobTitle" required>
+                                 <option value="">Select your job title...</option>
+                                 <option value="Sales Associate">Sales Associate</option>
+                                 <option value="Sales Associate/Keyholder">Sales Associate/Keyholder</option>
+                                 <option value="Assistant Store Manager">Assistant Store Manager</option>
+                                 <option value="Associate Store Manager">Associate Store Manager</option>
+                                 <option value="General Manager">General Manager</option>
+                                 <option value="Area Manager">Area Manager</option>
+                                 <option value="Regional Manager">Regional Manager</option>
+                                 <option value="District Manager">District Manager</option>
+                             </select>
+                         </div>
                      </div>
                  </div>
 
@@ -635,13 +648,15 @@
                 <div class="form-group">
                     <label class="form-label">Light Mode Color Palette</label>
                     <div class="input-wrapper">
-                        <select class="form-input" id="lightPaletteSelect">
-                            <option value="pastel">Pastel Professional (Default)</option>
-                            <option value="golden-hour">Golden Hour</option>
-                            <option value="terracotta">Terracotta Clay</option>
-                            <option value="mint">Mint Fresh</option>
-                            <option value="lavender">Lavender Dream</option>
-                        </select>
+                        <div class="select-wrapper">
+                            <select class="form-input" id="lightPaletteSelect">
+                                <option value="pastel">Pastel Professional (Default)</option>
+                                <option value="golden-hour">Golden Hour</option>
+                                <option value="terracotta">Terracotta Clay</option>
+                                <option value="mint">Mint Fresh</option>
+                                <option value="lavender">Lavender Dream</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="field-help">Choose your preferred color scheme for light mode</div>
                 </div>
@@ -649,13 +664,15 @@
                 <div class="form-group">
                     <label class="form-label">Dark Mode Color Palette</label>
                     <div class="input-wrapper">
-                        <select class="form-input" id="darkPaletteSelect">
-                            <option value="midnight-blue">Midnight Blue (Default)</option>
-                            <option value="cyberpunk">Cyberpunk Neon</option>
-                            <option value="forest">Forest Night</option>
-                            <option value="purple">Purple Haze</option>
-                            <option value="ember">Warm Ember</option>
-                        </select>
+                        <div class="select-wrapper">
+                            <select class="form-input" id="darkPaletteSelect">
+                                <option value="midnight-blue">Midnight Blue (Default)</option>
+                                <option value="cyberpunk">Cyberpunk Neon</option>
+                                <option value="forest">Forest Night</option>
+                                <option value="purple">Purple Haze</option>
+                                <option value="ember">Warm Ember</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="field-help">Choose your preferred color scheme for dark mode</div>
                 </div>
@@ -702,6 +719,7 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
 
     <script>
         // Theme System - Matches main app.js
@@ -722,23 +740,6 @@
             if (darkPaletteSelect) darkPaletteSelect.value = darkPalette;
         }
 
-        // Update select dropdown arrows to match theme colors
-        function updateSelectArrows() {
-            // Get the computed text-secondary color from CSS variables
-            const textSecondary = getComputedStyle(document.documentElement)
-                .getPropertyValue('--text-secondary').trim();
-
-            // Create SVG data URL with the theme color
-            const svgArrow = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path fill="${textSecondary}" d="M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z"/></svg>`;
-            const encodedSvg = encodeURIComponent(svgArrow);
-            const dataUrl = `url('data:image/svg+xml;charset=UTF-8,${encodedSvg}')`;
-
-            // Apply to all select elements with form-input class
-            document.querySelectorAll('select.form-input').forEach(select => {
-                select.style.backgroundImage = dataUrl;
-            });
-        }
-
         function toggleTheme() {
             const currentMode = document.documentElement.getAttribute('data-theme') || 'light';
             const newMode = currentMode === 'light' ? 'dark' : 'light';
@@ -746,9 +747,6 @@
             document.documentElement.setAttribute('data-theme', newMode);
             localStorage.setItem('theme', newMode);
             updateThemeIndicator(newMode);
-
-            // Update dropdown arrows to match new theme
-            setTimeout(updateSelectArrows, 50);
         }
 
         function updateThemeIndicator(theme) {
@@ -768,22 +766,15 @@
         function setLightPalette(paletteName) {
             document.documentElement.setAttribute('data-light-palette', paletteName);
             localStorage.setItem('lightPalette', paletteName);
-            // Update arrows when light palette changes
-            setTimeout(updateSelectArrows, 50);
         }
 
         function setDarkPalette(paletteName) {
             document.documentElement.setAttribute('data-dark-palette', paletteName);
             localStorage.setItem('darkPalette', paletteName);
-            // Update arrows when dark palette changes
-            setTimeout(updateSelectArrows, 50);
         }
 
         // Initialize theme on page load
         initTheme();
-
-        // Initialize dropdown arrows with theme colors
-        setTimeout(updateSelectArrows, 100);
 
         // Attach theme toggle handler
         document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
@@ -1409,6 +1400,32 @@
                 showToast('Error saving profile. Please try again.');
             }
         });
+    </script>
+    <script>
+        // Page Transitions for start.html
+        (function() {
+            const TRANSITION_DURATION = 300;
+
+            document.querySelectorAll('a[href$=".html"]').forEach(link => {
+                if (link.hostname === window.location.hostname) {
+                    link.addEventListener('click', function(event) {
+                        if (event.metaKey || event.ctrlKey || event.shiftKey) return;
+                        if (this.target === '_blank') return;
+
+                        event.preventDefault();
+                        const href = this.getAttribute('href');
+                        const pageContent = document.querySelector('.page-content');
+
+                        if (pageContent) {
+                            pageContent.classList.add('fade-out');
+                            setTimeout(() => { window.location.href = href; }, TRANSITION_DURATION);
+                        } else {
+                            window.location.href = href;
+                        }
+                    });
+                }
+            });
+        })();
     </script>
 </body>
 </html>
