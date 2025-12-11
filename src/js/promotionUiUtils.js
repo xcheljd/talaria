@@ -53,70 +53,93 @@ export function setupDragAndDrop(
   renderFunction,
   selector = '.editable-item-row'
 ) {
-  const rows = container.querySelectorAll(selector);
   let draggedElement = null;
   let draggedItemId = null;
+  let isDragHandleMouseDown = false;
 
-  rows.forEach((row) => {
-    // Drag start
-    row.addEventListener('dragstart', (e) => {
-      draggedElement = row;
-      // Try both data-item-id and data-entry-id
-      draggedItemId = parseInt(row.dataset.itemId || row.dataset.entryId, 10);
-      row.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
+  // Track mousedown on drag handles to know if drag should be allowed
+  container.addEventListener('mousedown', (e) => {
+    const dragHandle = e.target.closest('.drag-handle');
+    isDragHandleMouseDown = !!dragHandle;
+  });
 
-    // Drag end
-    row.addEventListener('dragend', () => {
+  // Reset on mouseup
+  container.addEventListener('mouseup', () => {
+    isDragHandleMouseDown = false;
+  });
+
+  // Use event delegation on the container for drag events
+  container.addEventListener('dragstart', (e) => {
+    // Find the closest draggable element
+    const row = e.target.closest(selector);
+    if (!row) return;
+
+    // Only allow dragging if mousedown started on the drag handle
+    if (!isDragHandleMouseDown) {
+      e.preventDefault();
+      return;
+    }
+
+    draggedElement = row;
+    draggedItemId = parseInt(row.dataset.itemId || row.dataset.entryId, 10);
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  container.addEventListener('dragend', (e) => {
+    const row = e.target.closest(selector);
+    if (row) {
       row.classList.remove('dragging');
-      rows.forEach((r) => r.classList.remove('drag-over'));
-    });
+      container
+        .querySelectorAll(selector)
+        .forEach((r) => r.classList.remove('drag-over'));
+    }
+  });
 
-    // Drag over
-    row.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
+  container.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
 
-      if (draggedElement !== row) {
-        row.classList.add('drag-over');
-      }
-    });
+    const row = e.target.closest(selector);
+    if (row && draggedElement !== row) {
+      row.classList.add('drag-over');
+    }
+  });
 
-    // Drag leave
-    row.addEventListener('dragleave', () => {
+  container.addEventListener('dragleave', (e) => {
+    const row = e.target.closest(selector);
+    if (row) {
       row.classList.remove('drag-over');
-    });
+    }
+  });
 
-    // Drop
-    row.addEventListener('drop', (e) => {
-      e.preventDefault();
-      row.classList.remove('drag-over');
+  container.addEventListener('drop', (e) => {
+    e.preventDefault();
 
-      if (draggedElement !== row) {
-        // Try both data-item-id and data-entry-id
-        const targetItemId = parseInt(
-          row.dataset.itemId || row.dataset.entryId,
-          10
-        );
+    const row = e.target.closest(selector);
+    if (!row) return;
 
-        // Find indices
-        const draggedIndex = itemsArray.findIndex(
-          (item) => item.id === draggedItemId
-        );
-        const targetIndex = itemsArray.findIndex(
-          (item) => item.id === targetItemId
-        );
+    row.classList.remove('drag-over');
 
-        if (draggedIndex !== -1 && targetIndex !== -1) {
-          // Reorder array
-          const [removed] = itemsArray.splice(draggedIndex, 1);
-          itemsArray.splice(targetIndex, 0, removed);
+    if (draggedElement !== row) {
+      const targetItemId = parseInt(
+        row.dataset.itemId || row.dataset.entryId,
+        10
+      );
 
-          // Re-render
-          renderFunction();
-        }
+      const draggedIndex = itemsArray.findIndex(
+        (item) => item.id === draggedItemId
+      );
+      const targetIndex = itemsArray.findIndex(
+        (item) => item.id === targetItemId
+      );
+
+      if (draggedIndex !== -1 && targetIndex !== -1) {
+        const [removed] = itemsArray.splice(draggedIndex, 1);
+        itemsArray.splice(targetIndex, 0, removed);
+
+        renderFunction();
       }
-    });
+    }
   });
 }
