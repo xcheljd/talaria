@@ -17,4 +17,5 @@ export const promotionState = {
   howToShopExpanded: false,
   importantNotesExpanded: false,
   entryCollapsedStates: {},
+  columnState: 'left-expanded', // 'left-expanded' | 'center-expanded'
 };

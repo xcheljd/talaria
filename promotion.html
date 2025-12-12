@@ -74,6 +74,30 @@
       </div>
     </div>
 
+    <!-- Skinny Column Wrappers (direct body children for truly fixed positioning, immune to scroll bounce) -->
+    <div class="column-skinny-wrapper" id="left-skinny-wrapper" role="button" tabindex="0" aria-label="Expand Promo Body Details column" aria-expanded="true">
+      <div class="skinny-card-title">Basic Details</div>
+      <div class="skinny-card-title">Discount Entries</div>
+      <div class="skinny-card-title">How to Shop</div>
+      <div class="skinny-card-title">Important Notes</div>
+      <div class="skinny-card-title">Special Hours</div>
+      <div class="skinny-expand-hint">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </div>
+    </div>
+    <div class="column-skinny-wrapper" id="center-skinny-wrapper" role="button" tabindex="0" aria-label="Expand Email Tools column" aria-expanded="false">
+      <div class="skinny-card-title">PDF Attachments</div>
+      <div class="skinny-card-title">Subject Lines</div>
+      <div class="skinny-card-title">Bulk Email Tools</div>
+      <div class="skinny-expand-hint">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </div>
+    </div>
+
     <div class="page-content">
     <div class="container three-column">
       <!-- Left Column: Promo Body Details -->
@@ -481,6 +505,8 @@
           </div>
         </div>
       </div>
+    </div>
+    <!-- End of .page-content -->
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -559,7 +585,6 @@
           </button>
         </div>
       </div>
-    </div>
     </div>
 
     <script type="module" src="/src/js/promotion-app.js"></script>

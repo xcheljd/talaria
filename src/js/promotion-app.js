@@ -32,6 +32,7 @@ import {
 } from './shared/emailUtils.js';
 import { appState } from './state.js';
 import { warningIcon } from './shared/icons.js';
+import { initColumnCollapse } from './promotion-column-collapse.js';
 
 // Initialize the promotion app when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
@@ -80,6 +81,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Set up collapsible cards
   setupCollapsibleCards();
+
+  // Set up column collapse animation system
+  initColumnCollapse();
 
   // Update how to shop email when profile might have changed (e.g., user edited profile and returned)
   window.addEventListener('focus', () => {

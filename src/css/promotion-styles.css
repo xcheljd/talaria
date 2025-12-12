@@ -154,6 +154,50 @@
   }
 }
 
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideOutToTop {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
 .page-content {
   animation: blurFadeIn 0.3s ease-out forwards;
 }
@@ -183,14 +227,30 @@
 }
 
 /* Fixed elements use simple fade (blur would break positioning) */
-.header,
 .right-column {
   animation: fadeIn 0.3s ease-out forwards;
 }
 
-.header.fade-out,
 .right-column.fade-out {
   animation: fadeOut 0.3s ease-in forwards;
+}
+
+/* Header slides in from top */
+.header {
+  animation: slideInFromTop 0.3s ease-out forwards;
+}
+
+.header.fade-out {
+  animation: slideOutToTop 0.3s ease-in forwards;
+}
+
+/* Skinny column slides in from left */
+.column-skinny-wrapper.column-active {
+  animation: slideInFromLeft 0.3s ease-out forwards;
+}
+
+.column-skinny-wrapper.column-active.fade-out {
+  animation: slideOutToLeft 0.3s ease-in forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -199,7 +259,8 @@
   .header,
   .header.fade-out,
   .right-column,
-  .right-column.fade-out {
+  .right-column.fade-out,
+  .column-skinny-wrapper.column-active {
     animation: none;
     opacity: 1;
     filter: none;
@@ -1407,6 +1468,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  align-self: start; /* Don't stretch to fill grid row */
   max-height: calc(
     100vh - 75px
   ); /* 65px body padding + 10px container padding */
@@ -1506,10 +1568,10 @@ body {
 .right-column {
   position: fixed;
   top: 65px; /* Below fixed header */
+  bottom: 0; /* Extend to viewport bottom */
   right: 0;
   width: 33.333%;
-  height: calc(100vh - 65px); /* Full height minus header */
-  padding: 0.75rem 1rem 0.75rem 0.75rem;
+  padding: 0 1rem 10px 0.75rem; /* 10px bottom padding to match left/center columns */
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
@@ -1533,6 +1595,7 @@ body {
   flex: 1;
   overflow: hidden;
   height: 100%;
+  padding: 0.75rem 0; /* Top and bottom padding only */
 }
 
 .sticky-preview .section-title {
@@ -1636,6 +1699,182 @@ body {
 .card.output-card {
   position: sticky;
   top: 2rem;
+}
+
+/* ========== COLUMN COLLAPSE ANIMATION SYSTEM ========== */
+
+/* Column expansion states */
+.left-column.column-expanded,
+.center-column.column-expanded {
+  grid-column: 1 / span 2;
+  opacity: 1;
+}
+
+/* Add left margin to expanded column to account for fixed skinny bar */
+/* The skinny bar is always at left: 0, so expanded column needs margin */
+.left-column.column-expanded,
+.center-column.column-expanded {
+  margin-left: 48px;
+}
+
+.left-column.column-collapsed,
+.center-column.column-collapsed {
+  /* Remove collapsed column from grid flow entirely */
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Hide scrollbar in collapsed state */
+.column-collapsed::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+/* Smooth transitions for column state changes */
+.left-column,
+.center-column {
+  transition:
+    width var(--transition-base),
+    min-width var(--transition-base),
+    max-width var(--transition-base),
+    opacity var(--transition-fast),
+    grid-column var(--transition-base);
+  will-change: width, grid-column;
+}
+
+/* Skinny column UI wrapper - hidden by default, shown when column-active class applied by JS */
+.column-skinny-wrapper {
+  display: none;
+  flex-direction: column;
+  position: fixed;
+  top: 65px; /* Below header */
+  bottom: 0;
+  width: 48px;
+  cursor: pointer;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-subtle);
+  z-index: 15;
+  user-select: none;
+  transition: background-color var(--transition-fast);
+  gap: 1px;
+  padding: 8px 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Both skinny wrappers position at left: 0 (only one visible at a time) */
+#left-skinny-wrapper,
+#center-skinny-wrapper {
+  left: 0;
+}
+
+/* Show skinny wrapper when it has .column-active class (applied by JS) */
+.column-skinny-wrapper.column-active {
+  display: flex;
+}
+
+.column-skinny-wrapper:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Skinny column card titles - library book style (read by tilting head left) */
+.skinny-card-title {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  padding: 8px 0;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  text-align: center;
+  border-radius: 4px;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+  flex-shrink: 0;
+  align-self: center;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.column-skinny-wrapper:hover .skinny-card-title {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+/* Expand hint icon at bottom */
+.skinny-expand-hint {
+  margin-top: auto;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.skinny-expand-hint svg {
+  transform: rotate(-90deg);
+  transition: transform var(--transition-fast);
+}
+
+.column-skinny-wrapper:hover .skinny-expand-hint svg {
+  transform: rotate(-90deg) translateX(-2px);
+}
+
+/* Hide regular cards in collapsed state */
+.column-collapsed .card {
+  display: none;
+}
+
+/* Right column width adjustments */
+.right-column {
+  transition: width var(--transition-base);
+  will-change: width;
+}
+
+.right-column.preview-expanded {
+  width: 50%;
+}
+
+/* Adjust grid container padding when preview expands */
+.container.three-column.preview-expanded {
+  padding-right: calc(50% + 0.5rem);
+}
+
+/* Accessibility - keyboard focus */
+.column-skinny-wrapper:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: -2px;
+}
+
+/* Prevent pointer events on regular cards when collapsed */
+.column-collapsed .card {
+  pointer-events: none;
+}
+
+/* pointer-events handled by .column-active class now */
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 .section-title {
@@ -2870,6 +3109,32 @@ body {
 
   .card {
     padding: 2rem;
+  }
+
+  /* Disable column collapse on mobile */
+  .left-column.column-collapsed,
+  .center-column.column-collapsed {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    overflow: visible;
+    grid-column: 1;
+  }
+
+  .column-collapsed .card {
+    display: flex; /* Re-enable cards */
+  }
+
+  .column-skinny-wrapper {
+    display: none !important; /* Hide skinny UI on mobile */
+  }
+
+  .right-column.preview-expanded {
+    width: 100%;
+  }
+
+  .container.three-column.preview-expanded {
+    padding-right: 2rem; /* Reset padding */
   }
 }
 
