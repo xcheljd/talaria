@@ -61,6 +61,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     themeToggle.addEventListener('click', toggleTheme);
   }
 
+  // Refresh preview when theme changes
+  document.addEventListener('theme:changed', () => {
+    updateLivePreview();
+  });
+
   // Write empty state to preview iframe immediately to prevent white flash
   const previewIframe = document.getElementById('previewIframe');
   if (previewIframe) {

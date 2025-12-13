@@ -1,6 +1,3 @@
-import { updateEmailPreview, currentTemplate } from '../ui.js';
-import { updateLivePreview } from '../promotion-ui.js';
-
 // Theme initialization and management functions
 export function initTheme() {
   const savedTheme = localStorage.getItem('theme') || 'light';
@@ -21,13 +18,11 @@ export function toggleTheme() {
   localStorage.setItem('theme', newTheme);
   updateThemeIndicator(newTheme);
 
-  // Update preview iframes based on active template
-  if (currentTemplate === 'promotion-email') {
-    updateLivePreview();
-  } else if (currentTemplate) {
-    // Update regular email template preview
-    updateEmailPreview();
-  }
+  document.dispatchEvent(
+    new CustomEvent('theme:changed', {
+      detail: { theme: newTheme },
+    })
+  );
 }
 
 export function updateThemeIndicator(theme) {

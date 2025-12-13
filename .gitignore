@@ -30,7 +30,7 @@ Desktop.ini
 node_modules/
 
 # Build output
-# dist/ - Now tracked for deployment
+dist/
 
 # Environment files (if needed in future)
 .env

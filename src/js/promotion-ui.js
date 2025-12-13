@@ -50,9 +50,6 @@ import { getStoreEmail } from './shared/profile.js';
 // Import appState for user profile access
 import { appState } from './state.js';
 
-// Import currentTemplate and setter from ui.js
-import { currentTemplate, setCurrentTemplate } from './ui.js';
-
 // ===== HELPER FUNCTIONS =====
 
 // Detect user's operating system
@@ -242,8 +239,6 @@ function getEmailDarkModeCSS() {
 
 // Update live preview
 export function updateLivePreview() {
-  if (currentTemplate !== 'promotion-email') return;
-
   const previewIframe = document.getElementById('previewIframe');
   if (!previewIframe) return;
 
@@ -273,7 +268,8 @@ export function updateLivePreview() {
   }
 
   // Check if app is in dark mode - if so, simulate email client dark mode
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+  const currentTheme =
+    document.documentElement.getAttribute('data-theme') || 'light';
   let previewHtml = htmlCode;
 
   if (currentTheme === 'dark') {
@@ -301,13 +297,10 @@ export function updateLivePreview() {
 // Create debounced version for typing
 const debouncedLivePreview = debounce(updateLivePreview, 500);
 
-
 // ===== SAVE/EXPORT/IMPORT FUNCTIONS =====
 
 // Save promotion template configuration to localStorage
 export async function savePromotionTemplate() {
-  if (currentTemplate !== 'promotion-email') return;
-
   // Collapse all entries before saving
   promotionState.promotionEntries.forEach((entry) => {
     promotionState.entryCollapsedStates[entry.id] = true;
@@ -368,8 +361,6 @@ export async function savePromotionTemplate() {
 
 // Import promotion template - supports both localStorage and file selection
 export function importPromotionTemplate() {
-  if (currentTemplate !== 'promotion-email') return;
-
   // Create file input element
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
@@ -638,8 +629,6 @@ export async function applyImportedConfig(rawConfig, collapseEntries = true) {
 
 // Export promotion template configuration as JSON file
 export function exportPromotionTemplate() {
-  if (currentTemplate !== 'promotion-email') return;
-
   // Capture the raw bulk recipient list text from the UI (if present)
   const bulkEmailListElement = document.getElementById('bulkEmailList');
   const bulkEmailRecipients = bulkEmailListElement
@@ -757,7 +746,6 @@ export function addPromotionEntry() {
     callout: '',
   });
   renderPromotionEntries();
-
 }
 
 // Remove a promotion entry
@@ -772,14 +760,14 @@ export function removePromotionEntry(entryId) {
 export function movePromotionEntryUp(entryId) {
   if (moveItemInArray(promotionState.promotionEntries, entryId, 'up')) {
     renderPromotionEntries();
-    }
+  }
 }
 
 // Move promotion entry down
 export function movePromotionEntryDown(entryId) {
   if (moveItemInArray(promotionState.promotionEntries, entryId, 'down')) {
     renderPromotionEntries();
-    }
+  }
 }
 
 // Toggle entry collapse (DOM-only, no preview update)
@@ -924,7 +912,7 @@ export function renderPromotionEntries() {
       input.addEventListener('change', (e) => {
         updateEntryData(e);
         updateLivePreview();
-            });
+      });
     });
 
   // Add drag-and-drop functionality for reordering entries
@@ -990,14 +978,14 @@ export function removeSpecialHour(hourId) {
 export function moveSpecialHourUp(hourId) {
   if (moveItemInArray(promotionState.specialHours, hourId, 'up')) {
     renderSpecialHours();
-    }
+  }
 }
 
 // Move special hour down
 export function moveSpecialHourDown(hourId) {
   if (moveItemInArray(promotionState.specialHours, hourId, 'down')) {
     renderSpecialHours();
-    }
+  }
 }
 
 // Update special hour data from inputs
@@ -1102,7 +1090,13 @@ export function renderSpecialHours() {
 // Add a new How to Shop item
 export function addHowToShopItem() {
   const itemId = Date.now();
-  promotionState.howToShopItems.push({ id: itemId, text: '', bold: false, italic: false, underline: false });
+  promotionState.howToShopItems.push({
+    id: itemId,
+    text: '',
+    bold: false,
+    italic: false,
+    underline: false,
+  });
   renderHowToShopSection();
 }
 
@@ -1118,14 +1112,14 @@ export function removeHowToShopItem(itemId) {
 export function moveHowToShopItemUp(itemId) {
   if (moveItemInArray(promotionState.howToShopItems, itemId, 'up')) {
     renderHowToShopSection();
-    }
+  }
 }
 
 // Move How to Shop item down
 export function moveHowToShopItemDown(itemId) {
   if (moveItemInArray(promotionState.howToShopItems, itemId, 'down')) {
     renderHowToShopSection();
-    }
+  }
 }
 
 // Toggle bold formatting on How to Shop item
@@ -1314,7 +1308,13 @@ export function renderHowToShopSection() {
 // Add a new Important Notes item
 export function addImportantNotesItem() {
   const itemId = Date.now();
-  promotionState.importantNotesItems.push({ id: itemId, text: '', bold: false, italic: false, underline: false });
+  promotionState.importantNotesItems.push({
+    id: itemId,
+    text: '',
+    bold: false,
+    italic: false,
+    underline: false,
+  });
   renderImportantNotesSection();
 }
 
@@ -1329,14 +1329,14 @@ export function removeImportantNotesItem(itemId) {
 export function moveImportantNotesItemUp(itemId) {
   if (moveItemInArray(promotionState.importantNotesItems, itemId, 'up')) {
     renderImportantNotesSection();
-    }
+  }
 }
 
 // Move Important Notes item down
 export function moveImportantNotesItemDown(itemId) {
   if (moveItemInArray(promotionState.importantNotesItems, itemId, 'down')) {
     renderImportantNotesSection();
-    }
+  }
 }
 
 // Toggle bold formatting on Important Notes item
@@ -1581,15 +1581,39 @@ export function initializeDefaultItems() {
         italic: false,
         underline: false,
       },
-      { id: Date.now() + 2, text: `Call ${storePhone} for availability`, bold: false, italic: false, underline: false },
-      { id: Date.now() + 3, text: '$20 flat-rate ground shipping in US', bold: false, italic: false, underline: false },
-      { id: Date.now() + 4, text: `Email ${storeEmail}`, bold: false, italic: false, underline: false },
+      {
+        id: Date.now() + 2,
+        text: `Call ${storePhone} for availability`,
+        bold: false,
+        italic: false,
+        underline: false,
+      },
+      {
+        id: Date.now() + 3,
+        text: '$20 flat-rate ground shipping in US',
+        bold: false,
+        italic: false,
+        underline: false,
+      },
+      {
+        id: Date.now() + 4,
+        text: `Email ${storeEmail}`,
+        bold: false,
+        italic: false,
+        underline: false,
+      },
     ];
   }
 
   if (promotionState.importantNotesItems.length === 0) {
     promotionState.importantNotesItems = [
-      { id: Date.now() + 10, text: '*Select models only', bold: false, italic: false, underline: false },
+      {
+        id: Date.now() + 10,
+        text: '*Select models only',
+        bold: false,
+        italic: false,
+        underline: false,
+      },
       {
         id: Date.now() + 11,
         text: 'See attached PDF for complete model details',
@@ -1604,7 +1628,13 @@ export function initializeDefaultItems() {
         italic: false,
         underline: false,
       },
-      { id: Date.now() + 13, text: 'Email response time up to 48 hours', bold: false, italic: false, underline: false },
+      {
+        id: Date.now() + 13,
+        text: 'Email response time up to 48 hours',
+        bold: false,
+        italic: false,
+        underline: false,
+      },
     ];
 
     // Add store directions / location notes if available
@@ -1983,7 +2013,6 @@ export function renderSubjectLines() {
       if (dropdown) {
         dropdown.value = '';
       }
-
     });
   }
 }
@@ -2200,8 +2229,7 @@ export function selectSubjectLine(index) {
       charCount.className = `char-count ${isOptimal ? 'optimal' : 'warning'}`;
       charCount.textContent = `${length} chars ${isOptimal ? '✓' : '(>50)'}`;
     }
-
-    }
+  }
 }
 
 // ===== EMAIL HTML GENERATION =====
@@ -2763,10 +2791,6 @@ function renderImportantNotesCardSection() {
 
 // Initialize the promotion UI module
 export function init() {
-  // Set current template to 'promotion-email' for standalone app
-  // This is required for updateLivePreview, save/import/export functions to work
-  setCurrentTemplate('promotion-email');
-
   // Check if there's a saved template in localStorage
   const savedTemplateStr = localStorage.getItem('savedPromotionTemplate');
   let savedConfig = null;

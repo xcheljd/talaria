@@ -16,7 +16,6 @@ This document summarizes the high-level architecture of the main web app: entry 
   - Template select, search box, and category tabs (`All`, `Email`, `Phone`, `Text`).
   - Form card for template fields (`#formFields`), initially showing a placeholder.
   - Output card (`#outputCard`) for generated message/email/HTML.
-  - PDF preview modal (`#pdfPreviewModal`).
 - JS bootstrap:
   - Loads `src/js/app.js` as a **type=module** script:
     - `app.js` → initializes theme, IndexedDB, and UI.
@@ -30,6 +29,13 @@ This document summarizes the high-level architecture of the main web app: entry 
   - Profile export/import to JSON.
   - Persistence of profile to `localStorage.userProfile`.
 - Independent from the `src/js/app.js`/`ui.js` module graph.
+
+### `promotion.html`
+
+- Standalone UI for the **Promotion Email Generator**.
+- JS bootstrap:
+  - Loads `src/js/promotion-app.js` as a **type=module** script:
+    - `promotion-app.js` → initializes theme, IndexedDB, and promotion UI.
 
 ---
 
@@ -55,81 +61,51 @@ flowchart TD
   2. Initializes IndexedDB (`db.js`).
   3. Initializes UI (`ui.js`).
 
+### `src/js/promotion-app.js`
+
+Entry point for `promotion.html`.
+
+High-level flow:
+1. Initialize theme and page transitions
+2. Initialize IndexedDB
+3. Initialize the promotion UI (`promotion-ui.js`)
+
 ---
 
 ## 3. Core UI & State Modules
 
 ### `src/js/ui.js` – Main UI Controller
 
-**Responsibility:** glue between DOM, state, templates, persistence, and email utilities. This is the central module the UI logic lives in.
+**Responsibility:** glue between DOM, templates, and email utilities for the main template generator (`index.html`).
 
 Key exports (non-exhaustive):
+- View state: `currentTemplate`.
+- Initialization & wiring: `init()`, `cacheElements()`, `attachEventListeners()`, `setCurrentTemplate(template)`.
+- Output: `showRegularOutput()`, `updateEmailPreview()`, `clearEmailPreview()`, `writeEmptyStateToIframe(iframe)`.
+- Template selection/search: `populateDropdown()`, `renderSearchResults(query)`, `selectTemplate(key)`.
+- Email helpers: `extractSubjectLine(message)`, `renderEditableSubjectLine(...)`, `openEmailClientUniversal(...)`, `downloadEmailFile(...)`.
 
-- Global view state:
-  - `currentTemplate`, `promotionEntries`, `specialHours`, `howToShopItems`, `importantNotesItems`, `attachedPDFs`, `generatedSubjectLines`, `selectedSubjectLine`, `howToShopExpanded`, `importantNotesExpanded`, `entryCollapsedStates`.
-- Initialization & wiring:
-  - `init()` – called from `app.js`.
-  - `cacheElements()`, `getDynamicElement(id)`, `setCurrentTemplate(template)`.
-- Toasts & undo/redo:
-  - `showToast(message, duration?)`.
-  - `updateUndoRedoButtons()`, `undo()`, `redo()`.
-- Output views:
-  - `showTabbedOutput()` – promotion email bulk tools + preview/code tabs.
-  - `showRegularOutput()` – regular templates (preview + HTML tabs).
-  - `writeEmptyStateToIframe(iframe)`, `updateEmailPreview()`, `clearEmailPreview()`.
-- Template selection & search:
-  - `populateDropdown()`, `renderSearchResults(query)`, `selectTemplate(key)`.
-- Promotion email builder:
-  - Entry lists: `addPromotionEntry()`, `removePromotionEntry()`, `movePromotionEntryUp()`, `movePromotionEntryDown()`, `renderPromotionEntries()`, `updateEntryData(e)`.
-  - Special hours: `addSpecialHour()`, `removeSpecialHour()`, `moveSpecialHourUp()`, `moveSpecialHourDown()`, `renderSpecialHours()`, `updateSpecialHourData(e)`.
-  - How to Shop / Important Notes: add/remove/move + `renderHowToShopSection()`, `renderImportantNotesSection()`.
-  - Section toggles: `toggleHowToShop()`, `toggleImportantNotes()`, `toggleEntryCollapse(entryId)`.
-  - Defaults & form: `initializeDefaultItems()`, `renderPromotionEmailForm()`.
-- Promotion template persistence:
-  - `savePromotionTemplate()` – build config + save to localStorage + sync PDFs/recipients.
-  - `exportPromotionTemplate()` – build config + export JSON.
-  - `importPromotionTemplate()` – file-based import.
-  - `importFromLocalStorage()` – legacy import.
-  - `applyImportedConfig(config, collapseEntries?)` – validate/normalize + apply.
-- Bulk email tooling:
-  - `validateBatchSize()`, `detectDuplicates(emails)`, `updateBulkAnalysis()`, `generateBulkEmailFiles()`.
-- Email helpers:
-  - `extractSubjectLine(message)`, `renderEditableSubjectLine(container, initialSubject)`.
-  - `openEmailClientUniversal(templateId, content)` – `mailto:` workflow.
-  - `downloadEmailFile(templateId, content)` – EML/EMLTPL file download.
-  - `copyToClipboard()`, `validateSubject(subject)`, `createGenericEMLFile(subject, body)`, `isComplexEmail(templateType)`, `updateFormatStatus()`.
+Imports and dependencies (high level):
+- **State:** `appState` from `src/js/state.js`.
+- **Templates:** `templates`, `templateHelp`, `fieldConfig`, plus sanitization and helper utilities from `src/js/templates.js`.
+- **Theme:** `toggleTheme` from `src/js/shared/theme.js` (which emits `theme:changed`).
+- **Email utilities:** `src/js/shared/emailUtils.js` + `src/js/shared/emailPreviewUtils.js`.
 
-Imports and dependencies:
+### `src/js/state.js` – Core App State
 
-- **State:** `appState`, `captureState`, `restoreState`, `setUIUpdateCallbacks` from `state.js`.
-- **Templates:** `templates`, `templateHelp`, `fieldConfig`, `getFieldSuggestions`, `getStorePhone`, `getStoreName`, `getStoreLocation`, `getEmployeeSignature`, `convertTextToHTML`, `sanitizeHTML`, `escapeAttr` from `templates.js`.
-- **Persistence:** `db`, `savePDFToIndexedDB`, `getPDFFromIndexedDB`, `deletePDFFromIndexedDB`, `clearAllPDFsFromIndexedDB`, `saveBulkEmailRecipientsToIndexedDB`, `getBulkEmailRecipientsFromIndexedDB` from `db.js`.
-- **Theme:** `toggleTheme`, `updateSelectArrows` from `theme.js`.
-- **Email/MIME utilities:** from `emailUtils.js`:
-  - `parseEmailList`, `isValidEmail`, `encodeQuotedPrintable`, `encodeFilename`, `createEMLFile`, `generateZipFilenameFromHTML`, `createBCCBatchEML`.
-- **Promotion config:** from `promotionConfig.js`:
-  - `buildSavedPromotionConfig`, `buildExportedPromotionConfig`, `validateAndNormalizeImportedConfig`.
-- **Email preview formatting:** from `emailPreviewUtils.js`:
-  - `escapeHtml`, `plainTextToPreviewHTML`, `wrapHtmlForEmailPreview`.
-- **Promotion UI utilities:** from `promotionUiUtils.js`:
-  - `moveItemInArray`, `setupDragAndDrop`.
-
-### `src/js/state.js` – Promotion State & Undo/Redo
-
-**Responsibility:** store promotion-related state and manage undo/redo history, while delegating UI updates via callbacks.
+**Responsibility:** minimal shared state used across modules (primarily for profile access and current template/category selection).
 
 - Exports:
-  - `appState` – central state object with:
-    - `currentCategory`, `currentTemplate`, `searchActive`, `userProfile`.
-    - `promotionEntries`, `specialHours`, `howToShopItems`, `importantNotesItems`, `attachedPDFs`, `generatedSubjectLines`, `selectedSubjectLine`, `howToShopExpanded`, `importantNotesExpanded`, `entryCollapsedStates`.
-    - Undo/redo: `historyStack`, `historyIndex`.
-  - `MAX_HISTORY` – history depth.
-  - `setUIUpdateCallbacks(callbacks)` – UI provides:
-    - `updateUndoRedoButtons`, `renderPromotionEntries`, `renderSpecialHours`, `renderHowToShopSection`, `renderImportantNotesSection`, `renderAttachedPDFs`, `renderSubjectLines`.
-  - `captureState()` – snapshot promotion-related slices (when `currentTemplate === 'promotion-email'`).
-  - `restoreState(state)` – replace `appState` slices and call the registered callbacks.
+  - `appState` with: `currentCategory`, `currentTemplate`, `searchActive`, `userProfile`.
 
-**Used by:** `ui.js` (registers callbacks and triggers `captureState`/`restoreState`).
+### `src/js/promotion-state.js` – Promotion Page State
+
+**Responsibility:** state container for the standalone promotion email generator.
+
+- Exports:
+  - `promotionState` with: `promotionEntries`, `specialHours`, `howToShopItems`, `importantNotesItems`, `attachedPDFs`, subject line state, and UI expansion/collapse state.
+
+**Used by:** `promotion-ui.js`.
 
 ---
 
@@ -139,7 +115,7 @@ Imports and dependencies:
 
 - Imports:
   - `appState` from `state.js`.
-  - `getEmployeeSignature as signatureFunction` from `signature.js`.
+  - `getEmployeeSignature as signatureFunction` from `src/js/shared/signature.js`.
 - Exports:
   - Re-export: `getEmployeeSignature` – for backwards compatibility.
   - Security/formatting helpers:
@@ -159,7 +135,7 @@ Imports and dependencies:
 
 **Used by:** `ui.js` for dynamic form rendering and template generation.
 
-### `src/js/signature.js` – Employee Signature System
+### `src/js/shared/signature.js` – Employee Signature System
 
 - Imports:
   - `appState` from `state.js`.
@@ -173,7 +149,7 @@ Imports and dependencies:
 
 ## 5. Persistence & Theme Modules
 
-### `src/js/db.js` – IndexedDB Persistence
+### `src/js/shared/db.js` – IndexedDB Persistence
 
 **Responsibility:** persistence for promotion PDFs and bulk email recipients.
 
@@ -184,14 +160,13 @@ Imports and dependencies:
   - Bulk recipient storage:
     - `saveBulkEmailRecipientsToIndexedDB(recipients)`, `getBulkEmailRecipientsFromIndexedDB()`, `clearBulkEmailRecipientsFromIndexedDB()`.
 
-**Used by:** `app.js` (init), `ui.js` (promotion save/load and bulk-email persistence).
+**Used by:** `app.js` (init) and the promotion app (`promotion-app.js` / `promotion-ui.js`).
 
-### `src/js/theme.js` – Theme & Palette Management
+### `src/js/shared/theme.js` – Theme & Palette Management
 
 - Exports:
   - `initTheme()` – read `localStorage` and set `data-theme`, `data-light-palette`, `data-dark-palette` attributes.
-  - `toggleTheme()` – switch between light/dark and update relevant UI.
-  - `updateSelectArrows()` – apply themed SVG arrows to `<select>` elements.
+  - `toggleTheme()` – switch between light/dark, update the indicator, and emit `theme:changed`.
 
 **Used by:** `app.js` (initial theme), `ui.js` (theme toggle), and mirrored inline on `start.html`.
 
@@ -199,7 +174,7 @@ Imports and dependencies:
 
 ## 6. Email Utilities & Preview Formatting
 
-### `src/js/emailUtils.js` – Email/MIME Utilities
+### `src/js/shared/emailUtils.js` – Email/MIME Utilities
 
 - Text/encoding:
   - `extractPlainText(htmlBody)` – HTML → plain text for text/plain parts.
@@ -215,9 +190,9 @@ Imports and dependencies:
   - `extractDateRangeFromHTML(htmlContent)`, `formatDateRangeForFilename(text)`, `generateZipFilenameFromHTML(htmlContent)`.
   - `createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments, format, batchNumber)` – multi-recipient BCC drafts.
 
-**Used by:** `ui.js` for download/EML generation and bulk email tooling.
+**Used by:** `ui.js` (single-email downloads) and the promotion app (bulk email tooling).
 
-### `src/js/emailPreviewUtils.js` – Preview Formatting Helpers
+### `src/js/shared/emailPreviewUtils.js` – Preview Formatting Helpers
 
 - `escapeHtml(text)` – HTML escaping.
 - `plainTextToPreviewHTML(plainText)` – plain text → HTML paragraphs/lists.
@@ -228,6 +203,14 @@ Imports and dependencies:
 ---
 
 ## 7. Promotion Template Config & UI Utilities
+
+Promotion-specific code is isolated to the `promotion.html` entry point:
+
+- `src/js/promotion-app.js` – promotion page bootstrap
+- `src/js/promotion-ui.js` – promotion UI/controller layer (PDF attachments, subject lines, bulk tools, preview)
+- `src/js/promotionConfig.js` – config shaping/validation for save/export/import
+- `src/js/promotionUiUtils.js` – drag-and-drop and common UI utilities
+- `src/js/promotion-column-collapse.js` – column collapse UI
 
 ### `src/js/promotionConfig.js` – Config Shaping & Validation
 
@@ -242,7 +225,7 @@ Imports and dependencies:
   - Normalizes missing arrays to `[]`.
   - Returns `{ ok: true, config }` or `{ ok: false, reason }`.
 
-**Used by:** `ui.js` in `savePromotionTemplate`, `exportPromotionTemplate`, and `applyImportedConfig`.
+**Used by:** `promotion-ui.js` for save/export/import.
 
 ### `src/js/promotionUiUtils.js` – Movement & Drag-and-Drop
 
@@ -250,9 +233,9 @@ Imports and dependencies:
   - Generic helper for moving items up/down in any promotion-related list.
 - `setupDragAndDrop(container, itemsArray, renderFunction, selector = '.editable-item-row')`
   - Attaches drag-and-drop handlers to list rows.
-  - Reorders the underlying `itemsArray` and calls `renderFunction()` + `captureState()`.
+  - Reorders the underlying `itemsArray` and calls `renderFunction()`.
 
-**Used by:** `ui.js` for promotion entries, special hours, How to Shop, and Important Notes reordering.
+**Used by:** `promotion-ui.js` for promotion entries, special hours, How to Shop, and Important Notes reordering.
 
 ---
 
@@ -261,9 +244,9 @@ Imports and dependencies:
 - **Adding new templates:**
   - Update `templates.js` (`templates`, `fieldConfig`, `templateHelp`), then rely on `ui.js`’s dynamic rendering.
 - **Changing email formatting/EML behavior:**
-  - Prefer editing `emailUtils.js` and `emailPreviewUtils.js` rather than touching `ui.js`.
+  - Prefer editing `src/js/shared/emailUtils.js` and `src/js/shared/emailPreviewUtils.js` rather than touching `ui.js`.
 - **Changing promotion config persistence/import/export:**
-  - Adjust `promotionConfig.js` and keep `ui.js` focused on DOM + wiring.
+  - Adjust `promotionConfig.js` and keep `promotion-ui.js` focused on DOM + wiring.
 - **Promotion UI behaviors (reordering, drag/drop):**
   - Extend or reuse `promotionUiUtils.js` instead of duplicating logic.
 
