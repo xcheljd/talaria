@@ -2,7 +2,7 @@
 
 **Date**: November 11, 2025 (Updated)
 **Status**: ✓ Current Implementation
-**Location**: `src/js/templates.js` - `getEmployeeSignature()` function (lines 56-153)
+**Location**: `src/js/shared/signature.js` - `getEmployeeSignature()` function (re-exported by `src/js/templates.js`)
 
 ## Overview
 
@@ -148,7 +148,7 @@ This ensures:
 ## Implementation Details
 
 ### Function Location
-- **File**: `src/js/templates.js`
+- **File**: `src/js/shared/signature.js`
 - **Function**: `getEmployeeSignature(format = 'text')`
 - **Parameters**:
   - `format`: 'text' (default) or 'html'
