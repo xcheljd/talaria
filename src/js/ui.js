@@ -50,6 +50,7 @@ import {
 import {
   plainTextToPreviewHTML,
   wrapHtmlForEmailPreview,
+  escapeHtml,
 } from './shared/emailPreviewUtils.js';
 
 export const elements = {};
@@ -511,13 +512,32 @@ export function updateCalculatedFields(fieldId, value) {
 export function validateField(input) {
   const fieldId = input.id;
   const template = templates[currentTemplate];
-  if (!template) return;
+  if (!template) return true;
 
-  const field = template.fields.find((f) => f.id === fieldId);
-  if (!field || !field.validation) return;
+  // Get validation config from fieldConfig
+  const config = fieldConfig[fieldId] || {};
+  if (!config.validation) return true;
 
-  const { pattern, message } = field.validation;
-  const isValid = pattern.test(input.value);
+  // Define validation patterns and messages
+  const validationRules = {
+    currency: {
+      pattern: /^\d+(\.\d{1,2})?$/,
+      message: 'Please enter a valid price (e.g., 299 or 299.99)'
+    },
+    number: {
+      pattern: /^\d+$/,
+      message: 'Please enter a valid number'
+    },
+    tracking: {
+      pattern: /^[A-Z0-9]{10,}$/i,
+      message: 'Please enter a valid tracking number'
+    }
+  };
+
+  const validation = validationRules[config.validation];
+  if (!validation) return true;
+
+  const isValid = validation.pattern.test(input.value.trim());
 
   input.classList.toggle('invalid', !isValid);
 
@@ -529,7 +549,7 @@ export function validateField(input) {
     input.parentNode.insertBefore(validationMsg, input.nextSibling);
   }
 
-  validationMsg.textContent = isValid ? '' : message;
+  validationMsg.textContent = isValid ? '' : validation.message;
   validationMsg.style.display = isValid ? 'none' : 'block';
 
   return isValid;
@@ -546,37 +566,35 @@ export function generateMessage() {
   // --- Standard Template Generation ---
 
   const data = {};
-  let allFieldsValid = true;
-  let firstInvalidField = null;
 
-  // Collect data and validate
+  // Collect data from form fields
   template.fields.forEach((field) => {
-    const input = getDynamicElement(field);
-    if (input) {
-      data[field] = input.value;
-      const config = fieldConfig[field] || {};
-      if (config.validation) {
-        if (!validateField(input)) {
-          allFieldsValid = false;
-          if (!firstInvalidField) {
-            firstInvalidField = input;
-          }
-        }
+    // Check if this is a radio button field
+    const radioGroup = document.querySelector(`[data-field="${field}"]`);
+    if (radioGroup && radioGroup.classList.contains('radio-group')) {
+      const selectedRadio = radioGroup.querySelector('input[type="radio"]:checked');
+      data[field] = selectedRadio ? selectedRadio.value : '';
+    } else {
+      // Regular input or textarea
+      const input = getDynamicElement(field);
+      if (input) {
+        data[field] = input.value;
+      } else {
+        // Field not found, set empty value
+        data[field] = '';
       }
     }
   });
 
-  // If any field is invalid, show toast and focus on the first invalid one
-  if (!allFieldsValid) {
-    showToast('✗ Please fix the errors in the form');
-    if (firstInvalidField) {
-      firstInvalidField.focus();
-    }
+  // Generate the message with error handling
+  let message;
+  try {
+    message = template.generate(data);
+  } catch (error) {
+    console.error('Error generating message:', error);
+    showToast('Error generating message: ' + error.message);
     return;
   }
-
-  // Generate the message
-  const message = template.generate(data);
 
   // Show the regular output area
   showRegularOutput();

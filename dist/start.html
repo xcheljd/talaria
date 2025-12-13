@@ -16,7 +16,7 @@
     </script>
     <style>
         .start-container {
-            max-width: 600px;
+            max-width: 900px;
             margin: 4rem auto;
             padding: 0 2rem;
         }
@@ -58,12 +58,13 @@
         }
 
         .start-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem 1.25rem;
         }
 
         .start-info {
+            grid-column: 1 / -1;
             background: var(--bg-accent);
             border-left: 3px solid var(--accent-primary);
             padding: 1rem 1.25rem;
@@ -280,10 +281,48 @@
         }
 
         .form-section-divider {
+            grid-column: 1 / -1;
             height: 1px;
             background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
-            margin: 1.5rem 0;
+            margin: 0.5rem 0;
             opacity: 0.3;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group.full-width .form-label {
+            text-align: center;
+        }
+
+        .form-group.full-width input[type="text"],
+        .form-group.full-width input[type="email"],
+        .form-group.full-width textarea {
+            max-width: 50%;
+            margin: 0 auto;
+        }
+
+        .form-group.full-width .input-wrapper {
+            display: flex;
+            justify-content: center;
+        }
+
+        .form-group.full-width .field-help {
+            text-align: center;
+        }
+
+        /* Keep download folder and textareas full width */
+        #downloadFolderGroup .input-wrapper {
+            justify-content: stretch;
+        }
+
+        #downloadFolderGroup input {
+            max-width: 100%;
+        }
+
+        .button-group {
+            grid-column: 1 / -1;
         }
 
         /* Profile Actions Section */
@@ -414,7 +453,7 @@
             z-index: 1000;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 992px) {
             .start-container {
                 margin: 2rem auto;
                 padding: 0 1rem;
@@ -428,9 +467,31 @@
                 top: 1rem;
                 right: 1rem;
             }
+
+            .start-form {
+                grid-template-columns: 1fr;
+                gap: 1.25rem;
+            }
+
+            .form-group.full-width,
+            .button-group,
+            .form-section-divider {
+                grid-column: 1;
+            }
+
+            .form-group.full-width input[type="text"],
+            .form-group.full-width input[type="email"],
+            .form-group.full-width textarea {
+                max-width: 100%;
+            }
+
+            .form-group.full-width .form-label,
+            .form-group.full-width .field-help {
+                text-align: left;
+            }
         }
     </style>
-  <link rel="stylesheet" crossorigin href="./assets/styles-BnjwujhM.css">
+  <link rel="stylesheet" crossorigin href="./assets/styles-ByJs9ogK.css">
 </head>
 <body>
     <div class="page-content">
@@ -485,7 +546,7 @@
                      </div>
                  </div>
 
-                 <div class="form-group" id="companyEmailGroup" style="display: none;">
+                 <div class="form-group full-width" id="companyEmailGroup" style="display: none;">
                      <label class="form-label">Company Email *</label>
                      <div class="input-wrapper">
                          <input
@@ -528,6 +589,19 @@
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label">Store Address</label>
+                    <div class="input-wrapper">
+                        <textarea
+                            class="form-textarea"
+                            id="storeAddress"
+                            placeholder="123 Main Street&#10;City, State ZIP"
+                            style="min-height: 80px;"
+                        ></textarea>
+                    </div>
+                    <div class="field-help">Used in email signatures. Include street, city, state, and ZIP code</div>
+                </div>
+
+                <div class="form-group">
                     <label class="form-label">Google Plus Code (optional)</label>
                     <div class="input-wrapper">
                         <input
@@ -539,19 +613,6 @@
                     </div>
                     <div class="field-help">Google Maps Plus Code for precise location (e.g., 849VCWC8+R9)</div>
                     <div class="field-error" id="plusCodeError"></div>
-                </div>
-
-                <div class="form-group full-width">
-                    <label class="form-label">Store Address</label>
-                    <div class="input-wrapper">
-                        <textarea
-                            class="form-textarea"
-                            id="storeAddress"
-                            placeholder="123 Main Street&#10;City, State ZIP"
-                            style="min-height: 80px;"
-                        ></textarea>
-                    </div>
-                    <div class="field-help">Used in email signatures. Include street, city, state, and ZIP code</div>
                 </div>
 
                 <div class="form-group">
@@ -585,7 +646,7 @@
                     <div class="field-error" id="emailError"></div>
                 </div>
 
-                <div class="form-group full-width">
+                <div class="form-group">
                     <label class="form-label">Store Hours *</label>
                     <div class="input-wrapper">
                         <input
@@ -601,7 +662,7 @@
                     <div class="field-error" id="hoursError"></div>
                 </div>
 
-                <div class="form-group full-width">
+                <div class="form-group">
                     <label class="form-label">Store Directions / Location Notes</label>
                     <div class="input-wrapper">
                         <input
@@ -753,14 +814,7 @@
             const slider = document.querySelector('.theme-toggle-slider');
             if (!slider) return;
 
-            const positions = { 'light': '0px', 'dark': '28px' };
-            slider.style.transform = `translateX(${positions[theme]})`;
-
-            const gradients = {
-                'light': 'linear-gradient(135deg, #a98467, #d4a574)',
-                'dark': 'linear-gradient(135deg, #00f5ff, #b537f2)'
-            };
-            slider.style.background = gradients[theme];
+            slider.style.transform = theme === 'dark' ? 'translateX(20px)' : 'translateX(0)';
         }
 
         function setLightPalette(paletteName) {

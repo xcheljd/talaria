@@ -162,11 +162,8 @@ function renderEmail(email, format) {
   }
 
   if (format === 'html') {
-    const emailParts = email.split('@');
-    const prefix = emailParts[0] || '';
-    const domain = emailParts[1] || '';
     return `<p style="margin: 10px 0 0 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${SIGNATURE_STYLES.colors.secondary};">
-        Email: ${sanitizeHTML(prefix)}<a href="mailto:${sanitizeHTML(email)}" style="color: ${SIGNATURE_STYLES.colors.link}; text-decoration: underline; font-size: ${SIGNATURE_STYLES.fontSize.details};">@${sanitizeHTML(domain)}</a>
+        Email: <a href="mailto:${sanitizeHTML(email)}" style="color: ${SIGNATURE_STYLES.colors.link}; text-decoration: underline; font-size: ${SIGNATURE_STYLES.fontSize.details};">${sanitizeHTML(email)}</a>
     </p>`;
   }
   return `Email: ${email}`;

@@ -14,12 +14,16 @@
         document.documentElement.setAttribute('data-dark-palette', darkPalette);
       })();
     </script>
-    <script type="module" crossorigin src="./assets/main-Un24Ox3V.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/pageTransitions-DQfifnlS.js">
-    <link rel="stylesheet" crossorigin href="./assets/styles-BnjwujhM.css">
+    <style>
+      body {
+        padding-top: 110px; /* Space for fixed header */
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/main-C_ggT8WS.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/pageTransitions-CIwueoGp.js">
+    <link rel="stylesheet" crossorigin href="./assets/styles-ByJs9ogK.css">
   </head>
   <body>
-    <div class="page-content">
     <div class="header">
       <div class="header-top">
         <h1>Communication Template Generator</h1>
@@ -112,6 +116,7 @@
       </div>
     </div>
 
+    <div class="page-content">
     <div class="container">
       <div class="card">
         <h2 class="section-title" id="formSectionTitle">Template Fields</h2>
@@ -230,6 +235,7 @@
         </div>
       </div>
     </div>
+    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -302,7 +308,6 @@
           </button>
         </div>
       </div>
-    </div>
     </div>
 
     <!-- Vite will automatically bundle and inject the JavaScript -->

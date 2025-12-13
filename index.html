@@ -15,9 +15,13 @@
         document.documentElement.setAttribute('data-dark-palette', darkPalette);
       })();
     </script>
+    <style>
+      body {
+        padding-top: 110px; /* Space for fixed header */
+      }
+    </style>
   </head>
   <body>
-    <div class="page-content">
     <div class="header">
       <div class="header-top">
         <h1>Communication Template Generator</h1>
@@ -110,6 +114,7 @@
       </div>
     </div>
 
+    <div class="page-content">
     <div class="container">
       <div class="card">
         <h2 class="section-title" id="formSectionTitle">Template Fields</h2>
@@ -228,6 +233,7 @@
         </div>
       </div>
     </div>
+    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -300,7 +306,6 @@
           </button>
         </div>
       </div>
-    </div>
     </div>
 
     <!-- Vite will automatically bundle and inject the JavaScript -->

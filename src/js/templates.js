@@ -300,27 +300,8 @@ export function validateTracking(value) {
  * @throws {Error} If required fields are missing or empty
  */
 export function validateRequiredFields(data, fields) {
-  const missingFields = [];
-
-  fields.forEach((field) => {
-    const config = fieldConfig[field];
-    if (config && config.required) {
-      const value = data[field];
-      if (
-        value === undefined ||
-        value === null ||
-        value.toString().trim() === ''
-      ) {
-        missingFields.push(field);
-      }
-    }
-  });
-
-  if (missingFields.length > 0) {
-    throw new Error(
-      `Required fields are missing or empty: ${missingFields.join(', ')}`
-    );
-  }
+  // Validation disabled - allow generation with empty fields
+  return;
 }
 
 /**
