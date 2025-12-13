@@ -35,11 +35,7 @@ import {
   escapeAttr,
 } from './templates.js';
 import { toggleTheme } from './shared/theme.js';
-import {
-  eyePreviewIcon,
-  codeBracketsIcon,
-  emailIcon,
-} from './shared/icons.js';
+import { eyePreviewIcon, codeBracketsIcon, emailIcon } from './shared/icons.js';
 import {
   parseEmailList,
   isValidEmail,
@@ -448,6 +444,13 @@ export function attachEventListeners() {
   // Theme toggle
   elements.themeToggle.addEventListener('click', toggleTheme);
 
+  // Theme change events (dispatched from shared/theme.js)
+  document.addEventListener('theme:changed', () => {
+    if (currentTemplate) {
+      updateEmailPreview();
+    }
+  });
+
   // Search box
   elements.searchBox.addEventListener('input', () => {
     const query = elements.searchBox.value.trim();
@@ -488,7 +491,6 @@ export function attachEventListeners() {
       }
     });
   }
-
 }
 
 // Update calculated fields based on user input
@@ -522,16 +524,16 @@ export function validateField(input) {
   const validationRules = {
     currency: {
       pattern: /^\d+(\.\d{1,2})?$/,
-      message: 'Please enter a valid price (e.g., 299 or 299.99)'
+      message: 'Please enter a valid price (e.g., 299 or 299.99)',
     },
     number: {
       pattern: /^\d+$/,
-      message: 'Please enter a valid number'
+      message: 'Please enter a valid number',
     },
     tracking: {
       pattern: /^[A-Z0-9]{10,}$/i,
-      message: 'Please enter a valid tracking number'
-    }
+      message: 'Please enter a valid tracking number',
+    },
   };
 
   const validation = validationRules[config.validation];
@@ -572,7 +574,9 @@ export function generateMessage() {
     // Check if this is a radio button field
     const radioGroup = document.querySelector(`[data-field="${field}"]`);
     if (radioGroup && radioGroup.classList.contains('radio-group')) {
-      const selectedRadio = radioGroup.querySelector('input[type="radio"]:checked');
+      const selectedRadio = radioGroup.querySelector(
+        'input[type="radio"]:checked'
+      );
       data[field] = selectedRadio ? selectedRadio.value : '';
     } else {
       // Regular input or textarea
@@ -997,7 +1001,8 @@ export function updateEmailPreview() {
     }
 
     // Check if app is in dark mode - if so, simulate email client dark mode
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const currentTheme =
+      document.documentElement.getAttribute('data-theme') || 'light';
     let previewHtml = htmlTemplate;
 
     if (currentTheme === 'dark') {

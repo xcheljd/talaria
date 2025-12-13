@@ -22,12 +22,12 @@
   --transition-theme: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ========== TYPOGRAPHY SCALE ========== */
-  --text-xs: 0.6875rem;     /* 11px - labels, badges, compact elements */
-  --text-sm: 0.75rem;       /* 12px - secondary text, field help */
-  --text-base: 0.8125rem;   /* 13px - body text, standard inputs */
-  --text-md: 0.875rem;      /* 14px - labels, emphasized text */
-  --text-lg: 1rem;          /* 16px - section titles */
-  --text-xl: 1.125rem;      /* 18px - page title */
+  --text-xs: 0.6875rem; /* 11px - labels, badges, compact elements */
+  --text-sm: 0.75rem; /* 12px - secondary text, field help */
+  --text-base: 0.8125rem; /* 13px - body text, standard inputs */
+  --text-md: 0.875rem; /* 14px - labels, emphasized text */
+  --text-lg: 1rem; /* 16px - section titles */
+  --text-xl: 1.125rem; /* 18px - page title */
 
   /* Font Weights */
   --font-normal: 400;
@@ -43,12 +43,12 @@
   --leading-loose: 1.7;
 
   /* ========== SPACING SCALE ========== */
-  --space-1: 0.25rem;   /* 4px */
-  --space-2: 0.5rem;    /* 8px */
-  --space-3: 0.75rem;   /* 12px */
-  --space-4: 1rem;      /* 16px */
-  --space-6: 1.5rem;    /* 24px */
-  --space-8: 2rem;      /* 32px */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-6: 1.5rem; /* 24px */
+  --space-8: 2rem; /* 32px */
 
   /* ========== FORM ELEMENT SIZING ========== */
   /* Input Heights */
@@ -123,24 +123,44 @@
 /* ========== PAGE TRANSITION ANIMATIONS ========== */
 
 @keyframes blurFadeIn {
-  from { opacity: 0; filter: blur(8px); }
-  to { opacity: 1; filter: blur(0); }
+  from {
+    opacity: 0;
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
 }
 
 @keyframes blurFadeOut {
-  from { opacity: 1; filter: blur(0); }
-  to { opacity: 0; filter: blur(8px); }
+  from {
+    opacity: 1;
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    filter: blur(8px);
+  }
 }
 
 /* Simple fade for fixed elements (filter breaks fixed positioning) */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes slideUpFadeIn {
@@ -212,12 +232,24 @@
   animation: slideUpFadeIn 0.4s ease-out forwards;
 }
 
-.page-content .card:nth-child(1) { animation-delay: 0.05s; }
-.page-content .card:nth-child(2) { animation-delay: 0.1s; }
-.page-content .card:nth-child(3) { animation-delay: 0.15s; }
-.page-content .card:nth-child(4) { animation-delay: 0.2s; }
-.page-content .card:nth-child(5) { animation-delay: 0.25s; }
-.page-content .card:nth-child(6) { animation-delay: 0.3s; }
+.page-content .card:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.page-content .card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.page-content .card:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.page-content .card:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.page-content .card:nth-child(5) {
+  animation-delay: 0.25s;
+}
+.page-content .card:nth-child(6) {
+  animation-delay: 0.3s;
+}
 
 /* Right column card also slides up */
 .right-column .card {
@@ -615,7 +647,11 @@ body {
 /* Primary Action Buttons - High emphasis, gradient */
 .btn-primary-base {
   padding: var(--btn-padding-sm);
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary),
+    var(--accent-secondary)
+  );
   color: var(--text-inverse);
   border-radius: var(--btn-radius-sm);
   font-size: var(--btn-font-sm);
@@ -701,14 +737,14 @@ body {
 }
 
 /* Format buttons - active state styling */
-.format-btn[data-active="true"] {
+.format-btn[data-active='true'] {
   background: var(--accent-primary);
   border-color: var(--accent-primary);
   color: var(--text-inverse);
   box-shadow: var(--shadow-sm);
 }
 
-.format-btn[data-active="true"]:hover:not(:disabled) {
+.format-btn[data-active='true']:hover:not(:disabled) {
   background: var(--accent-primary-dark, var(--accent-primary));
   border-color: var(--accent-primary-dark, var(--accent-primary));
 }

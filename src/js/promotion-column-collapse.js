@@ -40,7 +40,13 @@ export function initColumnCollapse() {
   const savedState = localStorage.getItem(COLUMN_STATE_KEY) || 'left-expanded';
   // Apply state on next frame to ensure fade-in animation plays
   requestAnimationFrame(() => {
-    applyColumnState(savedState, leftColumn, centerColumn, rightColumn, container);
+    applyColumnState(
+      savedState,
+      leftColumn,
+      centerColumn,
+      rightColumn,
+      container
+    );
   });
 
   // Set up click handlers
@@ -78,8 +84,15 @@ export function initColumnCollapse() {
         centerSkinny.classList.remove('column-active');
       } else {
         // Reapply state when returning to desktop
-        const currentState = localStorage.getItem(COLUMN_STATE_KEY) || 'left-expanded';
-        applyColumnState(currentState, leftColumn, centerColumn, rightColumn, container);
+        const currentState =
+          localStorage.getItem(COLUMN_STATE_KEY) || 'left-expanded';
+        applyColumnState(
+          currentState,
+          leftColumn,
+          centerColumn,
+          rightColumn,
+          container
+        );
       }
     }, 150);
   });
@@ -121,7 +134,13 @@ export function expandCenterColumn() {
  * @param {HTMLElement} rightColumn - Right column element
  * @param {HTMLElement} container - Container element
  */
-function applyColumnState(state, leftColumn, centerColumn, rightColumn, container) {
+function applyColumnState(
+  state,
+  leftColumn,
+  centerColumn,
+  rightColumn,
+  container
+) {
   if (!leftColumn || !centerColumn || !rightColumn || !container) return;
 
   // Get skinny wrappers by ID (they're outside columns for proper fixed positioning)
@@ -152,7 +171,6 @@ function applyColumnState(state, leftColumn, centerColumn, rightColumn, containe
     // Update state
     promotionState.columnState = 'left-expanded';
     announceColumnChange('Promo Body Details', true);
-
   } else if (state === 'center-expanded') {
     // Center expanded, left collapsed
     leftColumn.classList.add('column-collapsed');

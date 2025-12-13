@@ -10,7 +10,7 @@ const TRANSITION_DURATION = 300; // matches --transition-base (0.3s)
  * Handles fade-out on navigation; fade-in is handled by CSS automatically
  */
 export function initPageTransitions() {
-  document.querySelectorAll('a[href$=".html"]').forEach(link => {
+  document.querySelectorAll('a[href$=".html"]').forEach((link) => {
     if (link.hostname === window.location.hostname) {
       link.addEventListener('click', handleNavigation);
     }
@@ -33,14 +33,18 @@ function handleNavigation(event) {
   const pageContent = document.querySelector('.page-content');
   const header = document.querySelector('.header');
   const rightColumn = document.querySelector('.right-column');
-  const skinnyColumn = document.querySelector('.column-skinny-wrapper.column-active');
+  const skinnyColumn = document.querySelector(
+    '.column-skinny-wrapper.column-active'
+  );
 
   if (pageContent || header) {
     if (pageContent) pageContent.classList.add('fade-out');
     if (header) header.classList.add('fade-out');
     if (rightColumn) rightColumn.classList.add('fade-out');
     if (skinnyColumn) skinnyColumn.classList.add('fade-out');
-    setTimeout(() => { window.location.href = href; }, TRANSITION_DURATION);
+    setTimeout(() => {
+      window.location.href = href;
+    }, TRANSITION_DURATION);
   } else {
     window.location.href = href;
   }

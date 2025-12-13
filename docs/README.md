@@ -74,8 +74,9 @@ The app is a **Vite-powered multi-page web application** with all source code un
 ### Entry Points
 - `index.html` – main Communication Template Generator UI
 - `start.html` – user/store profile setup and theme configuration
+- `promotion.html` – standalone Promotion Email Generator
 
-Vite builds these into `dist/index.html` and `dist/start.html`, with JavaScript and CSS emitted into `dist/assets/`.
+Vite builds these into `dist/` with JavaScript and CSS emitted into `dist/assets/`.
 
 ### Core Source Layout
 - `src/js/app.js` – main entry point
@@ -83,7 +84,7 @@ Vite builds these into `dist/index.html` and `dist/start.html`, with JavaScript 
 - `src/js/ui.js` – primary UI/controller layer
   - Caches DOM elements, manages template selection and search
   - Renders dynamic forms for templates and handles all user interactions
-  - Drives promotion email builder, bulk email tools, and PDF preview modal
+  - Drives enhanced email preview/HTML output and EML downloads for supported templates
 - `src/js/state.js` – promotion state container and undo/redo history
   - Holds `appState`, promotion entries, and history stack
   - Provides `captureState()` / `restoreState()` used by `ui.js`
@@ -93,7 +94,7 @@ Vite builds these into `dist/index.html` and `dist/start.html`, with JavaScript 
 - `src/js/signature.js` – employee signature system
   - Generates text and HTML signatures based on profile data
 - `src/js/db.js` – IndexedDB integration
-  - Persists promotion PDFs and bulk email recipient lists
+  - Persists promotion PDFs and bulk email recipient lists (used by the promotion app)
 - `src/js/theme.js` – theme and palette management
   - Initializes and toggles light/dark mode and palette variants
 - `src/js/emailUtils.js`, `src/js/emailPreviewUtils.js`, `src/js/promotionConfig.js`, `src/js/promotionUiUtils.js`
@@ -221,27 +222,37 @@ At a high level:
 .
 ├── index.html                 # Main app entry (Vite input: "main")
 ├── start.html                 # Profile setup entry (Vite input: "start")
+├── promotion.html             # Promotion app entry (Vite input: "promotion")
 ├── src/
 │   ├── css/
-│   │   └── styles.css         # Global layout, themes, and component styles
+│   │   ├── styles.css         # Shared layout, themes, and component styles
+│   │   └── promotion-styles.css  # Promotion page styles
 │   └── js/
-│       ├── app.js             # App bootstrap (theme + IndexedDB + UI)
-│       ├── ui.js              # Main UI/controller logic
-│       ├── state.js           # Promotion state + undo/redo
+│       ├── app.js             # index.html bootstrap (theme + transitions + IndexedDB + UI)
+│       ├── ui.js              # Main template generator UI/controller
+│       ├── state.js           # Core app state (category/template/profile)
 │       ├── templates.js       # Template catalog & helpers
-│       ├── signature.js       # Employee signature system
-│       ├── db.js              # IndexedDB integration
-│       ├── theme.js           # Theme + palette management
-│       ├── emailUtils.js      # Email/MIME utilities (EML, encoding)
-│       ├── emailPreviewUtils.js  # HTML preview formatting helpers
-│       ├── promotionConfig.js    # Promotion config shaping & validation
-│       └── promotionUiUtils.js   # Drag-and-drop & list movement helpers
+│       ├── promotion-app.js   # promotion.html bootstrap
+│       ├── promotion-ui.js    # Promotion UI/controller
+│       ├── promotion-state.js # Promotion page state container
+│       ├── promotionConfig.js # Promotion config shaping & validation
+│       ├── promotionUiUtils.js # Promotion UI helpers (drag/drop, clear buttons)
+│       ├── promotion-column-collapse.js # Promotion column collapse UI
+│       └── shared/
+│           ├── db.js          # IndexedDB utilities (PDFs + bulk recipients)
+│           ├── theme.js       # Theme + palette management (emits theme:changed)
+│           ├── emailUtils.js  # Email/MIME utilities (EML, encoding)
+│           ├── emailPreviewUtils.js # Email preview formatting helpers
+│           ├── signature.js   # Employee signature system
+│           ├── profile.js     # Profile access helpers
+│           ├── icons.js       # SVG icon utilities
+│           └── pageTransitions.js # Page transition effects
 ├── docs/
 │   ├── README.md              # (This file)
 │   ├── CHANGELOG.md           # Detailed version history
 │   ├── ARCHITECTURE-MAP.md    # Deep architectural map
 │   └── SIGNATURE-FORMAT.md    # Signature format documentation
-├── dist/                      # Build output (generated)
+├── dist/                      # Build output (generated; not committed)
 ├── dist-helpers/              # Helper scripts copied into dist after build
 ├── vite.config.js             # Vite config (multi-page, ES modules)
 ├── eslint.config.js           # ESLint configuration
@@ -272,7 +283,7 @@ _Built artifacts under `dist/` are not the source of truth; edit files under `sr
 ### Code Quality Standards
 - Modern ES modules and ES6+ JavaScript
 - Clear separation between state, UI, templates, and persistence concerns
-- Named constants for key configuration values (e.g., `MAX_HISTORY`)
+- Named constants for key configuration values
 - Centralized sanitization and validation helpers
 - DOM caching and efficient re-renders in `ui.js`
 
