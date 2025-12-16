@@ -14,8 +14,6 @@ export const promotionState = {
   attachedPDFs: [],
   generatedSubjectLines: [],
   selectedSubjectLine: null,
-  howToShopExpanded: false,
-  importantNotesExpanded: false,
   entryCollapsedStates: {},
   columnState: 'left-expanded', // 'left-expanded' | 'center-expanded'
 };

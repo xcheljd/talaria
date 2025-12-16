@@ -5,8 +5,5 @@
  */
 
 export const appState = {
-  currentCategory: 'all',
-  currentTemplate: null,
-  searchActive: false,
   userProfile: null,
 };

@@ -10,10 +10,6 @@ let currentSubjectLine = null;
 
 // Global variables for app state (used by modules)
 
-export function setCurrentTemplate(template) {
-  currentTemplate = template;
-}
-
 // Helper function to detect if content is HTML or plain text
 export function isHTMLContent(text) {
   if (!text) return false;
@@ -47,13 +43,7 @@ import {
   TOAST_DURATION_MS,
 } from './shared/ui-utils.js';
 import { eyePreviewIcon, codeBracketsIcon, emailIcon } from './shared/icons.js';
-import {
-  parseEmailList,
-  isValidEmail,
-  encodeQuotedPrintable,
-  encodeFilename,
-  createEMLFile,
-} from './shared/emailUtils.js';
+import { createEMLFile } from './shared/emailUtils.js';
 import {
   plainTextToPreviewHTML,
   wrapHtmlForEmailPreview,
@@ -83,10 +73,6 @@ export function cacheElements() {
   elements.clearSearch = document.getElementById('clearSearch');
   elements.searchResults = document.getElementById('searchResults');
   elements.resultCounter = document.getElementById('resultCounter');
-}
-
-export function getDynamicElement(id) {
-  return document.getElementById(id);
 }
 
 export { showToast };
@@ -355,18 +341,6 @@ export function loadUserProfile() {
   }
 }
 
-// Render How to Shop section (wrapper with expand/collapse)
-
-// Render Important Notes section (wrapper with expand/collapse)
-
-// Ensure profile store directions / location notes are represented in Important Notes
-
-// Initialize default How to Shop and Important Notes items
-
-// ===== PDF Preview Modal Functions =====
-
-// Handle undo/redo shortcuts
-
 // Attach event listeners to form fields
 export function attachGlobalEventListeners() {
   // Template selector
@@ -480,70 +454,6 @@ export function attachGlobalEventListeners() {
   }
 }
 
-// Update calculated fields based on user input
-export function updateCalculatedFields(fieldId, value) {
-  const template = templates[currentTemplate];
-  if (!template || !template.calculatedFields) return;
-
-  template.calculatedFields.forEach((calc) => {
-    if (calc.basedOn === fieldId) {
-      const targetInput = getDynamicElement(calc.id);
-      if (targetInput) {
-        const newValue = calc.calculate(value);
-        targetInput.value = newValue;
-        validateField(targetInput); // Validate the new value
-      }
-    }
-  });
-}
-
-// Validate a single field
-export function validateField(input) {
-  const fieldId = input.id;
-  const template = templates[currentTemplate];
-  if (!template) return true;
-
-  // Get validation config from fieldConfig
-  const config = fieldConfig[fieldId] || {};
-  if (!config.validation) return true;
-
-  // Define validation patterns and messages
-  const validationRules = {
-    currency: {
-      pattern: /^\d+(\.\d{1,2})?$/,
-      message: 'Please enter a valid price (e.g., 299 or 299.99)',
-    },
-    number: {
-      pattern: /^\d+$/,
-      message: 'Please enter a valid number',
-    },
-    tracking: {
-      pattern: /^[A-Z0-9]{10,}$/i,
-      message: 'Please enter a valid tracking number',
-    },
-  };
-
-  const validation = validationRules[config.validation];
-  if (!validation) return true;
-
-  const isValid = validation.pattern.test(input.value.trim());
-
-  input.classList.toggle('invalid', !isValid);
-
-  // Show/hide validation message
-  let validationMsg = input.nextElementSibling;
-  if (!validationMsg || !validationMsg.classList.contains('validation-msg')) {
-    validationMsg = document.createElement('div');
-    validationMsg.className = 'validation-msg';
-    input.parentNode.insertBefore(validationMsg, input.nextSibling);
-  }
-
-  validationMsg.textContent = isValid ? '' : validation.message;
-  validationMsg.style.display = isValid ? 'none' : 'block';
-
-  return isValid;
-}
-
 // Generate message based on the selected template and inputs
 export function generateMessage() {
   const template = templates[currentTemplate];
@@ -567,7 +477,7 @@ export function generateMessage() {
       data[field] = selectedRadio ? selectedRadio.value : '';
     } else {
       // Regular input or textarea
-      const input = getDynamicElement(field);
+      const input = document.getElementById(field);
       if (input) {
         data[field] = input.value;
       } else {
@@ -591,7 +501,7 @@ export function generateMessage() {
   showRegularOutput();
 
   // Update output area and email preview
-  const outputArea = getDynamicElement('outputArea');
+  const outputArea = document.getElementById('outputArea');
   if (outputArea) {
     outputArea.value = message;
   }
@@ -622,7 +532,7 @@ export function clearAll() {
   const template = templates[currentTemplate];
   if (template) {
     template.fields.forEach((field) => {
-      const input = getDynamicElement(field.id);
+      const input = document.getElementById(field.id);
       if (input) {
         input.value = '';
         input.classList.remove('invalid');
@@ -1095,7 +1005,7 @@ export function selectTemplate(key) {
     // Clear the preview iframe, output, and cached content immediately
     clearEmailPreview();
     originalMessageContent = '';
-    const outputElem = getDynamicElement('outputArea');
+    const outputElem = document.getElementById('outputArea');
     if (outputElem) {
       outputElem.value = '';
     }
@@ -1233,24 +1143,6 @@ export function selectTemplate(key) {
   }
 }
 
-// Highlight empty required fields
-export function highlightEmptyRequiredFields() {
-  const inputs = elements.formFields.querySelectorAll(
-    '.form-input, .form-textarea'
-  );
-
-  inputs.forEach((input) => {
-    const field = input.dataset.field;
-    const config = fieldConfig[field] || {};
-
-    if (config.required && !input.value.trim()) {
-      input.classList.add('error');
-    } else {
-      input.classList.remove('error');
-    }
-  });
-}
-
 // Copy output to clipboard
 export function copyToClipboard() {
   // Get fresh reference to outputArea (it's recreated in showRegularOutput())
@@ -1293,28 +1185,3 @@ export function copyToClipboard() {
     }
   }
 }
-
-export function validateSubject(subject) {
-  if (!subject || subject.trim() === '') {
-    throw new Error('Subject cannot be empty');
-  }
-  if (subject.length > 900) {
-    throw new Error(`Subject too long: ${subject.length} characters (max 900)`);
-  }
-  // Check for control characters (except tabs)
-  for (let i = 0; i < subject.length; i++) {
-    const code = subject.charCodeAt(i);
-    if (
-      (code >= 0 && code <= 8) ||
-      (code >= 10 && code <= 31) ||
-      code === 127
-    ) {
-      throw new Error('Subject contains invalid control characters');
-    }
-  }
-  return true;
-}
-
-// Check if template is complex (needs EML download vs simple mailto)
-// Extract date range from HTML content, generate filenames, and build BCC batch EML files
-// are now provided by emailUtils.js

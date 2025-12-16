@@ -271,53 +271,13 @@ export function getFieldSuggestions(field) {
   return config.suggestions || [];
 }
 
-export function formatPhoneNumber(value) {
-  const numbers = value.replace(/\D/g, '');
-  if (numbers.length <= 3) return numbers;
-  if (numbers.length <= 6) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-  return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`;
-}
-
-export function validateTracking(value) {
-  // UPS: 1Z followed by 16 characters
-  const upsPattern = /^1Z[0-9A-Z]{16}$/i;
-  // FedEx: 12 or 14 digits
-  const fedexPattern = /^\d{12}(\d{2})?$/;
-  // USPS: 20 or 22 digits
-  const uspsPattern = /^\d{20}(\d{2})?$/;
-
-  return (
-    upsPattern.test(value) ||
-    fedexPattern.test(value) ||
-    uspsPattern.test(value)
-  );
-}
-
-/**
- * Validate required fields for a template
- * @param {Object} data - Template data
- * @param {Array} fields - Array of field names
- * @throws {Error} If required fields are missing or empty
- */
-export function validateRequiredFields(data, fields) {
-  // Validation disabled - allow generation with empty fields
-  return;
-}
-
-/**
- * Generate a standard email greeting
- * @param {string} customerName - Name of the customer
- * @returns {string} Formatted greeting
- */
-export function generateGreeting(customerName) {
+// Internal helper: Generate a standard email greeting
+function generateGreeting(customerName) {
   return `Hi ${customerName},\n\n`;
 }
 
-/**
- * Generate a standard email closing
- * @returns {string} Formatted closing with signature
- */
-export function generateClosing() {
+// Internal helper: Generate a standard email closing
+function generateClosing() {
   return `\n\nBest regards,\n${getEmployeeSignature()}`;
 }
 
@@ -341,7 +301,6 @@ export const templates = {
     supportsMailto: true,
     fields: ['customerName', 'employeeName'],
     generate: (data) => {
-      validateRequiredFields(data, ['customerName', 'employeeName']);
       const safe = sanitizeTemplateData(data);
       return `Subject: Welcome to Citizen Company Store - Your VIP Access
 
@@ -370,15 +329,6 @@ Please don't hesitate to reach out by replying to this email or call the store a
       'employeeName',
     ],
     generate: (data) => {
-      validateRequiredFields(data, [
-        'customerName',
-        'brand',
-        'modelName',
-        'modelNumber',
-        'keyFeature1',
-        'price',
-        'employeeName',
-      ]);
       const safe = sanitizeTemplateData(data);
       const features = [safe.keyFeature1, safe.keyFeature2, safe.keyFeature3]
         .filter((feature) => feature && feature.trim())
@@ -417,16 +367,6 @@ Looking forward to hearing from you!${generateClosing()}`;
       'employeeName',
     ],
     generate: (data) => {
-      validateRequiredFields(data, [
-        'customerName',
-        'brand',
-        'modelName',
-        'modelNumber',
-        'limitedDetails',
-        'price',
-        'quantityAvailable',
-        'employeeName',
-      ]);
       const safe = sanitizeTemplateData(data);
       return `Subject: Exclusive: Limited Edition ${safe.modelName} Available
 
@@ -502,18 +442,6 @@ P.S. - We now carry everything from current season pieces to discontinued treasu
       'employeeName',
     ],
     generate: (data) => {
-      validateRequiredFields(data, [
-        'customerName',
-        'brand',
-        'modelName',
-        'modelNumber',
-        'price',
-        'discount',
-        'totalAmount',
-        'customerAddress',
-        'carrier',
-        'employeeName',
-      ]);
       const safe = sanitizeTemplateData(data);
       let trackingInfo = '';
       if (safe.trackingNumber) {
@@ -562,16 +490,6 @@ ${getEmployeeSignature()}`;
       'employeeName',
     ],
     generate: (data) => {
-      validateRequiredFields(data, [
-        'customerName',
-        'brand',
-        'modelName',
-        'modelNumber',
-        'trackingNumber',
-        'customerAddress',
-        'carrier',
-        'employeeName',
-      ]);
       const safe = sanitizeTemplateData(data);
       return `Subject: Your Watch Order - Tracking Information
 
@@ -739,14 +657,6 @@ ${getEmployeeSignature()}`;
       'endDate',
     ],
     generate: (data) => {
-      validateRequiredFields(data, [
-        'customerName',
-        'employeeName',
-        'modelName',
-        'discount',
-        'msrp',
-        'endDate',
-      ]);
       const safe = sanitizeTemplateData(data);
 
       // Validate numeric fields

@@ -908,7 +908,6 @@ export function renderSpecialHours() {
     input.addEventListener('input', (e) => {
       updateSpecialHourData(e);
       debouncedLivePreview();
-      debouncedCaptureState(); // Capture after user stops typing
     });
   });
 
