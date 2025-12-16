@@ -16,6 +16,13 @@ import {
   clearBulkEmailRecipientsFromIndexedDB,
 } from './shared/db.js';
 import {
+  showToast,
+  detectOS,
+  getRecommendedFormat,
+  writeEmptyStateToIframe,
+} from './shared/ui-utils.js';
+import { getEmailDarkModeCSS } from './shared/theme.js';
+import {
   escapeHtml,
   plainTextToPreviewHTML,
   wrapHtmlForEmailPreview,
@@ -52,19 +59,7 @@ import { appState } from './state.js';
 
 // ===== HELPER FUNCTIONS =====
 
-// Detect user's operating system
-export function detectOS() {
-  const platform = navigator.platform.toLowerCase();
-  if (platform.includes('win')) return 'windows';
-  if (platform.includes('mac')) return 'mac';
-  return 'other';
-}
-
-// Get recommended email file format based on OS
-export function getRecommendedFormat() {
-  const os = detectOS();
-  return os === 'mac' ? 'emltpl' : 'eml';
-}
+export { detectOS, getRecommendedFormat };
 
 // Update format status display in bulk email tools
 export function updateFormatStatus() {
@@ -97,87 +92,7 @@ function debounce(func, wait) {
   };
 }
 
-// Show toast notification
-export function showToast(message, duration = 2500) {
-  const toast = document.getElementById('toast');
-  if (!toast) {
-    console.warn('Toast element not found');
-    return;
-  }
-
-  toast.textContent = message;
-  toast.classList.add('show');
-
-  setTimeout(() => {
-    toast.classList.remove('show');
-  }, duration);
-}
-
-// Write empty state placeholder to preview iframe
-export function writeEmptyStateToIframe(iframe) {
-  if (!iframe) return;
-
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-  if (!iframeDoc) return;
-
-  const computedStyle = getComputedStyle(document.documentElement);
-  const bgColor =
-    computedStyle.getPropertyValue('--bg-tertiary').trim() || '#f8f3ef';
-  const textColor =
-    computedStyle.getPropertyValue('--text-primary').trim() || '#2a2420';
-  const textSecondary =
-    computedStyle.getPropertyValue('--text-secondary').trim() || '#666';
-
-  iframeDoc.open();
-  iframeDoc.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {
-                    font-family: 'Aptos', Arial, sans-serif;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 400px;
-                    margin: 0;
-                    background: ${bgColor};
-                    color: ${textSecondary};
-                    text-align: center;
-                    padding: 2rem;
-                }
-                .empty-state {
-                    max-width: 400px;
-                }
-                .empty-state svg {
-                    width: 80px;
-                    height: 80px;
-                    margin-bottom: 1rem;
-                    opacity: 0.3;
-                }
-                .empty-state h3 {
-                    font-size: 1.2rem;
-                    margin: 0 0 0.5rem 0;
-                    color: ${textColor};
-                }
-                .empty-state p {
-                    font-size: 0.9rem;
-                    margin: 0;
-                    color: ${textSecondary};
-                }
-            </style>
-        </head>
-        <body>
-            <div class="empty-state">
-                ${emailIcon({ size: 80 })}
-                <h3>No Preview Yet</h3>
-                <p>Begin filling in the promotion details to start seeing a preview</p>
-            </div>
-        </body>
-        </html>
-    `);
-  iframeDoc.close();
-}
+export { showToast, writeEmptyStateToIframe };
 
 // Current PDF preview state
 let currentPreviewPDF = null;
@@ -185,57 +100,7 @@ let currentBlobUrl = null;
 
 // ===== LIVE PREVIEW FUNCTIONS =====
 // Get CSS that simulates email client dark mode color inversion
-function getEmailDarkModeCSS() {
-  return `
-    /* Simulate email client dark mode - invert light backgrounds and text */
-    body {
-      background-color: #1a1a1a !important;
-      color: #e0e0e0 !important;
-    }
-    table {
-      background-color: #1a1a1a !important;
-    }
-    /* Invert light gray backgrounds */
-    [style*="background-color: #f5f5f5"],
-    [style*="background-color:#f5f5f5"] {
-      background-color: #2d2d2d !important;
-    }
-    [style*="background-color: #f4f4f4"],
-    [style*="background-color:#f4f4f4"] {
-      background-color: #2a2a2a !important;
-    }
-    [style*="background-color: white"],
-    [style*="background-color:#ffffff"],
-    [style*="background-color: #ffffff"] {
-      background-color: #1a1a1a !important;
-    }
-    /* Invert dark text to light */
-    [style*="color: #333333"],
-    [style*="color:#333333"],
-    [style*="color: #333"] {
-      color: #e0e0e0 !important;
-    }
-    /* Invert light borders */
-    [style*="border: 1px solid #ddd"] {
-      border-color: #444444 !important;
-    }
-    [style*="border-bottom: 2px solid gray"] {
-      border-bottom-color: #555555 !important;
-    }
-    /* Keep dark footer as-is (already dark) */
-    [style*="background-color: #2c3e50"] {
-      background-color: #2c3e50 !important;
-    }
-    /* Ensure white text in footer stays white */
-    [style*="color: white"] {
-      color: white !important;
-    }
-    /* Keep gold accent color */
-    [style*="color: #ffd700"] {
-      color: #ffd700 !important;
-    }
-  `;
-}
+// Moved to shared/theme.js
 
 // Update live preview
 export function updateLivePreview() {
@@ -750,10 +615,13 @@ export function addPromotionEntry() {
 
 // Remove a promotion entry
 export function removePromotionEntry(entryId) {
-  promotionState.promotionEntries = promotionState.promotionEntries.filter(
-    (entry) => entry.id !== entryId
+  const index = promotionState.promotionEntries.findIndex(
+    (entry) => entry.id === entryId
   );
-  renderPromotionEntries();
+  if (index !== -1) {
+    promotionState.promotionEntries.splice(index, 1);
+    renderPromotionEntries();
+  }
 }
 
 // Move promotion entry up
@@ -915,14 +783,6 @@ export function renderPromotionEntries() {
       });
     });
 
-  // Add drag-and-drop functionality for reordering entries
-  setupDragAndDrop(
-    container,
-    promotionState.promotionEntries,
-    renderPromotionEntries,
-    '.promotion-entry'
-  );
-
   // Attach event listeners for promotion entry buttons
   container.querySelectorAll('[data-action]').forEach((button) => {
     button.addEventListener('click', (e) => {
@@ -968,10 +828,13 @@ export function addSpecialHour() {
 
 // Remove a special hour row
 export function removeSpecialHour(hourId) {
-  promotionState.specialHours = promotionState.specialHours.filter(
-    (hour) => hour.id !== hourId
+  const index = promotionState.specialHours.findIndex(
+    (hour) => hour.id === hourId
   );
-  renderSpecialHours();
+  if (index !== -1) {
+    promotionState.specialHours.splice(index, 1);
+    renderSpecialHours();
+  }
 }
 
 // Move special hour up
@@ -1102,10 +965,13 @@ export function addHowToShopItem() {
 
 // Remove a How to Shop item
 export function removeHowToShopItem(itemId) {
-  promotionState.howToShopItems = promotionState.howToShopItems.filter(
-    (item) => item.id !== itemId
+  const index = promotionState.howToShopItems.findIndex(
+    (item) => item.id === itemId
   );
-  renderHowToShopSection();
+  if (index !== -1) {
+    promotionState.howToShopItems.splice(index, 1);
+    renderHowToShopSection();
+  }
 }
 
 // Move How to Shop item up
@@ -1205,24 +1071,6 @@ function renderHowToShopItems() {
     });
   });
 
-  // Add drag-and-drop functionality
-  setupDragAndDrop(
-    container,
-    promotionState.howToShopItems,
-    renderHowToShopSection
-  );
-
-  // Attach event listeners for add and remove buttons
-  const addButton = document.querySelector(
-    '[data-action="add-how-to-shop-item"]'
-  );
-  if (addButton) {
-    addButton.addEventListener('click', (e) => {
-      e.stopPropagation();
-      addHowToShopItem();
-    });
-  }
-
   container
     .querySelectorAll('[data-action="remove-how-to-shop-item"]')
     .forEach((button) => {
@@ -1288,13 +1136,27 @@ export function renderHowToShopSection() {
   const wrapper = document.getElementById('howToShopWrapper');
   if (!wrapper) return;
 
-  // Always show expanded content (card-level collapse handles hiding)
-  wrapper.innerHTML = `
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-        <button type="button" class="btn btn-base btn-primary-base" data-action="add-how-to-shop-item" style="padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
-    </div>
-    <div id="howToShopItemsContainer"></div>
-  `;
+  // Only create structure if it doesn't exist
+  if (!document.getElementById('howToShopItemsContainer')) {
+    // Always show expanded content (card-level collapse handles hiding)
+    wrapper.innerHTML = `
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+          <button type="button" class="btn btn-base btn-primary-base" data-action="add-how-to-shop-item" style="padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
+      </div>
+      <div id="howToShopItemsContainer"></div>
+    `;
+
+    // Attach "Add Item" listener (once)
+    const addButton = wrapper.querySelector(
+      '[data-action="add-how-to-shop-item"]'
+    );
+    if (addButton) {
+      addButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        addHowToShopItem();
+      });
+    }
+  }
 
   // Render the items
   renderHowToShopItems();
@@ -1320,9 +1182,13 @@ export function addImportantNotesItem() {
 
 // Remove an Important Notes item
 export function removeImportantNotesItem(itemId) {
-  promotionState.importantNotesItems =
-    promotionState.importantNotesItems.filter((item) => item.id !== itemId);
-  renderImportantNotesSection();
+  const index = promotionState.importantNotesItems.findIndex(
+    (item) => item.id === itemId
+  );
+  if (index !== -1) {
+    promotionState.importantNotesItems.splice(index, 1);
+    renderImportantNotesSection();
+  }
 }
 
 // Move Important Notes item up
@@ -1424,24 +1290,6 @@ function renderImportantNotesItems() {
     });
   });
 
-  // Add drag-and-drop functionality
-  setupDragAndDrop(
-    container,
-    promotionState.importantNotesItems,
-    renderImportantNotesSection
-  );
-
-  // Attach event listeners for add and remove buttons
-  const addButton = document.querySelector(
-    '[data-action="add-important-notes-item"]'
-  );
-  if (addButton) {
-    addButton.addEventListener('click', (e) => {
-      e.stopPropagation();
-      addImportantNotesItem();
-    });
-  }
-
   container
     .querySelectorAll('[data-action="remove-important-notes-item"]')
     .forEach((button) => {
@@ -1507,13 +1355,27 @@ export function renderImportantNotesSection() {
   const wrapper = document.getElementById('importantNotesWrapper');
   if (!wrapper) return;
 
-  // Always show expanded content (card-level collapse handles hiding)
-  wrapper.innerHTML = `
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-        <button type="button" class="btn btn-base btn-primary-base" data-action="add-important-notes-item" style="padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
-    </div>
-    <div id="importantNotesItemsContainer"></div>
-  `;
+  // Only create structure if it doesn't exist
+  if (!document.getElementById('importantNotesItemsContainer')) {
+    // Always show expanded content (card-level collapse handles hiding)
+    wrapper.innerHTML = `
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+          <button type="button" class="btn btn-base btn-primary-base" data-action="add-important-notes-item" style="padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Item</button>
+      </div>
+      <div id="importantNotesItemsContainer"></div>
+    `;
+
+    // Attach "Add Item" listener (once)
+    const addButton = wrapper.querySelector(
+      '[data-action="add-important-notes-item"]'
+    );
+    if (addButton) {
+      addButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        addImportantNotesItem();
+      });
+    }
+  }
 
   // Render the items
   renderImportantNotesItems();
@@ -2905,6 +2767,26 @@ export function init() {
   renderHowToShopSection();
   renderImportantNotesSection();
   renderSubjectLines();
+
+  // Initialize drag and drop (one-time setup)
+  setupDragAndDrop(
+    document.getElementById('promotionEntriesContainer'),
+    () => promotionState.promotionEntries,
+    renderPromotionEntries,
+    '.promotion-entry'
+  );
+
+  setupDragAndDrop(
+    document.getElementById('howToShopItemsContainer'),
+    () => promotionState.howToShopItems,
+    renderHowToShopSection
+  );
+
+  setupDragAndDrop(
+    document.getElementById('importantNotesItemsContainer'),
+    () => promotionState.importantNotesItems,
+    renderImportantNotesSection
+  );
 
   // Set initial empty state for preview iframe
   const previewIframe = document.getElementById('previewIframe');

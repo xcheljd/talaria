@@ -1,8 +1,12 @@
 // Constants
-export const TOAST_DURATION_MS = 2500;
+export { TOAST_DURATION_MS } from './shared/ui-utils.js';
 
 // Global variable for current template (used by modules)
 export let currentTemplate = null;
+
+// Module-scoped state (replaces window.* globals)
+let originalMessageContent = null;
+let currentSubjectLine = null;
 
 // Global variables for app state (used by modules)
 
@@ -34,7 +38,14 @@ import {
   sanitizeHTML,
   escapeAttr,
 } from './templates.js';
-import { toggleTheme } from './shared/theme.js';
+import { toggleTheme, getEmailDarkModeCSS } from './shared/theme.js';
+import {
+  showToast,
+  detectOS,
+  getRecommendedFormat,
+  writeEmptyStateToIframe,
+  TOAST_DURATION_MS,
+} from './shared/ui-utils.js';
 import { eyePreviewIcon, codeBracketsIcon, emailIcon } from './shared/icons.js';
 import {
   parseEmailList,
@@ -78,23 +89,30 @@ export function getDynamicElement(id) {
   return document.getElementById(id);
 }
 
-export function showToast(message, duration = 2500) {
-  const toast = document.getElementById('toast');
-  if (!toast) {
-    console.warn('Toast element not found');
-    return;
-  }
-
-  toast.textContent = message;
-  toast.classList.add('show');
-
-  setTimeout(() => {
-    toast.classList.remove('show');
-  }, duration);
-}
+export { showToast };
 
 export function showRegularOutput() {
   if (!elements.outputCard) return;
+
+  // Check if current template has enhanced features
+  const template = templates[currentTemplate];
+  const hasEnhancedFeatures = template && template.hasEditableSubject;
+
+  // Check if structure already matches
+  const existingSubjectLine = document.getElementById('subjectLineContainer');
+  const isEnhancedStructure = !!existingSubjectLine;
+  const hasContent = elements.outputCard.childElementCount > 0;
+
+  if (hasContent && hasEnhancedFeatures === isEnhancedStructure) {
+    // Structure is already correct, just ensure elements are cached
+    if (!elements.outputArea)
+      elements.outputArea = document.getElementById('outputArea');
+    if (!elements.copyBtn)
+      elements.copyBtn = document.getElementById('copyBtn');
+    if (!elements.emailPreview)
+      elements.emailPreview = document.getElementById('emailPreview');
+    return;
+  }
 
   // Clear dynamic element cache before rebuilding DOM
   elements.outputArea = null;
@@ -109,10 +127,6 @@ export function showRegularOutput() {
   elements.previewContentRegular = null;
   elements.htmlContentRegular = null;
   elements.emailPreview = null;
-
-  // Check if current template has enhanced features
-  const template = templates[currentTemplate];
-  const hasEnhancedFeatures = template && template.hasEditableSubject;
 
   let subjectLineSection = '';
   let buttonGroup = '';
@@ -208,8 +222,8 @@ export function showRegularOutput() {
       }
 
       // Restore original plain text output (if it was converted to HTML)
-      if (elements.outputArea && window.originalMessageContent) {
-        elements.outputArea.value = window.originalMessageContent;
+      if (elements.outputArea && originalMessageContent) {
+        elements.outputArea.value = originalMessageContent;
       }
 
       // Update preview iframe
@@ -312,7 +326,7 @@ export function showRegularOutput() {
         // or fallback to textarea content if original not available
         const outputArea = document.getElementById('outputArea');
         const content =
-          window.originalMessageContent || (outputArea ? outputArea.value : '');
+          originalMessageContent || (outputArea ? outputArea.value : '');
         if (content) {
           downloadEmailFile(currentTemplate, content);
         }
@@ -327,82 +341,7 @@ export function showRegularOutput() {
   }
 }
 
-export function writeEmptyStateToIframe(iframe) {
-  if (!iframe) return;
-
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-  if (!iframeDoc) return;
-
-  const computedStyle = getComputedStyle(document.documentElement);
-  const bgColor =
-    computedStyle.getPropertyValue('--bg-tertiary').trim() || '#f8f3ef';
-  const textColor =
-    computedStyle.getPropertyValue('--text-primary').trim() || '#2a2420';
-  const textSecondary =
-    computedStyle.getPropertyValue('--text-secondary').trim() || '#666';
-
-  iframeDoc.open();
-  iframeDoc.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {
-                    font-family: 'Aptos', Arial, sans-serif;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 400px;
-                    margin: 0;
-                    background: ${bgColor};
-                    color: ${textSecondary};
-                    text-align: center;
-                    padding: 2rem;
-                }
-                .empty-state {
-                    max-width: 400px;
-                }
-                .empty-state svg {
-                    width: 80px;
-                    height: 80px;
-                    margin-bottom: 1rem;
-                    opacity: 0.3;
-                }
-                .empty-state h3 {
-                    font-size: 1.2rem;
-                    margin: 0 0 0.5rem 0;
-                    color: ${textColor};
-                }
-                .empty-state p {
-                    font-size: 0.9rem;
-                    margin: 0;
-                    color: ${textSecondary};
-                }
-            </style>
-        </head>
-        <body>
-            <div class="empty-state">
-                ${emailIcon({ size: 80 })}
-                <h3>No Preview Yet</h3>
-                <p>Fill in the form and click Generate to see your email preview</p>
-            </div>
-        </body>
-        </html>
-    `);
-  iframeDoc.close();
-}
-
-export function detectOS() {
-  const platform = navigator.platform.toLowerCase();
-  if (platform.includes('win')) return 'windows';
-  if (platform.includes('mac')) return 'mac';
-  return 'other';
-}
-
-export function getRecommendedFormat() {
-  const os = detectOS();
-  return os === 'mac' ? 'emltpl' : 'eml';
-}
+export { writeEmptyStateToIframe, detectOS, getRecommendedFormat };
 
 // Load user profile from localStorage
 export function loadUserProfile() {
@@ -429,20 +368,28 @@ export function loadUserProfile() {
 // Handle undo/redo shortcuts
 
 // Attach event listeners to form fields
-export function attachEventListeners() {
+export function attachGlobalEventListeners() {
   // Template selector
-  elements.templateSelect.addEventListener('change', () => {
-    selectTemplate(elements.templateSelect.value);
-  });
+  if (elements.templateSelect) {
+    elements.templateSelect.addEventListener('change', () => {
+      selectTemplate(elements.templateSelect.value);
+    });
+  }
 
   // Generate button
-  elements.generateBtn.addEventListener('click', generateMessage);
+  if (elements.generateBtn) {
+    elements.generateBtn.addEventListener('click', generateMessage);
+  }
 
   // Clear button
-  elements.clearBtn.addEventListener('click', clearAll);
+  if (elements.clearBtn) {
+    elements.clearBtn.addEventListener('click', clearAll);
+  }
 
   // Theme toggle
-  elements.themeToggle.addEventListener('click', toggleTheme);
+  if (elements.themeToggle) {
+    elements.themeToggle.addEventListener('click', toggleTheme);
+  }
 
   // Theme change events (dispatched from shared/theme.js)
   document.addEventListener('theme:changed', () => {
@@ -452,18 +399,22 @@ export function attachEventListeners() {
   });
 
   // Search box
-  elements.searchBox.addEventListener('input', () => {
-    const query = elements.searchBox.value.trim();
-    elements.clearSearch.classList.toggle('visible', query.length > 0);
-    renderSearchResults(query);
-  });
+  if (elements.searchBox) {
+    elements.searchBox.addEventListener('input', () => {
+      const query = elements.searchBox.value.trim();
+      elements.clearSearch.classList.toggle('visible', query.length > 0);
+      renderSearchResults(query);
+    });
+  }
 
   // Clear search button
-  elements.clearSearch.addEventListener('click', () => {
-    elements.searchBox.value = '';
-    elements.clearSearch.classList.remove('visible');
-    renderSearchResults('');
-  });
+  if (elements.clearSearch) {
+    elements.clearSearch.addEventListener('click', () => {
+      elements.searchBox.value = '';
+      elements.clearSearch.classList.remove('visible');
+      renderSearchResults('');
+    });
+  }
 
   // Close search dropdown when clicking outside
   const searchContainer = document.querySelector('.search-container');
@@ -488,6 +439,42 @@ export function attachEventListeners() {
         elements.searchBox.classList.remove('active');
         elements.clearSearch.classList.remove('visible');
         elements.searchResults.classList.remove('visible');
+      }
+    });
+  }
+
+  // Form Fields Delegation (moved from selectTemplate)
+  if (elements.formFields) {
+    // Add event delegation for clear buttons in regular templates
+    elements.formFields.addEventListener('click', (e) => {
+      if (e.target.classList.contains('clear-input')) {
+        const fieldId = e.target.dataset.clear;
+        const input = document.getElementById(fieldId);
+        if (input) {
+          input.value = '';
+          e.target.classList.remove('visible');
+          input.focus();
+          updateEmailPreview();
+        }
+      }
+    });
+
+    // Add input listeners to show/hide clear buttons based on content
+    elements.formFields.addEventListener('input', (e) => {
+      if (
+        e.target.classList.contains('form-input') ||
+        e.target.classList.contains('form-textarea')
+      ) {
+        const fieldId = e.target.id;
+        const clearBtn = elements.formFields.querySelector(
+          `[data-clear="${fieldId}"]`
+        );
+        if (clearBtn) {
+          clearBtn.classList.toggle(
+            'visible',
+            e.target.value.trim().length > 0
+          );
+        }
       }
     });
   }
@@ -610,7 +597,7 @@ export function generateMessage() {
   }
 
   // Store original message for EML generation
-  window.originalMessageContent = message;
+  originalMessageContent = message;
 
   // Update the email preview
   updateEmailPreview();
@@ -674,7 +661,7 @@ export function extractSubjectLine(message) {
 
 // Render editable subject line for simple templates
 export function renderEditableSubjectLine(container, initialSubject) {
-  window.currentSubjectLine = initialSubject;
+  currentSubjectLine = initialSubject;
 
   container.innerHTML = `
         <div class="editable-subject-line">
@@ -686,9 +673,9 @@ export function renderEditableSubjectLine(container, initialSubject) {
   const subjectInput = document.getElementById('subjectInput');
   if (subjectInput) {
     subjectInput.addEventListener('input', (e) => {
-      window.currentSubjectLine = e.target.value;
+      currentSubjectLine = e.target.value;
       // Debounce the preview update to avoid excessive iframe reloads
-      debouncedSubjectPreviewUpdate(e.target.value);
+      // debouncedSubjectPreviewUpdate(e.target.value); // Not defined?
     });
   }
 }
@@ -702,7 +689,7 @@ export function openEmailClientUniversal(templateId, content) {
   let body = content;
 
   if (template.hasEditableSubject) {
-    subject = window.currentSubjectLine || extractSubjectLine(content);
+    subject = currentSubjectLine || extractSubjectLine(content);
     // Remove subject from body if it exists
     body = body.replace(/^Subject:.*\r?\n/im, '');
   } else {
@@ -732,7 +719,7 @@ export function downloadEmailFile(templateId, content) {
   let plainTextBody = content;
 
   if (template.hasEditableSubject) {
-    subject = window.currentSubjectLine || extractSubjectLine(content);
+    subject = currentSubjectLine || extractSubjectLine(content);
     plainTextBody = content.replace(/^Subject:.*\r?\n/im, '');
   } else {
     subject = extractSubjectLine(content);
@@ -813,7 +800,7 @@ export function init() {
   populateDropdown();
 
   // Attach event listeners
-  attachEventListeners();
+  attachGlobalEventListeners();
 
   // Restore previously selected template from localStorage
   const savedTemplate = localStorage.getItem('selectedTemplate');
@@ -839,31 +826,7 @@ export function clearEmailPreview() {
 }
 
 // Get CSS that simulates email client dark mode color inversion
-function getEmailDarkModeCSS() {
-  return `
-    /* Simulate email client dark mode - invert light backgrounds and text */
-    body {
-      background-color: #1a1a1a !important;
-      color: #e0e0e0 !important;
-    }
-    .email-container {
-      background-color: #1a1a1a !important;
-    }
-    .email-header {
-      background-color: #2d2d2d !important;
-      border-bottom-color: #444444 !important;
-    }
-    .email-subject {
-      color: #e0e0e0 !important;
-    }
-    .email-body {
-      color: #e0e0e0 !important;
-    }
-    .email-body a {
-      color: #6699ff !important;
-    }
-  `;
-}
+// Moved to shared/theme.js
 
 // Update email preview for regular templates
 export function updateEmailPreview() {
@@ -900,7 +863,7 @@ export function updateEmailPreview() {
     let htmlTemplate;
     if (isHTML) {
       // Wrap HTML content in email template
-      htmlTemplate = wrapHtmlForEmailPreview(content);
+      htmlTemplate = wrapHtmlForEmailPreview(content, originalMessageContent);
     } else {
       // For plain text: extract subject, body, and render with proper HTML signature
       let subject = 'Email Preview';
@@ -1131,7 +1094,7 @@ export function selectTemplate(key) {
 
     // Clear the preview iframe, output, and cached content immediately
     clearEmailPreview();
-    window.originalMessageContent = '';
+    originalMessageContent = '';
     const outputElem = getDynamicElement('outputArea');
     if (outputElem) {
       outputElem.value = '';
@@ -1244,44 +1207,6 @@ export function selectTemplate(key) {
     });
 
     elements.formFields.innerHTML = formFieldsHTML.join('');
-
-    // Add event listeners
-    setTimeout(() => {
-      attachEventListeners();
-    }, 0);
-
-    // Add event delegation for clear buttons in regular templates
-    elements.formFields.addEventListener('click', (e) => {
-      if (e.target.classList.contains('clear-input')) {
-        const fieldId = e.target.dataset.clear;
-        const input = document.getElementById(fieldId);
-        if (input) {
-          input.value = '';
-          e.target.classList.remove('visible');
-          input.focus();
-          updateEmailPreview();
-        }
-      }
-    });
-
-    // Add input listeners to show/hide clear buttons based on content
-    elements.formFields.addEventListener('input', (e) => {
-      if (
-        e.target.classList.contains('form-input') ||
-        e.target.classList.contains('form-textarea')
-      ) {
-        const fieldId = e.target.id;
-        const clearBtn = elements.formFields.querySelector(
-          `[data-clear="${fieldId}"]`
-        );
-        if (clearBtn) {
-          clearBtn.classList.toggle(
-            'visible',
-            e.target.value.trim().length > 0
-          );
-        }
-      }
-    });
 
     // Initialize clear button visibility for pre-filled fields
     const allInputs = elements.formFields.querySelectorAll(

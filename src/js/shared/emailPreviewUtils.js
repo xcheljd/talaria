@@ -64,23 +64,22 @@ ${listItems}
 
 /**
  * Wrap HTML content in proper email preview template.
- * Extracts subject from either window.originalMessageContent or the
+ * Extracts subject from either originalMessage or the
  * provided htmlContent, then wraps body in a consistent email shell.
+ * @param {string} htmlContent - The HTML content to wrap
+ * @param {string} [originalMessage] - Optional original full message to extract subject from
  */
-export function wrapHtmlForEmailPreview(htmlContent) {
+export function wrapHtmlForEmailPreview(htmlContent, originalMessage) {
   // Try to extract subject from original message or content
   let subject = 'Email Preview';
   let bodyContent = htmlContent;
 
   // Extract subject if present
-  if (window.originalMessageContent) {
-    const subjectMatch =
-      window.originalMessageContent.match(/^Subject:\s*(.+)/m);
+  if (originalMessage) {
+    const subjectMatch = originalMessage.match(/^Subject:\s*(.+)/m);
     if (subjectMatch) {
       subject = subjectMatch[1];
-      bodyContent = window.originalMessageContent
-        .replace(/^Subject:.+\n/m, '')
-        .trim();
+      bodyContent = originalMessage.replace(/^Subject:.+\n/m, '').trim();
     }
   } else {
     const subjectMatch = htmlContent.match(/^Subject:\s*(.+)/m);

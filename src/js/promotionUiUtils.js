@@ -122,21 +122,25 @@ export function setupDragAndDrop(
     row.classList.remove('drag-over');
 
     if (draggedElement !== row) {
+      // Resolve array if it's a function (to handle state replacements)
+      const targetArray =
+        typeof itemsArray === 'function' ? itemsArray() : itemsArray;
+
       const targetItemId = parseInt(
         row.dataset.itemId || row.dataset.entryId,
         10
       );
 
-      const draggedIndex = itemsArray.findIndex(
+      const draggedIndex = targetArray.findIndex(
         (item) => item.id === draggedItemId
       );
-      const targetIndex = itemsArray.findIndex(
+      const targetIndex = targetArray.findIndex(
         (item) => item.id === targetItemId
       );
 
       if (draggedIndex !== -1 && targetIndex !== -1) {
-        const [removed] = itemsArray.splice(draggedIndex, 1);
-        itemsArray.splice(targetIndex, 0, removed);
+        const [removed] = targetArray.splice(draggedIndex, 1);
+        targetArray.splice(targetIndex, 0, removed);
 
         renderFunction();
       }

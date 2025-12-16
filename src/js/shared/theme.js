@@ -32,3 +32,76 @@ export function updateThemeIndicator(theme) {
       theme === 'dark' ? 'translateX(20px)' : 'translateX(0)';
   }
 }
+
+// Get CSS that simulates email client dark mode color inversion
+export function getEmailDarkModeCSS() {
+  return `
+    /* Simulate email client dark mode - invert light backgrounds and text */
+    body {
+      background-color: #1a1a1a !important;
+      color: #e0e0e0 !important;
+    }
+    
+    /* UI.js specific classes */
+    .email-container {
+      background-color: #1a1a1a !important;
+    }
+    .email-header {
+      background-color: #2d2d2d !important;
+      border-bottom-color: #444444 !important;
+    }
+    .email-subject {
+      color: #e0e0e0 !important;
+    }
+    .email-body {
+      color: #e0e0e0 !important;
+    }
+    .email-body a {
+      color: #6699ff !important;
+    }
+
+    /* Promotion Email specific styles */
+    table {
+      background-color: #1a1a1a !important;
+    }
+    /* Invert light gray backgrounds */
+    [style*="background-color: #f5f5f5"],
+    [style*="background-color:#f5f5f5"] {
+      background-color: #2d2d2d !important;
+    }
+    [style*="background-color: #f4f4f4"],
+    [style*="background-color:#f4f4f4"] {
+      background-color: #2a2a2a !important;
+    }
+    [style*="background-color: white"],
+    [style*="background-color:#ffffff"],
+    [style*="background-color: #ffffff"] {
+      background-color: #1a1a1a !important;
+    }
+    /* Invert dark text to light */
+    [style*="color: #333333"],
+    [style*="color:#333333"],
+    [style*="color: #333"] {
+      color: #e0e0e0 !important;
+    }
+    /* Invert light borders */
+    [style*="border: 1px solid #ddd"] {
+      border-color: #444444 !important;
+    }
+    [style*="border-bottom: 2px solid gray"] {
+      border-bottom-color: #555555 !important;
+    }
+    /* Keep dark footer as-is (already dark) */
+    [style*="background-color: #2c3e50"] {
+      background-color: #2c3e50 !important;
+    }
+    /* Ensure white text in footer stays white */
+    [style*="color: white"] {
+      color: white !important;
+    }
+    /* Keep gold accent color */
+    [style*="color: #ffd700"] {
+      color: #ffd700 !important;
+    }
+  `;
+}
