@@ -1,8 +1,47 @@
+const VALID_LIGHT_PALETTES = [
+  'github',
+  'spacegray',
+  'catppuccin-latte',
+  'nord',
+  'rose-pine-dawn',
+  'tokyo-day',
+  'solarized',
+  'one-light',
+];
+const VALID_DARK_PALETTES = [
+  'github',
+  'spacegray',
+  'catppuccin-mocha',
+  'nord',
+  'rose-pine',
+  'tokyo-night',
+  'monokai',
+  'kanagawa',
+];
+
+function validatePalette(palette, type) {
+  const validList =
+    type === 'light' ? VALID_LIGHT_PALETTES : VALID_DARK_PALETTES;
+  return validList.includes(palette) ? palette : 'github';
+}
+
 // Theme initialization and management functions
 export function initTheme() {
   const savedTheme = localStorage.getItem('theme') || 'light';
-  const lightPalette = localStorage.getItem('lightPalette') || 'pastel';
-  const darkPalette = localStorage.getItem('darkPalette') || 'midnight-blue';
+  let lightPalette = localStorage.getItem('lightPalette') || 'github';
+  let darkPalette = localStorage.getItem('darkPalette') || 'github';
+
+  // Validate and migrate old palettes
+  lightPalette = validatePalette(lightPalette, 'light');
+  darkPalette = validatePalette(darkPalette, 'dark');
+
+  // Save back if changed (migration)
+  if (lightPalette !== localStorage.getItem('lightPalette')) {
+    localStorage.setItem('lightPalette', lightPalette);
+  }
+  if (darkPalette !== localStorage.getItem('darkPalette')) {
+    localStorage.setItem('darkPalette', darkPalette);
+  }
 
   document.documentElement.setAttribute('data-theme', savedTheme);
   document.documentElement.setAttribute('data-light-palette', lightPalette);

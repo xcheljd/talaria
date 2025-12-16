@@ -8,8 +8,8 @@
     <script>
       (function() {
         var theme = localStorage.getItem('theme') || 'light';
-        var lightPalette = localStorage.getItem('lightPalette') || 'pastel';
-        var darkPalette = localStorage.getItem('darkPalette') || 'midnight-blue';
+        var lightPalette = localStorage.getItem('lightPalette') || 'github';
+        var darkPalette = localStorage.getItem('darkPalette') || 'github';
         document.documentElement.setAttribute('data-theme', theme);
         document.documentElement.setAttribute('data-light-palette', lightPalette);
         document.documentElement.setAttribute('data-dark-palette', darkPalette);
@@ -711,11 +711,14 @@
                     <div class="input-wrapper">
                         <div class="select-wrapper">
                             <select class="form-input" id="lightPaletteSelect">
-                                <option value="pastel">Pastel Professional (Default)</option>
-                                <option value="golden-hour">Golden Hour</option>
-                                <option value="terracotta">Terracotta Clay</option>
-                                <option value="mint">Mint Fresh</option>
-                                <option value="lavender">Lavender Dream</option>
+                                <option value="github">GitHub Light (Default)</option>
+                                <option value="spacegray">SpaceGray Light</option>
+                                <option value="catppuccin-latte">Catppuccin Latte</option>
+                                <option value="nord">Nord Light</option>
+                                <option value="rose-pine-dawn">Rose Pine Dawn</option>
+                                <option value="tokyo-day">Tokyo Night Day</option>
+                                <option value="solarized">Solarized Light</option>
+                                <option value="one-light">One Light</option>
                             </select>
                         </div>
                     </div>
@@ -727,11 +730,14 @@
                     <div class="input-wrapper">
                         <div class="select-wrapper">
                             <select class="form-input" id="darkPaletteSelect">
-                                <option value="midnight-blue">Midnight Blue (Default)</option>
-                                <option value="cyberpunk">Cyberpunk Neon</option>
-                                <option value="forest">Forest Night</option>
-                                <option value="purple">Purple Haze</option>
-                                <option value="ember">Warm Ember</option>
+                                <option value="github">GitHub Dark (Default)</option>
+                                <option value="spacegray">SpaceGray Dark</option>
+                                <option value="catppuccin-mocha">Catppuccin Mocha</option>
+                                <option value="nord">Nord Dark</option>
+                                <option value="rose-pine">Rose Pine</option>
+                                <option value="tokyo-night">Tokyo Night</option>
+                                <option value="monokai">Monokai</option>
+                                <option value="kanagawa">Kanagawa</option>
                             </select>
                         </div>
                     </div>
