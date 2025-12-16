@@ -57,11 +57,11 @@
 [data-theme='light'][data-light-palette='spacegray'] {
   --background: #fdfdfd;
   --foreground: #343d46;
-  --card: #e8e8e8;
+  --card: #f0f0f0;
   --card-foreground: #343d46;
   --primary: #65737e;
   --primary-foreground: #ffffff;
-  --secondary: #e8e8e8;
+  --secondary: #f0f0f0;
   --secondary-foreground: #343d46;
   --muted: #f0f0f0;
   --muted-foreground: #a7adba;

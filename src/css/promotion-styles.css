@@ -57,11 +57,11 @@
 [data-theme='light'][data-light-palette='spacegray'] {
   --background: #fdfdfd;
   --foreground: #343d46;
-  --card: #e8e8e8;
+  --card: #f0f0f0;
   --card-foreground: #343d46;
   --primary: #65737e;
   --primary-foreground: #ffffff;
-  --secondary: #e8e8e8;
+  --secondary: #f0f0f0;
   --secondary-foreground: #343d46;
   --muted: #f0f0f0;
   --muted-foreground: #a7adba;
@@ -865,7 +865,7 @@ body {
   background: white;
 }
 
-/* Column Collapse System */
+/* Skinny column UI wrapper - hidden by default, shown when column-active class applied by JS */
 .column-skinny-wrapper {
   display: none;
   flex-direction: column;
@@ -874,20 +874,30 @@ body {
   bottom: 0;
   width: 48px;
   cursor: pointer;
-  background: var(--secondary);
+  background: var(--card);
   border-right: 1px solid var(--border);
-  z-index: 15;
+  z-index: 20;
   user-select: none;
+  transition: background-color var(--transition-fast);
   gap: 1px;
   padding: 8px 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-#left-skinny-wrapper, #center-skinny-wrapper {
+/* Both skinny wrappers position at left: 0 (only one visible at a time) */
+#left-skinny-wrapper,
+#center-skinny-wrapper {
   left: 0;
 }
 
+/* Show skinny wrapper when it has .column-active class (applied by JS) */
 .column-skinny-wrapper.column-active {
   display: flex;
+}
+
+.column-skinny-wrapper:hover {
+  background: var(--secondary);
 }
 
 .left-column.column-collapsed,
@@ -1047,4 +1057,129 @@ body {
 
 .drag-handle:hover {
   color: var(--foreground);
+}
+
+/* PDF Preview Modal */
+.pdf-preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.pdf-preview-modal[style*="display: block"],
+.pdf-preview-modal[style*="display: flex"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pdf-modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.pdf-modal-container {
+  position: relative;
+  width: 90%;
+  max-width: 1000px;
+  height: 85%;
+  background-color: var(--background);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1001;
+  border: 1px solid var(--border);
+}
+
+.pdf-modal-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--card);
+}
+
+.pdf-modal-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.pdf-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.pdf-modal-close:hover {
+  background-color: var(--secondary);
+  color: var(--foreground);
+}
+
+.pdf-modal-content {
+  flex: 1;
+  position: relative;
+  background-color: #525659; /* Standard PDF viewer bg color */
+  overflow: hidden;
+}
+
+.pdf-modal-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.pdf-loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+  gap: 1rem;
+}
+
+.pdf-error-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pdf-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  background-color: var(--card);
 }
