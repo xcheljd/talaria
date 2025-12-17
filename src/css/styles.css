@@ -37,7 +37,10 @@
   --radius-lg: 0.75rem;
 
   /* Animation Tokens */
-  --transition-all: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-all: 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Standardized to 300ms */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
@@ -366,6 +369,67 @@ body {
   transition:
     background-color var(--transition-all),
     color var(--transition-all);
+}
+
+/* ==========================================================================
+   PAGE TRANSITIONS
+   ========================================================================== */
+
+/* Header slides in from top */
+.header {
+  animation: slide-in-from-top 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Page content blurs in and slides up from viewport center */
+.page-content {
+  animation: blur-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.2s backwards;
+}
+
+/* Fade out transition for page navigation */
+.page-content.fade-out,
+.header.fade-out,
+.right-column.fade-out,
+.column-skinny-wrapper.fade-out {
+  opacity: 0;
+  transition: opacity var(--transition-base) ease-in;
+}
+
+/* Keyframe animations */
+@keyframes slide-in-from-top {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes blur-slide-in {
+  0% {
+    opacity: 0;
+    filter: blur(20px);
+    transform: translateY(30vh);
+  }
+  40% {
+    opacity: 0.6;
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* ==========================================================================
@@ -783,7 +847,7 @@ body {
   min-width: 280px;
   max-width: 420px;
   pointer-events: auto;
-  animation: toast-slide-in 0.3s ease-out;
+  animation: toast-slide-in var(--transition-base) ease-out;
 }
 
 .toast svg {

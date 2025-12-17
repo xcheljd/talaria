@@ -1,9 +1,10 @@
 /**
  * Page Transitions Module
- * Handles blur-fade transitions for multi-page navigation
+ * Handles fade transitions for multi-page navigation
+ * Uses --transition-base (300ms) from CSS
  */
 
-const TRANSITION_DURATION = 300; // matches --transition-base (0.3s)
+const TRANSITION_DURATION = 300; // matches --transition-base CSS variable
 
 /**
  * Initialize page transitions

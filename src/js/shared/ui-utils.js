@@ -61,8 +61,8 @@ export function showToast(
 
   // Auto-remove after duration
   setTimeout(() => {
-    toast.style.animation = 'toast-slide-out 0.2s ease-in forwards';
-    setTimeout(() => toast.remove(), 200);
+    toast.style.animation = 'toast-slide-out 0.3s ease-in forwards';
+    setTimeout(() => toast.remove(), 300); // Matches --transition-base
   }, duration);
 }
 

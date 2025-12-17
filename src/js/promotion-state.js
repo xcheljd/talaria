@@ -16,4 +16,5 @@ export const promotionState = {
   selectedSubjectLine: null,
   entryCollapsedStates: {},
   columnState: 'left-expanded', // 'left-expanded' | 'center-expanded'
+  isInitializing: true, // Prevents unwanted scrolls during page load
 };

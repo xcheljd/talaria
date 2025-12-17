@@ -763,16 +763,18 @@ export function addPromotionEntry() {
   });
   renderPromotionEntries();
 
-  // Scroll the card's bottom into view after render
-  setTimeout(() => {
-    const newEntry = document.querySelector(
-      `.promotion-entry[data-entry-id="${entryId}"]`
-    );
-    const card = newEntry?.closest('.card');
-    if (card) {
-      card.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-  }, 50);
+  // Scroll the card's bottom into view after render (skip during initialization)
+  if (!promotionState.isInitializing) {
+    setTimeout(() => {
+      const newEntry = document.querySelector(
+        `.promotion-entry[data-entry-id="${entryId}"]`
+      );
+      const card = newEntry?.closest('.card');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }, 50);
+  }
 }
 
 // Remove a promotion entry
@@ -998,16 +1000,18 @@ export function addSpecialHour() {
   });
   renderSpecialHours();
 
-  // Scroll the card's bottom into view after render
-  setTimeout(() => {
-    const newHour = document.querySelector(
-      `.special-hour-row[data-hour-id="${hourId}"]`
-    );
-    const card = newHour?.closest('.card');
-    if (card) {
-      card.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-  }, 50);
+  // Scroll the card's bottom into view after render (skip during initialization)
+  if (!promotionState.isInitializing) {
+    setTimeout(() => {
+      const newHour = document.querySelector(
+        `.special-hour-row[data-hour-id="${hourId}"]`
+      );
+      const card = newHour?.closest('.card');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }, 50);
+  }
 }
 
 // Remove a special hour row
@@ -1148,16 +1152,18 @@ export function addHowToShopItem() {
   });
   renderHowToShopSection();
 
-  // Scroll the card's bottom into view after render
-  setTimeout(() => {
-    const newItem = document.querySelector(
-      `#howToShopItemsContainer .editable-item-row[data-item-id="${itemId}"]`
-    );
-    const card = newItem?.closest('.card');
-    if (card) {
-      card.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-  }, 50);
+  // Scroll the card's bottom into view after render (skip during initialization)
+  if (!promotionState.isInitializing) {
+    setTimeout(() => {
+      const newItem = document.querySelector(
+        `#howToShopItemsContainer .editable-item-row[data-item-id="${itemId}"]`
+      );
+      const card = newItem?.closest('.card');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }, 50);
+  }
 }
 
 // Remove a How to Shop item
@@ -1376,16 +1382,18 @@ export function addImportantNotesItem() {
   });
   renderImportantNotesSection();
 
-  // Scroll the card's bottom into view after render
-  setTimeout(() => {
-    const newItem = document.querySelector(
-      `#importantNotesItemsContainer .editable-item-row[data-item-id="${itemId}"]`
-    );
-    const card = newItem?.closest('.card');
-    if (card) {
-      card.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-  }, 50);
+  // Scroll the card's bottom into view after render (skip during initialization)
+  if (!promotionState.isInitializing) {
+    setTimeout(() => {
+      const newItem = document.querySelector(
+        `#importantNotesItemsContainer .editable-item-row[data-item-id="${itemId}"]`
+      );
+      const card = newItem?.closest('.card');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }, 50);
+  }
 }
 
 // Remove an Important Notes item
@@ -3005,6 +3013,9 @@ export function init() {
   if (previewIframe) {
     writeEmptyStateToIframe(previewIframe);
   }
+
+  // Initialization complete - allow scrollIntoView for user-added entries
+  promotionState.isInitializing = false;
 
   console.log('Promotion UI module initialized');
 }

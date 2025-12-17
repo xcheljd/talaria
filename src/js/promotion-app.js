@@ -96,6 +96,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Set up column collapse animation system
   initColumnCollapse();
 
+  // Ensure columns and page are scrolled to top on page load
+  // MUST run after all UI initialization to prevent layout shifts from scrolling
+  function scrollToTop() {
+    // Reset window scroll (in case browser tries to restore position)
+    window.scrollTo(0, 0);
+
+    // Reset column scrolls
+    const leftColumn = document.querySelector('.left-column');
+    const centerColumn = document.querySelector('.center-column');
+
+    if (leftColumn) leftColumn.scrollTop = 0;
+    if (centerColumn) centerColumn.scrollTop = 0;
+  }
+
+  // Wait for all initialization and layout to complete before scrolling
+  // Use setTimeout after double rAF to ensure all DOM updates are processed
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(scrollToTop, 0);
+    });
+  });
+
   // Update how to shop email when profile might have changed (e.g., user edited profile and returned)
   window.addEventListener('focus', () => {
     const storedProfile = localStorage.getItem('userProfile');
@@ -135,7 +157,7 @@ function setupCollapsibleCards() {
 
         // If card was just expanded, scroll it into view after transition
         if (wasCollapsed) {
-          // Wait for CSS transition to complete before scrolling
+          // Wait for CSS transition to complete (--transition-fast: 150ms)
           setTimeout(() => {
             card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }, 150);

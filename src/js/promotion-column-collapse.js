@@ -5,7 +5,6 @@
 
 import { promotionState } from './promotion-state.js';
 
-const COLUMN_STATE_KEY = 'promotion-column-state';
 const MOBILE_BREAKPOINT = 1024;
 
 /**
@@ -36,12 +35,12 @@ export function initColumnCollapse() {
     return;
   }
 
-  // Restore saved state or default to left expanded
-  const savedState = localStorage.getItem(COLUMN_STATE_KEY) || 'left-expanded';
+  // Always default to left expanded on page load (don't persist state across refreshes)
+  const defaultState = 'left-expanded';
   // Apply state on next frame to ensure fade-in animation plays
   requestAnimationFrame(() => {
     applyColumnState(
-      savedState,
+      defaultState,
       leftColumn,
       centerColumn,
       rightColumn,
@@ -49,9 +48,21 @@ export function initColumnCollapse() {
     );
   });
 
-  // Set up click handlers
-  leftSkinny.addEventListener('click', () => expandLeftColumn());
-  centerSkinny.addEventListener('click', () => expandCenterColumn());
+  // Set up click handlers for individual card titles
+  setupCardTitleHandlers(leftSkinny, 'left');
+  setupCardTitleHandlers(centerSkinny, 'center');
+
+  // Fallback: click anywhere on wrapper (if not a card title) expands column
+  leftSkinny.addEventListener('click', (e) => {
+    if (!e.target.closest('.skinny-card-title')) {
+      expandLeftColumn();
+    }
+  });
+  centerSkinny.addEventListener('click', (e) => {
+    if (!e.target.closest('.skinny-card-title')) {
+      expandCenterColumn();
+    }
+  });
 
   // Keyboard support
   leftSkinny.addEventListener('keydown', (e) => {
@@ -69,6 +80,7 @@ export function initColumnCollapse() {
   });
 
   // Handle window resize - disable on mobile
+  // Debounce with fast transition timing (150ms matches --transition-fast)
   let resizeTimeout;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
@@ -83,18 +95,16 @@ export function initColumnCollapse() {
         leftSkinny.classList.remove('column-active');
         centerSkinny.classList.remove('column-active');
       } else {
-        // Reapply state when returning to desktop
-        const currentState =
-          localStorage.getItem(COLUMN_STATE_KEY) || 'left-expanded';
+        // Reapply default state when returning to desktop
         applyColumnState(
-          currentState,
+          'left-expanded',
           leftColumn,
           centerColumn,
           rightColumn,
           container
         );
       }
-    }, 150);
+    }, 150); // Uses --transition-fast timing
   });
 }
 
@@ -109,7 +119,7 @@ export function expandLeftColumn() {
   const container = document.querySelector('.container.three-column');
 
   applyColumnState(state, leftColumn, centerColumn, rightColumn, container);
-  saveColumnState(state);
+  // Note: State is not persisted across page refreshes (always defaults to left)
 }
 
 /**
@@ -123,7 +133,7 @@ export function expandCenterColumn() {
   const container = document.querySelector('.container.three-column');
 
   applyColumnState(state, leftColumn, centerColumn, rightColumn, container);
-  saveColumnState(state);
+  // Note: State is not persisted across page refreshes (always defaults to left)
 }
 
 /**
@@ -194,17 +204,8 @@ function applyColumnState(
   }
 }
 
-/**
- * Save column state to localStorage
- * @param {string} state - Column state to save
- */
-function saveColumnState(state) {
-  try {
-    localStorage.setItem(COLUMN_STATE_KEY, state);
-  } catch (e) {
-    console.warn('Failed to save column state:', e);
-  }
-}
+// Column state is no longer persisted to localStorage
+// Always defaults to 'left-expanded' on page load
 
 /**
  * Announce column change to screen readers
@@ -222,6 +223,81 @@ function announceColumnChange(columnName, expanded) {
   document.body.appendChild(announcement);
 
   setTimeout(() => announcement.remove(), 1000);
+}
+
+/**
+ * Map skinny bar titles to their corresponding card IDs
+ */
+const cardTitleMap = {
+  left: {
+    'Basic Details': 'basicDetailsCard',
+    'Discount Entries': 'discountEntriesCard',
+    'How to Shop': 'howToShopCard',
+    'Important Notes': 'importantNotesCard',
+    'Special Hours': 'specialHoursCard',
+  },
+  center: {
+    'PDF Attachments': 'pdfCard',
+    'Subject Lines': 'subjectCard',
+    'Bulk Email Tools': 'bulkEmailCard',
+  },
+};
+
+/**
+ * Set up click handlers for individual card titles in a skinny wrapper
+ * @param {HTMLElement} skinnyWrapper - The skinny wrapper element
+ * @param {string} columnType - 'left' or 'center'
+ */
+function setupCardTitleHandlers(skinnyWrapper, columnType) {
+  const titles = skinnyWrapper.querySelectorAll('.skinny-card-title');
+
+  titles.forEach((title, index) => {
+    title.addEventListener('click', (e) => {
+      e.stopPropagation();
+
+      // Expand the appropriate column
+      if (columnType === 'left') {
+        expandLeftColumn();
+      } else {
+        expandCenterColumn();
+      }
+
+      // Get the title text and find corresponding card
+      const titleText = title.textContent.trim();
+      const cardId = cardTitleMap[columnType]?.[titleText];
+
+      if (cardId) {
+        // Slight delay to ensure column expansion animation is done
+        requestAnimationFrame(() => {
+          expandAndScrollToCard(cardId, columnType, index, titles.length);
+        });
+      }
+    });
+  });
+}
+
+/**
+ * Expand a card and scroll it into view
+ * @param {string} cardId - The ID of the card to expand
+ * @param {string} columnType - 'left' or 'center'
+ * @param {number} cardIndex - Index of the card in the skinny bar (0 = top, etc)
+ * @param {number} totalCards - Total number of cards in the column
+ */
+function expandAndScrollToCard(cardId, columnType, cardIndex, totalCards) {
+  const card = document.getElementById(cardId);
+  if (!card) return;
+
+  // Remove collapsed class to expand the card
+  card.classList.remove('collapsed');
+
+  // Use scrollIntoView to bring the top border of the card to the top of the viewport
+  // Wait a tick for the card to finish expanding
+  setTimeout(() => {
+    card.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, 50);
 }
 
 /**
