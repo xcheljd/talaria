@@ -860,6 +860,32 @@ body {
   position: relative;
 }
 
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.select-wrapper::after {
+  content: '';
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--muted-foreground);
+  pointer-events: none;
+  transition: transform 0.2s ease;
+}
+
+.form-input:focus ~ .select-wrapper::after,
+.select-wrapper:has(select:focus)::after {
+  border-top-color: var(--primary);
+}
+
 .clear-input {
   position: absolute;
   right: 0.5rem;
