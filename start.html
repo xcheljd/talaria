@@ -16,9 +16,28 @@
       })();
     </script>
     <style>
+        body {
+            padding-top: 15px;
+        }
+
+        .fixed-actions {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            background: var(--card);
+            box-shadow: var(--shadow-md);
+            z-index: 100;
+        }
+
         .start-container {
             max-width: 900px;
-            margin: 4rem auto;
+            margin: 0 auto 2rem;
             padding: 0 2rem;
         }
 
@@ -33,6 +52,24 @@
 
         .start-card:hover {
             box-shadow: var(--shadow-lg), var(--glow);
+        }
+
+        .settings-card {
+            margin-top: 1.5rem;
+        }
+
+        .settings-card .start-header h2 {
+            font-size: 1.25rem;
+        }
+
+        .settings-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            background: var(--card);
         }
 
         .start-header {
@@ -62,6 +99,10 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1.5rem 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            background: var(--card);
         }
 
         .start-info {
@@ -80,29 +121,6 @@
             background: var(--bg-secondary);
             border-color: var(--accent-primary);
             box-shadow: var(--glow);
-        }
-
-        .skip-link {
-            text-align: center;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--border-subtle);
-        }
-
-        .skip-link a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.875rem;
-            transition: all var(--transition-base);
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius-sm);
-            display: inline-block;
-        }
-
-        .skip-link a:hover {
-            color: var(--accent-primary);
-            background: var(--bg-tertiary);
-            transform: translateY(-2px);
         }
 
         .form-input:read-only:not(select) {
@@ -197,67 +215,9 @@
             box-shadow: 0 3px 12px rgba(59, 130, 246, 0.3);
         }
 
-        /* Toast animation enhancements */
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: var(--text-inverse);
-            padding: 16px 24px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(169, 132, 103, 0.3);
-            z-index: 10000;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            border: none;
-            max-width: 300px;
-            opacity: 0;
-        }
-
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-        }
-
-        .toast.error {
-            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-            box-shadow: 0 8px 32px rgba(220, 38, 38, 0.3);
-            color: white;
-        }
-
-        .toast.success {
-            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-            box-shadow: 0 8px 32px rgba(5, 150, 105, 0.3);
-            color: white;
-        }
-
-        /* Dark theme toast adjustments */
-        [data-theme="dark"] .toast {
-            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.35);
-        }
-
         /* Theme toggle animation */
         .theme-toggle-slider {
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Profile actions entrance animation */
-        @keyframes slideInUp {
-            0% {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .profile-actions {
-            animation: slideInUp 0.6s ease;
         }
 
         /* Field help text animation */
@@ -326,82 +286,6 @@
             grid-column: 1 / -1;
         }
 
-        /* Profile Actions Section */
-        .profile-actions {
-            background: var(--bg-tertiary);
-            border: 2px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 1rem;
-            margin: 2rem 0 1rem 0;
-        }
-
-        .profile-actions-header {
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-
-        .profile-actions-header h4 {
-            margin: 0 0 0.5rem 0;
-            color: var(--text-primary);
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .profile-actions-help {
-            margin: 0;
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            line-height: 1.4;
-        }
-
-        .profile-buttons {
-            display: flex;
-            gap: 0.75rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .template-action-btn {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-medium);
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .template-action-btn:hover {
-            background: var(--accent-primary);
-            color: white;
-            border-color: var(--accent-primary);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-        }
-
-        .template-action-btn:active {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-        }
-
-        .template-action-btn svg {
-            width: 14px;
-            height: 14px;
-            flex-shrink: 0;
-            transition: transform 0.3s ease;
-            z-index: 1;
-            position: relative;
-        }
-
-        .template-action-btn:hover svg {
-            transform: scale(1.1);
-        }
-
         /* Success animation for export/import */
         @keyframes success-pulse {
             0% { transform: scale(1); }
@@ -409,10 +293,11 @@
             100% { transform: scale(1); }
         }
 
-        .template-action-btn.success {
+        .btn-ghost.success,
+        .btn.success {
             animation: success-pulse 0.6s ease;
-            background: var(--success-green, #10b981);
-            border-color: var(--success-green, #10b981);
+            background: var(--success-green, #10b981) !important;
+            color: white !important;
         }
 
         /* Loading animation */
@@ -421,37 +306,15 @@
             100% { transform: rotate(360deg); }
         }
 
-        .template-action-btn.loading svg {
+        .btn-ghost.loading svg,
+        .btn.loading svg {
             animation: spin 1s linear infinite;
         }
 
-        .template-action-btn.loading {
+        .btn-ghost.loading,
+        .btn.loading {
             pointer-events: none;
             opacity: 0.7;
-        }
-
-        @media (max-width: 768px) {
-            .profile-actions {
-                padding: 0.75rem;
-            }
-            
-            .profile-buttons {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            
-            .template-action-btn {
-                justify-content: center;
-                padding: 0.75rem 1rem;
-            }
-        }
-
-        /* Theme Toggle on start page */
-        .start-theme-toggle {
-            position: fixed;
-            top: 2rem;
-            right: 2rem;
-            z-index: 1000;
         }
 
         @media (max-width: 992px) {
@@ -464,12 +327,8 @@
                 padding: 2rem 1.5rem;
             }
 
-            .start-theme-toggle {
-                top: 1rem;
-                right: 1rem;
-            }
-
-            .start-form {
+            .start-form,
+            .settings-form {
                 grid-template-columns: 1fr;
                 gap: 1.25rem;
             }
@@ -477,6 +336,10 @@
             .form-group.full-width,
             .button-group,
             .form-section-divider {
+                grid-column: 1;
+            }
+
+            .settings-form .form-group.full-width {
                 grid-column: 1;
             }
 
@@ -494,14 +357,35 @@
     </style>
 </head>
 <body>
-    <div class="page-content">
-    <!-- Theme Toggle -->
-    <div class="start-theme-toggle">
-        <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
-            <div class="theme-toggle-slider"></div>
-        </button>
+    <div class="header">
+        <div class="header-top">
+            <h1>Profile Settings</h1>
+            <div class="header-controls">
+                <a href="index.html" class="nav-link" title="Template Generator">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                    Templates
+                </a>
+                <a href="promotion.html" class="nav-link" title="Promotion Email Generator">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                    Promotions
+                </a>
+                <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
+                    <div class="theme-toggle-slider"></div>
+                </button>
+            </div>
+        </div>
     </div>
 
+    <div class="page-content">
     <div class="start-container">
         <div class="start-card">
             <div class="start-header">
@@ -674,9 +558,17 @@
                     </div>
                     <div class="field-help">Used in promotion email template. Optional: Easy-to-follow directions for customers</div>
                 </div>
+            </form>
+        </div>
 
-                <div class="form-section-divider"></div>
+        <!-- Settings Card -->
+        <div class="start-card settings-card">
+            <div class="start-header">
+                <h2>Settings</h2>
+                <p>Customize your app preferences</p>
+            </div>
 
+            <div class="settings-form">
                 <!-- Electron download folder selection (optional) -->
                 <div class="form-group full-width" id="downloadFolderGroup">
                     <label class="form-label">Download Folder (Desktop app)</label>
@@ -691,7 +583,7 @@
                         >
                         <button
                             type="button"
-                            class="template-action-btn"
+                            class="btn-secondary"
                             id="chooseDownloadFolderBtn"
                             style="flex-shrink: 0; white-space: nowrap;"
                         >
@@ -743,49 +635,40 @@
                     </div>
                     <div class="field-help">Choose your preferred color scheme for dark mode</div>
                 </div>
-
-                <div class="button-group">
-                    <button type="submit" class="btn">Save & Continue</button>
-                </div>
-            </form>
-
-            <!-- Profile Export/Import Section -->
-            <div class="profile-actions">
-                <div class="profile-actions-header">
-                    <h4>Profile Backup & Transfer</h4>
-                    <p class="profile-actions-help">Export for backup or import from another device/browser</p>
-                </div>
-                
-                <div class="profile-buttons">
-                    <button type="button" class="template-action-btn" id="exportProfileBtn" title="Export profile as JSON">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        Export Profile
-                    </button>
-                    <button type="button" class="template-action-btn" id="importProfileBtn" title="Import profile from JSON">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        Import Profile
-                    </button>
-                    <input type="file" id="importProfileFile" accept=".json" style="display: none;">
-                </div>
-            </div>
-
-            <div class="skip-link">
-                <a href="index.html">Go to Templates</a>
-                <span style="margin: 0 0.5rem; color: var(--text-tertiary);">|</span>
-                <a href="promotion.html">Go to Promotions</a>
             </div>
         </div>
     </div>
 
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <!-- Fixed Action Buttons -->
+    <div class="fixed-actions">
+        <button type="submit" form="setupForm" class="btn" title="Save profile">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Save
+        </button>
+        <button type="button" class="btn-ghost" id="exportProfileBtn" title="Export profile as JSON">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Export
+        </button>
+        <button type="button" class="btn-ghost" id="importProfileBtn" title="Import profile from JSON">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Import
+        </button>
+        <input type="file" id="importProfileFile" accept=".json" style="display: none;">
+    </div>
+
+    <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
     </div>
 
     <script>
@@ -852,7 +735,7 @@
     </script>
     <script>
         const form = document.getElementById('setupForm');
-        const toast = document.getElementById('toast');
+        const toastContainer = document.getElementById('toastContainer');
         
         // Field elements
         const jobTitleInput = document.getElementById('jobTitle');
@@ -1352,12 +1235,29 @@
             e.target.value = '';
         });
 
-        function showToast(message) {
-            toast.textContent = message;
-            toast.classList.add('show');
+        // Toast icons
+        const TOAST_ICONS = {
+            success: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
+            error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
+            warning: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
+            default: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`
+        };
+
+        function showToast(message, type = 'default', duration = 3000) {
+            if (!toastContainer) return;
+
+            const toast = document.createElement('div');
+            toast.className = `toast${type !== 'default' ? ` toast-${type}` : ''}`;
+
+            const icon = TOAST_ICONS[type] || TOAST_ICONS.default;
+            toast.innerHTML = `${icon}<span>${message}</span>`;
+
+            toastContainer.appendChild(toast);
+
             setTimeout(() => {
-                toast.classList.remove('show');
-            }, 2500);
+                toast.style.animation = 'toast-slide-out 0.2s ease-in forwards';
+                setTimeout(() => toast.remove(), 200);
+            }, duration);
         }
 
         form.addEventListener('submit', (e) => {

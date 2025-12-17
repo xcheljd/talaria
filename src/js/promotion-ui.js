@@ -166,62 +166,93 @@ const debouncedLivePreview = debounce(updateLivePreview, 500);
 
 // Save promotion template configuration to localStorage
 export async function savePromotionTemplate() {
-  // Collapse all entries before saving
-  promotionState.promotionEntries.forEach((entry) => {
-    promotionState.entryCollapsedStates[entry.id] = true;
-  });
-  renderPromotionEntries(); // Update the UI to show collapsed state
+  const saveBtn = document.getElementById('saveTemplateBtn');
 
-  // Ensure all PDFs with data are saved to IndexedDB
-  if (promotionState.attachedPDFs.length > 0 && db) {
-    for (const pdf of promotionState.attachedPDFs) {
-      if (pdf.data) {
-        try {
-          await savePDFToIndexedDB(pdf);
-          console.log(
-            `Re-saved PDF ${pdf.name} to IndexedDB during template save`
-          );
-        } catch (error) {
-          console.warn(`Failed to save PDF ${pdf.name} to IndexedDB:`, error);
+  // Add loading state
+  if (saveBtn) {
+    saveBtn.classList.add('loading');
+    saveBtn.disabled = true;
+  }
+
+  try {
+    // Collapse all entries before saving
+    promotionState.promotionEntries.forEach((entry) => {
+      promotionState.entryCollapsedStates[entry.id] = true;
+    });
+    renderPromotionEntries(); // Update the UI to show collapsed state
+
+    // Ensure all PDFs with data are saved to IndexedDB
+    if (promotionState.attachedPDFs.length > 0 && db) {
+      for (const pdf of promotionState.attachedPDFs) {
+        if (pdf.data) {
+          try {
+            await savePDFToIndexedDB(pdf);
+            console.log(
+              `Re-saved PDF ${pdf.name} to IndexedDB during template save`
+            );
+          } catch (error) {
+            console.warn(
+              `Failed to save PDF ${pdf.name} to IndexedDB:`,
+              error
+            );
+          }
         }
       }
     }
-  }
 
-  // Capture the raw bulk recipient list text from the UI (if present)
-  const bulkEmailListElement = document.getElementById('bulkEmailList');
-  const bulkEmailRecipients = bulkEmailListElement
-    ? bulkEmailListElement.value
-    : '';
+    // Capture the raw bulk recipient list text from the UI (if present)
+    const bulkEmailListElement = document.getElementById('bulkEmailList');
+    const bulkEmailRecipients = bulkEmailListElement
+      ? bulkEmailListElement.value
+      : '';
 
-  const config = buildSavedPromotionConfig({
-    promoDateRange: document.getElementById('promoDateRange')?.value || '',
-    promoYear: document.getElementById('promoYear')?.value || '',
-    promoTitle: document.getElementById('promoTitle')?.value || '',
-    bulkEmailRecipients,
-    promotionEntries: promotionState.promotionEntries,
-    specialHours: promotionState.specialHours,
-    howToShopItems: promotionState.howToShopItems,
-    importantNotesItems: promotionState.importantNotesItems,
-    attachedPDFs: promotionState.attachedPDFs,
-    generatedSubjectLines: promotionState.generatedSubjectLines,
-    selectedSubjectLine: promotionState.selectedSubjectLine,
-  });
+    const config = buildSavedPromotionConfig({
+      promoDateRange: document.getElementById('promoDateRange')?.value || '',
+      promoYear: document.getElementById('promoYear')?.value || '',
+      promoTitle: document.getElementById('promoTitle')?.value || '',
+      bulkEmailRecipients,
+      promotionEntries: promotionState.promotionEntries,
+      specialHours: promotionState.specialHours,
+      howToShopItems: promotionState.howToShopItems,
+      importantNotesItems: promotionState.importantNotesItems,
+      attachedPDFs: promotionState.attachedPDFs,
+      generatedSubjectLines: promotionState.generatedSubjectLines,
+      selectedSubjectLine: promotionState.selectedSubjectLine,
+    });
 
-  // Persist recipients to IndexedDB for reuse in bulk tools
-  try {
-    if (bulkEmailRecipients && db) {
-      await saveBulkEmailRecipientsToIndexedDB(bulkEmailRecipients);
+    // Persist recipients to IndexedDB for reuse in bulk tools
+    try {
+      if (bulkEmailRecipients && db) {
+        await saveBulkEmailRecipientsToIndexedDB(bulkEmailRecipients);
+      }
+    } catch (error) {
+      console.warn(
+        'Failed to save bulk email recipients to IndexedDB during template save:',
+        error
+      );
     }
-  } catch (error) {
-    console.warn(
-      'Failed to save bulk email recipients to IndexedDB during template save:',
-      error
-    );
-  }
 
-  localStorage.setItem('savedPromotionTemplate', JSON.stringify(config));
-  showToast('✓ Template saved successfully');
+    localStorage.setItem('savedPromotionTemplate', JSON.stringify(config));
+
+    // Success animation
+    if (saveBtn) {
+      saveBtn.classList.remove('loading');
+      saveBtn.classList.add('success');
+      setTimeout(() => {
+        saveBtn.classList.remove('success');
+        saveBtn.disabled = false;
+      }, 1000);
+    }
+
+    showToast('✓ Template saved successfully');
+  } catch (error) {
+    console.error('Save error:', error);
+    if (saveBtn) {
+      saveBtn.classList.remove('loading');
+      saveBtn.disabled = false;
+    }
+    showToast('✗ Error saving template');
+  }
 }
 
 // Import promotion template - supports both localStorage and file selection
@@ -288,6 +319,95 @@ export function importPromotionTemplate() {
   setTimeout(() => {
     document.body.removeChild(fileInput);
   }, 1000);
+}
+
+// Import promotion template from a File object (used by file input in floating toolbar)
+export function importPromotionTemplateFromFile(file) {
+  if (!file) return;
+
+  const importBtn = document.getElementById('importTemplateBtn');
+
+  // Add loading state
+  if (importBtn) {
+    importBtn.classList.add('loading');
+    importBtn.disabled = true;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = (event) => {
+    // Small delay for visual feedback
+    setTimeout(() => {
+      try {
+        const config = JSON.parse(event.target.result);
+
+        // Additional validation for file imports
+        if (!config || typeof config !== 'object') {
+          if (importBtn) {
+            importBtn.classList.remove('loading');
+            importBtn.disabled = false;
+          }
+          showToast(
+            '✗ Invalid template file - not a valid configuration object'
+          );
+          return;
+        }
+
+        // Check if this looks like a promotion template (backwards compatible)
+        if (config.templateType && config.templateType !== 'promotion-email') {
+          if (importBtn) {
+            importBtn.classList.remove('loading');
+            importBtn.disabled = false;
+          }
+          showToast('✗ Invalid template file - not a promotion email template');
+          return;
+        }
+        if (!('promotionEntries' in config) || !('specialHours' in config)) {
+          if (importBtn) {
+            importBtn.classList.remove('loading');
+            importBtn.disabled = false;
+          }
+          showToast(
+            '✗ Invalid template file - missing required promotion template fields'
+          );
+          return;
+        }
+
+        applyImportedConfig(config, true); // true = collapse entries on import
+
+        // Success animation
+        if (importBtn) {
+          importBtn.classList.remove('loading');
+          importBtn.classList.add('success');
+          setTimeout(() => {
+            importBtn.classList.remove('success');
+            importBtn.disabled = false;
+          }, 1000);
+        }
+
+        showToast('✓ Template imported from file successfully');
+      } catch (error) {
+        console.error('Import error:', error);
+        if (importBtn) {
+          importBtn.classList.remove('loading');
+          importBtn.disabled = false;
+        }
+        showToast(
+          '✗ Error reading template file - Invalid JSON or corrupted file'
+        );
+      }
+    }, 300);
+  };
+
+  reader.onerror = () => {
+    if (importBtn) {
+      importBtn.classList.remove('loading');
+      importBtn.disabled = false;
+    }
+    showToast('✗ Error reading file');
+  };
+
+  reader.readAsText(file);
 }
 
 // Helper function to apply imported configuration
@@ -494,37 +614,68 @@ export async function applyImportedConfig(rawConfig, collapseEntries = true) {
 
 // Export promotion template configuration as JSON file
 export function exportPromotionTemplate() {
-  // Capture the raw bulk recipient list text from the UI (if present)
-  const bulkEmailListElement = document.getElementById('bulkEmailList');
-  const bulkEmailRecipients = bulkEmailListElement
-    ? bulkEmailListElement.value
-    : '';
+  const exportBtn = document.getElementById('exportTemplateBtn');
 
-  const config = buildExportedPromotionConfig({
-    promoDateRange: document.getElementById('promoDateRange')?.value || '',
-    promoYear: document.getElementById('promoYear')?.value || '',
-    promoTitle: document.getElementById('promoTitle')?.value || '',
-    bulkEmailRecipients,
-    promotionEntries: promotionState.promotionEntries,
-    specialHours: promotionState.specialHours,
-    howToShopItems: promotionState.howToShopItems,
-    importantNotesItems: promotionState.importantNotesItems,
-    attachedPDFs: promotionState.attachedPDFs,
-    generatedSubjectLines: promotionState.generatedSubjectLines,
-    selectedSubjectLine: promotionState.selectedSubjectLine,
-  });
+  // Add loading state
+  if (exportBtn) {
+    exportBtn.classList.add('loading');
+    exportBtn.disabled = true;
+  }
 
-  const dataStr = JSON.stringify(config, null, 2);
-  const dataBlob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(dataBlob);
+  // Small delay for visual feedback
+  setTimeout(() => {
+    try {
+      // Capture the raw bulk recipient list text from the UI (if present)
+      const bulkEmailListElement = document.getElementById('bulkEmailList');
+      const bulkEmailRecipients = bulkEmailListElement
+        ? bulkEmailListElement.value
+        : '';
 
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `promotion-template-${new Date().toISOString().split('T')[0]}.json`;
-  link.click();
+      const config = buildExportedPromotionConfig({
+        promoDateRange: document.getElementById('promoDateRange')?.value || '',
+        promoYear: document.getElementById('promoYear')?.value || '',
+        promoTitle: document.getElementById('promoTitle')?.value || '',
+        bulkEmailRecipients,
+        promotionEntries: promotionState.promotionEntries,
+        specialHours: promotionState.specialHours,
+        howToShopItems: promotionState.howToShopItems,
+        importantNotesItems: promotionState.importantNotesItems,
+        attachedPDFs: promotionState.attachedPDFs,
+        generatedSubjectLines: promotionState.generatedSubjectLines,
+        selectedSubjectLine: promotionState.selectedSubjectLine,
+      });
 
-  URL.revokeObjectURL(url);
-  showToast('✓ Template exported successfully');
+      const dataStr = JSON.stringify(config, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `promotion-template-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+
+      URL.revokeObjectURL(url);
+
+      // Success animation
+      if (exportBtn) {
+        exportBtn.classList.remove('loading');
+        exportBtn.classList.add('success');
+        setTimeout(() => {
+          exportBtn.classList.remove('success');
+          exportBtn.disabled = false;
+        }, 1000);
+      }
+
+      showToast('✓ Template exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      if (exportBtn) {
+        exportBtn.classList.remove('loading');
+        exportBtn.disabled = false;
+      }
+      showToast('✗ Error exporting template');
+    }
+  }, 300);
 }
 
 // ===== AUTO-GENERATION FUNCTIONS =====
@@ -611,6 +762,17 @@ export function addPromotionEntry() {
     callout: '',
   });
   renderPromotionEntries();
+
+  // Scroll the card's bottom into view after render
+  setTimeout(() => {
+    const newEntry = document.querySelector(
+      `.promotion-entry[data-entry-id="${entryId}"]`
+    );
+    const card = newEntry?.closest('.card');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, 50);
 }
 
 // Remove a promotion entry
@@ -677,6 +839,11 @@ export function toggleEntryCollapse(entryId) {
       }
     } else {
       if (summary) summary.remove();
+
+      // Scroll expanded entry into view after a short delay for DOM update
+      setTimeout(() => {
+        entryRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
     }
   }
 }
@@ -724,23 +891,29 @@ export function renderPromotionEntries() {
                         <div class="drag-handle" title="Drag to reorder">
                             ${dragHandleIcon({ size: 16 })}
                         </div>
-                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-up" data-entry-id="${entry.id}" title="Move up" ${isFirst ? 'disabled' : ''}>${chevronIcon('up', { size: 10 })}</button>
-                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-down" data-entry-id="${entry.id}" title="Move down" ${isLast ? 'disabled' : ''}>${chevronIcon('down', { size: 10 })}</button>
+                        <div class="order-buttons">
+                            <button type="button" class="order-btn" data-action="move-up" data-entry-id="${entry.id}" title="Move up" ${isFirst ? 'disabled' : ''}>
+                                ${chevronIcon('up', { size: 14 })}
+                            </button>
+                            <button type="button" class="order-btn" data-action="move-down" data-entry-id="${entry.id}" title="Move down" ${isLast ? 'disabled' : ''}>
+                                ${chevronIcon('down', { size: 14 })}
+                            </button>
+                        </div>
                         <span class="entry-number">Entry ${index + 1}</span>
                         ${isCollapsed ? `<span class="entry-summary">${escapeHtml(summaryText)}</span>` : ''}
                     </div>
                     <div class="entry-controls">
-                        <button type="button" class="collapse-btn btn-base btn-secondary-base btn-xs" data-action="toggle-collapse" data-entry-id="${entry.id}" title="${isCollapsed ? 'Expand' : 'Collapse'}">
+                        <button type="button" class="collapse-btn btn-secondary-base" data-action="toggle-collapse" data-entry-id="${entry.id}" title="${isCollapsed ? 'Expand' : 'Collapse'}">
                             ${isCollapsed ? 'Expand' : 'Collapse'}
                         </button>
-                        <button type="button" class="entry-remove-btn btn-base btn-icon-base btn-icon-danger" data-action="remove" data-entry-id="${entry.id}" title="Remove" aria-label="Remove entry">
+                        <button type="button" class="entry-remove-btn" data-action="remove" data-entry-id="${entry.id}" title="Remove" aria-label="Remove entry">
                             ${closeIcon({ size: 16 })}
                         </button>
                     </div>
                 </div>
 
-                <div class="entry-fields" style="display: ${isCollapsed ? 'none' : 'grid'};">
-                    <div class="form-group full-width">
+                <div class="entry-fields" style="display: ${isCollapsed ? 'none' : 'flex'};">
+                    <div class="form-group">
                         <label class="form-label" for="entry-${safeId}-line">Promotion Line *</label>
                         <div class="input-wrapper">
                             <input type="text" class="form-input entry-line" id="entry-${safeId}-line" name="entry-${safeId}-line" data-entry-id="${safeId}" value="${escapeAttr(entry.line || '')}" placeholder="CITIZEN – ADDITIONAL 20% OFF">
@@ -748,7 +921,7 @@ export function renderPromotionEntries() {
                         </div>
                     </div>
 
-                    <div class="form-group full-width">
+                    <div class="form-group">
                         <label class="form-label" for="entry-${safeId}-collections">Collections (comma-separated)</label>
                         <div class="input-wrapper">
                             <input type="text" class="form-input entry-collections" id="entry-${safeId}-collections" name="entry-${safeId}-collections" data-entry-id="${safeId}" value="${escapeAttr(entry.collections)}" placeholder="Corso, Avion, Marine Star">
@@ -756,7 +929,7 @@ export function renderPromotionEntries() {
                         </div>
                     </div>
 
-                    <div class="form-group full-width">
+                    <div class="form-group">
                         <label class="form-label" for="entry-${safeId}-callout">Special Callout (optional)</label>
                         <div class="input-wrapper">
                             <input type="text" class="form-input entry-callout" id="entry-${safeId}-callout" name="entry-${safeId}-callout" data-entry-id="${safeId}" value="${escapeAttr(entry.callout)}" placeholder="Final sale items excluded">
@@ -824,6 +997,17 @@ export function addSpecialHour() {
     hours: '',
   });
   renderSpecialHours();
+
+  // Scroll the card's bottom into view after render
+  setTimeout(() => {
+    const newHour = document.querySelector(
+      `.special-hour-row[data-hour-id="${hourId}"]`
+    );
+    const card = newHour?.closest('.card');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, 50);
 }
 
 // Remove a special hour row
@@ -876,8 +1060,15 @@ export function renderSpecialHours() {
       const isLast = index === promotionState.specialHours.length - 1;
 
       return `
-            <div class="special-hour-row" data-hour-id="${safeId}">
-                <div class="special-hour-fields">
+            <div class="special-hour-row" data-hour-id="${safeId}" draggable="true">
+                <div class="entry-inline-row">
+                    <div class="drag-handle" title="Drag to reorder">
+                        ${dragHandleIcon({ size: 16 })}
+                    </div>
+                    <div class="order-buttons">
+                        <button type="button" class="order-btn" data-action="move-hour-up" data-hour-id="${hour.id}" title="Move up" ${isFirst ? 'disabled' : ''}>${chevronIcon('up', { size: 10 })}</button>
+                        <button type="button" class="order-btn" data-action="move-hour-down" data-hour-id="${hour.id}" title="Move down" ${isLast ? 'disabled' : ''}>${chevronIcon('down', { size: 10 })}</button>
+                    </div>
                     <div class="form-group">
                         <div class="input-wrapper">
                             <input type="text" class="form-input hour-day" id="hour-${safeId}-day" name="hour-${safeId}-day" data-hour-id="${safeId}" value="${escapeAttr(hour.day)}" placeholder="e.g., Friday Nov 29">
@@ -890,13 +1081,9 @@ export function renderSpecialHours() {
                             <button class="clear-input" data-clear="hour-${safeId}-hours" title="Clear">×</button>
                         </div>
                     </div>
-                    <div class="hour-controls">
-                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-hour-up" data-hour-id="${hour.id}" title="Move up" ${isFirst ? 'disabled' : ''}>${chevronIcon('up', { size: 10 })}</button>
-                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-hour-down" data-hour-id="${hour.id}" title="Move down" ${isLast ? 'disabled' : ''}>${chevronIcon('down', { size: 10 })}</button>
-                        <button type="button" class="hour-remove-btn btn-base btn-icon-base btn-icon-danger" data-action="remove-hour" data-hour-id="${hour.id}" title="Remove" aria-label="Remove special hour">
-                            ${closeIcon({ size: 16 })}
-                        </button>
-                    </div>
+                    <button type="button" class="entry-remove-btn" data-action="remove-hour" data-hour-id="${hour.id}" title="Remove" aria-label="Remove special hour">
+                        ${closeIcon({ size: 16 })}
+                    </button>
                 </div>
             </div>
         `;
@@ -960,6 +1147,17 @@ export function addHowToShopItem() {
     underline: false,
   });
   renderHowToShopSection();
+
+  // Scroll the card's bottom into view after render
+  setTimeout(() => {
+    const newItem = document.querySelector(
+      `#howToShopItemsContainer .editable-item-row[data-item-id="${itemId}"]`
+    );
+    const card = newItem?.closest('.card');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, 50);
 }
 
 // Remove a How to Shop item
@@ -1030,28 +1228,28 @@ function renderHowToShopItems() {
 
       return `
             <div class="editable-item-row" data-item-id="${safeId}" draggable="true">
-                <div class="entry-header">
-                    <div class="entry-header-left">
-                        <div class="drag-handle" title="Drag to reorder">
-                            ${dragHandleIcon({ size: 16 })}
+                <div class="entry-inline-row">
+                    <div class="drag-handle" title="Drag to reorder">
+                        ${dragHandleIcon({ size: 16 })}
+                    </div>
+                    <div class="order-buttons">
+                        <button type="button" class="order-btn" data-action="move-up-how-to-shop" data-item-id="${item.id}" title="Move up" ${isFirst ? 'disabled' : ''}>${chevronIcon('up', { size: 10 })}</button>
+                        <button type="button" class="order-btn" data-action="move-down-how-to-shop" data-item-id="${item.id}" title="Move down" ${isLast ? 'disabled' : ''}>${chevronIcon('down', { size: 10 })}</button>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <input type="text" class="form-input shop-item-text" id="shop-item-${safeId}-text" name="shop-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Visit us in-store for outlet-exclusive deals">
+                            <button class="clear-input" data-clear="shop-item-${safeId}-text" title="Clear">×</button>
                         </div>
-                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-up-how-to-shop" data-item-id="${item.id}" title="Move up" ${isFirst ? 'disabled' : ''}>${chevronIcon('up', { size: 10 })}</button>
-                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-down-how-to-shop" data-item-id="${item.id}" title="Move down" ${isLast ? 'disabled' : ''}>${chevronIcon('down', { size: 10 })}</button>
-                        <button type="button" class="format-btn btn-base btn-secondary-base btn-xs" data-action="toggle-bold-how-to-shop" data-item-id="${item.id}" title="Bold" ${item.bold ? 'data-active="true"' : ''}>${boldIcon({ size: 14 })}</button>
-                        <button type="button" class="format-btn btn-base btn-secondary-base btn-xs" data-action="toggle-italic-how-to-shop" data-item-id="${item.id}" title="Italic" ${item.italic ? 'data-active="true"' : ''}>${italicIcon({ size: 14 })}</button>
-                        <button type="button" class="format-btn btn-base btn-secondary-base btn-xs" data-action="toggle-underline-how-to-shop" data-item-id="${item.id}" title="Underline" ${item.underline ? 'data-active="true"' : ''}>${underlineIcon({ size: 14 })}</button>
                     </div>
-                    <div class="entry-controls">
-                        <button type="button" class="item-remove-btn btn-base btn-icon-base btn-icon-danger" data-action="remove-how-to-shop-item" data-item-id="${item.id}" title="Remove" aria-label="Remove shopping item">
-                            ${closeIcon({ size: 16 })}
-                        </button>
+                    <div class="format-buttons">
+                        <button type="button" class="format-btn" data-action="toggle-bold-how-to-shop" data-item-id="${item.id}" title="Bold" ${item.bold ? 'data-active="true"' : ''}>${boldIcon({ size: 14 })}</button>
+                        <button type="button" class="format-btn" data-action="toggle-italic-how-to-shop" data-item-id="${item.id}" title="Italic" ${item.italic ? 'data-active="true"' : ''}>${italicIcon({ size: 14 })}</button>
+                        <button type="button" class="format-btn" data-action="toggle-underline-how-to-shop" data-item-id="${item.id}" title="Underline" ${item.underline ? 'data-active="true"' : ''}>${underlineIcon({ size: 14 })}</button>
                     </div>
-                </div>
-                <div class="form-group" style="margin-top: 0.5rem;">
-                    <div class="input-wrapper">
-                        <input type="text" class="form-input shop-item-text" id="shop-item-${safeId}-text" name="shop-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Visit us in-store for outlet-exclusive deals">
-                        <button class="clear-input" data-clear="shop-item-${safeId}-text" title="Clear">×</button>
-                    </div>
+                    <button type="button" class="entry-remove-btn" data-action="remove-how-to-shop-item" data-item-id="${item.id}" title="Remove" aria-label="Remove shopping item">
+                        ${closeIcon({ size: 16 })}
+                    </button>
                 </div>
             </div>
         `;
@@ -1177,6 +1375,17 @@ export function addImportantNotesItem() {
     underline: false,
   });
   renderImportantNotesSection();
+
+  // Scroll the card's bottom into view after render
+  setTimeout(() => {
+    const newItem = document.querySelector(
+      `#importantNotesItemsContainer .editable-item-row[data-item-id="${itemId}"]`
+    );
+    const card = newItem?.closest('.card');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, 50);
 }
 
 // Remove an Important Notes item
@@ -1247,28 +1456,28 @@ function renderImportantNotesItems() {
 
       return `
             <div class="editable-item-row" data-item-id="${safeId}" draggable="true">
-                <div class="entry-header">
-                    <div class="entry-header-left">
-                        <div class="drag-handle" title="Drag to reorder">
-                            ${dragHandleIcon({ size: 16 })}
+                <div class="entry-inline-row">
+                    <div class="drag-handle" title="Drag to reorder">
+                        ${dragHandleIcon({ size: 16 })}
+                    </div>
+                    <div class="order-buttons">
+                        <button type="button" class="order-btn" data-action="move-up-important-notes" data-item-id="${item.id}" title="Move up" ${isFirst ? 'disabled' : ''}>${chevronIcon('up', { size: 10 })}</button>
+                        <button type="button" class="order-btn" data-action="move-down-important-notes" data-item-id="${item.id}" title="Move down" ${isLast ? 'disabled' : ''}>${chevronIcon('down', { size: 10 })}</button>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-wrapper">
+                            <input type="text" class="form-input important-notes-item-text" id="important-notes-item-${safeId}-text" name="important-notes-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Important safety information or key details">
+                            <button class="clear-input" data-clear="important-notes-item-${safeId}-text" title="Clear">×</button>
                         </div>
-                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-up-important-notes" data-item-id="${item.id}" title="Move up" ${isFirst ? 'disabled' : ''}>${chevronIcon('up', { size: 10 })}</button>
-                        <button type="button" class="order-btn btn-base btn-secondary-base btn-xs" data-action="move-down-important-notes" data-item-id="${item.id}" title="Move down" ${isLast ? 'disabled' : ''}>${chevronIcon('down', { size: 10 })}</button>
-                        <button type="button" class="format-btn btn-base btn-secondary-base btn-xs" data-action="toggle-bold-important-notes" data-item-id="${item.id}" title="Bold" ${item.bold ? 'data-active="true"' : ''}>${boldIcon({ size: 14 })}</button>
-                        <button type="button" class="format-btn btn-base btn-secondary-base btn-xs" data-action="toggle-italic-important-notes" data-item-id="${item.id}" title="Italic" ${item.italic ? 'data-active="true"' : ''}>${italicIcon({ size: 14 })}</button>
-                        <button type="button" class="format-btn btn-base btn-secondary-base btn-xs" data-action="toggle-underline-important-notes" data-item-id="${item.id}" title="Underline" ${item.underline ? 'data-active="true"' : ''}>${underlineIcon({ size: 14 })}</button>
                     </div>
-                    <div class="entry-controls">
-                        <button type="button" class="item-remove-btn btn-base btn-icon-base btn-icon-danger" data-action="remove-important-notes-item" data-item-id="${item.id}" title="Remove" aria-label="Remove important note">
-                            ${closeIcon({ size: 16 })}
-                        </button>
+                    <div class="format-buttons">
+                        <button type="button" class="format-btn" data-action="toggle-bold-important-notes" data-item-id="${item.id}" title="Bold" ${item.bold ? 'data-active="true"' : ''}>${boldIcon({ size: 14 })}</button>
+                        <button type="button" class="format-btn" data-action="toggle-italic-important-notes" data-item-id="${item.id}" title="Italic" ${item.italic ? 'data-active="true"' : ''}>${italicIcon({ size: 14 })}</button>
+                        <button type="button" class="format-btn" data-action="toggle-underline-important-notes" data-item-id="${item.id}" title="Underline" ${item.underline ? 'data-active="true"' : ''}>${underlineIcon({ size: 14 })}</button>
                     </div>
-                </div>
-                <div class="form-group" style="margin-top: 0.5rem;">
-                    <div class="input-wrapper">
-                        <input type="text" class="form-input important-notes-item-text" id="important-notes-item-${safeId}-text" name="important-notes-item-${safeId}-text" data-item-id="${safeId}" value="${escapeAttr(item.text)}" placeholder="e.g., Important safety information or key details">
-                        <button class="clear-input" data-clear="important-notes-item-${safeId}-text" title="Clear">×</button>
-                    </div>
+                    <button type="button" class="entry-remove-btn" data-action="remove-important-notes-item" data-item-id="${item.id}" title="Remove" aria-label="Remove important note">
+                        ${closeIcon({ size: 16 })}
+                    </button>
                 </div>
             </div>
         `;
@@ -2576,8 +2785,7 @@ function renderDiscountEntriesSection() {
 
   container.innerHTML = `
     <div class="form-group full-width">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <label class="form-label" style="margin-bottom: 0;">Promotion Entries</label>
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 0.75rem;">
             <button type="button" class="btn btn-base btn-primary-base" id="addEntryBtn" style="flex: 0 0 auto; padding: 0.5rem 1rem; font-size: 0.75rem;">+ Add Entry</button>
         </div>
         <div id="promotionEntriesContainer"></div>
@@ -2606,8 +2814,8 @@ function renderSpecialHoursSection() {
     </div>
     <div class="field-help" style="margin-bottom: 0.75rem;">For holidays or special sale hours (e.g., Black Friday extended hours)</div>
     <div id="specialHoursListContainer"></div>
-    <div id="specialHoursReminder" style="display: none; background: #fff3cd; border-left: 3px solid #ffc107; padding: 1rem; margin-top: 1rem;">
-        <strong>⚠️ Reminder:</strong> Don't forget to update your special hours on Yelp and Google Maps!
+    <div id="specialHoursReminder" class="reminder-box" style="display: none;">
+        <strong>Reminder:</strong> Don't forget to update your special hours on Yelp and Google Maps!
     </div>
   `;
 
@@ -2716,37 +2924,35 @@ export function init() {
     }
   });
 
-  // Wire up duplicated buttons in output card
-  const saveTemplateBtnDuplicate = document.getElementById(
-    'saveTemplateBtnDuplicate'
-  );
-  const importTemplateBtnDuplicate = document.getElementById(
-    'importTemplateBtnDuplicate'
-  );
-  const exportTemplateBtnDuplicate = document.getElementById(
-    'exportTemplateBtnDuplicate'
-  );
-  const startOverBtnDuplicate = document.getElementById(
-    'startOverBtnDuplicate'
-  );
+  // Wire up floating template action buttons
+  const saveTemplateBtn = document.getElementById('saveTemplateBtn');
+  const importTemplateBtn = document.getElementById('importTemplateBtn');
+  const exportTemplateBtn = document.getElementById('exportTemplateBtn');
+  const importTemplateFile = document.getElementById('importTemplateFile');
+  const startOverBtn = document.getElementById('startOverBtn');
 
-  if (saveTemplateBtnDuplicate) {
-    saveTemplateBtnDuplicate.addEventListener('click', savePromotionTemplate);
+  if (saveTemplateBtn) {
+    saveTemplateBtn.addEventListener('click', savePromotionTemplate);
   }
-  if (importTemplateBtnDuplicate) {
-    importTemplateBtnDuplicate.addEventListener(
-      'click',
-      importPromotionTemplate
-    );
+  if (importTemplateBtn) {
+    importTemplateBtn.addEventListener('click', () => {
+      importTemplateFile?.click();
+    });
   }
-  if (exportTemplateBtnDuplicate) {
-    exportTemplateBtnDuplicate.addEventListener(
-      'click',
-      exportPromotionTemplate
-    );
+  if (importTemplateFile) {
+    importTemplateFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        importPromotionTemplateFromFile(file);
+      }
+      e.target.value = '';
+    });
   }
-  if (startOverBtnDuplicate) {
-    startOverBtnDuplicate.addEventListener('click', resetToDefaults);
+  if (exportTemplateBtn) {
+    exportTemplateBtn.addEventListener('click', exportPromotionTemplate);
+  }
+  if (startOverBtn) {
+    startOverBtn.addEventListener('click', resetToDefaults);
   }
 
   // Load saved template or initialize defaults
@@ -2785,6 +2991,13 @@ export function init() {
     document.getElementById('importantNotesItemsContainer'),
     () => promotionState.importantNotesItems,
     renderImportantNotesSection
+  );
+
+  setupDragAndDrop(
+    document.getElementById('specialHoursListContainer'),
+    () => promotionState.specialHours,
+    renderSpecialHours,
+    '.special-hour-row'
   );
 
   // Set initial empty state for preview iframe

@@ -21,32 +21,6 @@
       <div class="header-top">
         <h1>Promotion Email Generator</h1>
         <div class="header-controls">
-          <button
-            class="theme-toggle"
-            id="themeToggle"
-            title="Toggle light/dark mode"
-            aria-label="Toggle light/dark mode"
-          >
-            <div class="theme-toggle-slider"></div>
-          </button>
-          <a
-            href="start.html"
-            class="profile-link btn-base btn-ghost-base"
-            title="Edit your profile"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            Profile
-          </a>
           <a
             href="index.html"
             class="nav-link btn-base btn-ghost-base"
@@ -70,6 +44,32 @@
             </svg>
             Templates
           </a>
+          <a
+            href="start.html"
+            class="profile-link btn-base btn-ghost-base"
+            title="Edit your profile"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            Profile
+          </a>
+          <button
+            class="theme-toggle"
+            id="themeToggle"
+            title="Toggle light/dark mode"
+            aria-label="Toggle light/dark mode"
+          >
+            <div class="theme-toggle-slider"></div>
+          </button>
         </div>
       </div>
     </div>
@@ -412,7 +412,18 @@
     <!-- Right Column: Preview/HTML (outside page-content to preserve fixed positioning) -->
     <div class="right-column">
         <div class="card output-card sticky-preview" id="outputCard">
-          <h2 class="section-title">Email Preview</h2>
+          <div class="preview-header">
+            <h2 class="section-title">Email Preview</h2>
+            <button type="button" class="btn-base btn-danger-base btn-sm" id="startOverBtn" title="Reset everything to defaults">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M8 16H3v5"/>
+              </svg>
+              Start Over
+            </button>
+          </div>
           <div class="output-tabs">
             <button
               class="output-tab btn-base btn-tab-base active"
@@ -439,6 +450,34 @@
                 class="preview-iframe"
                 title="Email Preview"
               ></iframe>
+              <!-- Floating Template Actions -->
+              <div class="template-actions-floating">
+                <button type="button" class="btn btn-base btn-primary-base btn-sm" id="saveTemplateBtn" title="Save current configuration">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  Save
+                </button>
+                <button type="button" class="btn-base btn-ghost-base btn-sm" id="importTemplateBtn" title="Import saved configuration">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  Import
+                </button>
+                <button type="button" class="btn-base btn-ghost-base btn-sm" id="exportTemplateBtn" title="Export configuration as JSON">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  Export
+                </button>
+                <input type="file" id="importTemplateFile" accept=".json" style="display: none;">
+              </div>
             </div>
             <div class="output-content" id="codeTab">
               <textarea
@@ -469,7 +508,7 @@
             </div>
             <div class="preview-actions tab-preview">
               <div class="button-row">
-                <button class="btn btn-base btn-primary-base" id="generateBatchesBtnDuplicate">
+                <button class="btn btn-base btn-primary-base" id="generateBatchesBtn">
                   <span class="btn-text">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -491,43 +530,6 @@
                   Download Email Draft
                 </button>
               </div>
-              <div class="button-row">
-                <button type="button" class="template-action-btn btn-base btn-secondary-base" id="saveTemplateBtnDuplicate" title="Save current configuration">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                    <polyline points="7 3 7 8 15 8"></polyline>
-                  </svg>
-                  Save Template
-                </button>
-                <button type="button" class="template-action-btn btn-base btn-secondary-base" id="importTemplateBtnDuplicate" title="Import saved configuration">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                  Import Template
-                </button>
-                <button type="button" class="template-action-btn btn-base btn-secondary-base" id="exportTemplateBtnDuplicate" title="Export configuration as JSON">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                  </svg>
-                  Export Template
-                </button>
-              </div>
-              <div class="button-row">
-                <button type="button" class="btn-base btn-danger-base" id="startOverBtnDuplicate" title="Reset everything to defaults">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                    <path d="M21 3v5h-5"/>
-                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                    <path d="M8 16H3v5"/>
-                  </svg>
-                  Start Over
-                </button>
-              </div>
             </div>
           </div>
           </div>
@@ -536,7 +538,7 @@
     </div>
     <!-- End of .page-content -->
 
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
     <!-- PDF Preview Modal -->
     <div id="pdfPreviewModal" class="pdf-preview-modal" style="display: none">

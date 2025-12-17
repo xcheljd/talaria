@@ -3,6 +3,12 @@
  * Initializes the standalone promotion email generator
  */
 
+// Disable browser's automatic scroll restoration to prevent content
+// from appearing under the fixed header on page refresh
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+
 import {
   initIndexedDB,
   saveBulkEmailRecipientsToIndexedDB,
@@ -124,7 +130,16 @@ function setupCollapsibleCards() {
     if (header) {
       header.addEventListener('click', (e) => {
         e.preventDefault();
+        const wasCollapsed = card.classList.contains('collapsed');
         card.classList.toggle('collapsed');
+
+        // If card was just expanded, scroll it into view after transition
+        if (wasCollapsed) {
+          // Wait for CSS transition to complete before scrolling
+          setTimeout(() => {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 150);
+        }
       });
     }
   });
@@ -410,13 +425,11 @@ function setupOutputButtons() {
     }
   }
 
-  // Generate Batches button (duplicate in output area)
-  const generateBatchesBtnDuplicate = document.getElementById(
-    'generateBatchesBtnDuplicate'
-  );
-  if (generateBatchesBtnDuplicate) {
-    generateBatchesBtnDuplicate.addEventListener('click', () =>
-      handleGenerateBatches(generateBatchesBtnDuplicate)
+  // Generate Batches button in output area
+  const generateBatchesBtn = document.getElementById('generateBatchesBtn');
+  if (generateBatchesBtn) {
+    generateBatchesBtn.addEventListener('click', () =>
+      handleGenerateBatches(generateBatchesBtn)
     );
   }
 

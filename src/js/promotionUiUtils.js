@@ -81,7 +81,10 @@ export function setupDragAndDrop(
     }
 
     draggedElement = row;
-    draggedItemId = parseInt(row.dataset.itemId || row.dataset.entryId, 10);
+    draggedItemId = parseInt(
+      row.dataset.itemId || row.dataset.entryId || row.dataset.hourId,
+      10
+    );
     row.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
   });
@@ -127,7 +130,7 @@ export function setupDragAndDrop(
         typeof itemsArray === 'function' ? itemsArray() : itemsArray;
 
       const targetItemId = parseInt(
-        row.dataset.itemId || row.dataset.entryId,
+        row.dataset.itemId || row.dataset.entryId || row.dataset.hourId,
         10
       );
 
