@@ -1494,6 +1494,14 @@ body {
   color: var(--foreground);
 }
 
+/* Header row with label and regenerate button */
+.subject-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 /* Select Wrapper with custom arrow */
 .select-wrapper {
   position: relative;

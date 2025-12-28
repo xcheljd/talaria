@@ -153,8 +153,8 @@ export function updateLivePreview() {
   iframeDoc.close();
 
   // Generate subject lines when content is available
-  // Only generate if we don't already have subject lines or if entries have changed
-  if (promotionState.generatedSubjectLines.length === 0) {
+  // Auto-regenerate unless user has manually edited the subject line
+  if (!promotionState.subjectLineManuallyEdited) {
     generateSubjectLines();
   }
 }
@@ -677,73 +677,292 @@ export function exportPromotionTemplate() {
 
 // ===== AUTO-GENERATION FUNCTIONS =====
 
+// Get the nth occurrence of a weekday in a month (e.g., 3rd Monday)
+// month: 0-11, dayOfWeek: 0=Sun, 1=Mon, ..., 6=Sat, ordinal: 1-5
+function getOrdinalWeekday(year, month, dayOfWeek, ordinal) {
+  const firstDay = new Date(year, month, 1);
+  const firstDayOfWeek = firstDay.getDay();
+  let dayOffset = dayOfWeek - firstDayOfWeek;
+  if (dayOffset < 0) dayOffset += 7;
+  const date = 1 + dayOffset + (ordinal - 1) * 7;
+  return new Date(year, month, date);
+}
+
+// Get the last occurrence of a weekday in a month (e.g., last Monday of May)
+function getLastWeekday(year, month, dayOfWeek) {
+  const lastDay = new Date(year, month + 1, 0); // Last day of month
+  const lastDayOfWeek = lastDay.getDay();
+  let dayOffset = lastDayOfWeek - dayOfWeek;
+  if (dayOffset < 0) dayOffset += 7;
+  return new Date(year, month, lastDay.getDate() - dayOffset);
+}
+
+// Calculate all holiday dates for a given year
+function getHolidayDates(year) {
+  const thanksgiving = getOrdinalWeekday(year, 10, 4, 4); // 4th Thursday of Nov
+
+  return {
+    // Fixed holidays
+    newYear: new Date(year, 0, 1),
+    valentines: new Date(year, 1, 14),
+    independence: new Date(year, 6, 4),
+    halloween: new Date(year, 9, 31),
+    christmas: new Date(year, 11, 25),
+
+    // Floating holidays
+    presidentsDay: getOrdinalWeekday(year, 1, 1, 3), // 3rd Monday of Feb
+    mothersDay: getOrdinalWeekday(year, 4, 0, 2), // 2nd Sunday of May
+    memorialDay: getLastWeekday(year, 4, 1), // Last Monday of May
+    fathersDay: getOrdinalWeekday(year, 5, 0, 3), // 3rd Sunday of June
+    laborDay: getOrdinalWeekday(year, 8, 1, 1), // 1st Monday of Sep
+    thanksgiving: thanksgiving,
+    blackFriday: new Date(thanksgiving.getTime() + 24 * 60 * 60 * 1000), // Day after
+    cyberMonday: new Date(thanksgiving.getTime() + 4 * 24 * 60 * 60 * 1000), // 4 days after
+  };
+}
+
+// Parse a date range string into start and end Date objects
+// Handles formats like: "Nov 28 - Dec 1", "December 15-22", "Jan 5"
+function parseDateRange(dateRangeStr) {
+  if (!dateRangeStr || !dateRangeStr.trim()) return null;
+
+  const months = {
+    jan: 0, january: 0,
+    feb: 1, february: 1,
+    mar: 2, march: 2,
+    apr: 3, april: 3,
+    may: 4,
+    jun: 5, june: 5,
+    jul: 6, july: 6,
+    aug: 7, august: 7,
+    sep: 8, sept: 8, september: 8,
+    oct: 9, october: 9,
+    nov: 10, november: 10,
+    dec: 11, december: 11,
+  };
+
+  const str = dateRangeStr.toLowerCase().trim();
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  // Split on common separators: -, –, —, to
+  const parts = str.split(/\s*[-–—]\s*|\s+to\s+/);
+
+  const parseDate = (part, fallbackMonth = null) => {
+    // Match month name and optional day
+    const monthMatch = part.match(
+      /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i
+    );
+    const dayMatch = part.match(/\b(\d{1,2})\b/);
+
+    let month = fallbackMonth;
+    if (monthMatch) {
+      month = months[monthMatch[1].toLowerCase()];
+    }
+
+    if (month === null) return null;
+
+    const day = dayMatch ? parseInt(dayMatch[1], 10) : 1;
+
+    // Determine year - if date has passed, might mean next year
+    let year = currentYear;
+    const tentativeDate = new Date(year, month, day);
+    // If the date is more than 2 months in the past, assume next year
+    if (tentativeDate < new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000)) {
+      year = currentYear + 1;
+    }
+
+    return new Date(year, month, day);
+  };
+
+  if (parts.length === 1) {
+    // Single date
+    const date = parseDate(parts[0]);
+    return date ? { start: date, end: date } : null;
+  } else if (parts.length >= 2) {
+    // Date range
+    const startDate = parseDate(parts[0]);
+    if (!startDate) return null;
+
+    // For end date, fall back to start month if not specified
+    const endDate = parseDate(parts[1], startDate.getMonth());
+    if (!endDate) return null;
+
+    // If end date is before start date and in same year, it might span years
+    if (endDate < startDate) {
+      endDate.setFullYear(endDate.getFullYear() + 1);
+    }
+
+    return { start: startDate, end: endDate };
+  }
+
+  return null;
+}
+
+// Check if a date range overlaps with a holiday window
+function dateRangeOverlaps(rangeStart, rangeEnd, windowStart, windowEnd) {
+  return rangeStart <= windowEnd && rangeEnd >= windowStart;
+}
+
+// Get the matching occasion for a date range, with priority handling
+function getOccasionForDateRange(startDate, endDate) {
+  const year = startDate.getFullYear();
+  const holidays = getHolidayDates(year);
+
+  // Helper to create window dates
+  const dayMs = 24 * 60 * 60 * 1000;
+  const daysAfter = (date, days) => new Date(date.getTime() + days * dayMs);
+  const daysBefore = (date, days) => new Date(date.getTime() - days * dayMs);
+
+  // Define occasions with their windows and titles (in priority order)
+  const occasions = [
+    // Highest priority: specific shopping holidays
+    {
+      name: 'blackFriday',
+      title: 'BLACK FRIDAY OUTLET EVENT',
+      start: daysBefore(holidays.blackFriday, 1), // Wed before
+      end: daysAfter(holidays.blackFriday, 2), // Sun after
+    },
+    {
+      name: 'cyberMonday',
+      title: 'CYBER MONDAY SALE',
+      start: daysBefore(holidays.cyberMonday, 1), // Sun before
+      end: daysAfter(holidays.cyberMonday, 1), // Tue after
+    },
+
+    // Sale weekends
+    {
+      name: 'memorialDay',
+      title: 'MEMORIAL DAY SALE',
+      start: daysBefore(holidays.memorialDay, 4), // Thu before
+      end: holidays.memorialDay,
+    },
+    {
+      name: 'laborDay',
+      title: 'LABOR DAY SALE',
+      start: daysBefore(holidays.laborDay, 4), // Thu before
+      end: holidays.laborDay,
+    },
+    {
+      name: 'presidentsDay',
+      title: 'PRESIDENTS DAY SALE',
+      start: daysBefore(holidays.presidentsDay, 4), // Thu before
+      end: holidays.presidentsDay,
+    },
+
+    // Gift occasions (longer windows)
+    {
+      name: 'valentines',
+      title: "VALENTINE'S DAY EVENT",
+      start: new Date(year, 1, 1), // Feb 1
+      end: holidays.valentines, // Feb 14
+    },
+    {
+      name: 'mothersDay',
+      title: "MOTHER'S DAY GIFT EVENT",
+      start: daysBefore(holidays.mothersDay, 14), // 2 weeks before
+      end: holidays.mothersDay,
+    },
+    {
+      name: 'fathersDay',
+      title: "FATHER'S DAY GIFT EVENT",
+      start: daysBefore(holidays.fathersDay, 14), // 2 weeks before
+      end: holidays.fathersDay,
+    },
+
+    // Other holidays
+    {
+      name: 'independence',
+      title: 'JULY 4TH SALE',
+      start: new Date(year, 5, 25), // Jun 25
+      end: holidays.independence, // Jul 4
+    },
+    {
+      name: 'halloween',
+      title: 'HALLOWEEN SALE',
+      start: new Date(year, 9, 15), // Oct 15
+      end: holidays.halloween, // Oct 31
+    },
+    {
+      name: 'backToSchool',
+      title: 'BACK TO SCHOOL SALE',
+      start: new Date(year, 7, 1), // Aug 1
+      end: new Date(year, 8, 10), // Sep 10
+    },
+
+    // New Year (spans years)
+    {
+      name: 'newYear',
+      title: 'NEW YEAR SALE',
+      start: new Date(year, 11, 26), // Dec 26
+      end: new Date(year + 1, 0, 7), // Jan 7
+    },
+    // Also check if we're in early January (previous year's New Year window)
+    {
+      name: 'newYearEarly',
+      title: 'NEW YEAR SALE',
+      start: new Date(year, 0, 1), // Jan 1
+      end: new Date(year, 0, 7), // Jan 7
+    },
+
+    // Holiday/Christmas (broad December)
+    {
+      name: 'holiday',
+      title: 'HOLIDAY SALE EVENT',
+      start: new Date(year, 11, 1), // Dec 1
+      end: new Date(year, 11, 25), // Dec 25
+    },
+
+    // Seasonal fallbacks (lower priority)
+    {
+      name: 'summer',
+      title: 'SUMMER CLEARANCE',
+      start: new Date(year, 5, 1), // Jun 1
+      end: new Date(year, 7, 31), // Aug 31
+    },
+    {
+      name: 'spring',
+      title: 'SPRING SALE',
+      start: new Date(year, 2, 1), // Mar 1
+      end: new Date(year, 4, 31), // May 31
+    },
+    {
+      name: 'fall',
+      title: 'FALL SALE',
+      start: new Date(year, 8, 1), // Sep 1
+      end: new Date(year, 10, 30), // Nov 30
+    },
+    {
+      name: 'winter',
+      title: 'WINTER SALE',
+      start: new Date(year, 0, 1), // Jan 1
+      end: new Date(year, 1, 28), // Feb 28
+    },
+  ];
+
+  // Find first matching occasion (they're in priority order)
+  for (const occasion of occasions) {
+    if (dateRangeOverlaps(startDate, endDate, occasion.start, occasion.end)) {
+      return occasion.title;
+    }
+  }
+
+  return null;
+}
+
 // Auto-generate title based on date range
 export function generatePromoTitle(dateRange) {
   if (!dateRange) return 'WEEKLY SALE';
 
-  // Parse date range
-  const dateStr = dateRange.toLowerCase();
+  // Parse the user's date range into actual dates
+  const parsed = parseDateRange(dateRange);
+  if (!parsed) return 'WEEKLY SALE';
 
-  // Black Friday detection (typically last Friday of November)
-  if (
-    dateStr.includes('nov') &&
-    (dateStr.includes('24') ||
-      dateStr.includes('25') ||
-      dateStr.includes('26') ||
-      dateStr.includes('27') ||
-      dateStr.includes('28') ||
-      dateStr.includes('29'))
-  ) {
-    return 'BLACK FRIDAY OUTLET EVENT';
-  }
+  // Find matching occasion based on date range
+  const occasionTitle = getOccasionForDateRange(parsed.start, parsed.end);
+  if (occasionTitle) return occasionTitle;
 
-  // Cyber Monday (Monday after Black Friday)
-  if (dateStr.includes('nov') && dateStr.includes('30')) {
-    return 'CYBER MONDAY SALE';
-  }
-  if (
-    dateStr.includes('dec') &&
-    dateStr.includes('1') &&
-    !dateStr.includes('10')
-  ) {
-    return 'CYBER MONDAY SALE';
-  }
-
-  // Holiday season (December)
-  if (dateStr.includes('dec')) {
-    return 'HOLIDAY SALE EVENT';
-  }
-
-  // Summer clearance (June-August)
-  if (
-    dateStr.includes('jun') ||
-    dateStr.includes('jul') ||
-    dateStr.includes('aug')
-  ) {
-    return 'SUMMER CLEARANCE';
-  }
-
-  // Back to school (late August - early September)
-  if (
-    (dateStr.includes('aug') &&
-      (dateStr.includes('20') ||
-        dateStr.includes('2') ||
-        dateStr.includes('3'))) ||
-    (dateStr.includes('sep') &&
-      (dateStr.includes('1') ||
-        dateStr.includes('2') ||
-        dateStr.includes('3') ||
-        dateStr.includes('4') ||
-        dateStr.includes('5') ||
-        dateStr.includes('6') ||
-        dateStr.includes('7') ||
-        dateStr.includes('8') ||
-        dateStr.includes('9')))
-  ) {
-    return 'BACK TO SCHOOL SALE';
-  }
-
-  // Default
+  // Default fallback
   return 'WEEKLY SALE';
 }
 
@@ -2029,7 +2248,12 @@ export function renderSubjectLines() {
 
   container.innerHTML = `
         <div class="subject-line-dropdown-wrapper">
-            <label class="subject-dropdown-label" for="subjectLineDropdown">Choose a subject line suggestion:</label>
+            <div class="subject-dropdown-header">
+                <label class="subject-dropdown-label" for="subjectLineDropdown">Choose a subject line suggestion:</label>
+                <button type="button" class="btn btn-secondary-base btn-sm" id="regenerateSubjectBtn" title="Regenerate suggestions based on current entries">
+                    ↻ Regenerate
+                </button>
+            </div>
             <div class="select-wrapper">
                 <select id="subjectLineDropdown" class="subject-line-dropdown">
                     <option value="" disabled ${!promotionState.selectedSubjectLine ? 'selected' : ''}>Select a subject line...</option>
@@ -2074,6 +2298,9 @@ export function renderSubjectLines() {
     input.addEventListener('input', (e) => {
       promotionState.selectedSubjectLine = e.target.value;
 
+      // Mark as manually edited to prevent auto-regeneration
+      promotionState.subjectLineManuallyEdited = true;
+
       // Update character count
       const charCount = document.getElementById('subjectCharCount');
       if (charCount) {
@@ -2090,6 +2317,73 @@ export function renderSubjectLines() {
       }
     });
   }
+
+  // Add event listener to regenerate button
+  const regenerateBtn = document.getElementById('regenerateSubjectBtn');
+  if (regenerateBtn) {
+    regenerateBtn.addEventListener('click', regenerateSubjectLines);
+  }
+}
+
+// Regenerate subject lines on demand (clears manual edit flag)
+export function regenerateSubjectLines() {
+  promotionState.subjectLineManuallyEdited = false;
+  generateSubjectLines();
+}
+
+// Detect current season and upcoming occasions for subject line suggestions
+function getSeasonAndOccasions() {
+  const now = new Date();
+  const month = now.getMonth(); // 0-11
+  const day = now.getDate();
+
+  // Determine season
+  let season = 'winter';
+  if (month >= 2 && month <= 4) season = 'spring';
+  else if (month >= 5 && month <= 7) season = 'summer';
+  else if (month >= 8 && month <= 10) season = 'fall';
+
+  // Check for occasions (within ~2 weeks before)
+  const occasions = [];
+
+  // Valentine's Day: Feb 14 (check Feb 1-14)
+  if (month === 1 && day <= 14) {
+    occasions.push({ name: "Valentine's Day", type: 'gift' });
+  }
+  // Mother's Day: 2nd Sunday of May (approximate: May 1-14)
+  if (month === 4 && day <= 14) {
+    occasions.push({ name: "Mother's Day", type: 'gift' });
+  }
+  // Father's Day: 3rd Sunday of June (approximate: June 1-21)
+  if (month === 5 && day <= 21) {
+    occasions.push({ name: "Father's Day", type: 'gift' });
+  }
+  // Independence Day: July 4 (check June 20 - July 4)
+  if ((month === 5 && day >= 20) || (month === 6 && day <= 4)) {
+    occasions.push({ name: 'July 4th', type: 'sale' });
+  }
+  // Back to School: Late July - Early Sept
+  if ((month === 6 && day >= 20) || month === 7 || (month === 8 && day <= 7)) {
+    occasions.push({ name: 'Back to School', type: 'sale' });
+  }
+  // Halloween: Oct (check Oct 15-31)
+  if (month === 9 && day >= 15) {
+    occasions.push({ name: 'Halloween', type: 'theme' });
+  }
+  // Black Friday: Day after Thanksgiving (late Nov, approximate Nov 20-30)
+  if (month === 10 && day >= 20) {
+    occasions.push({ name: 'Black Friday', type: 'sale' });
+  }
+  // Holiday/Christmas: Dec 1-25
+  if (month === 11 && day <= 25) {
+    occasions.push({ name: 'Holiday', type: 'gift' });
+  }
+  // New Year: Dec 26 - Jan 7
+  if ((month === 11 && day >= 26) || (month === 0 && day <= 7)) {
+    occasions.push({ name: 'New Year', type: 'sale' });
+  }
+
+  return { season, occasions };
 }
 
 // Generate subject lines based on promotion entries
@@ -2167,21 +2461,52 @@ export function generateSubjectLines() {
 
   let subjects = [];
 
-  // 1. Date/time focused subjects
-  if (dateRange) {
-    subjects.push(`Sale: ${dateRange}`);
-    // Try to create urgency variant
-    const lowerDate = dateRange.toLowerCase();
-    if (
-      lowerDate.includes('fri') ||
-      lowerDate.includes('sat') ||
-      lowerDate.includes('sun')
-    ) {
-      subjects.push(`This Weekend: ${getDiscountPhrase(maxDiscount)}`);
+  // Get seasonal and occasion context
+  const { season, occasions } = getSeasonAndOccasions();
+
+  // === TIER 1: High-Impact Contextual ===
+
+  // 1. Seasonal/occasion subjects (timely, highest open rates)
+  if (occasions.length > 0) {
+    const occasion = occasions[0]; // Use first/primary occasion
+    if (occasion.type === 'gift') {
+      // Gift-giving occasions
+      subjects.push(`${occasion.name} Watch Gifts`);
+      if (maxDiscount > 0) {
+        subjects.push(`${occasion.name} Gifts – ${getDiscountPhrase(maxDiscount)}`);
+      }
+      if (brands.length > 0) {
+        subjects.push(`${occasion.name}: ${brands[0]} Picks`);
+      }
+    } else if (occasion.type === 'sale') {
+      // Sale-focused occasions
+      subjects.push(`${occasion.name} Watch Sale`);
+      if (maxDiscount > 0) {
+        subjects.push(`${occasion.name} Savings – ${getDiscountPhrase(maxDiscount)}`);
+      }
+    } else if (occasion.type === 'theme') {
+      // Themed occasions (more subtle)
+      if (maxDiscount > 0) {
+        subjects.push(`${occasion.name} Sale – ${getDiscountPhrase(maxDiscount)}`);
+      }
+    }
+  } else {
+    // No occasion - use seasonal subjects
+    const seasonCapitalized = season.charAt(0).toUpperCase() + season.slice(1);
+    if (maxDiscount > 0) {
+      subjects.push(`${seasonCapitalized} Watch Sale – ${getDiscountPhrase(maxDiscount)}`);
     }
   }
 
-  // 2. Brand-focused subjects
+  // 2. Scarcity/urgency subjects (FOMO, drives action)
+  if (hasLimitedStock) {
+    subjects.push('Limited Stock – Shop Now');
+  }
+  if (hasFinalSale) {
+    subjects.push('Final Sale: Extra Savings Inside');
+  }
+
+  // 3. Brand + discount subjects (specific to their promotion)
   if (brands.length > 0 && maxDiscount > 0) {
     if (brands.length === 1) {
       subjects.push(`${brands[0]}: ${getDiscountPhrase(maxDiscount)}`);
@@ -2194,18 +2519,60 @@ export function generateSubjectLines() {
     subjects.push(`${brands[0]} Sale Event`);
   }
 
-  // 3. Discount-focused subjects
+  // === TIER 2: Value & Aspiration ===
+
+  // 4. Value proposition subjects
+  if (maxDiscount >= 30) {
+    subjects.push(`Perfect Watch Gifts – Up to ${maxDiscount}% OFF`);
+  }
+
+  // 5. Emotional/benefit-focused subjects (lifestyle, aspirational)
+  subjects.push('Elevate Your Style');
+  subjects.push('Time for an Upgrade');
+  if (maxDiscount > 0) {
+    subjects.push(`Timeless Style, Limited Time – ${getDiscountPhrase(maxDiscount)}`);
+  }
+  if (brands.length > 0) {
+    subjects.push(`Discover ${brands[0]} Excellence`);
+  }
+  if (maxDiscount >= 25) {
+    subjects.push('Luxury Within Reach');
+  }
+
+  // === TIER 3: Engagement ===
+
+  // 6. Question/engagement style subjects
+  subjects.push('Your New Watch Awaits');
+  if (maxDiscount >= 20) {
+    subjects.push('Ready for a New Watch?');
+  }
+
+  // 7. Discount-focused subjects
   if (maxDiscount > 0) {
     subjects.push(`Up to ${maxDiscount}% OFF This Week`);
   }
 
-  // 4. Brand + Collections subject (never announce collection alone)
+  // === TIER 4: Informational ===
+
+  // 8. Date/time focused subjects
+  if (dateRange) {
+    subjects.push(`Sale: ${dateRange}`);
+    // Weekend urgency variant
+    const lowerDate = dateRange.toLowerCase();
+    if (
+      lowerDate.includes('fri') ||
+      lowerDate.includes('sat') ||
+      lowerDate.includes('sun')
+    ) {
+      subjects.push(`This Weekend: ${getDiscountPhrase(maxDiscount)}`);
+    }
+  }
+
+  // 9. Brand + Collections subjects (niche appeal)
   if (brands.length > 0 && topCollections.length > 0) {
     const collectionsStr = topCollections.slice(0, 3).join(', ');
     subjects.push(`${brands[0]} including ${collectionsStr}`);
   }
-
-  // 4b. Two brands with collections - one collection from each brand
   if (
     brands.length >= 2 &&
     collectionsByBrand[brands[0]]?.length > 0 &&
@@ -2218,20 +2585,9 @@ export function generateSubjectLines() {
     );
   }
 
-  // 5. Scarcity/urgency subjects based on callouts
-  if (hasLimitedStock) {
-    subjects.push('Limited Stock – Shop Now');
-  }
-  if (hasFinalSale) {
-    subjects.push('Final Sale: Extra Savings Inside');
-  }
+  // === TIER 5: Generic ===
 
-  // 6. Value proposition subjects
-  if (maxDiscount >= 30) {
-    subjects.push(`Perfect Watch Gifts – Up to ${maxDiscount}% OFF`);
-  }
-
-  // 7. Scarcity & action subjects
+  // 10. Scarcity & action subjects (generic urgency)
   if (maxDiscount > 0) {
     subjects.push(`Don't Miss These Watch Deals`);
   }
@@ -2239,13 +2595,7 @@ export function generateSubjectLines() {
     subjects.push(`VIP Watch Sale: ${brands[0]} & More`);
   }
 
-  // 8. Question/engagement style subjects
-  subjects.push('Your New Watch Awaits');
-  if (maxDiscount >= 20) {
-    subjects.push('Ready for a New Watch?');
-  }
-
-  // 9. Generic fallback (only if we have few subjects)
+  // 11. Generic fallback (only if we have few subjects)
   if (subjects.length < 3) {
     if (maxDiscount > 0) {
       subjects.push(`Up to ${maxDiscount}% OFF – This Week Only`);

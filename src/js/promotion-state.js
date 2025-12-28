@@ -14,6 +14,7 @@ export const promotionState = {
   attachedPDFs: [],
   generatedSubjectLines: [],
   selectedSubjectLine: null,
+  subjectLineManuallyEdited: false,
   entryCollapsedStates: {},
   columnState: 'left-expanded', // 'left-expanded' | 'center-expanded'
   isInitializing: true, // Prevents unwanted scrolls during page load
