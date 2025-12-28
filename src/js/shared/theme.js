@@ -75,15 +75,73 @@ export function updateThemeIndicator(theme) {
 // Get CSS that simulates email client dark mode color inversion
 export function getEmailDarkModeCSS() {
   return `
-    /* Simulate email client dark mode - invert light backgrounds and text */
+    /* Simulate email client dark mode */
+    html,
     body {
       background-color: #1a1a1a !important;
       color: #e0e0e0 !important;
     }
-    
+
+    /* Many generated previews include aggressive inline colors (rgb(0,0,0), #000, etc.).
+       Force readable defaults unless explicitly overridden below. */
+    body * {
+      color: inherit;
+    }
+
+    /* Override common inline black/dark text values */
+    [style*="color: rgb(0, 0, 0)"],
+    [style*="color:rgb(0,0,0)"],
+    [style*="color: #000"],
+    [style*="color:#000"],
+    [style*="color: #000000"],
+    [style*="color:#000000"],
+    [style*="color: black"],
+    [style*="color:black"],
+    [style*="color: #24292f"],
+    [style*="color:#24292f"],
+    [style*="color: #333333"],
+    [style*="color:#333333"],
+    [style*="color: #333"] {
+      color: #e0e0e0 !important;
+    }
+
+    /* Override common light backgrounds */
+    [style*="background-color: rgb(255, 255, 255)"],
+    [style*="background-color:rgb(255,255,255)"],
+    [style*="background-color: white"],
+    [style*="background-color:#ffffff"],
+    [style*="background-color: #ffffff"],
+    [style*="background: #ffffff"],
+    [style*="background:#ffffff"],
+    [style*="background: white"],
+    [style*="background:white"] {
+      background-color: #1a1a1a !important;
+      background: #1a1a1a !important;
+    }
+
+    /* Invert common light gray backgrounds */
+    [style*="background-color: #f5f5f5"],
+    [style*="background-color:#f5f5f5"],
+    [style*="background-color: #f4f4f4"],
+    [style*="background-color:#f4f4f4"],
+    [style*="background-color: #eee"],
+    [style*="background-color:#eee"],
+    [style*="background-color: #eeeeee"],
+    [style*="background-color:#eeeeee"] {
+      background-color: #2d2d2d !important;
+      background: #2d2d2d !important;
+    }
+
+    /* Links */
+    a,
+    a:visited {
+      color: #8ab4f8 !important;
+    }
+
     /* UI.js specific classes */
     .email-container {
       background-color: #1a1a1a !important;
+      color: #e0e0e0 !important;
     }
     .email-header {
       background-color: #2d2d2d !important;
@@ -95,51 +153,42 @@ export function getEmailDarkModeCSS() {
     .email-body {
       color: #e0e0e0 !important;
     }
-    .email-body a {
-      color: #6699ff !important;
+
+    /* Tables often get their own background in email HTML */
+    table,
+    tbody,
+    tr,
+    td {
+      background-color: transparent !important;
     }
 
-    /* Promotion Email specific styles */
-    table {
-      background-color: #1a1a1a !important;
-    }
-    /* Invert light gray backgrounds */
-    [style*="background-color: #f5f5f5"],
-    [style*="background-color:#f5f5f5"] {
-      background-color: #2d2d2d !important;
-    }
-    [style*="background-color: #f4f4f4"],
-    [style*="background-color:#f4f4f4"] {
-      background-color: #2a2a2a !important;
-    }
-    [style*="background-color: white"],
-    [style*="background-color:#ffffff"],
-    [style*="background-color: #ffffff"] {
-      background-color: #1a1a1a !important;
-    }
-    /* Invert dark text to light */
-    [style*="color: #333333"],
-    [style*="color:#333333"],
-    [style*="color: #333"] {
-      color: #e0e0e0 !important;
-    }
     /* Invert light borders */
-    [style*="border: 1px solid #ddd"] {
+    [style*="border: 1px solid #ddd"],
+    [style*="border:1px solid #ddd"],
+    [style*="border-color: #ddd"],
+    [style*="border-color:#ddd"],
+    [style*="border-color: #d0d7de"],
+    [style*="border-color:#d0d7de"] {
       border-color: #444444 !important;
     }
-    [style*="border-bottom: 2px solid gray"] {
+    [style*="border-bottom: 2px solid gray"],
+    [style*="border-bottom:2px solid gray"] {
       border-bottom-color: #555555 !important;
     }
+
     /* Keep dark footer as-is (already dark) */
-    [style*="background-color: #2c3e50"] {
+    [style*="background-color: #2c3e50"],
+    [style*="background-color:#2c3e50"] {
       background-color: #2c3e50 !important;
     }
-    /* Ensure white text in footer stays white */
-    [style*="color: white"] {
+
+    /* Ensure white / gold accents remain */
+    [style*="color: white"],
+    [style*="color:white"] {
       color: white !important;
     }
-    /* Keep gold accent color */
-    [style*="color: #ffd700"] {
+    [style*="color: #ffd700"],
+    [style*="color:#ffd700"] {
       color: #ffd700 !important;
     }
   `;

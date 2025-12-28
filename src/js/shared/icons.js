@@ -332,3 +332,20 @@ export function underlineIcon({ size = 16, className = '' } = {}) {
     <line x1="4" y1="21" x2="20" y2="21"></line>
   </svg>`;
 }
+
+/**
+ * Creates a text/document lines icon SVG (representing plain text)
+ * @param {Object} options - Configuration options
+ * @param {number} options.size - Width and height (default: 16)
+ * @param {string} options.className - Additional CSS classes
+ * @returns {string} SVG element as string
+ */
+export function textLinesIcon({ size = 16, className = '' } = {}) {
+  const classAttr = className ? ` class="${className}"` : '';
+
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${classAttr}>
+    <line x1="3" y1="6" x2="21" y2="6"></line>
+    <line x1="3" y1="12" x2="21" y2="12"></line>
+    <line x1="3" y1="18" x2="21" y2="18"></line>
+  </svg>`;
+}

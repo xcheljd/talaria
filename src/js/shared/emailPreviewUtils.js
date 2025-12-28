@@ -12,24 +12,40 @@ export function escapeHtml(text) {
 }
 
 /**
- * Simple HTML conversion for email preview (handles basic formatting
- * without signature processing). This mirrors the logic that previously
- * lived in ui.js.
+ * Simple HTML conversion for email content (handles basic formatting).
  *
  * - Double newlines become paragraph breaks.
  * - Single newlines are preserved as <br> inside paragraphs.
  * - Bullet / dash lists are converted to <ul><li>.
+ *
+ * @param {string} plainText - Plain text to convert
+ * @param {Object} options - Options
+ * @param {boolean} options.forPreview - If true, uses theme-aware colors for preview iframe. Default false (standard email colors).
  */
-export function plainTextToPreviewHTML(plainText) {
+export function plainTextToPreviewHTML(plainText, { forPreview = false } = {}) {
   // Helper to escape HTML
   const esc = (str) => escapeHtml(str);
 
-  // Split into paragraphs (double line break = new paragraph)
-  const paragraphs = plainText.split(/\n\n+/);
+  // Use standard email colors by default, theme-aware only for preview
+  let textColor = 'rgb(0, 0, 0)'; // Standard black for emails
+
+  if (forPreview) {
+    const isDarkMode =
+      typeof window !== 'undefined' &&
+      window.parent?.document?.documentElement?.getAttribute('data-theme') ===
+        'dark';
+    textColor = isDarkMode ? '#e0e0e0' : 'rgb(0, 0, 0)';
+  }
+
+  // Split into paragraphs (exactly double line break = new paragraph)
+  // Using exact split preserves extra blank lines as empty segments
+  const paragraphs = plainText.split(/\n\n/);
 
   const htmlParagraphs = paragraphs.map((para) => {
-    // Skip empty paragraphs
-    if (!para.trim()) return '';
+    // Empty paragraphs become spacing (preserves extra blank lines)
+    if (!para.trim()) {
+      return `<p style="margin: 10px 0; font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt;"><br></p>`;
+    }
 
     const lines = para.split('\n');
 
@@ -46,17 +62,17 @@ export function plainTextToPreviewHTML(plainText) {
         .filter((line) => line.trim())
         .map((line) => {
           const text = line.replace(/^[•-]\s*/, '').trim();
-          return `        <li style="margin: 5px 0;">${esc(text)}</li>`;
+          return `        <li style="margin: 5px 0; color: ${textColor};">${esc(text)}</li>`;
         })
         .join('\n');
-      return `    <ul style="margin: 10px 0; padding-left: 20px; font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt;">
+      return `    <ul style="margin: 10px 0; padding-left: 20px; font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt; color: ${textColor};">
 ${listItems}
     </ul>`;
     }
 
     // Regular paragraph - convert single line breaks to <br>
     const htmlContent = lines.map((line) => esc(line)).join('<br>');
-    return `    <p style="margin: 10px 0; font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);">${htmlContent}</p>`;
+    return `    <p style="margin: 10px 0; font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt; color: ${textColor};">${htmlContent}</p>`;
   });
 
   return htmlParagraphs.filter((p) => p).join('\n');
@@ -89,6 +105,30 @@ export function wrapHtmlForEmailPreview(htmlContent, originalMessage) {
     }
   }
 
+  // Detect if parent window is in dark mode
+  const isDarkMode =
+    window.parent?.document?.documentElement?.getAttribute('data-theme') ===
+    'dark';
+
+  // Define theme-aware colors
+  const colors = isDarkMode
+    ? {
+        background: '#1e1e1e',
+        text: '#e0e0e0',
+        headerBg: '#2d2d2d',
+        headerBorder: '#404040',
+        headerText: '#f0f0f0',
+        link: '#4da6ff', // Brighter blue for dark mode
+      }
+    : {
+        background: '#ffffff',
+        text: '#000000',
+        headerBg: '#f5f5f5',
+        headerBorder: '#dddddd',
+        headerText: '#333333',
+        link: '#0066cc', // Standard blue for light mode
+      };
+
   // Create proper HTML email template
   const template = `<!DOCTYPE html>
 <html lang="en">
@@ -100,10 +140,10 @@ export function wrapHtmlForEmailPreview(htmlContent, originalMessage) {
         body {
             font-family: Aptos, Arial, Helvetica, sans-serif;
             font-size: 12pt;
-            color: rgb(0, 0, 0);
+            color: ${colors.text};
             margin: 0;
             padding: 20px;
-            background-color: #ffffff;
+            background-color: ${colors.background};
         }
         .email-container {
             max-width: 600px;
@@ -111,14 +151,22 @@ export function wrapHtmlForEmailPreview(htmlContent, originalMessage) {
         }
         .email-header {
             padding: 10px;
-            background-color: #f5f5f5;
-            border-bottom: 2px solid #ddd;
+            background-color: ${colors.headerBg};
+            border-bottom: 2px solid ${colors.headerBorder};
             margin-bottom: 20px;
         }
         .email-subject {
             font-size: 14pt;
             font-weight: 600;
-            color: #333;
+            color: ${colors.headerText};
+        }
+        /* Override inline link colors for better visibility */
+        a, a:link, a:visited {
+            color: ${colors.link} !important;
+            text-decoration: underline;
+        }
+        a:hover {
+            opacity: 0.8;
         }
     </style>
 </head>

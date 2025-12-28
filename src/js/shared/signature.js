@@ -31,14 +31,39 @@ const MANAGER_TITLES = [
   'assistant manager',
 ];
 
-const SIGNATURE_STYLES = {
-  fontFamily: "'Century Gothic', Aptos, Arial, sans-serif",
-  colors: {
+/**
+ * Get signature colors
+ * @param {boolean} forPreview - If true, uses theme-aware colors for preview iframe. Default false (standard email colors).
+ */
+function getSignatureColors(forPreview = false) {
+  // Only detect dark mode for preview rendering
+  if (forPreview) {
+    const isDarkMode =
+      typeof window !== 'undefined' &&
+      window.parent?.document?.documentElement?.getAttribute('data-theme') ===
+        'dark';
+
+    if (isDarkMode) {
+      return {
+        primary: '#e0e0e0',
+        secondary: '#b0b0b0',
+        link: '#4da6ff',
+        environmental: '#4CAF50',
+      };
+    }
+  }
+
+  // Standard email colors (default for EML files)
+  return {
     primary: '#000000',
     secondary: '#2f2f2f',
-    link: '#0000ee',
+    link: '#0066cc',
     environmental: '#0c8822',
-  },
+  };
+}
+
+const SIGNATURE_STYLES = {
+  fontFamily: "'Century Gothic', Aptos, Arial, sans-serif",
   fontSize: {
     name: '9pt',
     details: '8pt',
@@ -85,7 +110,7 @@ function determineSignatureEmail(jobTitle, companyEmail, storeEmail) {
 /**
  * Render name and title section
  */
-function renderNameTitle(data, format) {
+function renderNameTitle(data, format, colors) {
   if (format === 'html') {
     return `<p style="margin: 0; padding: 0;">
         <strong style="font-size: ${SIGNATURE_STYLES.fontSize.name};">${sanitizeHTML(data.name)}</strong> │ ${sanitizeHTML(data.title)}
@@ -97,11 +122,11 @@ function renderNameTitle(data, format) {
 /**
  * Render separator line
  */
-function renderSeparator(format) {
+function renderSeparator(format, colors) {
   const line =
     '______________________________________________________________________';
   if (format === 'html') {
-    return `<p style="margin: 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${SIGNATURE_STYLES.colors.secondary};">
+    return `<p style="margin: 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${colors.secondary};">
         <strong>${line}</strong>
     </p>`;
   }
@@ -111,12 +136,12 @@ function renderSeparator(format) {
 /**
  * Render company information (Citizen Watch America and Citizen Company Store)
  */
-function renderCompanyInfo(data, format) {
+function renderCompanyInfo(data, format, colors) {
   if (format === 'html') {
-    return `<p style="margin: 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${SIGNATURE_STYLES.colors.secondary};">
+    return `<p style="margin: 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${colors.secondary};">
         <strong>${COMPANY_INFO.companyName}</strong>
     </p>
-    <p style="margin: 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${SIGNATURE_STYLES.colors.secondary};">
+    <p style="margin: 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${colors.secondary};">
         <strong>${COMPANY_INFO.storeName} - ${sanitizeHTML(data.location)}</strong>
     </p>`;
   }
@@ -126,7 +151,7 @@ function renderCompanyInfo(data, format) {
 /**
  * Render address (if provided)
  */
-function renderAddress(data, format) {
+function renderAddress(data, format, colors) {
   if (!data.address || !data.address.trim()) {
     return '';
   }
@@ -134,7 +159,7 @@ function renderAddress(data, format) {
   const formattedAddress = sanitizeHTML(data.address);
 
   if (format === 'html') {
-    return `<p style="margin: 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${SIGNATURE_STYLES.colors.secondary};">
+    return `<p style="margin: 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${colors.secondary};">
         ${formattedAddress.replace(/\n/g, '<br>')}
     </p>`;
   }
@@ -144,9 +169,9 @@ function renderAddress(data, format) {
 /**
  * Render phone number
  */
-function renderPhone(data, format) {
+function renderPhone(data, format, colors) {
   if (format === 'html') {
-    return `<p style="margin: 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${SIGNATURE_STYLES.colors.secondary};">
+    return `<p style="margin: 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${colors.secondary};">
         Tel/SMS: ${sanitizeHTML(data.phone)}
     </p>`;
   }
@@ -156,14 +181,14 @@ function renderPhone(data, format) {
 /**
  * Render email with hyperlink
  */
-function renderEmail(email, format) {
+function renderEmail(email, format, colors) {
   if (!email) {
     return '';
   }
 
   if (format === 'html') {
-    return `<p style="margin: 10px 0 0 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${SIGNATURE_STYLES.colors.secondary};">
-        Email: <a href="mailto:${sanitizeHTML(email)}" style="color: ${SIGNATURE_STYLES.colors.link}; text-decoration: underline; font-size: ${SIGNATURE_STYLES.fontSize.details};">${sanitizeHTML(email)}</a>
+    return `<p style="margin: 10px 0 0 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${colors.secondary};">
+        Email: <a href="mailto:${sanitizeHTML(email)}" style="color: ${colors.link}; text-decoration: underline; font-size: ${SIGNATURE_STYLES.fontSize.details};">${sanitizeHTML(email)}</a>
     </p>`;
   }
   return `Email: ${email}`;
@@ -172,14 +197,12 @@ function renderEmail(email, format) {
 /**
  * Render brand links
  */
-function renderBrandLinks(format) {
+function renderBrandLinks(format, colors) {
   if (format === 'html') {
     const links = BRAND_LINKS.map(
       (brand) =>
-        `<a href="${brand.url}" style="color: ${SIGNATURE_STYLES.colors.link}; text-decoration: underline; font-size: ${SIGNATURE_STYLES.fontSize.details};">${brand.name}</a>`
-    ).join(
-      ` <span style="color: ${SIGNATURE_STYLES.colors.secondary};">|</span> `
-    );
+        `<a href="${brand.url}" style="color: ${colors.link}; text-decoration: underline; font-size: ${SIGNATURE_STYLES.fontSize.details};">${brand.name}</a>`
+    ).join(` <span style="color: ${colors.secondary};">|</span> `);
 
     return `<p style="margin: 4px 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details};">
         ${links}
@@ -192,9 +215,9 @@ function renderBrandLinks(format) {
 /**
  * Render environment message
  */
-function renderEnvironmentMessage(format) {
+function renderEnvironmentMessage(format, colors) {
   if (format === 'html') {
-    return `<p style="margin: 4px 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${SIGNATURE_STYLES.colors.environmental};">
+    return `<p style="margin: 4px 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${colors.environmental};">
         <strong>${ENVIRONMENT_MESSAGE}</strong>
     </p>`;
   }
@@ -208,9 +231,14 @@ function renderEnvironmentMessage(format) {
 /**
  * Generate employee signature in text or HTML format
  * @param {string} format - 'text' for plain text, 'html' for HTML
+ * @param {Object} options - Options
+ * @param {boolean} options.forPreview - If true, uses theme-aware colors for preview iframe. Default false (standard email colors).
  * @returns {string} Formatted signature
  */
-export function getEmployeeSignature(format = 'text') {
+export function getEmployeeSignature(
+  format = 'text',
+  { forPreview = false } = {}
+) {
   const data = extractSignatureData();
   const email = determineSignatureEmail(
     data.jobTitle,
@@ -218,17 +246,20 @@ export function getEmployeeSignature(format = 'text') {
     data.storeEmail
   );
 
-  if (format === 'html') {
-    return `<div style="font-family: ${SIGNATURE_STYLES.fontFamily}; font-size: ${SIGNATURE_STYLES.fontSize.name}; color: ${SIGNATURE_STYLES.colors.primary};">
-    ${renderNameTitle(data, format)}
-    ${renderSeparator(format)}
-    ${renderCompanyInfo(data, format)}
-    ${renderAddress(data, format)}
-    ${renderPhone(data, format)}
-    ${renderEmail(email, format)}
-    ${renderBrandLinks(format)}
+  // Get colors - theme-aware only for preview, standard for EML files
+  const colors = getSignatureColors(forPreview);
 
-    ${renderEnvironmentMessage(format)}
+  if (format === 'html') {
+    return `<div style="font-family: ${SIGNATURE_STYLES.fontFamily}; font-size: ${SIGNATURE_STYLES.fontSize.name}; color: ${colors.primary};">
+    ${renderNameTitle(data, format, colors)}
+    ${renderSeparator(format, colors)}
+    ${renderCompanyInfo(data, format, colors)}
+    ${renderAddress(data, format, colors)}
+    ${renderPhone(data, format, colors)}
+    ${renderEmail(email, format, colors)}
+    ${renderBrandLinks(format, colors)}
+
+    ${renderEnvironmentMessage(format, colors)}
 </div>`;
   }
 
@@ -236,13 +267,13 @@ export function getEmployeeSignature(format = 'text') {
   const addressLine = data.address ? `${data.address}\n` : '';
   const emailLine = email ? `\nEmail: ${email}\n` : '\n';
 
-  return `${renderNameTitle(data, format)}
-${renderSeparator(format)}
-${renderCompanyInfo(data, format)}
-${addressLine}${renderPhone(data, format)}
-${emailLine}${renderBrandLinks(format)}
+  return `${renderNameTitle(data, format, colors)}
+${renderSeparator(format, colors)}
+${renderCompanyInfo(data, format, colors)}
+${addressLine}${renderPhone(data, format, colors)}
+${emailLine}${renderBrandLinks(format, colors)}
 
-${renderEnvironmentMessage(format)}`;
+${renderEnvironmentMessage(format, colors)}`;
 }
 
 // Export configuration for potential future use

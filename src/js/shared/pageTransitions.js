@@ -16,6 +16,57 @@ export function initPageTransitions() {
       link.addEventListener('click', handleNavigation);
     }
   });
+
+  // Safari/back-forward-cache reliability:
+  // - bfcache can restore the previous DOM with .fade-out still applied
+  // - some browsers (notably Safari) can also skip re-running CSS animations on reload
+  window.addEventListener('pageshow', handlePageShow);
+}
+
+function handlePageShow(event) {
+  const navType =
+    performance.getEntriesByType('navigation')?.[0]?.type || 'navigate';
+
+  const selectors = ['.page-content', '.header', '.right-column'];
+  const nodes = selectors
+    .map((sel) => document.querySelector(sel))
+    .filter(Boolean);
+
+  // Always remove any lingering fade-out class.
+  // This is critical for bfcache restores, but harmless on normal navigation.
+  nodes.forEach((el) => el.classList.remove('fade-out'));
+  document
+    .querySelectorAll('.column-skinny-wrapper.fade-out')
+    .forEach((el) => el.classList.remove('fade-out'));
+
+  // Animation reliability:
+  // - On very fast navigations, CSS animations can start before the first paint.
+  // - On Safari, animations can also fail to replay on bfcache restores.
+  // Restart the entrance animations on every pageshow, but schedule it after paint.
+  const shouldRestart =
+    event.persisted ||
+    navType === 'back_forward' ||
+    navType === 'reload' ||
+    navType === 'navigate';
+
+  if (shouldRestart) {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        restartAnimations(nodes);
+      });
+    });
+  }
+}
+
+function restartAnimations(elements) {
+  elements.forEach((el) => {
+    // Temporarily disable animation so the browser considers it "new".
+    el.style.animation = 'none';
+    // Force reflow
+    void el.offsetHeight;
+    // Restore to stylesheet-defined animation
+    el.style.animation = '';
+  });
 }
 
 /**

@@ -278,7 +278,34 @@ function generateGreeting(customerName) {
 
 // Internal helper: Generate a standard email closing
 function generateClosing() {
-  return `\n\nBest regards,\n${getEmployeeSignature()}`;
+  return `\n\nBest regards,`;
+}
+
+/**
+ * Assemble final template output with appropriate signature format
+ * @param {Object} templateResult - Template result object {body, includeSignature}
+ * @param {string} format - Output format: 'text' or 'html'
+ * @returns {string} Final assembled output with signature if needed
+ */
+export function assembleTemplateOutput(templateResult, format = 'text') {
+  // Handle legacy string returns (for backward compatibility during migration)
+  if (typeof templateResult === 'string') {
+    return templateResult;
+  }
+
+  const { body, includeSignature = true } = templateResult;
+
+  if (!includeSignature) {
+    return body;
+  }
+
+  // For text format: append signature block to body
+  if (format === 'text') {
+    return `${body}\n${getEmployeeSignature('text')}`;
+  }
+
+  // For HTML format: return body only (UI will add HTML signature separately)
+  return body;
 }
 
 /**
@@ -302,13 +329,16 @@ export const templates = {
     fields: ['customerName', 'employeeName'],
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
-      return `Subject: Welcome to Citizen Company Store - Your VIP Access
+      return {
+        body: `Subject: Welcome to Citizen Company Store - Your VIP Access
 
 ${generateGreeting(safe.customerName)}Thank you for visiting our Citizen Company Store outlet location! It was a pleasure helping you explore our offerings today.
 
 I've added you to our VIP email list for weekly promotional updates featuring exclusive outlet pricing on our timepieces.
 
-Please don't hesitate to reach out by replying to this email or call the store at ${getStorePhone()}. I would be happy to check availability on any models you're considering.${generateClosing()}`;
+Please don't hesitate to reach out by replying to this email or call the store at ${getStorePhone()}. I would be happy to check availability on any models you're considering.${generateClosing()}`,
+        includeSignature: true,
+      };
     },
   },
   'new-model-arrival': {
@@ -334,7 +364,8 @@ Please don't hesitate to reach out by replying to this email or call the store a
         .filter((feature) => feature && feature.trim())
         .map((feature) => `• ${feature}`)
         .join('\n');
-      return `Subject: Great News! ${safe.modelName} Now Available
+      return {
+        body: `Subject: Great News! ${safe.modelName} Now Available
 
 ${generateGreeting(safe.customerName)}Great news! The ${safe.brand} ${safe.modelName} (${safe.modelNumber}) you were interested in has arrived at our store.
 
@@ -347,7 +378,9 @@ I'd be happy to set up an appointment to show you all the features of this watch
 
 Would you like to schedule a time to see it in person? Please reply to this email or call the store at ${getStorePhone()}.
 
-Looking forward to hearing from you!${generateClosing()}`;
+Looking forward to hearing from you!${generateClosing()}`,
+        includeSignature: true,
+      };
     },
   },
   'limited-edition': {
@@ -368,7 +401,8 @@ Looking forward to hearing from you!${generateClosing()}`;
     ],
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
-      return `Subject: Exclusive: Limited Edition ${safe.modelName} Available
+      return {
+        body: `Subject: Exclusive: Limited Edition ${safe.modelName} Available
 
 Hi ${safe.customerName},
 
@@ -384,9 +418,10 @@ This is truly a special piece that won't last long. I'd love to show it to you i
 Can you stop by this week, or would you like me to hold one for you? Please reply to this email or call the store at ${getStorePhone()}.
 
 Best regards,
-${getEmployeeSignature()}
 
-P.S. - Given the limited availability, I'm only reaching out to our most valued collectors. Let me know if you're interested!`;
+P.S. - Given the limited availability, I'm only reaching out to our most valued collectors. Let me know if you're interested!`,
+        includeSignature: true,
+      };
     },
   },
   'vip-reconnection': {
@@ -398,7 +433,8 @@ P.S. - Given the limited availability, I'm only reaching out to our most valued 
     fields: ['customerName', 'employeeName'],
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
-      return `Subject: Your Store Has Evolved - We'd Love to Show You What's New
+      return {
+        body: `Subject: Your Store Has Evolved - We'd Love to Show You What's New
 
  Hi ${safe.customerName},
 
@@ -417,9 +453,10 @@ No purchase necessary - I just want to reconnect and ensure your watches are wor
 Would you have time this week or next to stop by? I'd love to show you how we've evolved while maintaining the exceptional values and service you remember.
 
 Best regards,
-${getEmployeeSignature()}
 
-P.S. - We now carry everything from current season pieces to discontinued treasures, giving you more options than ever before.`;
+P.S. - We now carry everything from current season pieces to discontinued treasures, giving you more options than ever before.`,
+        includeSignature: true,
+      };
     },
   },
   'phone-confirmation': {
@@ -447,7 +484,8 @@ P.S. - We now carry everything from current season pieces to discontinued treasu
       if (safe.trackingNumber) {
         trackingInfo = `\n\nTracking Number: ${safe.trackingNumber}`;
       }
-      return `Subject: Order Confirmation - ${safe.modelName}
+      return {
+        body: `Subject: Order Confirmation - ${safe.modelName}
 
 Hi ${safe.customerName},
 
@@ -469,8 +507,9 @@ If you have any questions, please don't hesitate to contact us at ${getStorePhon
 
 Thank you for shopping with ${getStoreName()}!
 
-Best regards,
-${getEmployeeSignature()}`;
+Best regards,`,
+        includeSignature: true,
+      };
     },
   },
   'phone-shipped': {
@@ -491,7 +530,8 @@ ${getEmployeeSignature()}`;
     ],
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
-      return `Subject: Your Watch Order - Tracking Information
+      return {
+        body: `Subject: Your Watch Order - Tracking Information
 
 Hi ${safe.customerName},
 
@@ -512,8 +552,9 @@ If you have any questions about your order or need any assistance, please don't 
 
 We hope you enjoy your new ${safe.brand} timepiece!
 
-Best regards,
-${getEmployeeSignature()}`;
+Best regards,`,
+        includeSignature: true,
+      };
     },
   },
   'phone-under-500': {
@@ -555,7 +596,8 @@ ${getEmployeeSignature()}`;
         orderStatus = 'Credit card manager verified - Ready for processing';
       }
 
-      return `Subject: Phone Order Form for ${safe.customerName}
+      return {
+        body: `Subject: Phone Order Form for ${safe.customerName}
 
 Hi ${safe.managerNameOrStoreName},
 
@@ -567,8 +609,9 @@ Total: ${safe.totalAmount}
 
 Order Status: ${orderStatus}
 
-Best regards,
-${getEmployeeSignature()}`;
+Best regards,`,
+        includeSignature: true,
+      };
     },
   },
   'phone-corporate': {
@@ -588,7 +631,8 @@ ${getEmployeeSignature()}`;
     ],
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
-      return `Subject: Phone Order Approval Request - ${safe.customerName}
+      return {
+        body: `Subject: Phone Order Approval Request - ${safe.customerName}
 
 Hello,
 
@@ -600,8 +644,9 @@ Customer: ${safe.customerName} (${safe.customerId})
 
 I have verified and signed off. Please let us know if you have any questions.
 
- Best regards,
- ${getEmployeeSignature()}`;
+ Best regards,`,
+        includeSignature: true,
+      };
     },
   },
   'inter-store-notification': {
@@ -613,7 +658,8 @@ I have verified and signed off. Please let us know if you have any questions.
     fields: ['recipientStoreName', 'customerName', 'trackingNumber'],
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
-      return `Subject: Phone Order Processed and Shipped - ${safe.customerName}
+      return {
+        body: `Subject: Phone Order Processed and Shipped - ${safe.customerName}
 
 Hi ${safe.recipientStoreName} Team,
 
@@ -623,8 +669,9 @@ UPS Tracking Number: ${safe.trackingNumber}
 
 The package has been prepared and is ready for UPS pickup.
 
-Best regards,
-${getEmployeeSignature()}`;
+Best regards,`,
+        includeSignature: true,
+      };
     },
   },
   'text-availability': {
@@ -633,7 +680,10 @@ ${getEmployeeSignature()}`;
     fields: ['customerName', 'modelName', 'price', 'closingTime'],
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
-      return `Hi ${safe.customerName}! Yes, we have the ${safe.modelName} in stock. Current price is ${safe.price} with our outlet discount. We're open until ${safe.closingTime} today if you'd like to stop by, or I can hold it.`;
+      return {
+        body: `Hi ${safe.customerName}! Yes, we have the ${safe.modelName} in stock. Current price is ${safe.price} with our outlet discount. We're open until ${safe.closingTime} today if you'd like to stop by, or I can hold it.`,
+        includeSignature: false,
+      };
     },
   },
   'text-thank-you': {
@@ -642,7 +692,10 @@ ${getEmployeeSignature()}`;
     fields: ['customerName', 'modelName', 'warrantyLength', 'brand'],
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
-      return `${safe.customerName}, thank you for your purchase today! Your ${safe.modelName} comes with a ${safe.warrantyLength} warranty. Reach out anytime at ${getStorePhone()} for any questions. Enjoy your new ${safe.brand}!`;
+      return {
+        body: `${safe.customerName}, thank you for your purchase today! Your ${safe.modelName} comes with a ${safe.warrantyLength} warranty. Reach out anytime at ${getStorePhone()} for any questions. Enjoy your new ${safe.brand}!`,
+        includeSignature: false,
+      };
     },
   },
   'text-interest-followup': {
@@ -674,7 +727,10 @@ ${getEmployeeSignature()}`;
 
       const salePrice = calculateSalePrice(msrp, discount);
 
-      return `Hi ${safe.customerName}! This is ${safe.employeeName} from ${getFullStoreLocation()}. The ${safe.modelName} you were interested in is on ${safe.discount}% OFF promotion (MSRP ${safe.msrp} now ${salePrice} plus tax) until ${safe.endDate}. Please let me know if you'd like me to hold one for you. Thank you!`;
+      return {
+        body: `Hi ${safe.customerName}! This is ${safe.employeeName} from ${getFullStoreLocation()}. The ${safe.modelName} you were interested in is on ${safe.discount}% OFF promotion (MSRP ${safe.msrp} now ${salePrice} plus tax) until ${safe.endDate}. Please let me know if you'd like me to hold one for you. Thank you!`,
+        includeSignature: false,
+      };
     },
   },
   'weekly-sale': {
@@ -710,7 +766,8 @@ ${getEmployeeSignature()}`;
             `• ${model.name} - Now ${model.price} (was ${model.original})`
         )
         .join('\n');
-      return `Subject: ${safe.customerName}, This Week's ${safe.brand} Sale Includes Your Favorites
+      return {
+        body: `Subject: ${safe.customerName}, This Week's ${safe.brand} Sale Includes Your Favorites
 
 Hi ${safe.customerName},
 
@@ -719,9 +776,9 @@ I remember you were looking at ${safe.collectionName} pieces during your last vi
 Specifically available in that collection:
 ${modelList}
 
-This promotion runs through ${safe.endDate}. Would you like me to check if we have your size preference in stock?
-
-${getEmployeeSignature()}`;
+This promotion runs through ${safe.endDate}. Would you like me to check if we have your size preference in stock?`,
+        includeSignature: true,
+      };
     },
   },
   // Note: promotion-email template has been moved to standalone promotion app

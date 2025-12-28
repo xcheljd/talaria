@@ -191,10 +191,7 @@ export async function savePromotionTemplate() {
               `Re-saved PDF ${pdf.name} to IndexedDB during template save`
             );
           } catch (error) {
-            console.warn(
-              `Failed to save PDF ${pdf.name} to IndexedDB:`,
-              error
-            );
+            console.warn(`Failed to save PDF ${pdf.name} to IndexedDB:`, error);
           }
         }
       }

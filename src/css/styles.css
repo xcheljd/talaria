@@ -1,353 +1,6 @@
-/* ==========================================================================
-   SHADCN UI DESIGN SYSTEM & THEME ENGINE
-   ========================================================================== */
-
-:root {
-  /* ========== BASE TOKENS (Default: GitHub Light) ========== */
-  --background: #ffffff;
-  --foreground: #24292f;
-
-  --card: #f6f8fa;
-  --card-foreground: #24292f;
-
-  --popover: #ffffff;
-  --popover-foreground: #24292f;
-
-  --primary: #0969da;
-  --primary-foreground: #ffffff;
-
-  --secondary: #f6f8fa;
-  --secondary-foreground: #24292f;
-
-  --muted: #f6f8fa;
-  --muted-foreground: #57606a;
-
-  --accent: #ddf4ff;
-  --accent-foreground: #0969da;
-
-  --destructive: #cf222e;
-  --destructive-foreground: #ffffff;
-
-  --border: #d0d7de;
-  --input: #d0d7de;
-  --ring: #0969da;
-
-  --radius: 0.5rem;
-  --radius-sm: 0.3rem;
-  --radius-lg: 0.75rem;
-
-  /* Animation Tokens */
-  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-all: 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Standardized to 300ms */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
-
-/* ==========================================================================
-   THEME PALETTE DEFINITIONS
-   ========================================================================== */
-
-/* -------------------- LIGHT MODES -------------------- */
-
-/* 1. GitHub Light (Default) - Inherits :root */
-[data-theme='light'][data-light-palette='github'] {
-  /* Default values */
-}
-
-/* 2. SpaceGray Light */
-[data-theme='light'][data-light-palette='spacegray'] {
-  --background: #fdfdfd;
-  --foreground: #343d46;
-  --card: #f0f0f0;
-  --card-foreground: #343d46;
-  --primary: #65737e;
-  --primary-foreground: #ffffff;
-  --secondary: #f0f0f0;
-  --secondary-foreground: #343d46;
-  --muted: #f0f0f0;
-  --muted-foreground: #a7adba;
-  --accent: #dce3ea;
-  --accent-foreground: #343d46;
-  --border: #c0c5ce;
-  --input: #c0c5ce;
-  --ring: #65737e;
-}
-
-/* 3. Catppuccin Latte */
-[data-theme='light'][data-light-palette='catppuccin-latte'] {
-  --background: #eff1f5;
-  --foreground: #4c4f69;
-  --card: #e6e9ef;
-  --card-foreground: #4c4f69;
-  --primary: #1e66f5;
-  --primary-foreground: #ffffff;
-  --secondary: #ccd0da;
-  --secondary-foreground: #4c4f69;
-  --muted: #acb0be;
-  --muted-foreground: #6c6f85;
-  --accent: #ea76cb;
-  --accent-foreground: #ffffff;
-  --border: #bcc0cc;
-  --input: #bcc0cc;
-  --ring: #1e66f5;
-}
-
-/* 4. Nord Light */
-[data-theme='light'][data-light-palette='nord'] {
-  --background: #eceff4;
-  --foreground: #2e3440;
-  --card: #e5e9f0;
-  --card-foreground: #2e3440;
-  --primary: #5e81ac;
-  --primary-foreground: #ffffff;
-  --secondary: #d8dee9;
-  --secondary-foreground: #2e3440;
-  --muted: #d8dee9;
-  --muted-foreground: #4c566a;
-  --accent: #88c0d0;
-  --accent-foreground: #2e3440;
-  --border: #d8dee9;
-  --input: #d8dee9;
-  --ring: #5e81ac;
-}
-
-/* 5. Rose Pine Dawn */
-[data-theme='light'][data-light-palette='rose-pine-dawn'] {
-  --background: #faf4ed;
-  --foreground: #575279;
-  --card: #fffaf3;
-  --card-foreground: #575279;
-  --primary: #d7827e;
-  --primary-foreground: #faf4ed;
-  --secondary: #f2e9e1;
-  --secondary-foreground: #575279;
-  --muted: #9893a5;
-  --muted-foreground: #797593;
-  --accent: #286983;
-  --accent-foreground: #faf4ed;
-  --border: #dfdad9;
-  --input: #dfdad9;
-  --ring: #d7827e;
-}
-
-/* 6. Tokyo Night Day */
-[data-theme='light'][data-light-palette='tokyo-day'] {
-  --background: #e1e2e7;
-  --foreground: #3760bf;
-  --card: #d5d6db;
-  --card-foreground: #3760bf;
-  --primary: #2e7de9;
-  --primary-foreground: #ffffff;
-  --secondary: #c4c5c9;
-  --secondary-foreground: #3760bf;
-  --muted: #9aa5ce;
-  --muted-foreground: #6172b0;
-  --accent: #007197;
-  --accent-foreground: #ffffff;
-  --border: #b4b5b9;
-  --input: #b4b5b9;
-  --ring: #2e7de9;
-}
-
-/* 7. Solarized Light */
-[data-theme='light'][data-light-palette='solarized'] {
-  --background: #fdf6e3;
-  --foreground: #657b83;
-  --card: #eee8d5;
-  --card-foreground: #657b83;
-  --primary: #268bd2;
-  --primary-foreground: #fdf6e3;
-  --secondary: #93a1a1;
-  --secondary-foreground: #fdf6e3;
-  --muted: #93a1a1;
-  --muted-foreground: #586e75;
-  --accent: #b58900;
-  --accent-foreground: #fdf6e3;
-  --border: #93a1a1;
-  --input: #93a1a1;
-  --ring: #268bd2;
-}
-
-/* 8. One Light */
-[data-theme='light'][data-light-palette='one-light'] {
-  --background: #fafafa;
-  --foreground: #383a42;
-  --card: #f0f0f0;
-  --card-foreground: #383a42;
-  --primary: #61afef;
-  --primary-foreground: #ffffff;
-  --secondary: #e5e5e6;
-  --secondary-foreground: #383a42;
-  --muted: #a0a1a7;
-  --muted-foreground: #696c77;
-  --accent: #98c379;
-  --accent-foreground: #ffffff;
-  --border: #e0e0e0;
-  --input: #e0e0e0;
-  --ring: #61afef;
-}
-
-/* -------------------- DARK MODES -------------------- */
-
-/* 1. GitHub Dark (Default) */
-[data-theme='dark'][data-dark-palette='github'],
-[data-theme='dark']:not([data-dark-palette]) {
-  --background: #0d1117;
-  --foreground: #c9d1d9;
-  --card: #161b22;
-  --card-foreground: #c9d1d9;
-  --popover: #161b22;
-  --popover-foreground: #c9d1d9;
-  --primary: #2f81f7;
-  --primary-foreground: #ffffff;
-  --secondary: #21262d;
-  --secondary-foreground: #c9d1d9;
-  --muted: #21262d;
-  --muted-foreground: #8b949e;
-  --accent: #1f6feb;
-  --accent-foreground: #ffffff;
-  --destructive: #f85149;
-  --destructive-foreground: #ffffff;
-  --border: #30363d;
-  --input: #30363d;
-  --ring: #2f81f7;
-}
-
-/* 2. SpaceGray Dark */
-[data-theme='dark'][data-dark-palette='spacegray'] {
-  --background: #2b303b;
-  --foreground: #c0c5ce;
-  --card: #343d46;
-  --card-foreground: #c0c5ce;
-  --primary: #96b5b4;
-  --primary-foreground: #2b303b;
-  --secondary: #4f5b66;
-  --secondary-foreground: #c0c5ce;
-  --muted: #65737e;
-  --muted-foreground: #a7adba;
-  --accent: #bf616a;
-  --accent-foreground: #ffffff;
-  --border: #4f5b66;
-  --input: #4f5b66;
-  --ring: #96b5b4;
-}
-
-/* 3. Catppuccin Mocha */
-[data-theme='dark'][data-dark-palette='catppuccin-mocha'] {
-  --background: #1e1e2e;
-  --foreground: #cdd6f4;
-  --card: #181825;
-  --card-foreground: #cdd6f4;
-  --primary: #89b4fa;
-  --primary-foreground: #1e1e2e;
-  --secondary: #313244;
-  --secondary-foreground: #cdd6f4;
-  --muted: #45475a;
-  --muted-foreground: #a6adc8;
-  --accent: #f38ba8;
-  --accent-foreground: #1e1e2e;
-  --border: #313244;
-  --input: #313244;
-  --ring: #89b4fa;
-}
-
-/* 4. Nord Dark */
-[data-theme='dark'][data-dark-palette='nord'] {
-  --background: #2e3440;
-  --foreground: #d8dee9;
-  --card: #3b4252;
-  --card-foreground: #d8dee9;
-  --primary: #88c0d0;
-  --primary-foreground: #2e3440;
-  --secondary: #434c5e;
-  --secondary-foreground: #d8dee9;
-  --muted: #4c566a;
-  --muted-foreground: #d8dee9;
-  --accent: #81a1c1;
-  --accent-foreground: #2e3440;
-  --border: #434c5e;
-  --input: #434c5e;
-  --ring: #88c0d0;
-}
-
-/* 5. Rose Pine */
-[data-theme='dark'][data-dark-palette='rose-pine'] {
-  --background: #191724;
-  --foreground: #e0def4;
-  --card: #1f1d2e;
-  --card-foreground: #e0def4;
-  --primary: #ebbcba;
-  --primary-foreground: #191724;
-  --secondary: #26233a;
-  --secondary-foreground: #e0def4;
-  --muted: #6e6a86;
-  --muted-foreground: #908caa;
-  --accent: #c4a7e7;
-  --accent-foreground: #191724;
-  --border: #403d52;
-  --input: #403d52;
-  --ring: #ebbcba;
-}
-
-/* 6. Tokyo Night */
-[data-theme='dark'][data-dark-palette='tokyo-night'] {
-  --background: #1a1b26;
-  --foreground: #a9b1d6;
-  --card: #24283b;
-  --card-foreground: #a9b1d6;
-  --primary: #7aa2f7;
-  --primary-foreground: #1a1b26;
-  --secondary: #414868;
-  --secondary-foreground: #a9b1d6;
-  --muted: #565f89;
-  --muted-foreground: #787c99;
-  --accent: #bb9af7;
-  --accent-foreground: #1a1b26;
-  --border: #414868;
-  --input: #414868;
-  --ring: #7aa2f7;
-}
-
-/* 7. Monokai */
-[data-theme='dark'][data-dark-palette='monokai'] {
-  --background: #272822;
-  --foreground: #f8f8f2;
-  --card: #3e3d32;
-  --card-foreground: #f8f8f2;
-  --primary: #a6e22e;
-  --primary-foreground: #272822;
-  --secondary: #75715e;
-  --secondary-foreground: #f8f8f2;
-  --muted: #75715e;
-  --muted-foreground: #cfcfc2;
-  --accent: #f92672;
-  --accent-foreground: #f8f8f2;
-  --border: #75715e;
-  --input: #75715e;
-  --ring: #a6e22e;
-}
-
-/* 8. Kanagawa */
-[data-theme='dark'][data-dark-palette='kanagawa'] {
-  --background: #1f1f28;
-  --foreground: #dcd7ba;
-  --card: #2a2a37;
-  --card-foreground: #dcd7ba;
-  --primary: #7e9cd8;
-  --primary-foreground: #1f1f28;
-  --secondary: #363646;
-  --secondary-foreground: #dcd7ba;
-  --muted: #54546d;
-  --muted-foreground: #727169;
-  --accent: #957fb8;
-  --accent-foreground: #1f1f28;
-  --border: #54546d;
-  --input: #54546d;
-  --ring: #7e9cd8;
-}
-
+@import './toast.css';
+@import './theme-base.css';
+@import './theme-palettes.css';
 /* ==========================================================================
    GLOBAL STYLES & RESET
    ========================================================================== */
@@ -377,17 +30,52 @@ body {
 
 /* Header slides in from top */
 .header {
-  animation: slide-in-from-top 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Safari reliability: force compositor layer */
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  animation: slide-in-from-top 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* Page content blurs in and slides up from viewport center */
+/* Backwards-compat: if JS adds .animate-in, keep behavior consistent */
+.header.animate-in {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  animation: slide-in-from-top 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Page content blurs in and slides up */
 .page-content {
-  animation: blur-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.2s backwards;
+  /* Safari reliability: blur/transform animations can be flaky without a compositor layer */
+  will-change: transform, opacity, filter;
+  transform: translateZ(0);
+  animation: blur-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
 }
 
-/* Fade out transition for page navigation */
-.page-content.fade-out,
+/* Backwards-compat: if JS adds .animate-in, keep behavior consistent */
+.page-content.animate-in {
+  will-change: transform, opacity, filter;
+  transform: translateZ(0);
+  animation: blur-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+/* Fade out transition for page navigation - overrides animate-in */
 .header.fade-out,
+.header.animate-in.fade-out {
+  opacity: 0;
+  transform: translateY(0);
+  animation: none;
+  transition: opacity var(--transition-base) ease-in;
+}
+
+.page-content.fade-out,
+.page-content.animate-in.fade-out {
+  opacity: 0;
+  transform: translateY(0);
+  filter: blur(0);
+  animation: none;
+  transition: opacity var(--transition-base) ease-in;
+}
+
 .right-column.fade-out,
 .column-skinny-wrapper.fade-out {
   opacity: 0;
@@ -420,15 +108,6 @@ body {
     opacity: 1;
     filter: blur(0);
     transform: translateY(0);
-  }
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 }
 
@@ -627,8 +306,6 @@ body {
 }
 
 #formFields {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
   padding: 1rem;
   background: var(--card);
 }
@@ -642,6 +319,7 @@ body {
 .form-input,
 .form-textarea,
 .form-select,
+.template-select,
 .search-box {
   display: flex;
   width: 100%;
@@ -652,6 +330,21 @@ body {
   font-size: 0.875rem;
   color: var(--foreground);
   transition: var(--transition-all);
+}
+
+/* Select-specific styling */
+select.form-input,
+select.form-select,
+select.template-select {
+  cursor: pointer;
+  appearance: none;
+  padding-right: 2.5rem;
+  background-color: transparent;
+}
+
+select.form-input::-ms-expand,
+select.form-select::-ms-expand {
+  display: none;
 }
 
 .form-input:focus,
@@ -732,7 +425,7 @@ body {
 .navigation {
   margin-top: 1rem;
   display: grid;
-  grid-template-columns: 1fr 2fr auto;
+  grid-template-columns: 1fr 2fr;
   gap: 1rem;
   max-width: 1400px;
   margin: 1rem auto 0;
@@ -746,6 +439,25 @@ body {
     grid-template-columns: 1fr;
     padding: 1rem;
   }
+}
+
+/* Search Container */
+.search-container {
+  position: relative;
+}
+
+.search-container .search-box {
+  width: 100%;
+  padding-right: 2.5rem; /* Make room for clear button */
+}
+
+.search-container .clear-search {
+  /* Uses shared .clear-input styles; this rule only tunes display behavior */
+  display: none;
+}
+
+.search-container .clear-search.visible {
+  display: block;
 }
 
 /* Search Results */
@@ -818,92 +530,6 @@ body {
   transition: transform 0.2s;
 }
 
-/* Toast Container & Stacking */
-.toast-container {
-  position: fixed;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 0.5rem;
-  z-index: 1000;
-  pointer-events: none;
-}
-
-/* Toast Item */
-.toast {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem 1rem;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  color: var(--card-foreground);
-  font-size: 0.875rem;
-  font-weight: 500;
-  min-width: 280px;
-  max-width: 420px;
-  pointer-events: auto;
-  animation: toast-slide-in var(--transition-base) ease-out;
-}
-
-.toast svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-/* Toast Variants */
-.toast-success {
-  border-left: 4px solid #10b981;
-}
-
-.toast-success svg {
-  color: #10b981;
-}
-
-.toast-error {
-  border-left: 4px solid #ef4444;
-}
-
-.toast-error svg {
-  color: #ef4444;
-}
-
-.toast-warning {
-  border-left: 4px solid #f59e0b;
-}
-
-.toast-warning svg {
-  color: #f59e0b;
-}
-
-/* Toast Animations */
-@keyframes toast-slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(1rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes toast-slide-out {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(1rem);
-  }
-}
-
 /* Section Titles */
 .section-title {
   font-size: 1rem;
@@ -942,12 +568,15 @@ body {
   border-right: 4px solid transparent;
   border-top: 5px solid var(--muted-foreground);
   pointer-events: none;
-  transition: transform 0.2s ease;
+  transition: border-top-color var(--transition-fast);
 }
 
-.form-input:focus ~ .select-wrapper::after,
 .select-wrapper:has(select:focus)::after {
   border-top-color: var(--primary);
+}
+
+.select-wrapper:has(select:hover)::after {
+  border-top-color: var(--foreground);
 }
 
 .clear-input {
@@ -1016,4 +645,291 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* ==========================================================================
+   OUTPUT CARD ENHANCEMENTS
+   ========================================================================== */
+
+/* Preview Header */
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.preview-header .section-title {
+  margin-bottom: 0;
+}
+
+/* Subject Line Display */
+.subject-line-container {
+  background-color: var(--card);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.subject-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.subject-input {
+  width: 100%;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  transition: var(--transition-all);
+}
+
+.subject-input:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--ring);
+}
+
+/* Tab Buttons */
+.btn-tab-base {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.5rem 1rem;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: var(--transition-all);
+}
+
+.btn-tab-base:hover {
+  color: var(--foreground);
+  background-color: var(--secondary);
+}
+
+.btn-tab-base.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.btn-tab-base svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+  padding: 2rem;
+}
+
+.empty-state p {
+  max-width: 300px;
+  margin: 0;
+}
+
+/* Output Content Container */
+#outputContentContainer {
+  position: relative;
+}
+
+.output-content {
+  display: none;
+}
+
+.output-content.active {
+  display: block;
+}
+
+/* Output Textarea */
+.output-textarea {
+  width: 100%;
+  min-height: 300px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  padding: 1rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--foreground);
+  resize: vertical;
+  transition: var(--transition-all);
+}
+
+.output-textarea:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--ring);
+}
+
+.output-textarea[readonly] {
+  background-color: var(--muted);
+  cursor: default;
+}
+
+/* Editable preview (contenteditable div) */
+.email-preview-editable {
+  width: 100%;
+  min-height: 300px;
+  max-height: 500px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--card);
+  color: var(--foreground);
+  font-family: Aptos, Arial, Helvetica, sans-serif;
+  font-size: 12pt;
+  line-height: 1.4;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  outline: none;
+}
+
+/* Empty state placeholder for preview */
+.preview-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  text-align: center;
+  padding: 2rem;
+}
+
+.preview-empty-state svg {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 1rem;
+  opacity: 0.3;
+  color: var(--muted-foreground);
+}
+
+.preview-empty-state h3 {
+  font-size: 1.2rem;
+  margin: 0 0 0.5rem 0;
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.preview-empty-state p {
+  font-size: 0.9rem;
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
+/* Focus state for contenteditable */
+.email-preview-editable:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Editable body content styling */
+.email-body-editable {
+  word-wrap: break-word;
+}
+
+/* Override inline styles from plainTextToPreviewHTML - tighter spacing */
+.email-body-editable p {
+  margin: 0 0 0.5em 0 !important;
+}
+
+.email-body-editable p:first-child {
+  margin-top: 0 !important;
+}
+
+.email-body-editable p:last-child {
+  margin-bottom: 0 !important;
+}
+
+.email-body-editable ul {
+  margin: 0.5em 0 !important;
+  padding-left: 20px;
+}
+
+.email-body-editable li {
+  margin: 2px 0 !important;
+}
+
+/* Protected signature section (not editable) */
+.email-signature-protected {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  opacity: 0.9;
+  user-select: none;
+}
+
+.signature-lock-indicator {
+  font-size: 8pt;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .email-preview-editable {
+  background-color: var(--card);
+  color: var(--foreground);
+}
+
+[data-theme='dark'] .email-signature-protected {
+  border-top-color: var(--border);
+}
+
+/* Output Actions */
+.output-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.output-actions .btn {
+  min-width: 0;
+  margin: 0;
+}
+
+/* ==========================================================================
+   UTILITY CLASSES
+   ========================================================================== */
+
+/* Margin utilities for icon/text spacing */
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
+.mr-1 {
+  margin-right: 0.25rem;
+}
+
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
+.ml-1 {
+  margin-left: 0.25rem;
 }

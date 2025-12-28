@@ -5,8 +5,28 @@ export { TOAST_DURATION_MS } from './shared/ui-utils.js';
 export let currentTemplate = null;
 
 // Module-scoped state (replaces window.* globals)
-let originalMessageContent = null;
-let currentSubjectLine = null;
+let originalMessageContent = null; // Template result {body, includeSignature}
+let currentSubjectLine = null; // Editable subject line
+let editedBodyContent = null; // User-edited body (without signature)
+let isSyncing = false; // Prevent sync loops
+let syncDebounceTimer = null; // Debounce timer for sync
+let pendingSync = null; // Track which view needs sync: 'preview' | 'text' | null
+
+// Helper: Check if signature should be included (from template config)
+function shouldIncludeSignature() {
+  if (originalMessageContent && typeof originalMessageContent === 'object') {
+    return originalMessageContent.includeSignature !== false;
+  }
+  return true; // Default to including signature
+}
+
+// Helper: Reset all edit state (used by clear, template switch, generate)
+function resetEditState() {
+  originalMessageContent = null;
+  currentSubjectLine = null;
+  editedBodyContent = null;
+  pendingSync = null;
+}
 
 // Global variables for app state (used by modules)
 
@@ -33,6 +53,7 @@ import {
   convertTextToHTML,
   sanitizeHTML,
   escapeAttr,
+  assembleTemplateOutput,
 } from './templates.js';
 import { toggleTheme, getEmailDarkModeCSS } from './shared/theme.js';
 import {
@@ -42,13 +63,19 @@ import {
   writeEmptyStateToIframe,
   TOAST_DURATION_MS,
 } from './shared/ui-utils.js';
-import { eyePreviewIcon, codeBracketsIcon, emailIcon } from './shared/icons.js';
+import { eyePreviewIcon, textLinesIcon, emailIcon } from './shared/icons.js';
 import { createEMLFile } from './shared/emailUtils.js';
 import {
   plainTextToPreviewHTML,
   wrapHtmlForEmailPreview,
   escapeHtml,
 } from './shared/emailPreviewUtils.js';
+import {
+  extractEditableContent,
+  htmlToPlainText,
+  insertPlainText,
+  getPlainTextFromPreview,
+} from './shared/htmlTextConversion.js';
 
 export const elements = {};
 
@@ -64,7 +91,6 @@ export function cacheElements() {
   elements.generateBtn = document.getElementById('generateBtn');
   elements.clearBtn = document.getElementById('clearBtn');
   elements.copyBtn = document.getElementById('copyBtn');
-  elements.sendEmailBtn = document.getElementById('sendEmailBtn');
   elements.downloadEmailBtn = document.getElementById('downloadEmailBtn');
   elements.themeToggle = document.getElementById('themeToggle');
 
@@ -104,7 +130,6 @@ export function showRegularOutput() {
   elements.outputArea = null;
   elements.copyBtn = null;
   elements.subjectLineContainer = null;
-  elements.sendEmailBtn = null;
   elements.downloadEmailBtn = null;
 
   // Clear tab-related elements
@@ -120,7 +145,7 @@ export function showRegularOutput() {
   if (hasEnhancedFeatures) {
     // Enhanced templates get subject line editing and dual email options
     subjectLineSection = `
-            <div id="subjectLineContainer" class="subject-line-section" style="margin-bottom: 1.5rem;">
+            <div id="subjectLineContainer" class="subject-line-container">
                 <div id="subjectLineContent"></div>
             </div>
         `;
@@ -128,7 +153,6 @@ export function showRegularOutput() {
     buttonGroup = `
             <div class="button-group">
                 <button class="btn" id="copyBtn" title="Copy the message to clipboard">Copy Message</button>
-                <button class="btn" id="sendEmailBtn" title="Open your default email client with this message">Send Email</button>
                 <button class="btn" id="downloadEmailBtn" title="Download an Outlook-compatible EML file">Download Email File</button>
             </div>
         `;
@@ -148,22 +172,22 @@ export function showRegularOutput() {
         <!-- Output Tabs -->
         <div class="output-tabs">
             <button class="output-tab active" data-tab="preview" title="Preview how the email looks in an email client">
-                ${eyePreviewIcon({ size: 16 })}
+                ${eyePreviewIcon({ size: 14 })}
                 Preview
             </button>
-            <button class="output-tab" data-tab="html" title="View the raw HTML code">
-                ${codeBracketsIcon({ size: 16 })}
-                HTML
+            <button class="output-tab" data-tab="text" title="View the plain text output">
+                ${textLinesIcon({ size: 14 })}
+                Text
             </button>
         </div>
 
         <!-- Preview Tab Content -->
         <div class="output-content active" id="previewContent">
-            <iframe class="email-preview" id="emailPreview" title="Email preview"></iframe>
+            <div class="email-preview-editable" id="emailPreview" contenteditable="true" title="Email preview - click to edit"></div>
         </div>
 
-        <!-- HTML Tab Content -->
-        <div class="output-content" id="htmlContent">
+        <!-- Text Tab Content -->
+        <div class="output-content" id="textContent">
             <textarea class="output-textarea" id="outputArea" placeholder="Your generated message will appear here..." aria-label="Generated message output"></textarea>
         </div>
 
@@ -176,14 +200,14 @@ export function showRegularOutput() {
   elements.previewTab = document.querySelector(
     '.output-tab[data-tab="preview"]'
   );
-  elements.htmlTab = document.querySelector('.output-tab[data-tab="html"]');
+  elements.textTab = document.querySelector('.output-tab[data-tab="text"]');
   elements.previewContentRegular = document.getElementById('previewContent');
-  elements.htmlContentRegular = document.getElementById('htmlContent');
+  elements.textContentRegular = document.getElementById('textContent');
   elements.emailPreview = document.getElementById('emailPreview');
 
-  // Set initial empty state to prevent white flash (using document.write for synchronous rendering)
+  // Set initial empty state placeholder
   if (elements.emailPreview) {
-    writeEmptyStateToIframe(elements.emailPreview);
+    clearEmailPreview();
   }
 
   // Re-attach copy button handler
@@ -191,129 +215,68 @@ export function showRegularOutput() {
     elements.copyBtn.addEventListener('click', copyToClipboard);
   }
 
-  // Add tab switching functionality
-  if (elements.previewTab && elements.htmlTab) {
+  // Add tab switching functionality with conditional sync
+  if (elements.previewTab && elements.textTab) {
     // Preview tab click handler
     elements.previewTab.addEventListener('click', () => {
       // Activate preview tab
       elements.previewTab.classList.add('active');
-      elements.htmlTab.classList.remove('active');
+      elements.textTab.classList.remove('active');
 
       // Show preview content
       if (elements.previewContentRegular) {
         elements.previewContentRegular.classList.add('active');
       }
-      if (elements.htmlContentRegular) {
-        elements.htmlContentRegular.classList.remove('active');
+      if (elements.textContentRegular) {
+        elements.textContentRegular.classList.remove('active');
       }
 
-      // Restore original plain text output (if it was converted to HTML)
-      if (elements.outputArea && originalMessageContent) {
-        elements.outputArea.value = originalMessageContent;
+      // Only sync if text was edited (pending sync from text)
+      if (pendingSync === 'text') {
+        clearTimeout(syncDebounceTimer);
+        syncTextToPreview();
+        pendingSync = null;
       }
-
-      // Update preview iframe
-      updateEmailPreview();
     });
 
-    // HTML tab click handler
-    elements.htmlTab.addEventListener('click', () => {
-      // Activate HTML tab
-      elements.htmlTab.classList.add('active');
+    // Text tab click handler
+    elements.textTab.addEventListener('click', () => {
+      // Activate text tab
+      elements.textTab.classList.add('active');
       elements.previewTab.classList.remove('active');
 
-      // Show HTML content
-      if (elements.htmlContentRegular) {
-        elements.htmlContentRegular.classList.add('active');
+      // Show text content
+      if (elements.textContentRegular) {
+        elements.textContentRegular.classList.add('active');
       }
       if (elements.previewContentRegular) {
         elements.previewContentRegular.classList.remove('active');
       }
 
-      // Convert plain text output to HTML and display it
-      if (elements.outputArea) {
-        const plainTextContent = elements.outputArea.value;
-        if (plainTextContent) {
-          // Extract subject and body
-          let subject = 'Email';
-          let plainTextBody = plainTextContent;
-          const subjectMatch = plainTextContent.match(/^Subject:\s*(.+)/m);
-          if (subjectMatch) {
-            subject = subjectMatch[1];
-            plainTextBody = plainTextContent
-              .replace(/^Subject:.+\n/m, '')
-              .trim();
-          }
-
-          // Remove signature from plain text
-          let bodyWithoutSig = plainTextBody;
-          const bestRegardsMatch = plainTextBody.match(/\n\nBest regards,/);
-          if (bestRegardsMatch) {
-            bodyWithoutSig = plainTextBody
-              .substring(0, bestRegardsMatch.index + bestRegardsMatch[0].length)
-              .trim();
-          }
-
-          // Convert body to HTML
-          const htmlBody = plainTextToPreviewHTML(bodyWithoutSig);
-
-          // Get HTML signature
-          const htmlSignature = getEmployeeSignature('html');
-
-          // Create complete HTML document
-          const htmlDocument = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${escapeHtml(subject)}</title>
-</head>
-<body style="font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0); margin: 0; padding: 20px; background-color: #ffffff;">
-    <div style="max-width: 600px; margin: 0 auto;">
-        <div style="padding: 10px; background-color: #f5f5f5; border-bottom: 2px solid #ddd; margin-bottom: 20px;">
-            <div style="font-size: 14pt; font-weight: 600; color: #333;">${escapeHtml(subject)}</div>
-        </div>
-        <div>
-            ${htmlBody}
-            <div style="margin-top: 5px; padding-top: 10px;">
-                ${htmlSignature}
-            </div>
-        </div>
-    </div>
-</body>
-</html>`;
-
-          // Display in textarea with syntax highlighting (show raw HTML)
-          elements.outputArea.value = htmlDocument;
-        }
+      // Only sync if preview was edited (pending sync from preview)
+      if (pendingSync === 'preview') {
+        clearTimeout(syncDebounceTimer);
+        syncPreviewToText();
+        pendingSync = null;
       }
     });
   }
 
+  // Add input listener to textarea for sync
+  if (elements.outputArea) {
+    elements.outputArea.addEventListener('input', () => debouncedSync('text'));
+  }
+
   // Add enhanced feature handlers if applicable
   if (hasEnhancedFeatures) {
-    const sendEmailBtn = document.getElementById('sendEmailBtn');
     const downloadEmailBtn = document.getElementById('downloadEmailBtn');
-
-    if (sendEmailBtn) {
-      sendEmailBtn.addEventListener('click', () => {
-        // Get fresh reference to outputArea
-        const outputArea = document.getElementById('outputArea');
-        const content = outputArea ? outputArea.value : '';
-        if (content) {
-          openEmailClientUniversal(currentTemplate, content);
-        }
-      });
-    }
 
     if (downloadEmailBtn) {
       downloadEmailBtn.addEventListener('click', () => {
-        // Use original message content for EML (preserves formatting)
-        // or fallback to textarea content if original not available
+        // Use the assembled text output from the textarea
         const outputArea = document.getElementById('outputArea');
-        const content =
-          originalMessageContent || (outputArea ? outputArea.value : '');
-        if (content) {
+        const content = outputArea ? outputArea.value : '';
+        if (content && currentTemplate) {
           downloadEmailFile(currentTemplate, content);
         }
       });
@@ -488,33 +451,63 @@ export function generateMessage() {
   });
 
   // Generate the message with error handling
-  let message;
+  let templateResult;
   try {
-    message = template.generate(data);
+    templateResult = template.generate(data);
   } catch (error) {
     console.error('Error generating message:', error);
     showToast('Error generating message: ' + error.message);
     return;
   }
 
+  // Get body content
+  const bodyWithSubject =
+    typeof templateResult === 'object' ? templateResult.body : templateResult;
+
+  // Extract and strip subject line from body (subject shown separately in editable field)
+  let subject = '';
+  let bodyWithoutSubject = bodyWithSubject;
+  const subjectMatch = bodyWithSubject.match(/^Subject:\s*(.+)/m);
+  if (subjectMatch) {
+    subject = subjectMatch[1];
+    bodyWithoutSubject = bodyWithSubject.replace(/^Subject:.+\n/, '').trim();
+  }
+
+  // Store subject for later use
+  currentSubjectLine = subject;
+
   // Show the regular output area
   showRegularOutput();
 
-  // Update output area and email preview
+  // Update output area with body (without subject) + signature
   const outputArea = document.getElementById('outputArea');
   if (outputArea) {
-    outputArea.value = message;
+    const includeSignature =
+      typeof templateResult === 'object'
+        ? templateResult.includeSignature !== false
+        : true;
+    if (includeSignature) {
+      outputArea.value = `${bodyWithoutSubject}\n${getEmployeeSignature('text')}`;
+    } else {
+      outputArea.value = bodyWithoutSubject;
+    }
   }
 
-  // Store original message for EML generation
-  originalMessageContent = message;
+  // Reset edited content and store template result (with body stripped of subject)
+  editedBodyContent = null;
+  originalMessageContent = {
+    body: bodyWithoutSubject,
+    includeSignature:
+      typeof templateResult === 'object'
+        ? templateResult.includeSignature
+        : true,
+  };
 
-  // Update the email preview
+  // Update the email preview (will use originalMessageContent.body which is now without subject)
   updateEmailPreview();
 
   // Update editable subject line if applicable
   if (template.hasEditableSubject) {
-    const subject = extractSubjectLine(message);
     const subjectContainer = document.getElementById('subjectLineContent');
     if (subjectContainer) {
       renderEditableSubjectLine(subjectContainer, subject);
@@ -530,33 +523,86 @@ export function generateMessage() {
 // Clear all fields and output
 export function clearAll() {
   const template = templates[currentTemplate];
-  if (template) {
+
+  // Clear all inputs for the current template
+  if (template && Array.isArray(template.fields)) {
     template.fields.forEach((field) => {
-      const input = document.getElementById(field.id);
-      if (input) {
-        input.value = '';
-        input.classList.remove('invalid');
-        const validationMsg = input.nextElementSibling;
+      const fieldId = typeof field === 'string' ? field : field?.id;
+      if (!fieldId) return;
+
+      const input = document.getElementById(fieldId);
+      if (!input) return;
+
+      // Restore initial (profile-derived) value
+      let defaultValue = '';
+      if (appState.userProfile) {
         if (
-          validationMsg &&
-          validationMsg.classList.contains('validation-msg')
+          (fieldId === 'employeeName' || fieldId === 'yourName') &&
+          appState.userProfile.employeeName
         ) {
-          validationMsg.style.display = 'none';
+          defaultValue = appState.userProfile.employeeName;
+        } else if (fieldId === 'jobTitle' && appState.userProfile.jobTitle) {
+          defaultValue = appState.userProfile.jobTitle;
+        } else if (
+          fieldId === 'companyEmail' &&
+          appState.userProfile.companyEmail
+        ) {
+          defaultValue = appState.userProfile.companyEmail;
+        } else if (fieldId === 'storeName' && appState.userProfile.storeName) {
+          defaultValue = appState.userProfile.storeName;
+        } else if (
+          fieldId === 'storeLocation' &&
+          appState.userProfile.storeLocation
+        ) {
+          defaultValue = appState.userProfile.storeLocation;
+        } else if (
+          fieldId === 'storePhone' &&
+          appState.userProfile.storePhone
+        ) {
+          defaultValue = appState.userProfile.storePhone;
+        } else if (
+          fieldId === 'storeEmail' &&
+          appState.userProfile.storeEmail
+        ) {
+          defaultValue = appState.userProfile.storeEmail;
         }
+      }
+
+      input.value = defaultValue;
+      input.classList.remove('invalid');
+
+      // Show/hide per-field clear button based on whether the restored value is non-empty
+      const clearBtn = elements.formFields?.querySelector(
+        `[data-clear="${fieldId}"]`
+      );
+      if (clearBtn) {
+        clearBtn.classList.toggle('visible', defaultValue.trim().length > 0);
+      }
+
+      // Hide validation message if present
+      const validationMsg = input.nextElementSibling;
+      if (validationMsg && validationMsg.classList.contains('validation-msg')) {
+        validationMsg.style.display = 'none';
       }
     });
   }
 
-  // Clear output
-  if (elements.outputArea) {
-    elements.outputArea.value = '';
-  }
-  if (elements.outputCard) {
-    elements.outputCard.innerHTML = '';
+  // Reset all edit state
+  resetEditState();
+
+  // Rebuild output card structure (keeps layout consistent for enhanced templates)
+  showRegularOutput();
+
+  const outputArea = document.getElementById('outputArea');
+  if (outputArea) outputArea.value = '';
+
+  const subjectLineContent = document.getElementById('subjectLineContent');
+  if (subjectLineContent && template?.hasEditableSubject) {
+    renderEditableSubjectLine(subjectLineContent, '');
   }
 
-  // Reset email preview for other templates
-  updateEmailPreview();
+  // Clear the preview (now a contenteditable div, not iframe)
+  clearEmailPreview();
 
   showToast('✓ Form cleared');
 }
@@ -573,11 +619,16 @@ export function extractSubjectLine(message) {
 export function renderEditableSubjectLine(container, initialSubject) {
   currentSubjectLine = initialSubject;
 
+  // Match CSS styling for the subject capsule
   container.innerHTML = `
-        <div class="editable-subject-line">
-            <label for="subjectInput" class="form-label">Subject:</label>
-            <input type="text" id="subjectInput" class="form-input" value="${escapeAttr(initialSubject)}">
-        </div>
+        <label for="subjectInput" class="subject-label">Subject</label>
+        <input
+            type="text"
+            id="subjectInput"
+            class="subject-input"
+            placeholder="Enter a subject line..."
+            value="${escapeAttr(initialSubject)}"
+        >
     `;
 
   const subjectInput = document.getElementById('subjectInput');
@@ -625,39 +676,34 @@ export function downloadEmailFile(templateId, content) {
   const template = templates[templateId];
   if (!template) return;
 
-  let subject = '';
-  let plainTextBody = content;
+  // Check if signature should be included using helper
+  const includeSignature = shouldIncludeSignature();
 
-  if (template.hasEditableSubject) {
-    subject = currentSubjectLine || extractSubjectLine(content);
-    plainTextBody = content.replace(/^Subject:.*\r?\n/im, '');
-  } else {
-    subject = extractSubjectLine(content);
-    plainTextBody = content.replace(/^Subject:.*\r?\n/im, '');
-  }
+  // Use edited content if available, otherwise get from originalMessageContent or fallback to content
+  // Body content is already without subject line (stripped at generation time)
+  const bodyContent =
+    editedBodyContent ||
+    (originalMessageContent && typeof originalMessageContent === 'object'
+      ? originalMessageContent.body
+      : null) ||
+    content;
+
+  // Get subject from currentSubjectLine (set at generation time)
+  const subject = currentSubjectLine || '';
 
   // Check if content is HTML or plain text
-  const isHTML = isHTMLContent(plainTextBody);
+  const isHTML = isHTMLContent(bodyContent);
   let htmlBody;
 
   if (isHTML) {
     // Already HTML, use as-is
-    htmlBody = plainTextBody;
+    htmlBody = bodyContent;
   } else {
-    // Plain text - convert to HTML
-    let bodyWithoutSig = plainTextBody;
-    const bestRegardsMatch = plainTextBody.match(/\n\nBest regards,/);
-    if (bestRegardsMatch) {
-      bodyWithoutSig = plainTextBody
-        .substring(0, bestRegardsMatch.index + bestRegardsMatch[0].length)
-        .trim();
-    }
-
     // Convert body to HTML
-    const htmlBodyContent = plainTextToPreviewHTML(bodyWithoutSig);
+    const htmlBodyContent = plainTextToPreviewHTML(bodyContent);
 
-    // Get HTML signature
-    const htmlSignature = getEmployeeSignature('html');
+    // Get HTML signature if needed
+    const htmlSignature = includeSignature ? getEmployeeSignature('html') : '';
 
     // Build complete HTML document in Outlook format
     htmlBody = `<html>
@@ -667,10 +713,14 @@ export function downloadEmailFile(templateId, content) {
 <body>
 <div dir="ltr" style="font-family: Aptos, Arial, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);">
 ${htmlBodyContent}
-</div>
+</div>${
+      htmlSignature
+        ? `
 <div id="ms-outlook-mobile-signature">
 ${htmlSignature}
-</div>
+</div>`
+        : ''
+    }
 </body>
 </html>`;
   }
@@ -727,11 +777,22 @@ export function init() {
 // Simple HTML conversion for email preview (handles basic formatting without signature processing)
 // Moved to emailPreviewUtils.plainTextToPreviewHTML
 
-// Clear email preview iframe
+// Generate empty state placeholder HTML for preview
+function getEmptyStateHTML() {
+  return `
+    <div class="preview-empty-state">
+      ${emailIcon({ size: 80 })}
+      <h3>No Preview Yet</h3>
+      <p>Content will appear here when you generate a message</p>
+    </div>
+  `;
+}
+
+// Clear email preview (contenteditable div)
 export function clearEmailPreview() {
   const emailPreview = document.getElementById('emailPreview');
   if (emailPreview) {
-    writeEmptyStateToIframe(emailPreview);
+    emailPreview.innerHTML = getEmptyStateHTML();
   }
 }
 
@@ -739,155 +800,137 @@ export function clearEmailPreview() {
 // Moved to shared/theme.js
 
 // Update email preview for regular templates
+// Renders editable preview with two-way sync capability
 export function updateEmailPreview() {
-  const outputArea = document.getElementById('outputArea');
   const emailPreview = document.getElementById('emailPreview');
   const previewTab = document.querySelector('.output-tab[data-tab="preview"]');
-  const previewContent = document.getElementById('previewContent');
-  const htmlContent = document.getElementById('htmlContent');
 
-  if (!outputArea || !emailPreview) return;
+  if (!emailPreview) return;
 
-  const content = outputArea.value;
-  if (!content) {
-    writeEmptyStateToIframe(emailPreview);
+  // Get body content (WITHOUT signature) from editedBodyContent or original template
+  let bodyContent = '';
+  if (editedBodyContent !== null) {
+    bodyContent = editedBodyContent;
+  } else if (
+    originalMessageContent &&
+    typeof originalMessageContent === 'object' &&
+    originalMessageContent.body
+  ) {
+    bodyContent = originalMessageContent.body;
+  }
+
+  if (!bodyContent) {
+    emailPreview.innerHTML = getEmptyStateHTML();
     return;
   }
 
-  // Check if content is HTML
-  const isHTML = isHTMLContent(content);
-  const htmlTab = document.querySelector('.output-tab[data-tab="html"]');
-
+  // Enable the preview tab (make it clickable) but don't change which tab is active
   if (previewTab) {
-    // Enable preview tab for both HTML and plain text content
     previewTab.disabled = false;
     previewTab.style.opacity = '1';
     previewTab.style.cursor = 'pointer';
-
-    // Ensure preview is active
-    previewTab.classList.add('active');
-    if (htmlTab) htmlTab.classList.remove('active');
-    if (previewContent) previewContent.classList.add('active');
-    if (htmlContent) htmlContent.classList.remove('active');
-
-    let htmlTemplate;
-    if (isHTML) {
-      // Wrap HTML content in email template
-      htmlTemplate = wrapHtmlForEmailPreview(content, originalMessageContent);
-    } else {
-      // For plain text: extract subject, body, and render with proper HTML signature
-      let subject = 'Email Preview';
-      let plainTextBody = content;
-
-      // Extract subject line if present
-      const subjectMatch = content.match(/^Subject:\s*(.+)/m);
-      if (subjectMatch) {
-        subject = subjectMatch[1];
-        plainTextBody = content.replace(/^Subject:.+\n/m, '').trim();
-      }
-
-      // Remove plain text signature and get HTML signature instead
-      let bodyWithoutSig = plainTextBody;
-      // Look for "Best regards," followed by signature
-      const bestRegardsMatch = bodyWithoutSig.match(/\n\nBest regards,/);
-      if (bestRegardsMatch) {
-        // Keep everything up to and including the "Best regards," line (without the trailing newline)
-        bodyWithoutSig = bodyWithoutSig
-          .substring(0, bestRegardsMatch.index + bestRegardsMatch[0].length)
-          .trim();
-      } else {
-        // Fallback: look for the underscores marker
-        const underscoreMatch = bodyWithoutSig.match(/______+/);
-        if (underscoreMatch) {
-          // Find the start of the signature (the line before the underscores)
-          // Look for the preceding double newline
-          const beforeUnderscores = bodyWithoutSig.substring(
-            0,
-            underscoreMatch.index
-          );
-          const lastDoubleNewline = beforeUnderscores.lastIndexOf('\n\n');
-          if (lastDoubleNewline !== -1) {
-            bodyWithoutSig = beforeUnderscores
-              .substring(0, lastDoubleNewline)
-              .trim();
-          }
-        }
-      }
-
-      // Convert body to HTML
-      const htmlBody = plainTextToPreviewHTML(bodyWithoutSig);
-
-      // Get HTML signature
-      const htmlSignature = getEmployeeSignature('html');
-
-      // Create full HTML document for preview
-      htmlTemplate = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${escapeHtml(subject)}</title>
-    <style>
-        body {
-            font-family: Aptos, Arial, Helvetica, sans-serif;
-            font-size: 12pt;
-            color: rgb(0, 0, 0);
-            margin: 0;
-            padding: 20px;
-            background-color: #ffffff;
-        }
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .email-header {
-            padding: 10px;
-            background-color: #f5f5f5;
-            border-bottom: 2px solid #ddd;
-            margin-bottom: 20px;
-        }
-        .email-subject {
-            font-size: 14pt;
-            font-weight: 600;
-            color: #333;
-        }
-        .email-body a {
-            color: #0000ee;
-            text-decoration: underline;
-        }
-    </style>
-</head>
-<body>
-    <div class="email-container">
-        <div class="email-header">
-            <div class="email-subject">${escapeHtml(subject)}</div>
-        </div>
-        <div class="email-body">
-            ${htmlBody}
-            <div style="margin-top: 5px; padding-top: 10px;">
-                ${htmlSignature}
-            </div>
-        </div>
-    </div>
-</body>
-</html>`;
-    }
-
-    // Check if app is in dark mode - if so, simulate email client dark mode
-    const currentTheme =
-      document.documentElement.getAttribute('data-theme') || 'light';
-    let previewHtml = htmlTemplate;
-
-    if (currentTheme === 'dark') {
-      // Inject dark mode simulation CSS into the email HTML
-      previewHtml = htmlTemplate.replace(
-        '</head>',
-        `<style id="dark-mode-sim">${getEmailDarkModeCSS()}</style></head>`
-      );
-    }
-
-    emailPreview.srcdoc = previewHtml;
   }
+
+  // Body content is already without subject (stripped at generation time)
+  // Convert body to HTML (handles paragraphs, lists, line breaks)
+  // Use forPreview: true for theme-aware colors in the preview
+  const htmlBody = plainTextToPreviewHTML(bodyContent, {
+    forPreview: true,
+  });
+
+  // Get HTML signature if needed (use forPreview for theme-aware colors)
+  const htmlSignature = shouldIncludeSignature()
+    ? getEmployeeSignature('html', { forPreview: true })
+    : '';
+
+  // Build editable preview HTML (no extra whitespace to avoid text node issues)
+  const signatureHTML = htmlSignature
+    ? `<div class="email-signature-protected" contenteditable="false"><div class="signature-lock-indicator">🔒 Protected Signature</div>${htmlSignature}</div>`
+    : '';
+  const previewHTML = `<div class="email-body-editable">${htmlBody}</div>${signatureHTML}`;
+
+  // Render into contenteditable div
+  emailPreview.innerHTML = previewHTML;
+
+  // Attach input event listener for sync (if not already attached)
+  if (!emailPreview.dataset.syncAttached) {
+    emailPreview.addEventListener('input', () => debouncedSync('preview'));
+    // Add paste listener to strip formatting
+    emailPreview.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = e.clipboardData.getData('text/plain');
+      insertPlainText(emailPreview, text);
+      debouncedSync('preview');
+    });
+    emailPreview.dataset.syncAttached = 'true';
+  }
+}
+
+// Sync preview → text (extract body from preview, rebuild full text with signature)
+function syncPreviewToText() {
+  if (isSyncing) return;
+  isSyncing = true;
+
+  const emailPreview = document.getElementById('emailPreview');
+  const outputArea = document.getElementById('outputArea');
+
+  if (emailPreview && outputArea) {
+    // Get body only (without signature) from preview
+    const bodyText = getPlainTextFromPreview(emailPreview);
+    editedBodyContent = bodyText;
+
+    // Rebuild full text for textarea: body + signature
+    if (shouldIncludeSignature()) {
+      outputArea.value = `${bodyText}\n${getEmployeeSignature('text')}`;
+    } else {
+      outputArea.value = bodyText;
+    }
+  }
+
+  isSyncing = false;
+}
+
+// Strip signature from text content (look for signature separator line)
+function stripSignatureFromText(text) {
+  // Signature starts with a line of underscores (separator)
+  // Pattern: Employee Name │ Title\n_______...\n
+  const signatureSeparator = /\n[^\n]*│[^\n]*\n_{10,}/;
+  const match = text.match(signatureSeparator);
+  if (match) {
+    return text.substring(0, match.index).trim();
+  }
+  return text;
+}
+
+// Sync text → preview (extract body without signature, render as HTML)
+function syncTextToPreview() {
+  if (isSyncing) return;
+  isSyncing = true;
+
+  const outputArea = document.getElementById('outputArea');
+  if (outputArea) {
+    // Strip signature from text to get body only
+    const bodyText = stripSignatureFromText(outputArea.value);
+    editedBodyContent = bodyText;
+    updateEmailPreview();
+  }
+
+  isSyncing = false;
+}
+
+// Debounced sync to prevent excessive updates
+function debouncedSync(source) {
+  // Mark that this source has pending changes
+  pendingSync = source;
+  clearTimeout(syncDebounceTimer);
+  syncDebounceTimer = setTimeout(() => {
+    if (source === 'preview') {
+      syncPreviewToText();
+    } else {
+      syncTextToPreview();
+    }
+    pendingSync = null;
+  }, 300);
 }
 
 // Populate template dropdown with categories
@@ -1002,9 +1045,9 @@ export function selectTemplate(key) {
     currentTemplate = key;
     const template = templates[key];
 
-    // Clear the preview iframe, output, and cached content immediately
+    // Clear the preview and reset all edit state
     clearEmailPreview();
-    originalMessageContent = '';
+    resetEditState();
     const outputElem = document.getElementById('outputArea');
     if (outputElem) {
       outputElem.value = '';
@@ -1145,23 +1188,34 @@ export function selectTemplate(key) {
 
 // Copy output to clipboard
 export function copyToClipboard() {
-  // Get fresh reference to outputArea (it's recreated in showRegularOutput())
-  const outputArea = document.getElementById('outputArea');
-  if (!outputArea) {
-    console.error('outputArea element not found');
-    showToast('⚠ Output area not found');
-    return;
+  // Get body content only (without signature)
+  // Priority: editedBodyContent > originalMessageContent.body > stripped from outputArea
+  let textToCopy = '';
+
+  if (editedBodyContent !== null) {
+    textToCopy = editedBodyContent;
+  } else if (
+    originalMessageContent &&
+    typeof originalMessageContent === 'object' &&
+    originalMessageContent.body
+  ) {
+    textToCopy = originalMessageContent.body;
+  } else {
+    // Fallback: strip signature from outputArea
+    const outputArea = document.getElementById('outputArea');
+    if (outputArea && outputArea.value) {
+      textToCopy = stripSignatureFromText(outputArea.value);
+    }
   }
 
-  const text = outputArea.value;
-  if (!text) {
+  if (!textToCopy) {
     showToast('⚠ Nothing to copy');
     return;
   }
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard
-      .writeText(text)
+      .writeText(textToCopy)
       .then(() => {
         showToast('✓ Copied!');
       })
@@ -1172,8 +1226,15 @@ export function copyToClipboard() {
   } else {
     // Fallback for browsers without clipboard API
     try {
-      outputArea.select();
+      // Create temporary textarea with body-only text
+      const tempTextarea = document.createElement('textarea');
+      tempTextarea.value = textToCopy;
+      tempTextarea.style.position = 'fixed';
+      tempTextarea.style.opacity = '0';
+      document.body.appendChild(tempTextarea);
+      tempTextarea.select();
       const success = document.execCommand('copy');
+      document.body.removeChild(tempTextarea);
       if (success) {
         showToast('✓ Copied!');
       } else {

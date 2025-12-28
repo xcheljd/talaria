@@ -1,0 +1,47 @@
+/* ==========================================================================
+   SHADCN UI DESIGN SYSTEM & THEME ENGINE
+   Shared base tokens (Default: GitHub Light)
+   ========================================================================== */
+
+:root {
+  /* ========== BASE TOKENS (Default: GitHub Light) ========== */
+  --background: #ffffff;
+  --foreground: #24292f;
+
+  --card: #f6f8fa;
+  --card-foreground: #24292f;
+
+  --popover: #ffffff;
+  --popover-foreground: #24292f;
+
+  --primary: #0969da;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f6f8fa;
+  --secondary-foreground: #24292f;
+
+  --muted: #f6f8fa;
+  --muted-foreground: #57606a;
+
+  --accent: #ddf4ff;
+  --accent-foreground: #0969da;
+
+  --destructive: #cf222e;
+  --destructive-foreground: #ffffff;
+
+  --border: #d0d7de;
+  --input: #d0d7de;
+  --ring: #0969da;
+
+  --radius: 0.5rem;
+  --radius-sm: 0.3rem;
+  --radius-lg: 0.75rem;
+
+  /* Animation Tokens */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-all: 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Standardized to 300ms */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
