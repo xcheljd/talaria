@@ -1800,7 +1800,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .recipient-header h3 {
@@ -1864,6 +1865,7 @@ body {
   gap: 1rem;
   flex-wrap: wrap;
   align-items: center;
+  margin-top: 0.75rem;
 }
 
 .recipient-stats .stat-valid {

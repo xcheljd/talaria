@@ -785,12 +785,15 @@ function setupOutputButtons() {
   }
 
   // Restore recipients from IndexedDB on load
+  // NOTE: IndexedDB is the single source of truth for recipient lists
+  // (localStorage config restoration is skipped to avoid race conditions)
   (async () => {
     try {
       const savedRecipients = await getBulkEmailRecipientsFromIndexedDB();
       if (savedRecipients && bulkEmailList) {
         bulkEmailList.value = savedRecipients;
         updateBatchStats();
+        updateAllStatusDots();
       }
     } catch (error) {
       console.warn('Failed to restore recipients:', error);

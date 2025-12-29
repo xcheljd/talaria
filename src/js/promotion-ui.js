@@ -629,19 +629,9 @@ export async function applyImportedConfig(rawConfig, collapseEntries = true) {
       }
     }
 
-    // Restore bulk email recipient list if present in the configuration
-    if (bulkEmailList && config.bulkEmailRecipients != null) {
-      if (Array.isArray(config.bulkEmailRecipients)) {
-        bulkEmailList.value = config.bulkEmailRecipients.join(', ');
-      } else if (typeof config.bulkEmailRecipients === 'string') {
-        bulkEmailList.value = config.bulkEmailRecipients;
-      }
-
-      if (bulkEmailList.value) {
-        // Trigger existing input handler to refresh analysis stats
-        bulkEmailList.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    }
+    // NOTE: Bulk email recipients are restored from IndexedDB (not localStorage)
+    // in setupOutputButtons() to avoid race conditions and stale data.
+    // The IndexedDB is the single source of truth for recipient lists.
 
     // Update preview after form fields are restored
     updateLivePreview();
