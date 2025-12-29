@@ -317,6 +317,26 @@
             opacity: 0.7;
         }
 
+        /* Validation Summary */
+        .validation-summary {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: color-mix(in srgb, var(--destructive) 10%, var(--background));
+            border: 1px solid var(--destructive);
+            border-radius: var(--radius);
+            color: var(--destructive);
+            font-size: 0.875rem;
+            line-height: 1.5;
+            animation: slideInLeft 0.3s ease;
+        }
+
+        .validation-summary svg {
+            flex-shrink: 0;
+            margin-top: 0.125rem;
+        }
+
         @media (max-width: 992px) {
             .start-container {
                 margin: 2rem auto;
@@ -418,6 +438,10 @@
             <div class="start-header">
                 <h1>Welcome to Communication Template Generator</h1>
                 <p>Set up your profile to auto-fill common fields across all templates</p>
+            </div>
+
+            <div class="start-info profile-required-banner" id="profileRequiredBanner" style="display: none; border-left-color: var(--warning); background: color-mix(in srgb, var(--warning) 10%, var(--background));">
+                <strong>Profile required:</strong> Please complete your profile to continue to the Promotion Email Generator.
             </div>
 
             <div class="start-info">
@@ -574,7 +598,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Store Directions / Location Notes</label>
+                    <label class="form-label">Store Directions / Location Notes (optional)</label>
                     <div class="input-wrapper">
                         <input
                             type="text"
@@ -584,6 +608,18 @@
                         >
                     </div>
                     <div class="field-help">Used in promotion email template. Optional: Easy-to-follow directions for customers</div>
+                </div>
+
+                <!-- Validation Summary (shown after first failed submit) -->
+                <div class="form-group full-width">
+                    <div id="validationSummary" class="validation-summary" style="display: none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <span id="validationSummaryText">Please complete all required fields</span>
+                    </div>
                 </div>
             </form>
         </div>
@@ -1141,6 +1177,16 @@
 
         // Load existing data if available
         window.addEventListener('DOMContentLoaded', () => {
+            // Show profile required banner if redirected from profile gate
+            const urlParams = new URLSearchParams(window.location.search);
+            const returnUrl = urlParams.get('return');
+            if (returnUrl) {
+                const banner = document.getElementById('profileRequiredBanner');
+                if (banner) {
+                    banner.style.display = 'block';
+                }
+            }
+
             const userData = localStorage.getItem('userProfile');
             if (userData) {
                 try {
@@ -1258,6 +1304,23 @@
             }, duration);
         }
 
+        // Validation summary helpers
+        const validationSummary = document.getElementById('validationSummary');
+        const validationSummaryText = document.getElementById('validationSummaryText');
+
+        function showValidationSummary(missingFields) {
+            if (validationSummary && validationSummaryText) {
+                validationSummaryText.textContent = 'Please complete: ' + missingFields.join(', ');
+                validationSummary.style.display = 'flex';
+            }
+        }
+
+        function hideValidationSummary() {
+            if (validationSummary) {
+                validationSummary.style.display = 'none';
+            }
+        }
+
         form.addEventListener('submit', (e) => {
             e.preventDefault();
 
@@ -1267,6 +1330,7 @@
             hideError('companyEmailError');
             hideError('hoursError');
             hideError('plusCodeError');
+            hideValidationSummary();
 
             // Get form data
             const userData = {
@@ -1283,64 +1347,61 @@
                 storeDirections: storeDirectionsInput.value.trim()
             };
 
-            // Validate required fields
-            if (!userData.employeeName) {
-                showToast('Please enter your name');
-                return;
-            }
+            // Collect all missing/invalid fields
+            const missingFields = [];
 
-            if (!userData.jobTitle) {
-                showToast('Please select your job title');
-                return;
-            }
-
-            if (!userData.storeName) {
-                showToast('Please enter store name');
-                return;
-            }
-
-            if (!userData.storeLocation) {
-                showToast('Please enter store location');
-                return;
-            }
+            // Check required text fields
+            if (!userData.employeeName) missingFields.push('Your Name');
+            if (!userData.jobTitle) missingFields.push('Job Title');
+            if (!userData.storeName) missingFields.push('Store Name');
+            if (!userData.storeLocation) missingFields.push('Store Location');
+            if (!userData.storeAddress) missingFields.push('Store Address');
 
             // Validate phone
             const phoneValidation = validatePhone(userData.storePhone);
-            if (!phoneValidation.isValid) {
+            if (!userData.storePhone) {
+                missingFields.push('Store Phone');
+            } else if (!phoneValidation.isValid) {
                 showError('phoneError', phoneValidation.error);
-                showToast('Please correct the phone number');
-                return;
+                missingFields.push('Store Phone (invalid format)');
             }
 
             // Validate email
             const emailValidation = validateEmail(userData.storeEmail);
-            if (!emailValidation.isValid) {
+            if (!userData.storeEmail) {
+                missingFields.push('Store Email');
+            } else if (!emailValidation.isValid) {
                 showError('emailError', emailValidation.error);
-                showToast('Please correct the email address');
-                return;
+                missingFields.push('Store Email (invalid format)');
             }
 
             // Validate company email (if required)
             const companyEmailValidation = validateCompanyEmail(userData.companyEmail, userData.jobTitle);
             if (!companyEmailValidation.isValid) {
                 showError('companyEmailError', companyEmailValidation.error);
-                showToast('Please correct the company email');
-                return;
+                missingFields.push('Company Email');
             }
 
             // Validate store hours
             const hoursValidation = validateStoreHours(userData.storeHours);
-            if (!hoursValidation.isValid) {
+            if (!userData.storeHours) {
+                missingFields.push('Store Hours');
+            } else if (!hoursValidation.isValid) {
                 showError('hoursError', hoursValidation.error);
-                showToast('Please correct the store hours');
-                return;
+                missingFields.push('Store Hours (invalid format)');
             }
 
-            // Validate Plus Code (optional)
+            // Validate Plus Code (optional, but check format if provided)
             const plusCodeValidation = validatePlusCode(userData.storePlusCode);
             if (!plusCodeValidation.isValid) {
                 showError('plusCodeError', plusCodeValidation.error);
-                showToast('Please correct the Plus Code format');
+                missingFields.push('Plus Code (invalid format)');
+            }
+
+            // If there are missing fields, show summary and stop
+            if (missingFields.length > 0) {
+                showValidationSummary(missingFields);
+                showToast('Please complete all required fields', 'error');
                 return;
             }
 
@@ -1349,9 +1410,23 @@
                 localStorage.setItem('userProfile', JSON.stringify(userData));
                 showToast('Profile saved successfully!');
 
-                // Redirect to main app after a short delay
+                // Check for return URL param (from profile gate redirect)
+                const urlParams = new URLSearchParams(window.location.search);
+                const returnUrl = urlParams.get('return');
+
+                // Redirect after a short delay
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    if (returnUrl) {
+                        // Decode and validate return URL (only allow local pages)
+                        const decodedUrl = decodeURIComponent(returnUrl);
+                        if (decodedUrl.endsWith('.html') && !decodedUrl.includes('://')) {
+                            window.location.href = decodedUrl;
+                        } else {
+                            window.location.href = 'index.html';
+                        }
+                    } else {
+                        window.location.href = 'index.html';
+                    }
                 }, 1000);
             } catch (e) {
                 console.error('Error saving user data:', e);

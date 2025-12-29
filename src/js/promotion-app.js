@@ -28,6 +28,7 @@ import {
   generateSubjectLines,
   updateLivePreview,
   writeEmptyStateToIframe,
+  updateAllStatusDots,
 } from './promotion-ui.js';
 import {
   parseEmailList,
@@ -39,21 +40,82 @@ import {
 import { appState } from './state.js';
 import { warningIcon } from './shared/icons.js';
 import { initColumnCollapse } from './promotion-column-collapse.js';
+import { announceToScreenReader, getScrollBehavior } from './shared/ui-utils.js';
+
+/**
+ * Validate that the user profile has all required fields
+ * @param {Object|null} profile - The user profile object
+ * @returns {{ valid: boolean, missing: string[] }}
+ */
+function validateProfile(profile) {
+  if (!profile) {
+    return { valid: false, missing: ['profile'] };
+  }
+
+  const requiredFields = [
+    'employeeName',
+    'jobTitle',
+    'storeName',
+    'storeLocation',
+    'storeAddress',
+    'storePhone',
+    'storeEmail',
+    'storeHours',
+  ];
+
+  // Management roles also require companyEmail
+  const managementTitles = [
+    'Assistant Store Manager',
+    'Associate Store Manager',
+    'General Manager',
+    'Area Manager',
+    'Regional Manager',
+    'District Manager',
+  ];
+
+  if (managementTitles.includes(profile.jobTitle)) {
+    requiredFields.push('companyEmail');
+  }
+
+  const missing = requiredFields.filter(
+    (field) => !profile[field] || profile[field].trim() === ''
+  );
+
+  return { valid: missing.length === 0, missing };
+}
+
+/**
+ * Redirect to profile setup page with return URL
+ */
+function redirectToProfileSetup() {
+  const returnUrl = encodeURIComponent('promotion.html');
+  window.location.href = `start.html?return=${returnUrl}`;
+}
 
 // Initialize the promotion app when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
   // Load user profile from localStorage
   const storedProfile = localStorage.getItem('userProfile');
+  let profile = null;
+
   if (storedProfile) {
     try {
-      const profile = JSON.parse(storedProfile);
-      window.userProfile = profile;
-      // Also set appState.userProfile so promotion-ui.js functions can access it
-      appState.userProfile = profile;
+      profile = JSON.parse(storedProfile);
     } catch (e) {
       console.warn('Failed to parse stored profile:', e);
     }
   }
+
+  // Validate profile - redirect if incomplete
+  const validation = validateProfile(profile);
+  if (!validation.valid) {
+    redirectToProfileSetup();
+    return; // Stop initialization
+  }
+
+  // Profile is valid, set it globally
+  window.userProfile = profile;
+  appState.userProfile = profile;
 
   // Initialize theme first (must happen before UI renders)
   initTheme();
@@ -155,12 +217,17 @@ function setupCollapsibleCards() {
         const wasCollapsed = card.classList.contains('collapsed');
         card.classList.toggle('collapsed');
 
+        // Announce state change to screen readers
+        const sectionTitle = header.querySelector('.section-title')?.textContent || 'Section';
+        const newState = wasCollapsed ? 'expanded' : 'collapsed';
+        announceToScreenReader(`${sectionTitle} ${newState}`);
+
         // If card was just expanded, scroll it into view after transition
         if (wasCollapsed) {
-          // Wait for CSS transition to complete (--transition-fast: 150ms)
+          // Wait for CSS transition to complete (--transition-base: 300ms)
           setTimeout(() => {
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }, 150);
+            card.scrollIntoView({ behavior: getScrollBehavior(), block: 'nearest' });
+          }, 300);
         }
       });
     }
@@ -337,6 +404,15 @@ function setupOutputButtons() {
     const batchSize = parseInt(batchSizeSelect?.value || '500');
     const htmlContent = codeArea.value;
     const subject = promotionState.selectedSubjectLine;
+    const batchCount = Math.ceil(validEmails.length / batchSize);
+
+    // Warn for large recipient lists (1000+)
+    if (validEmails.length >= 1000) {
+      const proceed = confirm(
+        `You are about to generate ${batchCount} batch file(s) for ${validEmails.length.toLocaleString()} recipients.\n\nThis may take a moment. Continue?`
+      );
+      if (!proceed) return;
+    }
 
     // Warn if no subject line selected
     if (!subject) {
@@ -348,12 +424,26 @@ function setupOutputButtons() {
 
     const finalSubject = subject || 'Weekly Promotion';
 
-    // Show loading state
+    // Show loading state with accessibility
     const btnText = button.querySelector('.btn-text');
     const btnSpinner = button.querySelector('.btn-spinner');
+    const originalText = btnText?.textContent || 'Generate';
     if (btnText) btnText.style.display = 'none';
     if (btnSpinner) btnSpinner.style.display = 'flex';
     button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.setAttribute('aria-disabled', 'true');
+    announceToScreenReader('Generating email batches, please wait');
+
+    // Helper to update progress
+    const updateProgress = (current, total) => {
+      if (btnSpinner) {
+        const progressText = btnSpinner.querySelector('.progress-text');
+        if (progressText) {
+          progressText.textContent = `${current}/${total}`;
+        }
+      }
+    };
 
     try {
       // Generate batches
@@ -375,6 +465,7 @@ function setupOutputButtons() {
         const JSZip = (await import('jszip')).default;
         const zip = new JSZip();
 
+        updateProgress('Creating', batches.length);
         batches.forEach((batch, index) => {
           const emlContent = createBCCBatchEML(
             finalSubject,
@@ -389,6 +480,7 @@ function setupOutputButtons() {
             emlContent.data
           );
         });
+        updateProgress('Zipping', batches.length);
 
         const zipBlob = await zip.generateAsync({ type: 'blob' });
         const url = URL.createObjectURL(zipBlob);
@@ -402,10 +494,12 @@ function setupOutputButtons() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        showToast(`Generated ZIP with ${batches.length} email batch(es)`);
+        showToast(`Generated ZIP with ${batches.length} email batch(es)`, 'success');
+        announceToScreenReader(`Generated ${batches.length} email batches`);
       } else {
         // Download individual files
         for (let i = 0; i < batches.length; i++) {
+          updateProgress(i + 1, batches.length);
           const batch = batches[i];
           const emlContent = createBCCBatchEML(
             finalSubject,
@@ -434,16 +528,21 @@ function setupOutputButtons() {
           }
         }
 
-        showToast(`Downloaded ${batches.length} email batch file(s)`);
+        showToast(`Downloaded ${batches.length} email batch file(s)`, 'success');
+        announceToScreenReader(`Downloaded ${batches.length} email batches`);
       }
     } catch (error) {
       console.error('Error generating batches:', error);
-      showToast('Error generating email batches');
+      const errorMsg = error.message || 'Unknown error';
+      showToast(`Failed to generate batches: ${errorMsg}`, 'error');
+      announceToScreenReader('Batch generation failed');
     } finally {
-      // Hide loading state
+      // Hide loading state and restore accessibility
       if (btnText) btnText.style.display = 'inline';
       if (btnSpinner) btnSpinner.style.display = 'none';
       button.disabled = false;
+      button.removeAttribute('aria-busy');
+      button.removeAttribute('aria-disabled');
     }
   }
 
@@ -488,6 +587,7 @@ function setupOutputButtons() {
 
     if (emails.length === 0) {
       recipientStats.innerHTML = '';
+      bulkEmailList.classList.remove('has-invalid');
       if (batchPreview) {
         batchPreview.innerHTML =
           '<span class="batch-info-placeholder">Enter recipient emails above to see batch preview</span>';
@@ -513,12 +613,16 @@ function setupOutputButtons() {
 
       recipientStats.innerHTML = statsHTML;
 
-      // Show/hide invalid emails section
-      if (invalidEmailsSection && invalidEmailsList) {
-        if (invalidEmails.length > 0) {
+      // Show/hide invalid emails section and highlight textarea
+      if (invalidEmails.length > 0) {
+        bulkEmailList.classList.add('has-invalid');
+        if (invalidEmailsSection && invalidEmailsList) {
           invalidEmailsSection.style.display = 'block';
           invalidEmailsList.innerHTML = invalidEmails.join('<br>');
-        } else {
+        }
+      } else {
+        bulkEmailList.classList.remove('has-invalid');
+        if (invalidEmailsSection) {
           invalidEmailsSection.style.display = 'none';
         }
       }
@@ -570,6 +674,7 @@ function setupOutputButtons() {
       if (confirm('Clear all recipient email addresses?')) {
         bulkEmailList.value = '';
         updateBatchStats();
+        updateAllStatusDots();
         try {
           await clearBulkEmailRecipientsFromIndexedDB();
         } catch (error) {
@@ -605,21 +710,32 @@ function setupOutputButtons() {
         }
 
         updateBatchStats();
+        updateAllStatusDots();
       }, 0);
     });
   }
 
   if (bulkEmailList && recipientStats) {
-    bulkEmailList.addEventListener('input', () => updateBatchStats());
+    bulkEmailList.addEventListener('input', () => {
+      updateBatchStats();
+      updateAllStatusDots();
+    });
   }
 
   if (batchSizeSelect) {
+    // Restore saved batch size
+    const savedBatchSize = localStorage.getItem('bulkEmail.batchSize');
+    if (savedBatchSize) {
+      batchSizeSelect.value = savedBatchSize;
+    }
+
     // Validate and clamp batch size on change
     batchSizeSelect.addEventListener('change', () => {
       let value = parseInt(batchSizeSelect.value) || 500;
       if (value < 50) value = 50;
       if (value > 1000) value = 1000;
       batchSizeSelect.value = value;
+      localStorage.setItem('bulkEmail.batchSize', value);
       updateBatchStats();
     });
     // Also listen for input to update preview in real-time
@@ -642,7 +758,28 @@ function setupOutputButtons() {
         }
 
         batchSizeSelect.value = value;
+        localStorage.setItem('bulkEmail.batchSize', value);
         updateBatchStats();
+      });
+    });
+  }
+
+  // Download format radio buttons - persist preference
+  const downloadFormatRadios = document.querySelectorAll('input[name="downloadFormat"]');
+  if (downloadFormatRadios.length > 0) {
+    // Restore saved format
+    const savedFormat = localStorage.getItem('bulkEmail.downloadFormat');
+    if (savedFormat) {
+      const savedRadio = document.querySelector(`input[name="downloadFormat"][value="${savedFormat}"]`);
+      if (savedRadio) {
+        savedRadio.checked = true;
+      }
+    }
+
+    // Save on change
+    downloadFormatRadios.forEach((radio) => {
+      radio.addEventListener('change', () => {
+        localStorage.setItem('bulkEmail.downloadFormat', radio.value);
       });
     });
   }

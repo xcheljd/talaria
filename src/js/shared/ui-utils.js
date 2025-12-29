@@ -8,6 +8,39 @@ import { emailIcon } from './icons.js';
 // Constants
 export const TOAST_DURATION_MS = 3000;
 
+/**
+ * Check if user prefers reduced motion
+ * @returns {boolean} True if user prefers reduced motion
+ */
+export function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
+ * Get scroll behavior based on user's motion preference
+ * @returns {'smooth' | 'auto'} Scroll behavior value
+ */
+export function getScrollBehavior() {
+  return prefersReducedMotion() ? 'auto' : 'smooth';
+}
+
+/**
+ * Announce a message to screen readers via a live region
+ * @param {string} message - The message to announce
+ * @param {'polite' | 'assertive'} priority - Announcement priority (default: 'polite')
+ */
+export function announceToScreenReader(message, priority = 'polite') {
+  const announcement = document.createElement('div');
+  announcement.setAttribute('role', 'status');
+  announcement.setAttribute('aria-live', priority);
+  announcement.className = 'sr-only';
+  announcement.textContent = message;
+  document.body.appendChild(announcement);
+
+  // Remove after announcement is made
+  setTimeout(() => announcement.remove(), 1000);
+}
+
 // Toast icons
 const TOAST_ICONS = {
   success: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

@@ -4,6 +4,7 @@
  */
 
 import { promotionState } from './promotion-state.js';
+import { getScrollBehavior } from './shared/ui-utils.js';
 
 const MOBILE_BREAKPOINT = 1024;
 
@@ -294,7 +295,7 @@ function expandAndScrollToCard(cardId, columnType, cardIndex, totalCards) {
   // Wait a tick for the card to finish expanding
   setTimeout(() => {
     card.scrollIntoView({
-      behavior: 'smooth',
+      behavior: getScrollBehavior(),
       block: 'start',
     });
   }, 50);

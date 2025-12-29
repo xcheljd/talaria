@@ -20,6 +20,8 @@ import {
   detectOS,
   getRecommendedFormat,
   writeEmptyStateToIframe,
+  announceToScreenReader,
+  getScrollBehavior,
 } from './shared/ui-utils.js';
 import { getEmailDarkModeCSS } from './shared/theme.js';
 import {
@@ -97,6 +99,151 @@ export { showToast, writeEmptyStateToIframe };
 // Current PDF preview state
 let currentPreviewPDF = null;
 let currentBlobUrl = null;
+let modalTriggerElement = null; // Track element that opened modal for focus restoration
+
+// ===== SILENT AUTOSAVE =====
+
+/**
+ * Silently save promotion template to localStorage without UI feedback.
+ * Called automatically on state changes to prevent data loss.
+ */
+function silentAutosave() {
+  try {
+    // Get current form values
+    const bulkEmailListElement = document.getElementById('bulkEmailList');
+    const bulkEmailRecipients = bulkEmailListElement
+      ? bulkEmailListElement.value
+      : '';
+
+    const config = buildSavedPromotionConfig({
+      promoDateRange: document.getElementById('promoDateRange')?.value || '',
+      promoYear: document.getElementById('promoYear')?.value || '',
+      promoTitle: document.getElementById('promoTitle')?.value || '',
+      bulkEmailRecipients,
+      promotionEntries: promotionState.promotionEntries,
+      specialHours: promotionState.specialHours,
+      howToShopItems: promotionState.howToShopItems,
+      importantNotesItems: promotionState.importantNotesItems,
+      attachedPDFs: promotionState.attachedPDFs,
+      generatedSubjectLines: promotionState.generatedSubjectLines,
+      selectedSubjectLine: promotionState.selectedSubjectLine,
+    });
+
+    localStorage.setItem('savedPromotionTemplate', JSON.stringify(config));
+  } catch (error) {
+    // Silent fail - don't disrupt user workflow
+    console.warn('Autosave failed:', error);
+  }
+}
+
+// Create debounced version for autosave (500ms delay)
+const debouncedAutosave = debounce(silentAutosave, 500);
+
+// ===== COMPLETENESS INDICATORS =====
+
+/**
+ * Check if a section has content (used for status dots)
+ * @param {string} cardId - The card element ID
+ * @returns {boolean} - Whether the section has content
+ */
+function checkSectionCompleteness(cardId) {
+  switch (cardId) {
+    case 'basicDetailsCard': {
+      const dateRange = document.getElementById('promoDateRange')?.value?.trim();
+      const year = document.getElementById('promoYear')?.value?.trim();
+      const title = document.getElementById('promoTitle')?.value?.trim();
+      return !!(dateRange || year || title);
+    }
+    case 'discountEntriesCard':
+      return promotionState.promotionEntries.some(
+        (entry) =>
+          entry.line?.trim() ||
+          entry.collections?.trim() ||
+          entry.callout?.trim()
+      );
+    case 'howToShopCard':
+      return promotionState.howToShopItems.some((item) => item.text?.trim());
+    case 'importantNotesCard':
+      return promotionState.importantNotesItems.some((item) => item.text?.trim());
+    case 'specialHoursCard':
+      return promotionState.specialHours.some(
+        (hour) => hour.day?.trim() || hour.hours?.trim()
+      );
+    case 'pdfCard':
+      return promotionState.attachedPDFs.length > 0;
+    case 'subjectCard':
+      return !!(
+        promotionState.selectedSubjectLine ||
+        (promotionState.generatedSubjectLines &&
+          promotionState.generatedSubjectLines.length > 0)
+      );
+    case 'bulkEmailCard': {
+      const bulkEmailList = document.getElementById('bulkEmailList');
+      return !!(bulkEmailList && bulkEmailList.value?.trim());
+    }
+    default:
+      return false;
+  }
+}
+
+/**
+ * Update the status dot for a specific card
+ * @param {string} cardId - The card element ID
+ */
+function updateStatusDot(cardId) {
+  const hasContent = checkSectionCompleteness(cardId);
+  const status = hasContent ? 'filled' : 'empty';
+
+  // Helper to update a dot with pulse animation
+  const updateDot = (dot) => {
+    if (!dot) return;
+    const wasEmpty = dot.dataset.status === 'empty';
+    const becomingFilled = status === 'filled';
+
+    dot.dataset.status = status;
+
+    // Add pulse animation when changing to filled
+    if (wasEmpty && becomingFilled) {
+      dot.classList.add('pulse');
+      // Remove class after animation completes
+      setTimeout(() => dot.classList.remove('pulse'), 300);
+    }
+  };
+
+  // Update card header dot
+  const card = document.getElementById(cardId);
+  if (card) {
+    const dot = card.querySelector('.card-header .status-dot');
+    updateDot(dot);
+  }
+
+  // Update skinny bar dot
+  const skinnyDot = document.querySelector(
+    `.skinny-card-title[data-card="${cardId}"] .status-dot`
+  );
+  updateDot(skinnyDot);
+}
+
+/**
+ * Update all status dots based on current state
+ */
+export function updateAllStatusDots() {
+  const cardIds = [
+    'basicDetailsCard',
+    'discountEntriesCard',
+    'howToShopCard',
+    'importantNotesCard',
+    'specialHoursCard',
+    'pdfCard',
+    'subjectCard',
+    'bulkEmailCard',
+  ];
+
+  cardIds.forEach(updateStatusDot);
+}
+
+// Create debounced version for status updates
+const debouncedStatusUpdate = debounce(updateAllStatusDots, 100);
 
 // ===== LIVE PREVIEW FUNCTIONS =====
 // Get CSS that simulates email client dark mode color inversion
@@ -112,6 +259,8 @@ export function updateLivePreview() {
   // If no date range, regenerate the empty state with current theme colors
   if (!dateRangeInput || !dateRangeInput.value.trim()) {
     writeEmptyStateToIframe(previewIframe);
+    // Still update status dots even when clearing preview
+    debouncedStatusUpdate();
     return;
   }
 
@@ -157,6 +306,12 @@ export function updateLivePreview() {
   if (!promotionState.subjectLineManuallyEdited) {
     generateSubjectLines();
   }
+
+  // Trigger autosave after preview update
+  debouncedAutosave();
+
+  // Update status dots
+  debouncedStatusUpdate();
 }
 
 // Create debounced version for typing
@@ -979,15 +1134,19 @@ export function addPromotionEntry() {
   });
   renderPromotionEntries();
 
-  // Scroll the card's bottom into view after render (skip during initialization)
+  // Announce to screen readers (skip during initialization)
   if (!promotionState.isInitializing) {
+    const entryNumber = promotionState.promotionEntries.length;
+    announceToScreenReader(`Discount entry ${entryNumber} added`);
+
+    // Scroll the card's bottom into view after render
     setTimeout(() => {
       const newEntry = document.querySelector(
         `.promotion-entry[data-entry-id="${entryId}"]`
       );
       const card = newEntry?.closest('.card');
       if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        card.scrollIntoView({ behavior: getScrollBehavior(), block: 'end' });
       }
     }, 50);
   }
@@ -999,8 +1158,12 @@ export function removePromotionEntry(entryId) {
     (entry) => entry.id === entryId
   );
   if (index !== -1) {
+    const entryNumber = index + 1;
     promotionState.promotionEntries.splice(index, 1);
     renderPromotionEntries();
+    updateLivePreview();
+    updateAllStatusDots();
+    announceToScreenReader(`Discount entry ${entryNumber} removed`);
   }
 }
 
@@ -1008,6 +1171,8 @@ export function removePromotionEntry(entryId) {
 export function movePromotionEntryUp(entryId) {
   if (moveItemInArray(promotionState.promotionEntries, entryId, 'up')) {
     renderPromotionEntries();
+    const newIndex = promotionState.promotionEntries.findIndex(e => e.id === entryId);
+    announceToScreenReader(`Entry moved to position ${newIndex + 1}`);
   }
 }
 
@@ -1015,6 +1180,8 @@ export function movePromotionEntryUp(entryId) {
 export function movePromotionEntryDown(entryId) {
   if (moveItemInArray(promotionState.promotionEntries, entryId, 'down')) {
     renderPromotionEntries();
+    const newIndex = promotionState.promotionEntries.findIndex(e => e.id === entryId);
+    announceToScreenReader(`Entry moved to position ${newIndex + 1}`);
   }
 }
 
@@ -1103,7 +1270,7 @@ export function renderPromotionEntries() {
       }
 
       return `
-            <div class="promotion-entry ${isCollapsed ? 'collapsed' : ''}" data-entry-id="${safeId}" draggable="true">
+            <div class="promotion-entry ${isCollapsed ? 'collapsed' : ''}" data-entry-id="${safeId}" draggable="true" tabindex="0" aria-label="Discount entry ${index + 1}. Use Alt+Arrow keys to reorder.">
                 <div class="entry-header">
                     <div class="entry-header-left">
                         <div class="drag-handle" title="Drag to reorder">
@@ -1197,6 +1364,35 @@ export function renderPromotionEntries() {
     });
   });
 
+  // Add keyboard support for reordering entries (Alt+Arrow keys)
+  container.querySelectorAll('.promotion-entry').forEach((entry) => {
+    entry.addEventListener('keydown', (e) => {
+      // Only handle Alt+Arrow keys for reordering
+      if (!e.altKey) return;
+
+      const entryId = parseInt(entry.dataset.entryId);
+      if (isNaN(entryId)) return;
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        movePromotionEntryUp(entryId);
+        // Refocus the entry after rerender
+        setTimeout(() => {
+          const movedEntry = document.querySelector(`.promotion-entry[data-entry-id="${entryId}"]`);
+          if (movedEntry) movedEntry.focus();
+        }, 50);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        movePromotionEntryDown(entryId);
+        // Refocus the entry after rerender
+        setTimeout(() => {
+          const movedEntry = document.querySelector(`.promotion-entry[data-entry-id="${entryId}"]`);
+          if (movedEntry) movedEntry.focus();
+        }, 50);
+      }
+    });
+  });
+
   // Attach event listeners for clear buttons in promotion entries
   setupClearButtons(container);
 
@@ -1238,6 +1434,8 @@ export function removeSpecialHour(hourId) {
   if (index !== -1) {
     promotionState.specialHours.splice(index, 1);
     renderSpecialHours();
+    updateLivePreview();
+    updateAllStatusDots();
   }
 }
 
@@ -1390,6 +1588,8 @@ export function removeHowToShopItem(itemId) {
   if (index !== -1) {
     promotionState.howToShopItems.splice(index, 1);
     renderHowToShopSection();
+    updateLivePreview();
+    updateAllStatusDots();
   }
 }
 
@@ -1620,6 +1820,8 @@ export function removeImportantNotesItem(itemId) {
   if (index !== -1) {
     promotionState.importantNotesItems.splice(index, 1);
     renderImportantNotesSection();
+    updateLivePreview();
+    updateAllStatusDots();
   }
 }
 
@@ -2032,6 +2234,8 @@ export function renderAttachedPDFs() {
 
   if (promotionState.attachedPDFs.length === 0) {
     container.innerHTML = '';
+    // Still update status dots when all PDFs removed
+    debouncedStatusUpdate();
     return;
   }
 
@@ -2081,12 +2285,12 @@ export function renderAttachedPDFs() {
     .forEach((element) => {
       element.addEventListener('click', (e) => {
         const pdfId = parseFloat(e.currentTarget.dataset.pdfId);
-        previewPDF(pdfId);
+        previewPDF(pdfId, e.currentTarget);
       });
       element.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
           const pdfId = parseFloat(e.currentTarget.dataset.pdfId);
-          previewPDF(pdfId);
+          previewPDF(pdfId, e.currentTarget);
         }
       });
     });
@@ -2098,6 +2302,12 @@ export function renderAttachedPDFs() {
       removePDF(pdfId);
     });
   });
+
+  // Trigger autosave after PDF changes
+  debouncedAutosave();
+
+  // Update status dots
+  debouncedStatusUpdate();
 }
 
 // Remove PDF from attachedPDFs array and IndexedDB
@@ -2120,7 +2330,7 @@ export async function removePDF(pdfId) {
 }
 
 // Preview PDF in modal
-export function previewPDF(pdfId) {
+export function previewPDF(pdfId, triggerElement = null) {
   const pdf = promotionState.attachedPDFs.find((p) => p.id === pdfId);
   if (!pdf || !pdf.data) {
     showToast('✗ PDF data not available for preview');
@@ -2128,6 +2338,7 @@ export function previewPDF(pdfId) {
   }
 
   currentPreviewPDF = pdf;
+  modalTriggerElement = triggerElement; // Store for focus restoration
 
   const modal = document.getElementById('pdfPreviewModal');
   const iframe = document.getElementById('pdfPreviewIframe');
@@ -2179,14 +2390,65 @@ export function previewPDF(pdfId) {
     modal.classList.add('active');
   }, 10);
 
-  // Focus on the modal for accessibility
-  modal.focus();
+  // Set up focus trap
+  setupModalFocusTrap(modal);
+
+  // Focus on the close button for accessibility (first focusable element)
+  const closeBtn = document.getElementById('pdfModalClose');
+  if (closeBtn) {
+    closeBtn.focus();
+  }
+}
+
+/**
+ * Set up focus trap for modal dialogs
+ * @param {HTMLElement} modal - The modal element to trap focus within
+ */
+function setupModalFocusTrap(modal) {
+  const focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+  modal.addEventListener('keydown', handleModalKeydown);
+}
+
+/**
+ * Handle keydown events for modal focus trap
+ * @param {KeyboardEvent} e - The keydown event
+ */
+function handleModalKeydown(e) {
+  if (e.key !== 'Tab') return;
+
+  const modal = e.currentTarget;
+  const focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  const focusableElements = modal.querySelectorAll(focusableSelectors);
+  const focusableArray = Array.from(focusableElements).filter(el => !el.disabled && el.offsetParent !== null);
+
+  if (focusableArray.length === 0) return;
+
+  const firstElement = focusableArray[0];
+  const lastElement = focusableArray[focusableArray.length - 1];
+
+  if (e.shiftKey) {
+    // Shift + Tab: if on first element, move to last
+    if (document.activeElement === firstElement) {
+      e.preventDefault();
+      lastElement.focus();
+    }
+  } else {
+    // Tab: if on last element, move to first
+    if (document.activeElement === lastElement) {
+      e.preventDefault();
+      firstElement.focus();
+    }
+  }
 }
 
 // Close PDF preview modal
 export function closePDFPreview() {
   const modal = document.getElementById('pdfPreviewModal');
   if (modal) {
+    // Remove focus trap event listener
+    modal.removeEventListener('keydown', handleModalKeydown);
+
     modal.classList.remove('active');
     setTimeout(() => {
       modal.style.display = 'none';
@@ -2203,6 +2465,12 @@ export function closePDFPreview() {
     currentBlobUrl = null;
   }
   currentPreviewPDF = null;
+
+  // Restore focus to trigger element
+  if (modalTriggerElement && typeof modalTriggerElement.focus === 'function') {
+    modalTriggerElement.focus();
+    modalTriggerElement = null;
+  }
 }
 
 // Download PDF from preview modal
@@ -3279,16 +3547,12 @@ export function init() {
     }
   });
 
-  // Wire up floating template action buttons
-  const saveTemplateBtn = document.getElementById('saveTemplateBtn');
+  // Wire up floating template action buttons (Save button removed - autosave handles persistence)
   const importTemplateBtn = document.getElementById('importTemplateBtn');
   const exportTemplateBtn = document.getElementById('exportTemplateBtn');
   const importTemplateFile = document.getElementById('importTemplateFile');
   const startOverBtn = document.getElementById('startOverBtn');
 
-  if (saveTemplateBtn) {
-    saveTemplateBtn.addEventListener('click', savePromotionTemplate);
-  }
   if (importTemplateBtn) {
     importTemplateBtn.addEventListener('click', () => {
       importTemplateFile?.click();
@@ -3363,6 +3627,9 @@ export function init() {
 
   // Initialization complete - allow scrollIntoView for user-added entries
   promotionState.isInitializing = false;
+
+  // Set initial status dot states
+  updateAllStatusDots();
 
   console.log('Promotion UI module initialized');
 }
