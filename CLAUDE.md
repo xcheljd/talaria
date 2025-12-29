@@ -51,26 +51,35 @@ Each page has its own app entry point:
 ### Module Organization
 
 ```
-src/js/
-├── app.js                    # Main app entry point
-├── promotion-app.js          # Promotion app entry point
-├── state.js                  # Global app state management
-├── promotion-state.js        # Promotion page state
-├── templates.js              # Template definitions and utilities
-├── ui.js                     # Main UI logic and event handlers
-├── promotion-ui.js           # Promotion UI logic
-├── promotionConfig.js        # Promotion template configuration
-├── promotionUiUtils.js       # Promotion UI helper functions
-├── promotion-column-collapse.js  # Column collapse feature
-└── shared/
-    ├── db.js                 # IndexedDB wrapper for PDF storage
-    ├── profile.js            # User profile utilities
-    ├── signature.js          # Email signature generation
-    ├── emailUtils.js         # EML file generation utilities
-    ├── emailPreviewUtils.js  # Email preview functionality
-    ├── theme.js              # Theme system (light/dark + palettes)
-    ├── pageTransitions.js    # Page transition effects
-    └── icons.js              # SVG icon utilities
+src/
+├── css/
+│   ├── styles.css            # Main layout and component styles
+│   ├── theme-base.css        # Base theme variables and semantic colors
+│   ├── theme-palettes.css    # Color palette definitions
+│   ├── toast.css             # Toast notification styles
+│   └── promotion-styles.css  # Promotion page-specific styles
+└── js/
+    ├── app.js                    # Main app entry point
+    ├── promotion-app.js          # Promotion app entry point
+    ├── state.js                  # Global app state management
+    ├── promotion-state.js        # Promotion page state
+    ├── templates.js              # Template definitions and utilities
+    ├── ui.js                     # Main UI logic and event handlers
+    ├── promotion-ui.js           # Promotion UI logic
+    ├── promotionConfig.js        # Promotion template configuration
+    ├── promotionUiUtils.js       # Promotion UI helper functions
+    ├── promotion-column-collapse.js  # Column collapse feature
+    └── shared/
+        ├── db.js                 # IndexedDB wrapper for PDF storage
+        ├── profile.js            # User profile utilities
+        ├── signature.js          # Email signature generation
+        ├── emailUtils.js         # EML file generation utilities
+        ├── emailPreviewUtils.js  # Email preview functionality
+        ├── htmlTextConversion.js # HTML/plain text conversion utilities
+        ├── theme.js              # Theme system (light/dark + palettes)
+        ├── pageTransitions.js    # Page transition effects
+        ├── ui-utils.js           # Common UI utility functions
+        └── icons.js              # SVG icon utilities
 ```
 
 **Key Pattern**: Shared utilities live in `src/js/shared/`, page-specific logic at the root level.
@@ -115,9 +124,9 @@ Email files (EML/EMLTPL) are generated in `src/js/shared/emailUtils.js`:
 
 Multi-palette theme system in `src/js/shared/theme.js`:
 - Light/dark mode toggle
-- **Light palettes**: pastel (default), golden-hour, terracotta, mint, lavender
-- **Dark palettes**: midnight-blue (default), cyberpunk, forest, purple, ember
-- CSS custom properties in `src/css/styles.css`
+- **Light palettes**: github (default), spacegray, catppuccin-latte, nord, rose-pine-dawn, tokyo-day, solarized, one-light
+- **Dark palettes**: github (default), spacegray, catppuccin-mocha, nord, rose-pine, tokyo-night, monokai, kanagawa
+- CSS custom properties split across `src/css/theme-base.css` and `src/css/theme-palettes.css`
 - Theme state stored in localStorage
 
 ## Electron Desktop App
@@ -222,12 +231,14 @@ Edit `getEmployeeSignature()` in `src/js/shared/signature.js`. The function chec
 
 ### Adding a Theme Palette
 
-1. Add CSS custom properties in `src/css/styles.css`:
+1. Add CSS custom properties in `src/css/theme-palettes.css`:
    ```css
    [data-theme="light"][data-light-palette="new-palette"] { /* ... */ }
    ```
 
-2. Add option to palette selectors in `start.html` and update `initTheme()` in `theme.js`.
+2. Add the palette name to `VALID_LIGHT_PALETTES` or `VALID_DARK_PALETTES` array in `src/js/shared/theme.js`.
+
+3. Add option to palette selectors in `start.html`.
 
 ### Working with Electron Features
 
@@ -256,3 +267,9 @@ if (window.electronAPI && typeof window.electronAPI.saveBlob === 'function') {
 - Check theme switching across all pages
 - Test profile import/export functionality
 - Validate IndexedDB PDF persistence across page refreshes
+
+## Additional Documentation
+
+- `docs/ARCHITECTURE-MAP.md` – Detailed module-level architecture with data flow diagrams
+- `docs/SIGNATURE-FORMAT.md` – Email signature structure and formatting rules
+- `docs/CHANGELOG.md` – Version history and change notes
