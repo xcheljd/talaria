@@ -1655,9 +1655,9 @@ body {
 }
 
 .char-count.warning {
-  color: var(--destructive-foreground);
-  background: var(--destructive);
-  border-color: var(--destructive);
+  color: var(--warning-foreground);
+  background: var(--warning);
+  border-color: var(--warning);
 }
 
 /* Placeholder text styling */
@@ -2225,8 +2225,8 @@ body {
 .btn-ghost-base.success,
 .btn-primary-base.success {
   animation: success-pulse 0.6s ease;
-  background: var(--success-green, #10b981) !important;
-  color: white !important;
+  background: var(--success) !important;
+  color: var(--success-foreground) !important;
 }
 
 .btn.loading svg,

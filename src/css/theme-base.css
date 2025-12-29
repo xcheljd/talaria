@@ -29,6 +29,15 @@
   --destructive: #cf222e;
   --destructive-foreground: #ffffff;
 
+  --success: #1a7f37;
+  --success-foreground: #ffffff;
+
+  --warning: #9a6700;
+  --warning-foreground: #ffffff;
+
+  --info: #0969da;
+  --info-foreground: #ffffff;
+
   --border: #d0d7de;
   --input: #d0d7de;
   --ring: #0969da;
