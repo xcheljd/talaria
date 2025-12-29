@@ -20,19 +20,17 @@
             padding-top: 15px;
         }
 
-        .fixed-actions {
-            position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
+        .header-actions {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.5rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            background: var(--card);
-            box-shadow: var(--shadow-md);
-            z-index: 100;
+        }
+
+        .header-top {
+            position: relative;
         }
 
         .start-container {
@@ -362,6 +360,33 @@
     <div class="header">
         <div class="header-top">
             <h1>Profile Settings</h1>
+            <div class="header-actions">
+                <button type="submit" form="setupForm" class="btn" title="Save profile">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Save
+                </button>
+                <button type="button" class="btn-ghost" id="exportProfileBtn" title="Export profile as JSON">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Export
+                </button>
+                <button type="button" class="btn-ghost" id="importProfileBtn" title="Import profile from JSON">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Import
+                </button>
+                <input type="file" id="importProfileFile" accept=".json" style="display: none;">
+            </div>
             <div class="header-controls">
                 <a href="index.html" class="nav-link" title="Template Generator">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -639,35 +664,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Fixed Action Buttons -->
-    <div class="fixed-actions">
-        <button type="submit" form="setupForm" class="btn" title="Save profile">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                <polyline points="7 3 7 8 15 8"></polyline>
-            </svg>
-            Save
-        </button>
-        <button type="button" class="btn-ghost" id="exportProfileBtn" title="Export profile as JSON">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            Export
-        </button>
-        <button type="button" class="btn-ghost" id="importProfileBtn" title="Import profile from JSON">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Import
-        </button>
-        <input type="file" id="importProfileFile" accept=".json" style="display: none;">
     </div>
 
     <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
