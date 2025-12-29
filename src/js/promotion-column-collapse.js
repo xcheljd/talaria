@@ -270,7 +270,7 @@ function setupCardTitleHandlers(skinnyWrapper, columnType) {
       if (cardId) {
         // Slight delay to ensure column expansion animation is done
         requestAnimationFrame(() => {
-          expandAndScrollToCard(cardId, columnType, index, titles.length);
+          expandAndScrollToCard(cardId);
         });
       }
     });
@@ -278,27 +278,41 @@ function setupCardTitleHandlers(skinnyWrapper, columnType) {
 }
 
 /**
- * Expand a card and scroll it into view
+ * Scroll to a card and expand it if collapsed
  * @param {string} cardId - The ID of the card to expand
- * @param {string} columnType - 'left' or 'center'
- * @param {number} cardIndex - Index of the card in the skinny bar (0 = top, etc)
- * @param {number} totalCards - Total number of cards in the column
  */
-function expandAndScrollToCard(cardId, columnType, cardIndex, totalCards) {
+function expandAndScrollToCard(cardId) {
   const card = document.getElementById(cardId);
   if (!card) return;
 
-  // Remove collapsed class to expand the card
-  card.classList.remove('collapsed');
+  const wasCollapsed = card.classList.contains('collapsed');
 
-  // Use scrollIntoView to bring the top border of the card to the top of the viewport
-  // Wait a tick for the card to finish expanding
+  // Scroll to the card first (while still collapsed)
+  card.scrollIntoView({ behavior: getScrollBehavior(), block: 'start' });
+
+  if (!wasCollapsed) return;
+
+  // Wait for scroll to complete, then expand while following bottom edge
   setTimeout(() => {
-    card.scrollIntoView({
-      behavior: getScrollBehavior(),
-      block: 'start',
-    });
-  }, 50);
+    card.classList.remove('collapsed');
+
+    const scrollContainer = card.closest('.left-column, .center-column');
+    if (!scrollContainer) return;
+
+    const endTime = performance.now() + 300; // CSS transition duration
+
+    const followExpansion = () => {
+      const overflow = card.getBoundingClientRect().bottom - scrollContainer.getBoundingClientRect().bottom;
+      if (overflow > 0) {
+        scrollContainer.scrollTop += overflow + 16;
+      }
+      if (performance.now() < endTime) {
+        requestAnimationFrame(followExpansion);
+      }
+    };
+
+    requestAnimationFrame(followExpansion);
+  }, 400);
 }
 
 /**
