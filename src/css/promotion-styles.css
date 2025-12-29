@@ -2196,8 +2196,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
   margin-top: 1rem;
 }
 
