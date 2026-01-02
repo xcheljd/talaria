@@ -1210,22 +1210,23 @@
                 }
             }
 
-            // Initialize download folder UI (Electron-aware)
+            // Initialize download folder UI (Tauri desktop app aware)
             const downloadFolderInput = document.getElementById('downloadFolderPath');
             const chooseDownloadFolderBtn = document.getElementById('chooseDownloadFolderBtn');
 
             if (downloadFolderInput && chooseDownloadFolderBtn) {
-                if (window.electronAPI && typeof window.electronAPI.getDownloadDir === 'function') {
-                    // In Electron: fetch current dir from main and wire the button
-                    window.electronAPI
-                        .getDownloadDir()
+                if (window.__TAURI__ && window.__TAURI__.core) {
+                    // In Tauri: fetch current dir from backend and wire the button
+                    const invoke = window.__TAURI__.core.invoke;
+
+                    invoke('get_download_dir')
                         .then((dir) => {
                             if (dir) {
                                 downloadFolderInput.value = dir;
                             }
                         })
                         .catch((err) => {
-                            console.error('Error getting download dir from Electron:', err);
+                            console.error('Error getting download dir from Tauri:', err);
                             // Fallback to any locally remembered value
                             const localDir = localStorage.getItem('downloadFolderPath');
                             if (localDir) {
@@ -1235,16 +1236,19 @@
 
                     chooseDownloadFolderBtn.addEventListener('click', async () => {
                         try {
-                            const dir = await window.electronAPI.chooseDownloadDir();
+                            const dir = await invoke('choose_download_dir');
                             if (dir) {
                                 downloadFolderInput.value = dir;
-                                // Store for display only; actual path is owned by Electron main.
+                                // Store for display only; actual path is owned by Tauri backend.
                                 localStorage.setItem('downloadFolderPath', dir);
                                 showToast(`Download folder set to: ${dir}`);
                             }
                         } catch (err) {
-                            console.error('Error choosing download folder:', err);
-                            showToast('Error choosing download folder');
+                            // User cancelled the dialog or error occurred
+                            if (err !== 'No folder selected') {
+                                console.error('Error choosing download folder:', err);
+                                showToast('Error choosing download folder');
+                            }
                         }
                     });
                 } else {

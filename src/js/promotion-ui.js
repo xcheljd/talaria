@@ -96,6 +96,92 @@ function debounce(func, wait) {
 
 export { showToast, writeEmptyStateToIframe };
 
+// ===== CONFIRMATION DIALOG =====
+
+/**
+ * Show a custom confirmation dialog (replaces native confirm() for Electron compatibility)
+ * Native confirm() causes WebView2 pointer event issues on Windows
+ * @param {string} message - The message to display
+ * @param {Object} options - Optional configuration
+ * @param {string} options.title - Dialog title (default: "Confirm")
+ * @param {string} options.okText - OK button text (default: "OK")
+ * @param {string} options.cancelText - Cancel button text (default: "Cancel")
+ * @returns {Promise<boolean>} - Resolves to true if OK clicked, false if Cancel clicked
+ */
+export function showConfirmDialog(message, options = {}) {
+  const { title = 'Confirm', okText = 'OK', cancelText = 'Cancel' } = options;
+
+  return new Promise((resolve) => {
+    const modal = document.getElementById('confirmModal');
+    const titleEl = document.getElementById('confirmModalTitle');
+    const messageEl = document.getElementById('confirmModalMessage');
+    const okBtn = document.getElementById('confirmModalOk');
+    const cancelBtn = document.getElementById('confirmModalCancel');
+    const backdrop = modal?.querySelector('.confirm-modal-backdrop');
+
+    if (!modal || !titleEl || !messageEl || !okBtn || !cancelBtn) {
+      // Fallback to native confirm if modal elements not found
+      console.warn(
+        'Confirm modal elements not found, falling back to native confirm'
+      );
+      resolve(confirm(message));
+      return;
+    }
+
+    // Set content
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    okBtn.textContent = okText;
+    cancelBtn.textContent = cancelText;
+
+    // Show modal
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('active'), 10);
+
+    // Focus the cancel button for safety (pressing Enter won't accidentally confirm)
+    cancelBtn.focus();
+
+    // Cleanup function
+    const cleanup = () => {
+      modal.classList.remove('active');
+      setTimeout(() => {
+        modal.style.display = 'none';
+      }, 200);
+      okBtn.removeEventListener('click', handleOk);
+      cancelBtn.removeEventListener('click', handleCancel);
+      backdrop?.removeEventListener('click', handleCancel);
+      document.removeEventListener('keydown', handleKeydown);
+    };
+
+    // Event handlers
+    const handleOk = () => {
+      cleanup();
+      resolve(true);
+    };
+
+    const handleCancel = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    const handleKeydown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleCancel();
+      } else if (e.key === 'Enter' && document.activeElement === okBtn) {
+        e.preventDefault();
+        handleOk();
+      }
+    };
+
+    // Attach event listeners
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', handleCancel);
+    backdrop?.addEventListener('click', handleCancel);
+    document.addEventListener('keydown', handleKeydown);
+  });
+}
+
 // Current PDF preview state
 let currentPreviewPDF = null;
 let currentBlobUrl = null;
@@ -149,7 +235,9 @@ const debouncedAutosave = debounce(silentAutosave, 500);
 function checkSectionCompleteness(cardId) {
   switch (cardId) {
     case 'basicDetailsCard': {
-      const dateRange = document.getElementById('promoDateRange')?.value?.trim();
+      const dateRange = document
+        .getElementById('promoDateRange')
+        ?.value?.trim();
       const year = document.getElementById('promoYear')?.value?.trim();
       const title = document.getElementById('promoTitle')?.value?.trim();
       return !!(dateRange || year || title);
@@ -164,7 +252,9 @@ function checkSectionCompleteness(cardId) {
     case 'howToShopCard':
       return promotionState.howToShopItems.some((item) => item.text?.trim());
     case 'importantNotesCard':
-      return promotionState.importantNotesItems.some((item) => item.text?.trim());
+      return promotionState.importantNotesItems.some((item) =>
+        item.text?.trim()
+      );
     case 'specialHoursCard':
       return promotionState.specialHours.some(
         (hour) => hour.day?.trim() || hour.hours?.trim()
@@ -872,18 +962,30 @@ function parseDateRange(dateRangeStr) {
   if (!dateRangeStr || !dateRangeStr.trim()) return null;
 
   const months = {
-    jan: 0, january: 0,
-    feb: 1, february: 1,
-    mar: 2, march: 2,
-    apr: 3, april: 3,
+    jan: 0,
+    january: 0,
+    feb: 1,
+    february: 1,
+    mar: 2,
+    march: 2,
+    apr: 3,
+    april: 3,
     may: 4,
-    jun: 5, june: 5,
-    jul: 6, july: 6,
-    aug: 7, august: 7,
-    sep: 8, sept: 8, september: 8,
-    oct: 9, october: 9,
-    nov: 10, november: 10,
-    dec: 11, december: 11,
+    jun: 5,
+    june: 5,
+    jul: 6,
+    july: 6,
+    aug: 7,
+    august: 7,
+    sep: 8,
+    sept: 8,
+    september: 8,
+    oct: 9,
+    october: 9,
+    nov: 10,
+    november: 10,
+    dec: 11,
+    december: 11,
   };
 
   const str = dateRangeStr.toLowerCase().trim();
@@ -1161,7 +1263,9 @@ export function removePromotionEntry(entryId) {
 export function movePromotionEntryUp(entryId) {
   if (moveItemInArray(promotionState.promotionEntries, entryId, 'up')) {
     renderPromotionEntries();
-    const newIndex = promotionState.promotionEntries.findIndex(e => e.id === entryId);
+    const newIndex = promotionState.promotionEntries.findIndex(
+      (e) => e.id === entryId
+    );
     announceToScreenReader(`Entry moved to position ${newIndex + 1}`);
   }
 }
@@ -1170,7 +1274,9 @@ export function movePromotionEntryUp(entryId) {
 export function movePromotionEntryDown(entryId) {
   if (moveItemInArray(promotionState.promotionEntries, entryId, 'down')) {
     renderPromotionEntries();
-    const newIndex = promotionState.promotionEntries.findIndex(e => e.id === entryId);
+    const newIndex = promotionState.promotionEntries.findIndex(
+      (e) => e.id === entryId
+    );
     announceToScreenReader(`Entry moved to position ${newIndex + 1}`);
   }
 }
@@ -1368,7 +1474,9 @@ export function renderPromotionEntries() {
         movePromotionEntryUp(entryId);
         // Refocus the entry after rerender
         setTimeout(() => {
-          const movedEntry = document.querySelector(`.promotion-entry[data-entry-id="${entryId}"]`);
+          const movedEntry = document.querySelector(
+            `.promotion-entry[data-entry-id="${entryId}"]`
+          );
           if (movedEntry) movedEntry.focus();
         }, 50);
       } else if (e.key === 'ArrowDown') {
@@ -1376,7 +1484,9 @@ export function renderPromotionEntries() {
         movePromotionEntryDown(entryId);
         // Refocus the entry after rerender
         setTimeout(() => {
-          const movedEntry = document.querySelector(`.promotion-entry[data-entry-id="${entryId}"]`);
+          const movedEntry = document.querySelector(
+            `.promotion-entry[data-entry-id="${entryId}"]`
+          );
           if (movedEntry) movedEntry.focus();
         }, 50);
       }
@@ -2395,7 +2505,8 @@ export function previewPDF(pdfId, triggerElement = null) {
  * @param {HTMLElement} modal - The modal element to trap focus within
  */
 function setupModalFocusTrap(modal) {
-  const focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  const focusableSelectors =
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
   modal.addEventListener('keydown', handleModalKeydown);
 }
@@ -2408,9 +2519,12 @@ function handleModalKeydown(e) {
   if (e.key !== 'Tab') return;
 
   const modal = e.currentTarget;
-  const focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  const focusableSelectors =
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
   const focusableElements = modal.querySelectorAll(focusableSelectors);
-  const focusableArray = Array.from(focusableElements).filter(el => !el.disabled && el.offsetParent !== null);
+  const focusableArray = Array.from(focusableElements).filter(
+    (el) => !el.disabled && el.offsetParent !== null
+  );
 
   if (focusableArray.length === 0) return;
 
@@ -2731,7 +2845,9 @@ export function generateSubjectLines() {
       // Gift-giving occasions
       subjects.push(`${occasion.name} Watch Gifts`);
       if (maxDiscount > 0) {
-        subjects.push(`${occasion.name} Gifts – ${getDiscountPhrase(maxDiscount)}`);
+        subjects.push(
+          `${occasion.name} Gifts – ${getDiscountPhrase(maxDiscount)}`
+        );
       }
       if (brands.length > 0) {
         subjects.push(`${occasion.name}: ${brands[0]} Picks`);
@@ -2740,19 +2856,25 @@ export function generateSubjectLines() {
       // Sale-focused occasions
       subjects.push(`${occasion.name} Watch Sale`);
       if (maxDiscount > 0) {
-        subjects.push(`${occasion.name} Savings – ${getDiscountPhrase(maxDiscount)}`);
+        subjects.push(
+          `${occasion.name} Savings – ${getDiscountPhrase(maxDiscount)}`
+        );
       }
     } else if (occasion.type === 'theme') {
       // Themed occasions (more subtle)
       if (maxDiscount > 0) {
-        subjects.push(`${occasion.name} Sale – ${getDiscountPhrase(maxDiscount)}`);
+        subjects.push(
+          `${occasion.name} Sale – ${getDiscountPhrase(maxDiscount)}`
+        );
       }
     }
   } else {
     // No occasion - use seasonal subjects
     const seasonCapitalized = season.charAt(0).toUpperCase() + season.slice(1);
     if (maxDiscount > 0) {
-      subjects.push(`${seasonCapitalized} Watch Sale – ${getDiscountPhrase(maxDiscount)}`);
+      subjects.push(
+        `${seasonCapitalized} Watch Sale – ${getDiscountPhrase(maxDiscount)}`
+      );
     }
   }
 
@@ -2788,7 +2910,9 @@ export function generateSubjectLines() {
   subjects.push('Elevate Your Style');
   subjects.push('Time for an Upgrade');
   if (maxDiscount > 0) {
-    subjects.push(`Timeless Style, Limited Time – ${getDiscountPhrase(maxDiscount)}`);
+    subjects.push(
+      `Timeless Style, Limited Time – ${getDiscountPhrase(maxDiscount)}`
+    );
   }
   if (brands.length > 0) {
     subjects.push(`Discover ${brands[0]} Excellence`);
@@ -3193,11 +3317,11 @@ function initPDFSection() {
 
 // Reset everything to default state
 export async function resetToDefaults() {
-  if (
-    !confirm(
-      'This will reset everything to defaults and cannot be undone. Continue?'
-    )
-  ) {
+  const confirmed = await showConfirmDialog(
+    'This will reset everything to defaults and cannot be undone. Continue?',
+    { title: 'Reset to Defaults', okText: 'Reset', cancelText: 'Cancel' }
+  );
+  if (!confirmed) {
     return;
   }
 

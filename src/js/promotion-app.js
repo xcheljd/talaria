@@ -23,6 +23,7 @@ import {
   init as initPromotionUI,
   generatePromotionEmailHTML,
   showToast,
+  showConfirmDialog,
   getRecommendedFormat,
   updateHowToShopEmail,
   generateSubjectLines,
@@ -40,7 +41,10 @@ import {
 import { appState } from './state.js';
 import { warningIcon } from './shared/icons.js';
 import { initColumnCollapse } from './promotion-column-collapse.js';
-import { announceToScreenReader, getScrollBehavior } from './shared/ui-utils.js';
+import {
+  announceToScreenReader,
+  getScrollBehavior,
+} from './shared/ui-utils.js';
 
 /**
  * Validate that the user profile has all required fields
@@ -218,7 +222,8 @@ function setupCollapsibleCards() {
         card.classList.toggle('collapsed');
 
         // Announce state change to screen readers
-        const sectionTitle = header.querySelector('.section-title')?.textContent || 'Section';
+        const sectionTitle =
+          header.querySelector('.section-title')?.textContent || 'Section';
         const newState = wasCollapsed ? 'expanded' : 'collapsed';
         announceToScreenReader(`${sectionTitle} ${newState}`);
 
@@ -226,7 +231,10 @@ function setupCollapsibleCards() {
         if (wasCollapsed) {
           // Wait for CSS transition to complete (--transition-base: 300ms)
           setTimeout(() => {
-            card.scrollIntoView({ behavior: getScrollBehavior(), block: 'nearest' });
+            card.scrollIntoView({
+              behavior: getScrollBehavior(),
+              block: 'nearest',
+            });
           }, 300);
         }
       });
@@ -408,16 +416,22 @@ function setupOutputButtons() {
 
     // Warn for large recipient lists (1000+)
     if (validEmails.length >= 1000) {
-      const proceed = confirm(
-        `You are about to generate ${batchCount} batch file(s) for ${validEmails.length.toLocaleString()} recipients.\n\nThis may take a moment. Continue?`
+      const proceed = await showConfirmDialog(
+        `You are about to generate ${batchCount} batch file(s) for ${validEmails.length.toLocaleString()} recipients.\n\nThis may take a moment. Continue?`,
+        {
+          title: 'Large Recipient List',
+          okText: 'Continue',
+          cancelText: 'Cancel',
+        }
       );
       if (!proceed) return;
     }
 
     // Warn if no subject line selected
     if (!subject) {
-      const proceed = confirm(
-        'No subject line selected. The email will use "Weekly Promotion" as the default subject.\n\nContinue anyway?'
+      const proceed = await showConfirmDialog(
+        'No subject line selected. The email will use "Weekly Promotion" as the default subject.\n\nContinue anyway?',
+        { title: 'No Subject Line', okText: 'Continue', cancelText: 'Cancel' }
       );
       if (!proceed) return;
     }
@@ -494,7 +508,10 @@ function setupOutputButtons() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        showToast(`Generated ZIP with ${batches.length} email batch(es)`, 'success');
+        showToast(
+          `Generated ZIP with ${batches.length} email batch(es)`,
+          'success'
+        );
         announceToScreenReader(`Generated ${batches.length} email batches`);
       } else {
         // Download individual files
@@ -528,7 +545,10 @@ function setupOutputButtons() {
           }
         }
 
-        showToast(`Downloaded ${batches.length} email batch file(s)`, 'success');
+        showToast(
+          `Downloaded ${batches.length} email batch file(s)`,
+          'success'
+        );
         announceToScreenReader(`Downloaded ${batches.length} email batches`);
       }
     } catch (error) {
@@ -671,7 +691,11 @@ function setupOutputButtons() {
     clearRecipientsBtn.addEventListener('click', async () => {
       if (!bulkEmailList.value.trim()) return;
 
-      if (confirm('Clear all recipient email addresses?')) {
+      const confirmed = await showConfirmDialog(
+        'Clear all recipient email addresses?',
+        { title: 'Clear Recipients', okText: 'Clear', cancelText: 'Cancel' }
+      );
+      if (confirmed) {
         bulkEmailList.value = '';
         updateBatchStats();
         updateAllStatusDots();
@@ -765,12 +789,16 @@ function setupOutputButtons() {
   }
 
   // Download format radio buttons - persist preference
-  const downloadFormatRadios = document.querySelectorAll('input[name="downloadFormat"]');
+  const downloadFormatRadios = document.querySelectorAll(
+    'input[name="downloadFormat"]'
+  );
   if (downloadFormatRadios.length > 0) {
     // Restore saved format
     const savedFormat = localStorage.getItem('bulkEmail.downloadFormat');
     if (savedFormat) {
-      const savedRadio = document.querySelector(`input[name="downloadFormat"][value="${savedFormat}"]`);
+      const savedRadio = document.querySelector(
+        `input[name="downloadFormat"][value="${savedFormat}"]`
+      );
       if (savedRadio) {
         savedRadio.checked = true;
       }

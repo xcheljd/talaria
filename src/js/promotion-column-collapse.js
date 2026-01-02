@@ -302,7 +302,9 @@ function expandAndScrollToCard(cardId) {
     const endTime = performance.now() + 300; // CSS transition duration
 
     const followExpansion = () => {
-      const overflow = card.getBoundingClientRect().bottom - scrollContainer.getBoundingClientRect().bottom;
+      const overflow =
+        card.getBoundingClientRect().bottom -
+        scrollContainer.getBoundingClientRect().bottom;
       if (overflow > 0) {
         scrollContainer.scrollTop += overflow + 16;
       }

@@ -857,7 +857,9 @@ body {
   margin-top: 1rem;
   display: grid;
   grid-template-rows: 1fr;
-  transition: grid-template-rows var(--transition-base), margin-top var(--transition-base);
+  transition:
+    grid-template-rows var(--transition-base),
+    margin-top var(--transition-base);
 }
 
 .card.collapsible.collapsed .card-content {
@@ -883,15 +885,18 @@ body {
   border-radius: 50%;
   margin-right: 0.5rem;
   flex-shrink: 0;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
-.status-dot[data-status="empty"] {
+.status-dot[data-status='empty'] {
   background: transparent;
   border: 1.5px solid var(--muted-foreground);
 }
 
-.status-dot[data-status="filled"] {
+.status-dot[data-status='filled'] {
   background: var(--primary);
   border: 1.5px solid var(--primary);
 }
@@ -1271,6 +1276,93 @@ body {
   display: flex;
   justify-content: flex-end;
   background-color: var(--card);
+}
+
+/* ==========================================================================
+   CONFIRMATION MODAL STYLES
+   Replaces native confirm() dialog for Electron Windows compatibility
+   ========================================================================== */
+
+.confirm-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.confirm-modal[style*='display: flex'] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.confirm-modal.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.confirm-modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.confirm-modal-container {
+  position: relative;
+  width: 90%;
+  max-width: 400px;
+  background-color: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 1101;
+  border: 1px solid var(--border);
+  transform: scale(0.95);
+  transition: transform 0.2s ease;
+}
+
+.confirm-modal.active .confirm-modal-container {
+  transform: scale(1);
+}
+
+.confirm-modal-header {
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.confirm-modal-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.confirm-modal-content {
+  padding: 0.5rem 1.25rem 1rem;
+}
+
+.confirm-modal-message {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.confirm-modal-footer {
+  padding: 0.75rem 1.25rem 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 /* ==========================================================================
