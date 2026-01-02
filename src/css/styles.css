@@ -30,52 +30,17 @@ body {
 
 /* Header slides in from top */
 .header {
-  /* Safari reliability: force compositor layer */
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  animation: slide-in-from-top 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* Backwards-compat: if JS adds .animate-in, keep behavior consistent */
-.header.animate-in {
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  animation: slide-in-from-top 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: slide-in-from-top 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Page content blurs in and slides up */
 .page-content {
-  /* Safari reliability: blur/transform animations can be flaky without a compositor layer */
-  will-change: transform, opacity, filter;
-  transform: translateZ(0);
-  animation: blur-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+  animation: blur-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.1s backwards;
 }
 
-/* Backwards-compat: if JS adds .animate-in, keep behavior consistent */
-.page-content.animate-in {
-  will-change: transform, opacity, filter;
-  transform: translateZ(0);
-  animation: blur-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
-}
-
-/* Fade out transition for page navigation - overrides animate-in */
+/* Fade out transition for page navigation */
 .header.fade-out,
-.header.animate-in.fade-out {
-  opacity: 0;
-  transform: translateY(0);
-  animation: none;
-  transition: opacity var(--transition-base) ease-in;
-}
-
 .page-content.fade-out,
-.page-content.animate-in.fade-out {
-  opacity: 0;
-  transform: translateY(0);
-  filter: blur(0);
-  animation: none;
-  transition: opacity var(--transition-base) ease-in;
-}
-
 .right-column.fade-out,
 .column-skinny-wrapper.fade-out {
   opacity: 0;
