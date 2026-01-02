@@ -2265,6 +2265,13 @@ body {
   margin-right: 0.5rem;
 }
 
+/* Button text wrapper - centers icon and text vertically */
+.btn-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .mr-1 {
   margin-right: 0.25rem;
 }
