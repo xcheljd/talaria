@@ -193,3 +193,33 @@ export function getEmailDarkModeCSS() {
     }
   `;
 }
+
+/**
+ * Returns scrollbar CSS that uses theme variables for injection into iframes
+ * This ensures iframe scrollbars match the parent document's theme
+ * @returns {string} CSS string with scrollbar styling using CSS variables
+ */
+export function getScrollbarCSS() {
+  return `
+    /* WebKit scrollbar theming */
+    ::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--muted);
+      border-radius: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 6px;
+      border: 2px solid var(--muted);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--muted-foreground);
+    }
+    ::-webkit-scrollbar-corner {
+      background: var(--muted);
+    }
+  `;
+}

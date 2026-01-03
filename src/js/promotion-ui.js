@@ -23,7 +23,7 @@ import {
   announceToScreenReader,
   getScrollBehavior,
 } from './shared/ui-utils.js';
-import { getEmailDarkModeCSS } from './shared/theme.js';
+import { getEmailDarkModeCSS, getScrollbarCSS } from './shared/theme.js';
 import {
   escapeHtml,
   plainTextToPreviewHTML,
@@ -376,13 +376,14 @@ export function updateLivePreview() {
     document.documentElement.getAttribute('data-theme') || 'light';
   let previewHtml = htmlCode;
 
+  // Always inject scrollbar CSS; inject dark mode CSS only when needed
+  let styleInjections = `<style id="scrollbar-theme">${getScrollbarCSS()}</style>`;
+
   if (currentTheme === 'dark') {
-    // Inject dark mode simulation CSS into the email HTML
-    previewHtml = htmlCode.replace(
-      '</head>',
-      `<style id="dark-mode-sim">${getEmailDarkModeCSS()}</style></head>`
-    );
+    styleInjections += `<style id="dark-mode-sim">${getEmailDarkModeCSS()}</style>`;
   }
+
+  previewHtml = htmlCode.replace('</head>', `${styleInjections}</head>`);
 
   // Write email content to iframe
   const iframeDoc =
