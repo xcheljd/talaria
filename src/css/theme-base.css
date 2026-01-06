@@ -72,13 +72,13 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--muted-foreground);
   border-radius: 6px;
   border: 2px solid var(--muted);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+  background: var(--foreground);
 }
 
 ::-webkit-scrollbar-corner {
@@ -88,7 +88,7 @@
 /* Firefox scrollbar styling */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--border) var(--muted);
+  scrollbar-color: var(--muted-foreground) var(--muted);
 }
 
 /* Explicit scrollbar styling for textarea elements (Windows/Electron fix) */
@@ -106,14 +106,14 @@ textarea::-webkit-scrollbar-track {
 
 .output-textarea::-webkit-scrollbar-thumb,
 textarea::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--muted-foreground);
   border-radius: 6px;
   border: 2px solid var(--muted);
 }
 
 .output-textarea::-webkit-scrollbar-thumb:hover,
 textarea::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+  background: var(--foreground);
 }
 
 .output-textarea::-webkit-scrollbar-corner,
@@ -133,13 +133,13 @@ textarea::-webkit-scrollbar-corner {
 }
 
 .search-results::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--muted-foreground);
   border-radius: 6px;
   border: 2px solid var(--muted);
 }
 
 .search-results::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+  background: var(--foreground);
 }
 
 .search-results::-webkit-scrollbar-corner {

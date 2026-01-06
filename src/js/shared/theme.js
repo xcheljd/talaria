@@ -211,12 +211,12 @@ export function getScrollbarCSS() {
       border-radius: 6px;
     }
     ::-webkit-scrollbar-thumb {
-      background: var(--border);
+      background: var(--muted-foreground);
       border-radius: 6px;
       border: 2px solid var(--muted);
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: var(--muted-foreground);
+      background: var(--foreground);
     }
     ::-webkit-scrollbar-corner {
       background: var(--muted);
