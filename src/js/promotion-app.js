@@ -18,6 +18,7 @@ import {
 import { resetToDefaults } from './promotion-ui.js';
 import { initTheme, toggleTheme } from './shared/theme.js';
 import { initPageTransitions } from './shared/pageTransitions.js';
+import { getUserProfile } from './shared/profile.js';
 import { promotionState } from './promotion-state.js';
 import {
   init as initPromotionUI,
@@ -98,17 +99,7 @@ function redirectToProfileSetup() {
 
 // Initialize the promotion app when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
-  // Load user profile from localStorage
-  const storedProfile = localStorage.getItem('userProfile');
-  let profile = null;
-
-  if (storedProfile) {
-    try {
-      profile = JSON.parse(storedProfile);
-    } catch (e) {
-      console.warn('Failed to parse stored profile:', e);
-    }
-  }
+  const profile = getUserProfile();
 
   // Validate profile - redirect if incomplete
   const validation = validateProfile(profile);
@@ -186,21 +177,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Update how to shop email when profile might have changed (e.g., user edited profile and returned)
   window.addEventListener('focus', () => {
-    const storedProfile = localStorage.getItem('userProfile');
-    if (storedProfile) {
-      try {
-        const profile = JSON.parse(storedProfile);
-        const currentEmail =
-          profile?.storeEmail || 'store@citizenwatchgroup.com';
-        const previousEmail =
-          appState.userProfile?.storeEmail || 'store@citizenwatchgroup.com';
-        if (currentEmail !== previousEmail) {
-          appState.userProfile = profile;
-          window.userProfile = profile;
-          updateHowToShopEmail();
-        }
-      } catch (e) {
-        console.warn('Failed to parse stored profile on focus:', e);
+    const profile = getUserProfile();
+    if (profile) {
+      const currentEmail = profile?.storeEmail || 'store@citizenwatchgroup.com';
+      const previousEmail =
+        appState.userProfile?.storeEmail || 'store@citizenwatchgroup.com';
+      if (currentEmail !== previousEmail) {
+        appState.userProfile = profile;
+        window.userProfile = profile;
+        updateHowToShopEmail();
       }
     }
   });

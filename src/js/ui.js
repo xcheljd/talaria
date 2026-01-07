@@ -1,5 +1,11 @@
 // Constants
 export { TOAST_DURATION_MS } from './shared/ui-utils.js';
+import {
+  getUserProfile,
+  getStorePhone,
+  getStoreName,
+  getStoreLocation,
+} from './shared/profile.js';
 
 // Global variable for current template (used by modules)
 export let currentTemplate = null;
@@ -46,9 +52,6 @@ import {
   templateHelp,
   fieldConfig,
   getFieldSuggestions,
-  getStorePhone,
-  getStoreName,
-  getStoreLocation,
   getEmployeeSignature,
   convertTextToHTML,
   sanitizeHTML,
@@ -294,13 +297,9 @@ export { writeEmptyStateToIframe, detectOS, getRecommendedFormat };
 
 // Load user profile from localStorage
 export function loadUserProfile() {
-  try {
-    const data = localStorage.getItem('userProfile');
-    if (data) {
-      appState.userProfile = JSON.parse(data);
-    }
-  } catch (e) {
-    console.error('Error loading user profile:', e);
+  const profile = getUserProfile();
+  if (profile) {
+    appState.userProfile = profile;
   }
 }
 

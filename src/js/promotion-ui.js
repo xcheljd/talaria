@@ -51,10 +51,14 @@ import {
   setupClearButtons,
 } from './promotionUiUtils.js';
 
-// Import from templates.js for helper functions
-import { getStorePhone, getStoreName, escapeAttr } from './templates.js';
-// Import from profile.js for email function
-import { getStoreEmail } from './shared/profile.js';
+// Import from profile.js for helper functions
+import {
+  getStorePhone,
+  getStoreName,
+  getStoreLocation,
+} from './shared/profile.js';
+// Import from html-utils.js for HTML escaping
+import { escapeAttr } from './shared/html-utils.js';
 
 // Import appState for user profile access
 import { appState } from './state.js';

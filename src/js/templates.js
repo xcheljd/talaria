@@ -5,32 +5,18 @@ import {
   escapeAttr,
   sanitizeTemplateData,
 } from './shared/html-utils.js';
+import {
+  getStorePhone,
+  getStoreName,
+  getStoreLocation,
+  getFullStoreLocation,
+} from './shared/profile.js';
 
 // Re-export for backward compatibility
 export const getEmployeeSignature = signatureFunction;
 
-// Helper functions to get store info from user profile
-export function getStorePhone() {
-  return appState.userProfile && appState.userProfile.storePhone
-    ? appState.userProfile.storePhone
-    : '702-357-8990';
-}
-
-export function getStoreName() {
-  return appState.userProfile && appState.userProfile.storeName
-    ? appState.userProfile.storeName
-    : 'Citizen Company Store';
-}
-
-export function getStoreLocation() {
-  return appState.userProfile && appState.userProfile.storeLocation
-    ? appState.userProfile.storeLocation
-    : 'the South Premium Outlets';
-}
-
-export function getFullStoreLocation() {
-  return `Citizen Company Store at ${getStoreLocation()}`;
-}
+// Re-export HTML utilities for backward compatibility
+export { sanitizeHTML, escapeAttr, sanitizeTemplateData };
 
 // Note: getEmployeeSignature() has been moved to signature.js module
 // Import at top of file: import { getEmployeeSignature } from './signature.js';
