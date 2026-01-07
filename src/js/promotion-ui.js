@@ -913,8 +913,14 @@ export function exportPromotionTemplate() {
 
 // ===== AUTO-GENERATION FUNCTIONS =====
 
-// Get the nth occurrence of a weekday in a month (e.g., 3rd Monday)
-// month: 0-11, dayOfWeek: 0=Sun, 1=Mon, ..., 6=Sat, ordinal: 1-5
+/**
+ * Get nth occurrence of a weekday in a month (e.g., 3rd Monday)
+ * @param {number} year - Four-digit year
+ * @param {number} month - Month (0-11, where 0=January)
+ * @param {number} dayOfWeek - Day of week (0=Sunday, 1=Monday, ..., 6=Saturday)
+ * @param {number} ordinal - Which occurrence (1-5, e.g., 3 for "3rd")
+ * @returns {Date} Date object for the calculated weekday
+ */
 function getOrdinalWeekday(year, month, dayOfWeek, ordinal) {
   const firstDay = new Date(year, month, 1);
   const firstDayOfWeek = firstDay.getDay();
@@ -933,7 +939,13 @@ function getLastWeekday(year, month, dayOfWeek) {
   return new Date(year, month, lastDay.getDate() - dayOffset);
 }
 
-// Calculate all holiday dates for a given year
+/**
+ * Calculate all holiday dates for a given year
+ * @param {number} year - Four-digit year
+ * @returns {Object} Object containing Date objects for each holiday
+ *   Returns fixed holidays (New Year, Valentine's, etc.) and
+ *   floating holidays (Presidents Day, Mother's Day, etc.)
+ */
 function getHolidayDates(year) {
   const thanksgiving = getOrdinalWeekday(year, 10, 4, 4); // 4th Thursday of Nov
 
@@ -957,8 +969,12 @@ function getHolidayDates(year) {
   };
 }
 
-// Parse a date range string into start and end Date objects
-// Handles formats like: "Nov 28 - Dec 1", "December 15-22", "Jan 5"
+/**
+ * Parse a date range string into start and end Date objects
+ * Handles formats like: "Nov 28 - Dec 1", "December 15-22", "Jan 5"
+ * @param {string} dateRangeStr - Date range string to parse
+ * @returns {{start: Date, end: Date}|null} Object with start/end dates, or null if invalid
+ */
 function parseDateRange(dateRangeStr) {
   if (!dateRangeStr || !dateRangeStr.trim()) return null;
 
