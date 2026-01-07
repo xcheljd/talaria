@@ -1,33 +1,13 @@
 import { appState } from './state.js';
 import { getEmployeeSignature as signatureFunction } from './shared/signature.js';
+import {
+  sanitizeHTML,
+  escapeAttr,
+  sanitizeTemplateData,
+} from './shared/html-utils.js';
 
 // Re-export for backward compatibility
 export const getEmployeeSignature = signatureFunction;
-
-// Helper function to sanitize HTML and prevent XSS
-export function sanitizeHTML(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-// Helper function to escape HTML attributes
-export function escapeAttr(str) {
-  return str.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-}
-
-// Sanitize template data to prevent XSS attacks
-export function sanitizeTemplateData(data) {
-  const sanitized = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (typeof value === 'string') {
-      sanitized[key] = sanitizeHTML(value);
-    } else {
-      sanitized[key] = value; // Keep non-string values as-is
-    }
-  }
-  return sanitized;
-}
 
 // Helper functions to get store info from user profile
 export function getStorePhone() {
