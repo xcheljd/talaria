@@ -1,6 +1,8 @@
 @import './toast.css';
 @import './theme-base.css';
 @import './theme-palettes.css';
+@import './theme-patterns.css';
+@import './theme-transitions.css';
 /* ==========================================================================
    GLOBAL STYLES & RESET
    ========================================================================== */

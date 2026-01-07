@@ -4,14 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Communication Template Generator</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="stylesheet" href="/src/css/styles.css" />
     <script>
-      (function() {
+      (function () {
         var theme = localStorage.getItem('theme') || 'light';
         var lightPalette = localStorage.getItem('lightPalette') || 'github';
         var darkPalette = localStorage.getItem('darkPalette') || 'github';
         document.documentElement.setAttribute('data-theme', theme);
-        document.documentElement.setAttribute('data-light-palette', lightPalette);
+        document.documentElement.setAttribute(
+          'data-light-palette',
+          lightPalette
+        );
         document.documentElement.setAttribute('data-dark-palette', darkPalette);
       })();
     </script>
@@ -104,36 +108,41 @@
     </div>
 
     <div class="page-content">
-    <div class="container">
-      <div class="card">
-        <h2 class="section-title" id="formSectionTitle">Template Fields</h2>
-        <div id="formFields" class="form-grid">
-          <div class="placeholder-message" id="formPlaceholder">
-            <p>Select a template to begin</p>
+      <div class="container">
+        <div class="card">
+          <h2 class="section-title" id="formSectionTitle">Template Fields</h2>
+          <div id="formFields" class="form-grid">
+            <div class="placeholder-message" id="formPlaceholder">
+              <p>Select a template to begin</p>
+            </div>
+          </div>
+          <div class="button-group">
+            <button class="btn" id="generateBtn">Generate</button>
+            <button class="btn" id="clearBtn" disabled>Clear</button>
           </div>
         </div>
-        <div class="button-group">
-          <button class="btn" id="generateBtn">Generate</button>
-          <button class="btn" id="clearBtn" disabled>Clear</button>
-        </div>
-      </div>
 
-      <div class="card output-card" id="outputCard">
-        <h2 class="section-title">Generated Message</h2>
-        <textarea
-          class="output-textarea"
-          id="outputArea"
-          placeholder="Your generated message will appear here..."
-          aria-label="Generated message output"
-        ></textarea>
-        <div class="button-group">
-          <button class="btn" id="copyBtn">Copy Message</button>
+        <div class="card output-card" id="outputCard">
+          <h2 class="section-title">Generated Message</h2>
+          <textarea
+            class="output-textarea"
+            id="outputArea"
+            placeholder="Your generated message will appear here..."
+            aria-label="Generated message output"
+          ></textarea>
+          <div class="button-group">
+            <button class="btn" id="copyBtn">Copy Message</button>
+          </div>
         </div>
       </div>
     </div>
-    </div>
 
-    <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
+    <div
+      class="toast-container"
+      id="toastContainer"
+      role="status"
+      aria-live="polite"
+    ></div>
 
     <!-- Vite will automatically bundle and inject the JavaScript -->
     <script type="module" src="/src/js/app.js"></script>

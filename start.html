@@ -1,1464 +1,1756 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Setup - Communication Template Generator</title>
-    <link rel="stylesheet" href="/src/css/styles.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/src/css/styles.css" />
     <script>
-      (function() {
+      (function () {
         var theme = localStorage.getItem('theme') || 'light';
         var lightPalette = localStorage.getItem('lightPalette') || 'github';
         var darkPalette = localStorage.getItem('darkPalette') || 'github';
         document.documentElement.setAttribute('data-theme', theme);
-        document.documentElement.setAttribute('data-light-palette', lightPalette);
+        document.documentElement.setAttribute(
+          'data-light-palette',
+          lightPalette
+        );
         document.documentElement.setAttribute('data-dark-palette', darkPalette);
       })();
     </script>
     <style>
-        .header-actions {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+      .header-actions {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
 
-        .header-top {
-            position: relative;
-        }
+      .header-top {
+        position: relative;
+      }
 
+      .start-container {
+        max-width: 900px;
+        margin: 0 auto 2rem;
+        padding: 0 2rem;
+      }
+
+      .start-card {
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-subtle);
+        padding: 3rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        transition: all var(--transition-theme);
+      }
+
+      .start-card:hover {
+        box-shadow: var(--shadow-lg), var(--glow);
+      }
+
+      .settings-card {
+        margin-top: 1.5rem;
+      }
+
+      .settings-card .start-header h2 {
+        font-size: 1.25rem;
+      }
+
+      .settings-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem 1.25rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        background: var(--card);
+      }
+
+      .start-header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .start-header h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+        background: linear-gradient(
+          135deg,
+          var(--accent-primary),
+          var(--accent-secondary)
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .start-header p {
+        font-size: 0.9375rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      .start-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem 1.25rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        background: var(--card);
+      }
+
+      .start-info {
+        grid-column: 1 / -1;
+        background: var(--bg-accent);
+        border-left: 3px solid var(--accent-primary);
+        padding: 1rem 1.25rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 1rem;
+        border-radius: var(--radius-sm);
+      }
+
+      [data-theme='dark'] .start-info {
+        background: var(--bg-secondary);
+        border-color: var(--accent-primary);
+        box-shadow: var(--glow);
+      }
+
+      .form-input:read-only:not(select) {
+        background: var(--bg-tertiary);
+        color: var(--text-tertiary);
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+
+      .form-input[type='text']:read-only:focus {
+        border-color: var(--border-medium);
+        box-shadow: none;
+      }
+
+      select.form-input {
+        cursor: pointer;
+        appearance: none;
+        padding-right: 2.5rem;
+        background-color: transparent;
+      }
+
+      select.form-input::-ms-expand {
+        display: none;
+      }
+
+      .field-help {
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+        margin-top: 0.5rem;
+      }
+
+      .field-error {
+        font-size: 0.75rem;
+        color: #d32f2f;
+        margin-top: 0.25rem;
+        display: none;
+      }
+
+      .field-warning {
+        font-size: 0.75rem;
+        color: #f57c00;
+        margin-top: 0.25rem;
+        display: none;
+      }
+
+      .input-error {
+        border-color: #d32f2f !important;
+        animation: shake 0.5s ease;
+      }
+
+      .input-warning {
+        border-color: #f57c00 !important;
+        animation: shake 0.5s ease;
+      }
+
+      /* Shake animation for validation errors */
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        10%,
+        30%,
+        50%,
+        70%,
+        90% {
+          transform: translateX(-2px);
+        }
+        20%,
+        40%,
+        60%,
+        80% {
+          transform: translateX(2px);
+        }
+      }
+
+      /* Focus animations for form inputs */
+      .form-input:focus,
+      .form-textarea:focus {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+      }
+
+      /* Floating label animation */
+      .form-group {
+        position: relative;
+      }
+
+      .form-input:focus + .field-help,
+      .form-textarea:focus + .field-help {
+        transform: translateY(-2px);
+        color: var(--accent-primary);
+        font-weight: 500;
+      }
+
+      /* Button group animations */
+      .btn {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.25);
+      }
+
+      .btn:active {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 12px rgba(59, 130, 246, 0.3);
+      }
+
+      /* Theme toggle animation */
+      .theme-toggle-slider {
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Field help text animation */
+      .field-help {
+        transition: all 0.3s ease;
+      }
+
+      /* Error message animation */
+      .field-error {
+        animation: slideInLeft 0.4s ease;
+      }
+
+      @keyframes slideInLeft {
+        0% {
+          opacity: 0;
+          transform: translateX(-10px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .form-section-divider {
+        grid-column: 1 / -1;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--accent-primary),
+          transparent
+        );
+        margin: 0.5rem 0;
+        opacity: 0.3;
+      }
+
+      .form-group.full-width {
+        grid-column: 1 / -1;
+      }
+
+      .form-group.full-width .form-label {
+        text-align: center;
+      }
+
+      .form-group.full-width input[type='text'],
+      .form-group.full-width input[type='email'],
+      .form-group.full-width textarea {
+        max-width: 50%;
+        margin: 0 auto;
+      }
+
+      .form-group.full-width .input-wrapper {
+        display: flex;
+        justify-content: center;
+      }
+
+      .form-group.full-width .field-help {
+        text-align: center;
+      }
+
+      /* Keep download folder and textareas full width */
+      #downloadFolderGroup .input-wrapper {
+        justify-content: stretch;
+      }
+
+      #downloadFolderGroup input {
+        max-width: 100%;
+      }
+
+      .button-group {
+        grid-column: 1 / -1;
+      }
+
+      /* Success animation for export/import */
+      @keyframes success-pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .btn-ghost.success,
+      .btn.success {
+        animation: success-pulse 0.6s ease;
+        background: var(--success) !important;
+        color: var(--success-foreground) !important;
+      }
+
+      /* Loading animation */
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .btn-ghost.loading svg,
+      .btn.loading svg {
+        animation: spin 1s linear infinite;
+      }
+
+      .btn-ghost.loading,
+      .btn.loading {
+        pointer-events: none;
+        opacity: 0.7;
+      }
+
+      /* Validation Summary */
+      .validation-summary {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: color-mix(
+          in srgb,
+          var(--destructive) 10%,
+          var(--background)
+        );
+        border: 1px solid var(--destructive);
+        border-radius: var(--radius);
+        color: var(--destructive);
+        font-size: 0.875rem;
+        line-height: 1.5;
+        animation: slideInLeft 0.3s ease;
+      }
+
+      .validation-summary svg {
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+      }
+
+      @media (max-width: 992px) {
         .start-container {
-            max-width: 900px;
-            margin: 0 auto 2rem;
-            padding: 0 2rem;
+          margin: 2rem auto;
+          padding: 0 1rem;
         }
 
         .start-card {
-            background: var(--bg-secondary);
-            border: 2px solid var(--border-subtle);
-            padding: 3rem;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-md);
-            transition: all var(--transition-theme);
+          padding: 2rem 1.5rem;
         }
 
-        .start-card:hover {
-            box-shadow: var(--shadow-lg), var(--glow);
-        }
-
-        .settings-card {
-            margin-top: 1.5rem;
-        }
-
-        .settings-card .start-header h2 {
-            font-size: 1.25rem;
-        }
-
+        .start-form,
         .settings-form {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem 1.25rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            background: var(--card);
+          grid-template-columns: 1fr;
+          gap: 1.25rem;
         }
 
-        .start-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .start-header h1 {
-            font-size: 1.75rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.02em;
-            color: var(--text-primary);
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .start-header p {
-            font-size: 0.9375rem;
-            color: var(--text-secondary);
-            line-height: 1.6;
-        }
-
-        .start-form {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem 1.25rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            background: var(--card);
-        }
-
-        .start-info {
-            grid-column: 1 / -1;
-            background: var(--bg-accent);
-            border-left: 3px solid var(--accent-primary);
-            padding: 1rem 1.25rem;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 1rem;
-            border-radius: var(--radius-sm);
-        }
-
-        [data-theme="dark"] .start-info {
-            background: var(--bg-secondary);
-            border-color: var(--accent-primary);
-            box-shadow: var(--glow);
-        }
-
-        .form-input:read-only:not(select) {
-            background: var(--bg-tertiary);
-            color: var(--text-tertiary);
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
-
-        .form-input[type="text"]:read-only:focus {
-            border-color: var(--border-medium);
-            box-shadow: none;
-        }
-
-        select.form-input {
-            cursor: pointer;
-            appearance: none;
-            padding-right: 2.5rem;
-            background-color: transparent;
-        }
-
-        select.form-input::-ms-expand {
-            display: none;
-        }
-
-        .field-help {
-            font-size: 0.75rem;
-            color: var(--text-tertiary);
-            margin-top: 0.5rem;
-        }
-
-        .field-error {
-            font-size: 0.75rem;
-            color: #d32f2f;
-            margin-top: 0.25rem;
-            display: none;
-        }
-
-        .field-warning {
-            font-size: 0.75rem;
-            color: #f57c00;
-            margin-top: 0.25rem;
-            display: none;
-        }
-
-        .input-error {
-            border-color: #d32f2f !important;
-            animation: shake 0.5s ease;
-        }
-
-        .input-warning {
-            border-color: #f57c00 !important;
-            animation: shake 0.5s ease;
-        }
-
-        /* Shake animation for validation errors */
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
-            20%, 40%, 60%, 80% { transform: translateX(2px); }
-        }
-
-        /* Focus animations for form inputs */
-        .form-input:focus,
-        .form-textarea:focus {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-        }
-
-        /* Floating label animation */
-        .form-group {
-            position: relative;
-        }
-
-        .form-input:focus + .field-help,
-        .form-textarea:focus + .field-help {
-            transform: translateY(-2px);
-            color: var(--accent-primary);
-            font-weight: 500;
-        }
-
-        /* Button group animations */
-        .btn {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.25);
-        }
-
-        .btn:active {
-            transform: translateY(-1px);
-            box-shadow: 0 3px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        /* Theme toggle animation */
-        .theme-toggle-slider {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Field help text animation */
-        .field-help {
-            transition: all 0.3s ease;
-        }
-
-        /* Error message animation */
-        .field-error {
-            animation: slideInLeft 0.4s ease;
-        }
-
-        @keyframes slideInLeft {
-            0% {
-                opacity: 0;
-                transform: translateX(-10px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
+        .form-group.full-width,
+        .button-group,
         .form-section-divider {
-            grid-column: 1 / -1;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
-            margin: 0.5rem 0;
-            opacity: 0.3;
+          grid-column: 1;
         }
 
-        .form-group.full-width {
-            grid-column: 1 / -1;
+        .settings-form .form-group.full-width {
+          grid-column: 1;
         }
 
-        .form-group.full-width .form-label {
-            text-align: center;
-        }
-
-        .form-group.full-width input[type="text"],
-        .form-group.full-width input[type="email"],
+        .form-group.full-width input[type='text'],
+        .form-group.full-width input[type='email'],
         .form-group.full-width textarea {
-            max-width: 50%;
-            margin: 0 auto;
+          max-width: 100%;
         }
 
-        .form-group.full-width .input-wrapper {
-            display: flex;
-            justify-content: center;
-        }
-
+        .form-group.full-width .form-label,
         .form-group.full-width .field-help {
-            text-align: center;
+          text-align: left;
         }
-
-        /* Keep download folder and textareas full width */
-        #downloadFolderGroup .input-wrapper {
-            justify-content: stretch;
-        }
-
-        #downloadFolderGroup input {
-            max-width: 100%;
-        }
-
-        .button-group {
-            grid-column: 1 / -1;
-        }
-
-        /* Success animation for export/import */
-        @keyframes success-pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        .btn-ghost.success,
-        .btn.success {
-            animation: success-pulse 0.6s ease;
-            background: var(--success) !important;
-            color: var(--success-foreground) !important;
-        }
-
-        /* Loading animation */
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .btn-ghost.loading svg,
-        .btn.loading svg {
-            animation: spin 1s linear infinite;
-        }
-
-        .btn-ghost.loading,
-        .btn.loading {
-            pointer-events: none;
-            opacity: 0.7;
-        }
-
-        /* Validation Summary */
-        .validation-summary {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            background: color-mix(in srgb, var(--destructive) 10%, var(--background));
-            border: 1px solid var(--destructive);
-            border-radius: var(--radius);
-            color: var(--destructive);
-            font-size: 0.875rem;
-            line-height: 1.5;
-            animation: slideInLeft 0.3s ease;
-        }
-
-        .validation-summary svg {
-            flex-shrink: 0;
-            margin-top: 0.125rem;
-        }
-
-        @media (max-width: 992px) {
-            .start-container {
-                margin: 2rem auto;
-                padding: 0 1rem;
-            }
-
-            .start-card {
-                padding: 2rem 1.5rem;
-            }
-
-            .start-form,
-            .settings-form {
-                grid-template-columns: 1fr;
-                gap: 1.25rem;
-            }
-
-            .form-group.full-width,
-            .button-group,
-            .form-section-divider {
-                grid-column: 1;
-            }
-
-            .settings-form .form-group.full-width {
-                grid-column: 1;
-            }
-
-            .form-group.full-width input[type="text"],
-            .form-group.full-width input[type="email"],
-            .form-group.full-width textarea {
-                max-width: 100%;
-            }
-
-            .form-group.full-width .form-label,
-            .form-group.full-width .field-help {
-                text-align: left;
-            }
-        }
+      }
     </style>
-</head>
-<body class="page-profile">
+  </head>
+  <body class="page-profile">
     <div class="header">
-        <div class="header-top">
-            <h1>Profile Settings</h1>
-            <div class="header-actions">
-                <button type="submit" form="setupForm" class="btn" title="Save profile">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
-                    Save
-                </button>
-                <button type="button" class="btn-ghost" id="exportProfileBtn" title="Export profile as JSON">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    Export
-                </button>
-                <button type="button" class="btn-ghost" id="importProfileBtn" title="Import profile from JSON">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    Import
-                </button>
-                <input type="file" id="importProfileFile" accept=".json" style="display: none;">
-            </div>
-            <div class="header-controls">
-                <a href="index.html" class="nav-link" title="Template Generator">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                    </svg>
-                    Templates
-                </a>
-                <a href="promotion.html" class="nav-link" title="Promotion Email Generator">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                        <path d="M2 17l10 5 10-5"></path>
-                        <path d="M2 12l10 5 10-5"></path>
-                    </svg>
-                    Promotions
-                </a>
-                <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
-                    <div class="theme-toggle-slider"></div>
-                </button>
-            </div>
+      <div class="header-top">
+        <h1>Profile Settings</h1>
+        <div class="header-actions">
+          <button
+            type="submit"
+            form="setupForm"
+            class="btn"
+            title="Save profile"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+              ></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Save
+          </button>
+          <button
+            type="button"
+            class="btn-ghost"
+            id="exportProfileBtn"
+            title="Export profile as JSON"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Export
+          </button>
+          <button
+            type="button"
+            class="btn-ghost"
+            id="importProfileBtn"
+            title="Import profile from JSON"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Import
+          </button>
+          <input
+            type="file"
+            id="importProfileFile"
+            accept=".json"
+            style="display: none"
+          />
         </div>
+        <div class="header-controls">
+          <a href="index.html" class="nav-link" title="Template Generator">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+              ></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            Templates
+          </a>
+          <a
+            href="promotion.html"
+            class="nav-link"
+            title="Promotion Email Generator"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+              <path d="M2 17l10 5 10-5"></path>
+              <path d="M2 12l10 5 10-5"></path>
+            </svg>
+            Promotions
+          </a>
+          <button
+            class="theme-toggle"
+            id="themeToggle"
+            title="Toggle light/dark mode"
+            aria-label="Toggle light/dark mode"
+          >
+            <div class="theme-toggle-slider"></div>
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="page-content">
-    <div class="start-container">
+      <div class="start-container">
         <div class="start-card">
-            <div class="start-header">
-                <h1>Welcome to Communication Template Generator</h1>
-                <p>Set up your profile to auto-fill common fields across all templates</p>
+          <div class="start-header">
+            <h1>Welcome to Communication Template Generator</h1>
+            <p>
+              Set up your profile to auto-fill common fields across all
+              templates
+            </p>
+          </div>
+
+          <div
+            class="start-info profile-required-banner"
+            id="profileRequiredBanner"
+            style="
+              display: none;
+              border-left-color: var(--warning);
+              background: color-mix(
+                in srgb,
+                var(--warning) 10%,
+                var(--background)
+              );
+            "
+          >
+            <strong>Profile required:</strong> Please complete your profile to
+            continue to the Promotion Email Generator.
+          </div>
+
+          <div class="start-info">
+            This information will be saved locally on your device and used to
+            automatically fill in your details when creating templates. You can
+            update this information anytime.
+          </div>
+
+          <form class="start-form" id="setupForm">
+            <div class="form-group">
+              <label class="form-label">Your Name *</label>
+              <div class="input-wrapper">
+                <input
+                  type="text"
+                  class="form-input"
+                  id="employeeName"
+                  placeholder="e.g., John Smith"
+                  required
+                />
+              </div>
             </div>
 
-            <div class="start-info profile-required-banner" id="profileRequiredBanner" style="display: none; border-left-color: var(--warning); background: color-mix(in srgb, var(--warning) 10%, var(--background));">
-                <strong>Profile required:</strong> Please complete your profile to continue to the Promotion Email Generator.
+            <div class="form-group">
+              <label class="form-label">Job Title *</label>
+              <div class="input-wrapper">
+                <div class="select-wrapper">
+                  <select class="form-input" id="jobTitle" required>
+                    <option value="">Select your job title...</option>
+                    <option value="Sales Associate">Sales Associate</option>
+                    <option value="Sales Associate/Keyholder">
+                      Sales Associate/Keyholder
+                    </option>
+                    <option value="Assistant Store Manager">
+                      Assistant Store Manager
+                    </option>
+                    <option value="Associate Store Manager">
+                      Associate Store Manager
+                    </option>
+                    <option value="General Manager">General Manager</option>
+                    <option value="Area Manager">Area Manager</option>
+                    <option value="Regional Manager">Regional Manager</option>
+                    <option value="District Manager">District Manager</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
-            <div class="start-info">
-                This information will be saved locally on your device and used to automatically fill in your details when creating templates. You can update this information anytime.
+            <div
+              class="form-group full-width"
+              id="companyEmailGroup"
+              style="display: none"
+            >
+              <label class="form-label">Company Email *</label>
+              <div class="input-wrapper">
+                <input
+                  type="email"
+                  class="form-input"
+                  id="companyEmail"
+                  placeholder="your.name@citizenwatchgroup.com"
+                />
+              </div>
+              <div class="field-help">
+                Required for management positions — Used in email signatures for
+                managers and above
+              </div>
+              <div class="field-error" id="companyEmailError"></div>
             </div>
 
-            <form class="start-form" id="setupForm">
-                 <div class="form-group">
-                     <label class="form-label">Your Name *</label>
-                     <div class="input-wrapper">
-                         <input
-                             type="text"
-                             class="form-input"
-                             id="employeeName"
-                             placeholder="e.g., John Smith"
-                             required
-                         >
-                     </div>
-                 </div>
+            <div class="form-group">
+              <label class="form-label">Store Name *</label>
+              <div class="input-wrapper">
+                <input
+                  type="text"
+                  class="form-input"
+                  id="storeName"
+                  placeholder="Citizen Company Store - Orlando"
+                  required
+                />
+              </div>
+              <div class="field-help">
+                Include location if multiple stores (e.g., "Citizen Company
+                Store - Orlando")
+              </div>
+            </div>
 
-                 <div class="form-group">
-                     <label class="form-label">Job Title *</label>
-                     <div class="input-wrapper">
-                         <div class="select-wrapper">
-                             <select class="form-input" id="jobTitle" required>
-                                 <option value="">Select your job title...</option>
-                                 <option value="Sales Associate">Sales Associate</option>
-                                 <option value="Sales Associate/Keyholder">Sales Associate/Keyholder</option>
-                                 <option value="Assistant Store Manager">Assistant Store Manager</option>
-                                 <option value="Associate Store Manager">Associate Store Manager</option>
-                                 <option value="General Manager">General Manager</option>
-                                 <option value="Area Manager">Area Manager</option>
-                                 <option value="Regional Manager">Regional Manager</option>
-                                 <option value="District Manager">District Manager</option>
-                             </select>
-                         </div>
-                     </div>
-                 </div>
+            <div class="form-group">
+              <label class="form-label">Store Location *</label>
+              <div class="input-wrapper">
+                <input
+                  type="text"
+                  class="form-input"
+                  id="storeLocation"
+                  placeholder="the Orlando Premium Outlets"
+                  required
+                />
+              </div>
+              <div class="field-help">
+                Format: "the [Mall Name]" or "[Shopping Center]" — Used in email
+                signatures
+              </div>
+            </div>
 
-                 <div class="form-group full-width" id="companyEmailGroup" style="display: none;">
-                     <label class="form-label">Company Email *</label>
-                     <div class="input-wrapper">
-                         <input
-                             type="email"
-                             class="form-input"
-                             id="companyEmail"
-                             placeholder="your.name@citizenwatchgroup.com"
-                         >
-                     </div>
-                     <div class="field-help">Required for management positions — Used in email signatures for managers and above</div>
-                     <div class="field-error" id="companyEmailError"></div>
-                 </div>
+            <div class="form-group">
+              <label class="form-label">Store Address</label>
+              <div class="input-wrapper">
+                <textarea
+                  class="form-textarea"
+                  id="storeAddress"
+                  placeholder="123 Main Street&#10;City, State ZIP"
+                  style="min-height: 80px"
+                ></textarea>
+              </div>
+              <div class="field-help">
+                Used in email signatures. Include street, city, state, and ZIP
+                code
+              </div>
+            </div>
 
-                <div class="form-group">
-                    <label class="form-label">Store Name *</label>
-                    <div class="input-wrapper">
-                        <input
-                            type="text"
-                            class="form-input"
-                            id="storeName"
-                            placeholder="Citizen Company Store - Orlando"
-                            required
-                        >
-                    </div>
-                    <div class="field-help">Include location if multiple stores (e.g., "Citizen Company Store - Orlando")</div>
-                </div>
+            <div class="form-group">
+              <label class="form-label">Google Plus Code (optional)</label>
+              <div class="input-wrapper">
+                <input
+                  type="text"
+                  class="form-input"
+                  id="storePlusCode"
+                  placeholder="849VCWC8+R9"
+                />
+              </div>
+              <div class="field-help">
+                Google Maps Plus Code for precise location (e.g., 849VCWC8+R9)
+              </div>
+              <div class="field-error" id="plusCodeError"></div>
+            </div>
 
-                <div class="form-group">
-                    <label class="form-label">Store Location *</label>
-                    <div class="input-wrapper">
-                        <input
-                            type="text"
-                            class="form-input"
-                            id="storeLocation"
-                            placeholder="the Orlando Premium Outlets"
-                            required
-                        >
-                    </div>
-                    <div class="field-help">Format: "the [Mall Name]" or "[Shopping Center]" — Used in email signatures</div>
-                </div>
+            <div class="form-group">
+              <label class="form-label">Store Phone *</label>
+              <div class="input-wrapper">
+                <input
+                  type="tel"
+                  class="form-input"
+                  id="storePhone"
+                  placeholder="555-123-4567"
+                  required
+                />
+              </div>
+              <div class="field-help">
+                Format: 555-123-4567 or (555) 123-4567 — Used in email
+                signatures
+              </div>
+              <div class="field-error" id="phoneError"></div>
+            </div>
 
-                <div class="form-group">
-                    <label class="form-label">Store Address</label>
-                    <div class="input-wrapper">
-                        <textarea
-                            class="form-textarea"
-                            id="storeAddress"
-                            placeholder="123 Main Street&#10;City, State ZIP"
-                            style="min-height: 80px;"
-                        ></textarea>
-                    </div>
-                    <div class="field-help">Used in email signatures. Include street, city, state, and ZIP code</div>
-                </div>
+            <div class="form-group">
+              <label class="form-label">Store Email *</label>
+              <div class="input-wrapper">
+                <input
+                  type="email"
+                  class="form-input"
+                  id="storeEmail"
+                  placeholder="store@citizenwatchgroup.com"
+                  required
+                />
+              </div>
+              <div class="field-help">
+                Use @citizenwatchgroup.com for company email — Used in email
+                signatures for non-manager staff
+              </div>
+              <div class="field-error" id="emailError"></div>
+            </div>
 
-                <div class="form-group">
-                    <label class="form-label">Google Plus Code (optional)</label>
-                    <div class="input-wrapper">
-                        <input
-                            type="text"
-                            class="form-input"
-                            id="storePlusCode"
-                            placeholder="849VCWC8+R9"
-                        >
-                    </div>
-                    <div class="field-help">Google Maps Plus Code for precise location (e.g., 849VCWC8+R9)</div>
-                    <div class="field-error" id="plusCodeError"></div>
-                </div>
+            <div class="form-group">
+              <label class="form-label">Store Hours *</label>
+              <div class="input-wrapper">
+                <input
+                  type="text"
+                  class="form-input"
+                  id="storeHours"
+                  placeholder="Mon–Sat: 10AM–8PM | Sun: 10AM–7PM"
+                  value="Mon–Sat: 10AM–8PM | Sun: 10AM–7PM"
+                  required
+                />
+              </div>
+              <div class="field-help">
+                Edit as needed for your store's specific hours
+              </div>
+              <div class="field-error" id="hoursError"></div>
+            </div>
 
-                <div class="form-group">
-                    <label class="form-label">Store Phone *</label>
-                    <div class="input-wrapper">
-                        <input
-                            type="tel"
-                            class="form-input"
-                            id="storePhone"
-                            placeholder="555-123-4567"
+            <div class="form-group">
+              <label class="form-label"
+                >Store Directions / Location Notes (optional)</label
+              >
+              <div class="input-wrapper">
+                <input
+                  type="text"
+                  class="form-input"
+                  id="storeDirections"
+                  placeholder="e.g., Entrance E, near Polo Ralph Lauren"
+                />
+              </div>
+              <div class="field-help">
+                Used in promotion email template. Optional: Easy-to-follow
+                directions for customers
+              </div>
+            </div>
 
-                            required
-                        >
-                    </div>
-                    <div class="field-help">Format: 555-123-4567 or (555) 123-4567 — Used in email signatures</div>
-                    <div class="field-error" id="phoneError"></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Store Email *</label>
-                    <div class="input-wrapper">
-                        <input
-                            type="email"
-                            class="form-input"
-                            id="storeEmail"
-                            placeholder="store@citizenwatchgroup.com"
-                            required
-                        >
-                    </div>
-                    <div class="field-help">Use @citizenwatchgroup.com for company email — Used in email signatures for non-manager staff</div>
-                    <div class="field-error" id="emailError"></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Store Hours *</label>
-                    <div class="input-wrapper">
-                        <input
-                            type="text"
-                            class="form-input"
-                            id="storeHours"
-                            placeholder="Mon–Sat: 10AM–8PM | Sun: 10AM–7PM"
-                            value="Mon–Sat: 10AM–8PM | Sun: 10AM–7PM"
-                            required
-                        >
-                    </div>
-                    <div class="field-help">Edit as needed for your store's specific hours</div>
-                    <div class="field-error" id="hoursError"></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Store Directions / Location Notes (optional)</label>
-                    <div class="input-wrapper">
-                        <input
-                            type="text"
-                            class="form-input"
-                            id="storeDirections"
-                            placeholder="e.g., Entrance E, near Polo Ralph Lauren"
-                        >
-                    </div>
-                    <div class="field-help">Used in promotion email template. Optional: Easy-to-follow directions for customers</div>
-                </div>
-
-                <!-- Validation Summary (shown after first failed submit) -->
-                <div class="form-group full-width">
-                    <div id="validationSummary" class="validation-summary" style="display: none;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="8" x2="12" y2="12"></line>
-                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                        </svg>
-                        <span id="validationSummaryText">Please complete all required fields</span>
-                    </div>
-                </div>
-            </form>
+            <!-- Validation Summary (shown after first failed submit) -->
+            <div class="form-group full-width">
+              <div
+                id="validationSummary"
+                class="validation-summary"
+                style="display: none"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span id="validationSummaryText"
+                  >Please complete all required fields</span
+                >
+              </div>
+            </div>
+          </form>
         </div>
 
         <!-- Settings Card -->
         <div class="start-card settings-card">
-            <div class="start-header">
-                <h2>Settings</h2>
-                <p>Customize your app preferences</p>
+          <div class="start-header">
+            <h2>Settings</h2>
+            <p>Customize your app preferences</p>
+          </div>
+
+          <div class="settings-form">
+            <!-- Electron download folder selection (optional) -->
+            <div class="form-group full-width" id="downloadFolderGroup">
+              <label class="form-label">Download Folder (Desktop app)</label>
+              <div
+                class="input-wrapper"
+                style="display: flex; gap: 0.5rem; align-items: center"
+              >
+                <input
+                  type="text"
+                  class="form-input"
+                  id="downloadFolderPath"
+                  placeholder="Using system Downloads folder"
+                  readonly
+                  style="flex: 1"
+                />
+                <button
+                  type="button"
+                  class="btn-secondary"
+                  id="chooseDownloadFolderBtn"
+                  style="flex-shrink: 0; white-space: nowrap"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  Choose Folder
+                </button>
+              </div>
+              <div class="field-help">
+                Used by the desktop (Electron) app to save EML/EMLTPL and ZIP
+                files. In a regular browser, your default Downloads folder is
+                always used.
+              </div>
             </div>
 
-            <div class="settings-form">
-                <!-- Electron download folder selection (optional) -->
-                <div class="form-group full-width" id="downloadFolderGroup">
-                    <label class="form-label">Download Folder (Desktop app)</label>
-                    <div class="input-wrapper" style="display: flex; gap: 0.5rem; align-items: center;">
-                        <input
-                            type="text"
-                            class="form-input"
-                            id="downloadFolderPath"
-                            placeholder="Using system Downloads folder"
-                            readonly
-                            style="flex: 1;"
-                        >
-                        <button
-                            type="button"
-                            class="btn-secondary"
-                            id="chooseDownloadFolderBtn"
-                            style="flex-shrink: 0; white-space: nowrap;"
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                            Choose Folder
-                        </button>
-                    </div>
-                    <div class="field-help">Used by the desktop (Electron) app to save EML/EMLTPL and ZIP files. In a regular browser, your default Downloads folder is always used.</div>
+            <div class="form-group">
+              <label class="form-label">Light Mode Color Palette</label>
+              <div class="input-wrapper">
+                <div class="select-wrapper">
+                  <select class="form-input" id="lightPaletteSelect">
+                    <option value="github">GitHub Light (Default)</option>
+                    <option value="spacegray">SpaceGray Light</option>
+                    <option value="catppuccin-latte">Catppuccin Latte</option>
+                    <option value="nord">Nord Light</option>
+                    <option value="rose-pine-dawn">Rose Pine Dawn</option>
+                    <option value="tokyo-day">Tokyo Night Day</option>
+                    <option value="solarized">Solarized Light</option>
+                    <option value="one-light">One Light</option>
+                  </select>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label">Light Mode Color Palette</label>
-                    <div class="input-wrapper">
-                        <div class="select-wrapper">
-                            <select class="form-input" id="lightPaletteSelect">
-                                <option value="github">GitHub Light (Default)</option>
-                                <option value="spacegray">SpaceGray Light</option>
-                                <option value="catppuccin-latte">Catppuccin Latte</option>
-                                <option value="nord">Nord Light</option>
-                                <option value="rose-pine-dawn">Rose Pine Dawn</option>
-                                <option value="tokyo-day">Tokyo Night Day</option>
-                                <option value="solarized">Solarized Light</option>
-                                <option value="one-light">One Light</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="field-help">Choose your preferred color scheme for light mode</div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Dark Mode Color Palette</label>
-                    <div class="input-wrapper">
-                        <div class="select-wrapper">
-                            <select class="form-input" id="darkPaletteSelect">
-                                <option value="github">GitHub Dark (Default)</option>
-                                <option value="spacegray">SpaceGray Dark</option>
-                                <option value="catppuccin-mocha">Catppuccin Mocha</option>
-                                <option value="nord">Nord Dark</option>
-                                <option value="rose-pine">Rose Pine</option>
-                                <option value="tokyo-night">Tokyo Night</option>
-                                <option value="monokai">Monokai</option>
-                                <option value="kanagawa">Kanagawa</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="field-help">Choose your preferred color scheme for dark mode</div>
-                </div>
+              </div>
+              <div class="field-help">
+                Choose your preferred color scheme for light mode
+              </div>
             </div>
+
+            <div class="form-group">
+              <label class="form-label">Dark Mode Color Palette</label>
+              <div class="input-wrapper">
+                <div class="select-wrapper">
+                  <select class="form-input" id="darkPaletteSelect">
+                    <option value="github">GitHub Dark (Default)</option>
+                    <option value="spacegray">SpaceGray Dark</option>
+                    <option value="catppuccin-mocha">Catppuccin Mocha</option>
+                    <option value="nord">Nord Dark</option>
+                    <option value="rose-pine">Rose Pine</option>
+                    <option value="tokyo-night">Tokyo Night</option>
+                    <option value="monokai">Monokai</option>
+                    <option value="kanagawa">Kanagawa</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-help">
+                Choose your preferred color scheme for dark mode
+              </div>
+            </div>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
+      <div
+        class="toast-container"
+        id="toastContainer"
+        role="status"
+        aria-live="polite"
+      ></div>
     </div>
 
     <script>
-        // Theme System - Matches main app.js
-        function initTheme() {
-            const savedMode = localStorage.getItem('theme') || 'light';
-            const lightPalette = localStorage.getItem('lightPalette') || 'pastel';
-            const darkPalette = localStorage.getItem('darkPalette') || 'midnight-blue';
+      // Theme System - Matches main app.js
+      function initTheme() {
+        const savedMode = localStorage.getItem('theme') || 'light';
+        const lightPalette = localStorage.getItem('lightPalette') || 'pastel';
+        const darkPalette =
+          localStorage.getItem('darkPalette') || 'midnight-blue';
 
-            document.documentElement.setAttribute('data-theme', savedMode);
-            document.documentElement.setAttribute('data-light-palette', lightPalette);
-            document.documentElement.setAttribute('data-dark-palette', darkPalette);
-            updateThemeIndicator(savedMode);
+        document.documentElement.setAttribute('data-theme', savedMode);
+        document.documentElement.setAttribute(
+          'data-light-palette',
+          lightPalette
+        );
+        document.documentElement.setAttribute('data-dark-palette', darkPalette);
+        updateThemeIndicator(savedMode);
 
-            // Update palette selector values
-            const lightPaletteSelect = document.getElementById('lightPaletteSelect');
-            const darkPaletteSelect = document.getElementById('darkPaletteSelect');
-            if (lightPaletteSelect) lightPaletteSelect.value = lightPalette;
-            if (darkPaletteSelect) darkPaletteSelect.value = darkPalette;
-        }
+        // Update palette selector values
+        const lightPaletteSelect =
+          document.getElementById('lightPaletteSelect');
+        const darkPaletteSelect = document.getElementById('darkPaletteSelect');
+        if (lightPaletteSelect) lightPaletteSelect.value = lightPalette;
+        if (darkPaletteSelect) darkPaletteSelect.value = darkPalette;
+      }
 
-        function toggleTheme() {
-            const currentMode = document.documentElement.getAttribute('data-theme') || 'light';
-            const newMode = currentMode === 'light' ? 'dark' : 'light';
+      function toggleTheme() {
+        const currentMode =
+          document.documentElement.getAttribute('data-theme') || 'light';
+        const newMode = currentMode === 'light' ? 'dark' : 'light';
 
-            document.documentElement.setAttribute('data-theme', newMode);
-            localStorage.setItem('theme', newMode);
-            updateThemeIndicator(newMode);
-        }
+        document.documentElement.setAttribute('data-theme', newMode);
+        localStorage.setItem('theme', newMode);
+        updateThemeIndicator(newMode);
+      }
 
-        function updateThemeIndicator(theme) {
-            const slider = document.querySelector('.theme-toggle-slider');
-            if (!slider) return;
+      function updateThemeIndicator(theme) {
+        const slider = document.querySelector('.theme-toggle-slider');
+        if (!slider) return;
 
-            slider.style.transform = theme === 'dark' ? 'translateX(20px)' : 'translateX(0)';
-        }
+        slider.style.transform =
+          theme === 'dark' ? 'translateX(20px)' : 'translateX(0)';
+      }
 
-        function setLightPalette(paletteName) {
-            document.documentElement.setAttribute('data-light-palette', paletteName);
-            localStorage.setItem('lightPalette', paletteName);
-        }
+      function setLightPalette(paletteName) {
+        document.documentElement.setAttribute(
+          'data-light-palette',
+          paletteName
+        );
+        localStorage.setItem('lightPalette', paletteName);
+      }
 
-        function setDarkPalette(paletteName) {
-            document.documentElement.setAttribute('data-dark-palette', paletteName);
-            localStorage.setItem('darkPalette', paletteName);
-        }
+      function setDarkPalette(paletteName) {
+        document.documentElement.setAttribute('data-dark-palette', paletteName);
+        localStorage.setItem('darkPalette', paletteName);
+      }
 
-        // Initialize theme on page load
-        initTheme();
+      // Initialize theme on page load
+      initTheme();
 
-        // Attach theme toggle handler
-        document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+      // Attach theme toggle handler
+      document
+        .getElementById('themeToggle')
+        ?.addEventListener('click', toggleTheme);
 
-        // Attach palette selector handlers
-        document.getElementById('lightPaletteSelect')?.addEventListener('change', function(e) {
-            setLightPalette(e.target.value);
+      // Attach palette selector handlers
+      document
+        .getElementById('lightPaletteSelect')
+        ?.addEventListener('change', function (e) {
+          setLightPalette(e.target.value);
         });
 
-        document.getElementById('darkPaletteSelect')?.addEventListener('change', function(e) {
-            setDarkPalette(e.target.value);
+      document
+        .getElementById('darkPaletteSelect')
+        ?.addEventListener('change', function (e) {
+          setDarkPalette(e.target.value);
         });
 
-        // Manual profile fields script below
+      // Manual profile fields script below
     </script>
     <script>
-        const form = document.getElementById('setupForm');
-        const toastContainer = document.getElementById('toastContainer');
-        
-        // Field elements
-        const jobTitleInput = document.getElementById('jobTitle');
-        const companyEmailInput = document.getElementById('companyEmail');
-        const companyEmailGroup = document.getElementById('companyEmailGroup');
-        const storePhoneInput = document.getElementById('storePhone');
-        const storeNameInput = document.getElementById('storeName');
-        const storeLocationInput = document.getElementById('storeLocation');
-        const storeEmailInput = document.getElementById('storeEmail');
-        const storeAddressInput = document.getElementById('storeAddress');
-        const storePlusCodeInput = document.getElementById('storePlusCode');
-        const storeHoursInput = document.getElementById('storeHours');
-        const storeDirectionsInput = document.getElementById('storeDirections');
+      const form = document.getElementById('setupForm');
+      const toastContainer = document.getElementById('toastContainer');
 
-        // Helper function to check if job title requires company email
-        function requiresCompanyEmail(jobTitle) {
-            const managementTitles = [
-                'Assistant Store Manager',
-                'Associate Store Manager',
-                'General Manager',
-                'Area Manager',
-                'Regional Manager',
-                'District Manager'
-            ];
-            return managementTitles.includes(jobTitle);
+      // Field elements
+      const jobTitleInput = document.getElementById('jobTitle');
+      const companyEmailInput = document.getElementById('companyEmail');
+      const companyEmailGroup = document.getElementById('companyEmailGroup');
+      const storePhoneInput = document.getElementById('storePhone');
+      const storeNameInput = document.getElementById('storeName');
+      const storeLocationInput = document.getElementById('storeLocation');
+      const storeEmailInput = document.getElementById('storeEmail');
+      const storeAddressInput = document.getElementById('storeAddress');
+      const storePlusCodeInput = document.getElementById('storePlusCode');
+      const storeHoursInput = document.getElementById('storeHours');
+      const storeDirectionsInput = document.getElementById('storeDirections');
+
+      // Helper function to check if job title requires company email
+      function requiresCompanyEmail(jobTitle) {
+        const managementTitles = [
+          'Assistant Store Manager',
+          'Associate Store Manager',
+          'General Manager',
+          'Area Manager',
+          'Regional Manager',
+          'District Manager',
+        ];
+        return managementTitles.includes(jobTitle);
+      }
+
+      // Toggle company email field visibility
+      function toggleCompanyEmailField() {
+        const jobTitle = jobTitleInput.value;
+        const requiresEmail = requiresCompanyEmail(jobTitle);
+
+        if (requiresEmail) {
+          companyEmailGroup.style.display = 'block';
+          companyEmailInput.required = true;
+        } else {
+          companyEmailGroup.style.display = 'none';
+          companyEmailInput.required = false;
+          companyEmailInput.value = '';
+          hideError('companyEmailError');
+        }
+      }
+
+      // Validation functions
+      function validatePhone(phone) {
+        const digitsOnly = phone.replace(/\D/g, '');
+        const isValid = digitsOnly.length === 10;
+
+        return {
+          isValid: isValid,
+          formatted: isValid ? formatPhone(digitsOnly) : phone,
+          error: !isValid ? 'Phone must have 10 digits' : null,
+        };
+      }
+
+      function formatPhone(digits) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+      }
+
+      function validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const citizenRegex = /^[^\s@]+@citizenwatchgroup\.com$/;
+
+        return {
+          isValid: emailRegex.test(email),
+          isCitizenEmail: citizenRegex.test(email),
+          error: !emailRegex.test(email) ? 'Invalid email format' : null,
+        };
+      }
+
+      function validateStoreHours(hours) {
+        if (!hours || hours.trim() === '') {
+          return {
+            isValid: false,
+            error: 'Store hours are required',
+          };
         }
 
-        // Toggle company email field visibility
-        function toggleCompanyEmailField() {
-            const jobTitle = jobTitleInput.value;
-            const requiresEmail = requiresCompanyEmail(jobTitle);
+        const hasDays = /[A-Za-z]{3}/.test(hours);
+        const hasTimes = /\d{1,2}(?::\d{2})?[AP]M/i.test(hours);
 
-            if (requiresEmail) {
-                companyEmailGroup.style.display = 'block';
-                companyEmailInput.required = true;
-            } else {
-                companyEmailGroup.style.display = 'none';
-                companyEmailInput.required = false;
-                companyEmailInput.value = '';
-                hideError('companyEmailError');
-            }
+        return {
+          isValid: hasDays && hasTimes,
+          error:
+            !hasDays && !hasTimes
+              ? 'Include day names and hours'
+              : !hasDays
+                ? 'Include day names (Mon, Tue, etc.)'
+                : 'Include opening/closing times (10AM-8PM or 10:00AM-8:00PM)',
+        };
+      }
+
+      function validatePlusCode(plusCode) {
+        if (!plusCode || plusCode.trim() === '') {
+          return { isValid: true, error: null }; // Optional field
         }
 
-        // Validation functions
-        function validatePhone(phone) {
-            const digitsOnly = phone.replace(/\D/g, '');
-            const isValid = digitsOnly.length === 10;
-            
-            return {
-                isValid: isValid,
-                formatted: isValid ? formatPhone(digitsOnly) : phone,
-                error: !isValid ? 'Phone must have 10 digits' : null
-            };
+        // Plus Code format: 2-4 characters + "+" + 2-3 characters (e.g., 849VCWC8+R9)
+        const plusCodeRegex = /^[A-Z0-9]{2,4}\+[A-Z0-9]{2,3}$/i;
+        const fullPlusCodeRegex = /^[A-Z0-9]{8}\+[A-Z0-9]{3}$/i; // Full format like 849VCWC8+R9
+
+        const trimmed = plusCode.trim().toUpperCase();
+
+        return {
+          isValid: plusCodeRegex.test(trimmed),
+          formatted: trimmed,
+          error: !plusCodeRegex.test(trimmed)
+            ? 'Invalid Plus Code format (e.g., 849VCWC8+R9)'
+            : null,
+        };
+      }
+
+      function validateCompanyEmail(email, jobTitle) {
+        if (!requiresCompanyEmail(jobTitle)) {
+          return { isValid: true, error: null }; // Not required
         }
 
-        function formatPhone(digits) {
-            return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6,10)}`;
+        if (!email || email.trim() === '') {
+          return {
+            isValid: false,
+            error: 'Company email is required for management positions',
+          };
         }
 
-        function validateEmail(email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            const citizenRegex = /^[^\s@]+@citizenwatchgroup\.com$/;
-            
-            return {
-                isValid: emailRegex.test(email),
-                isCitizenEmail: citizenRegex.test(email),
-                error: !emailRegex.test(email) ? 'Invalid email format' : null
-            };
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const citizenRegex = /^[^\s@]+@citizenwatchgroup\.com$/i;
+
+        if (!emailRegex.test(email)) {
+          return {
+            isValid: false,
+            error: 'Invalid email format',
+          };
         }
 
-        function validateStoreHours(hours) {
-            if (!hours || hours.trim() === '') {
-                return {
-                    isValid: false,
-                    error: 'Store hours are required'
-                };
-            }
-            
-            const hasDays = /[A-Za-z]{3}/.test(hours);
-            const hasTimes = /\d{1,2}(?::\d{2})?[AP]M/i.test(hours);
-            
-            return {
-                isValid: hasDays && hasTimes,
-                error: (!hasDays && !hasTimes) ? 'Include day names and hours' : 
-                       !hasDays ? 'Include day names (Mon, Tue, etc.)' : 
-                       'Include opening/closing times (10AM-8PM or 10:00AM-8:00PM)'
-            };
+        if (!citizenRegex.test(email)) {
+          return {
+            isValid: false,
+            error: 'Company email must be @citizenwatchgroup.com',
+          };
         }
 
-        function validatePlusCode(plusCode) {
-            if (!plusCode || plusCode.trim() === '') {
-                return { isValid: true, error: null }; // Optional field
-            }
+        return {
+          isValid: true,
+          error: null,
+        };
+      }
 
-            // Plus Code format: 2-4 characters + "+" + 2-3 characters (e.g., 849VCWC8+R9)
-            const plusCodeRegex = /^[A-Z0-9]{2,4}\+[A-Z0-9]{2,3}$/i;
-            const fullPlusCodeRegex = /^[A-Z0-9]{8}\+[A-Z0-9]{3}$/i; // Full format like 849VCWC8+R9
+      function showError(fieldId, message) {
+        const errorElement = document.getElementById(fieldId);
+        const inputElement = document.getElementById(
+          fieldId.replace('Error', '')
+        );
 
-            const trimmed = plusCode.trim().toUpperCase();
-
-            return {
-                isValid: plusCodeRegex.test(trimmed),
-                formatted: trimmed,
-                error: !plusCodeRegex.test(trimmed) ? 'Invalid Plus Code format (e.g., 849VCWC8+R9)' : null
-            };
+        if (errorElement && inputElement) {
+          errorElement.textContent = message;
+          errorElement.style.display = 'block';
+          inputElement.classList.add('input-error');
         }
+      }
 
-        function validateCompanyEmail(email, jobTitle) {
-            if (!requiresCompanyEmail(jobTitle)) {
-                return { isValid: true, error: null }; // Not required
-            }
+      function hideError(fieldId) {
+        const errorElement = document.getElementById(fieldId);
+        const inputElement = document.getElementById(
+          fieldId.replace('Error', '')
+        );
 
-            if (!email || email.trim() === '') {
-                return {
-                    isValid: false,
-                    error: 'Company email is required for management positions'
-                };
-            }
-
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            const citizenRegex = /^[^\s@]+@citizenwatchgroup\.com$/i;
-
-            if (!emailRegex.test(email)) {
-                return {
-                    isValid: false,
-                    error: 'Invalid email format'
-                };
-            }
-
-            if (!citizenRegex.test(email)) {
-                return {
-                    isValid: false,
-                    error: 'Company email must be @citizenwatchgroup.com'
-                };
-            }
-
-            return {
-                isValid: true,
-                error: null
-            };
+        if (errorElement && inputElement) {
+          errorElement.style.display = 'none';
+          inputElement.classList.remove('input-error');
         }
+      }
 
-        function showError(fieldId, message) {
-            const errorElement = document.getElementById(fieldId);
-            const inputElement = document.getElementById(fieldId.replace('Error', ''));
-            
-            if (errorElement && inputElement) {
-                errorElement.textContent = message;
-                errorElement.style.display = 'block';
-                inputElement.classList.add('input-error');
-            }
+      // Job title change handler
+      jobTitleInput.addEventListener('change', toggleCompanyEmailField);
+
+      // Real-time validation
+      storePhoneInput.addEventListener('blur', function () {
+        const validation = validatePhone(this.value);
+        if (validation.isValid) {
+          this.value = validation.formatted;
+          hideError('phoneError');
+        } else {
+          showError('phoneError', validation.error);
         }
+      });
 
-        function hideError(fieldId) {
-            const errorElement = document.getElementById(fieldId);
-            const inputElement = document.getElementById(fieldId.replace('Error', ''));
-            
-            if (errorElement && inputElement) {
-                errorElement.style.display = 'none';
-                inputElement.classList.remove('input-error');
-            }
+      storeEmailInput.addEventListener('blur', function () {
+        const validation = validateEmail(this.value);
+        if (validation.isValid) {
+          hideError('emailError');
+        } else {
+          showError('emailError', validation.error);
         }
+      });
 
-        // Job title change handler
-        jobTitleInput.addEventListener('change', toggleCompanyEmailField);
+      storeHoursInput.addEventListener('blur', function () {
+        const validation = validateStoreHours(this.value);
+        if (validation.isValid) {
+          hideError('hoursError');
+        } else {
+          showError('hoursError', validation.error);
+        }
+      });
 
-        // Real-time validation
-        storePhoneInput.addEventListener('blur', function() {
-            const validation = validatePhone(this.value);
-            if (validation.isValid) {
-                this.value = validation.formatted;
-                hideError('phoneError');
-            } else {
-                showError('phoneError', validation.error);
-            }
-        });
+      storePlusCodeInput.addEventListener('blur', function () {
+        const validation = validatePlusCode(this.value);
+        if (validation.isValid) {
+          this.value = validation.formatted || this.value;
+          hideError('plusCodeError');
+        } else {
+          showError('plusCodeError', validation.error);
+        }
+      });
 
-        storeEmailInput.addEventListener('blur', function() {
-            const validation = validateEmail(this.value);
-            if (validation.isValid) {
-                hideError('emailError');
-            } else {
-                showError('emailError', validation.error);
-            }
-        });
+      companyEmailInput.addEventListener('blur', function () {
+        const validation = validateCompanyEmail(
+          this.value,
+          jobTitleInput.value
+        );
+        if (validation.isValid) {
+          hideError('companyEmailError');
+        } else {
+          showError('companyEmailError', validation.error);
+        }
+      });
 
-        storeHoursInput.addEventListener('blur', function() {
-            const validation = validateStoreHours(this.value);
-            if (validation.isValid) {
-                hideError('hoursError');
-            } else {
-                showError('hoursError', validation.error);
-            }
-        });
+      // Export Profile Function
+      function exportProfile() {
+        const exportBtn = document.getElementById('exportProfileBtn');
 
-        storePlusCodeInput.addEventListener('blur', function() {
-            const validation = validatePlusCode(this.value);
-            if (validation.isValid) {
-                this.value = validation.formatted || this.value;
-                hideError('plusCodeError');
-            } else {
-                showError('plusCodeError', validation.error);
-            }
-        });
+        // Add loading state
+        exportBtn.classList.add('loading');
+        exportBtn.disabled = true;
 
-        companyEmailInput.addEventListener('blur', function() {
-            const validation = validateCompanyEmail(this.value, jobTitleInput.value);
-            if (validation.isValid) {
-                hideError('companyEmailError');
-            } else {
-                showError('companyEmailError', validation.error);
-            }
-        });
+        setTimeout(() => {
+          const profileData = {
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            profile: {
+              employeeName: document
+                .getElementById('employeeName')
+                .value.trim(),
+              jobTitle: jobTitleInput.value.trim(),
+              companyEmail: companyEmailInput.value.trim(),
+              storeName: storeNameInput.value.trim(),
+              storeLocation: storeLocationInput.value.trim(),
+              storePhone: storePhoneInput.value.trim(),
+              storeEmail: storeEmailInput.value.trim(),
+              storeAddress: storeAddressInput.value.trim(),
+              storePlusCode: storePlusCodeInput.value.trim(),
+              storeHours: storeHoursInput.value.trim(),
+              storeDirections: storeDirectionsInput.value.trim(),
+              // Theme preferences
+              lightPalette: localStorage.getItem('lightPalette') || 'pastel',
+              darkPalette:
+                localStorage.getItem('darkPalette') || 'midnight-blue',
+              currentMode: localStorage.getItem('theme') || 'light',
+            },
+          };
 
-        // Export Profile Function
-        function exportProfile() {
-            const exportBtn = document.getElementById('exportProfileBtn');
-            
-            // Add loading state
-            exportBtn.classList.add('loading');
-            exportBtn.disabled = true;
-            
+          // Validate that required fields are not empty
+          const requiredFields = [
+            'employeeName',
+            'jobTitle',
+            'storeName',
+            'storeLocation',
+            'storePhone',
+            'storeEmail',
+            'storeHours',
+          ];
+          const missingFields = requiredFields.filter(
+            (field) => !profileData.profile[field]
+          );
+
+          if (missingFields.length > 0) {
+            exportBtn.classList.remove('loading');
+            exportBtn.disabled = false;
+            showToast('Please fill in all required fields before exporting');
+            return;
+          }
+
+          try {
+            const dataStr = JSON.stringify(profileData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `citizen-profile-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(url);
+
+            // Success animation
+            exportBtn.classList.remove('loading');
+            exportBtn.classList.add('success');
+            showToast('✓ Profile exported successfully');
+
             setTimeout(() => {
-                const profileData = {
-                    version: '1.0',
-                    exportDate: new Date().toISOString(),
-                     profile: {
-                         employeeName: document.getElementById('employeeName').value.trim(),
-                         jobTitle: jobTitleInput.value.trim(),
-                         companyEmail: companyEmailInput.value.trim(),
-                         storeName: storeNameInput.value.trim(),
-                         storeLocation: storeLocationInput.value.trim(),
-                         storePhone: storePhoneInput.value.trim(),
-                         storeEmail: storeEmailInput.value.trim(),
-                         storeAddress: storeAddressInput.value.trim(),
-                         storePlusCode: storePlusCodeInput.value.trim(),
-                         storeHours: storeHoursInput.value.trim(),
-                         storeDirections: storeDirectionsInput.value.trim(),
-                         // Theme preferences
-                         lightPalette: localStorage.getItem('lightPalette') || 'pastel',
-                         darkPalette: localStorage.getItem('darkPalette') || 'midnight-blue',
-                         currentMode: localStorage.getItem('theme') || 'light'
-                     }
-                };
+              exportBtn.classList.remove('success');
+              exportBtn.disabled = false;
+            }, 1000);
+          } catch (e) {
+            console.error('Error exporting profile:', e);
+            exportBtn.classList.remove('loading');
+            exportBtn.disabled = false;
+            showToast('Error exporting profile. Please try again.');
+          }
+        }, 300); // Small delay for visual feedback
+      }
 
-                 // Validate that required fields are not empty
-                 const requiredFields = ['employeeName', 'jobTitle', 'storeName', 'storeLocation', 'storePhone', 'storeEmail', 'storeHours'];
-                 const missingFields = requiredFields.filter(field => !profileData.profile[field]);
-                
+      // Import Profile Function
+      function importProfile(file) {
+        return new Promise((resolve, reject) => {
+          const importBtn = document.getElementById('importProfileBtn');
+
+          // Add loading state
+          importBtn.classList.add('loading');
+          importBtn.disabled = true;
+
+          const reader = new FileReader();
+
+          reader.onload = (e) => {
+            setTimeout(() => {
+              try {
+                const content = e.target.result;
+                const importedData = JSON.parse(content);
+
+                // Validate imported data structure
+                if (!importedData.profile) {
+                  throw new Error('Invalid profile file format');
+                }
+
+                const profile = importedData.profile;
+
+                // Validate required fields exist
+                const requiredFields = [
+                  'employeeName',
+                  'jobTitle',
+                  'storeName',
+                  'storeLocation',
+                  'storePhone',
+                  'storeEmail',
+                  'storeHours',
+                ];
+                const missingFields = requiredFields.filter(
+                  (field) => !profile[field]
+                );
+
                 if (missingFields.length > 0) {
-                    exportBtn.classList.remove('loading');
-                    exportBtn.disabled = false;
-                    showToast('Please fill in all required fields before exporting');
-                    return;
+                  throw new Error(
+                    `Missing required fields: ${missingFields.join(', ')}`
+                  );
                 }
 
-                try {
-                    const dataStr = JSON.stringify(profileData, null, 2);
-                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                    const url = URL.createObjectURL(dataBlob);
-
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `citizen-profile-${new Date().toISOString().split('T')[0]}.json`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                    URL.revokeObjectURL(url);
-                    
-                    // Success animation
-                    exportBtn.classList.remove('loading');
-                    exportBtn.classList.add('success');
-                    showToast('✓ Profile exported successfully');
-                    
-                    setTimeout(() => {
-                        exportBtn.classList.remove('success');
-                        exportBtn.disabled = false;
-                    }, 1000);
-                } catch (e) {
-                    console.error('Error exporting profile:', e);
-                    exportBtn.classList.remove('loading');
-                    exportBtn.disabled = false;
-                    showToast('Error exporting profile. Please try again.');
+                // Validate phone format
+                const phoneValidation = validatePhone(profile.storePhone);
+                if (!phoneValidation.isValid) {
+                  throw new Error('Invalid phone number format');
                 }
-            }, 300); // Small delay for visual feedback
+
+                // Validate email format
+                const emailValidation = validateEmail(profile.storeEmail);
+                if (!emailValidation.isValid) {
+                  throw new Error('Invalid email format');
+                }
+
+                // Validate store hours format
+                const hoursValidation = validateStoreHours(profile.storeHours);
+                if (!hoursValidation.isValid) {
+                  throw new Error('Invalid store hours format');
+                }
+
+                // Fill form fields with imported data
+                document.getElementById('employeeName').value =
+                  profile.employeeName || '';
+                jobTitleInput.value = profile.jobTitle || '';
+                companyEmailInput.value = profile.companyEmail || '';
+                storeNameInput.value = profile.storeName || '';
+                storeLocationInput.value = profile.storeLocation || '';
+                storePhoneInput.value = phoneValidation.formatted;
+                storeEmailInput.value = profile.storeEmail || '';
+                storeAddressInput.value = profile.storeAddress || '';
+                storePlusCodeInput.value = profile.storePlusCode || '';
+                storeHoursInput.value = profile.storeHours || '';
+                storeDirectionsInput.value = profile.storeDirections || '';
+
+                // Update company email field visibility after setting job title
+                toggleCompanyEmailField();
+
+                // Restore theme preferences
+                if (profile.lightPalette) {
+                  localStorage.setItem('lightPalette', profile.lightPalette);
+                  document.getElementById('lightPaletteSelect').value =
+                    profile.lightPalette;
+                  setLightPalette(profile.lightPalette);
+                }
+                if (profile.darkPalette) {
+                  localStorage.setItem('darkPalette', profile.darkPalette);
+                  document.getElementById('darkPaletteSelect').value =
+                    profile.darkPalette;
+                  setDarkPalette(profile.darkPalette);
+                }
+                if (profile.currentMode) {
+                  localStorage.setItem('theme', profile.currentMode);
+                  document.documentElement.setAttribute(
+                    'data-theme',
+                    profile.currentMode
+                  );
+                  updateThemeIndicator(profile.currentMode);
+                }
+
+                // Success animation
+                importBtn.classList.remove('loading');
+                importBtn.classList.add('success');
+                showToast('✓ Profile imported successfully');
+
+                setTimeout(() => {
+                  importBtn.classList.remove('success');
+                  importBtn.disabled = false;
+                }, 1000);
+
+                resolve();
+              } catch (error) {
+                console.error('Error importing profile:', error);
+                importBtn.classList.remove('loading');
+                importBtn.disabled = false;
+                showToast(`Import failed: ${error.message}`);
+                reject(error);
+              }
+            }, 500); // Small delay for visual feedback
+          };
+
+          reader.onerror = () => {
+            const error = new Error('Failed to read file');
+            console.error('File read error:', error);
+            importBtn.classList.remove('loading');
+            importBtn.disabled = false;
+            showToast('Error reading file. Please try again.');
+            reject(error);
+          };
+
+          reader.readAsText(file);
+        });
+      }
+
+      // Load existing data if available
+      window.addEventListener('DOMContentLoaded', () => {
+        // Show profile required banner if redirected from profile gate
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnUrl = urlParams.get('return');
+        if (returnUrl) {
+          const banner = document.getElementById('profileRequiredBanner');
+          if (banner) {
+            banner.style.display = 'block';
+          }
         }
 
-        // Import Profile Function
-        function importProfile(file) {
-            return new Promise((resolve, reject) => {
-                const importBtn = document.getElementById('importProfileBtn');
-                
-                // Add loading state
-                importBtn.classList.add('loading');
-                importBtn.disabled = true;
-                
-                const reader = new FileReader();
-                
-                reader.onload = (e) => {
-                    setTimeout(() => {
-                        try {
-                            const content = e.target.result;
-                            const importedData = JSON.parse(content);
-                            
-                            // Validate imported data structure
-                            if (!importedData.profile) {
-                                throw new Error('Invalid profile file format');
-                            }
+        const userData = localStorage.getItem('userProfile');
+        if (userData) {
+          try {
+            const data = JSON.parse(userData);
+            if (data.employeeName)
+              document.getElementById('employeeName').value = data.employeeName;
+            if (data.jobTitle) jobTitleInput.value = data.jobTitle;
+            if (data.companyEmail) companyEmailInput.value = data.companyEmail;
+            if (data.storeName) storeNameInput.value = data.storeName;
+            if (data.storeLocation)
+              storeLocationInput.value = data.storeLocation;
+            if (data.storePhone) storePhoneInput.value = data.storePhone;
+            if (data.storeEmail) storeEmailInput.value = data.storeEmail;
+            if (data.storeAddress) storeAddressInput.value = data.storeAddress;
+            if (data.storePlusCode)
+              storePlusCodeInput.value = data.storePlusCode;
+            if (data.storeHours) storeHoursInput.value = data.storeHours;
+            if (data.storeDirections)
+              storeDirectionsInput.value = data.storeDirections;
 
-                            const profile = importedData.profile;
-                            
-                             // Validate required fields exist
-                             const requiredFields = ['employeeName', 'jobTitle', 'storeName', 'storeLocation', 'storePhone', 'storeEmail', 'storeHours'];
-                             const missingFields = requiredFields.filter(field => !profile[field]);
-                            
-                            if (missingFields.length > 0) {
-                                throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
-                            }
+            // Update company email field visibility after loading data
+            toggleCompanyEmailField();
+          } catch (e) {
+            console.error('Error loading user data:', e);
+          }
+        }
 
-                            // Validate phone format
-                            const phoneValidation = validatePhone(profile.storePhone);
-                            if (!phoneValidation.isValid) {
-                                throw new Error('Invalid phone number format');
-                            }
+        // Initialize download folder UI (Tauri desktop app aware)
+        const downloadFolderInput =
+          document.getElementById('downloadFolderPath');
+        const chooseDownloadFolderBtn = document.getElementById(
+          'chooseDownloadFolderBtn'
+        );
 
-                            // Validate email format
-                            const emailValidation = validateEmail(profile.storeEmail);
-                            if (!emailValidation.isValid) {
-                                throw new Error('Invalid email format');
-                            }
+        if (downloadFolderInput && chooseDownloadFolderBtn) {
+          if (window.__TAURI__ && window.__TAURI__.core) {
+            // In Tauri: fetch current dir from backend and wire the button
+            const invoke = window.__TAURI__.core.invoke;
 
-                            // Validate store hours format
-                            const hoursValidation = validateStoreHours(profile.storeHours);
-                            if (!hoursValidation.isValid) {
-                                throw new Error('Invalid store hours format');
-                            }
+            invoke('get_download_dir')
+              .then((dir) => {
+                if (dir) {
+                  downloadFolderInput.value = dir;
+                }
+              })
+              .catch((err) => {
+                console.error('Error getting download dir from Tauri:', err);
+                // Fallback to any locally remembered value
+                const localDir = localStorage.getItem('downloadFolderPath');
+                if (localDir) {
+                  downloadFolderInput.value = localDir;
+                }
+              });
 
-                             // Fill form fields with imported data
-                             document.getElementById('employeeName').value = profile.employeeName || '';
-                             jobTitleInput.value = profile.jobTitle || '';
-                             companyEmailInput.value = profile.companyEmail || '';
-                             storeNameInput.value = profile.storeName || '';
-                             storeLocationInput.value = profile.storeLocation || '';
-                             storePhoneInput.value = phoneValidation.formatted;
-                             storeEmailInput.value = profile.storeEmail || '';
-                             storeAddressInput.value = profile.storeAddress || '';
-                             storePlusCodeInput.value = profile.storePlusCode || '';
-                             storeHoursInput.value = profile.storeHours || '';
-                             storeDirectionsInput.value = profile.storeDirections || '';
-
-                             // Update company email field visibility after setting job title
-                             toggleCompanyEmailField();
-
-                            // Restore theme preferences
-                            if (profile.lightPalette) {
-                                localStorage.setItem('lightPalette', profile.lightPalette);
-                                document.getElementById('lightPaletteSelect').value = profile.lightPalette;
-                                setLightPalette(profile.lightPalette);
-                            }
-                            if (profile.darkPalette) {
-                                localStorage.setItem('darkPalette', profile.darkPalette);
-                                document.getElementById('darkPaletteSelect').value = profile.darkPalette;
-                                setDarkPalette(profile.darkPalette);
-                            }
-                            if (profile.currentMode) {
-                                localStorage.setItem('theme', profile.currentMode);
-                                document.documentElement.setAttribute('data-theme', profile.currentMode);
-                                updateThemeIndicator(profile.currentMode);
-                            }
-
-                            // Success animation
-                            importBtn.classList.remove('loading');
-                            importBtn.classList.add('success');
-                            showToast('✓ Profile imported successfully');
-                            
-                            setTimeout(() => {
-                                importBtn.classList.remove('success');
-                                importBtn.disabled = false;
-                            }, 1000);
-                            
-                            resolve();
-                        } catch (error) {
-                            console.error('Error importing profile:', error);
-                            importBtn.classList.remove('loading');
-                            importBtn.disabled = false;
-                            showToast(`Import failed: ${error.message}`);
-                            reject(error);
-                        }
-                    }, 500); // Small delay for visual feedback
-                };
-
-                reader.onerror = () => {
-                    const error = new Error('Failed to read file');
-                    console.error('File read error:', error);
-                    importBtn.classList.remove('loading');
-                    importBtn.disabled = false;
-                    showToast('Error reading file. Please try again.');
-                    reject(error);
-                };
-
-                reader.readAsText(file);
+            chooseDownloadFolderBtn.addEventListener('click', async () => {
+              try {
+                const dir = await invoke('choose_download_dir');
+                if (dir) {
+                  downloadFolderInput.value = dir;
+                  // Store for display only; actual path is owned by Tauri backend.
+                  localStorage.setItem('downloadFolderPath', dir);
+                  showToast(`Download folder set to: ${dir}`);
+                }
+              } catch (err) {
+                // User cancelled the dialog or error occurred
+                if (err !== 'No folder selected') {
+                  console.error('Error choosing download folder:', err);
+                  showToast('Error choosing download folder');
+                }
+              }
             });
+          } else {
+            // In a regular browser: indicate that the system Downloads folder is used
+            downloadFolderInput.value = 'Browser: uses system Downloads folder';
+            chooseDownloadFolderBtn.disabled = true;
+            chooseDownloadFolderBtn.textContent = 'Desktop app only';
+          }
         }
+      });
 
-        // Load existing data if available
-        window.addEventListener('DOMContentLoaded', () => {
-            // Show profile required banner if redirected from profile gate
-            const urlParams = new URLSearchParams(window.location.search);
-            const returnUrl = urlParams.get('return');
-            if (returnUrl) {
-                const banner = document.getElementById('profileRequiredBanner');
-                if (banner) {
-                    banner.style.display = 'block';
-                }
-            }
+      // Export/Import Event Listeners
+      document
+        .getElementById('exportProfileBtn')
+        .addEventListener('click', exportProfile);
 
-            const userData = localStorage.getItem('userProfile');
-            if (userData) {
-                try {
-                     const data = JSON.parse(userData);
-                     if (data.employeeName) document.getElementById('employeeName').value = data.employeeName;
-                     if (data.jobTitle) jobTitleInput.value = data.jobTitle;
-                     if (data.companyEmail) companyEmailInput.value = data.companyEmail;
-                     if (data.storeName) storeNameInput.value = data.storeName;
-                     if (data.storeLocation) storeLocationInput.value = data.storeLocation;
-                     if (data.storePhone) storePhoneInput.value = data.storePhone;
-                     if (data.storeEmail) storeEmailInput.value = data.storeEmail;
-                     if (data.storeAddress) storeAddressInput.value = data.storeAddress;
-                     if (data.storePlusCode) storePlusCodeInput.value = data.storePlusCode;
-                     if (data.storeHours) storeHoursInput.value = data.storeHours;
-                     if (data.storeDirections) storeDirectionsInput.value = data.storeDirections;
-
-                     // Update company email field visibility after loading data
-                     toggleCompanyEmailField();
-                 } catch (e) {
-                    console.error('Error loading user data:', e);
-                }
-            }
-
-            // Initialize download folder UI (Tauri desktop app aware)
-            const downloadFolderInput = document.getElementById('downloadFolderPath');
-            const chooseDownloadFolderBtn = document.getElementById('chooseDownloadFolderBtn');
-
-            if (downloadFolderInput && chooseDownloadFolderBtn) {
-                if (window.__TAURI__ && window.__TAURI__.core) {
-                    // In Tauri: fetch current dir from backend and wire the button
-                    const invoke = window.__TAURI__.core.invoke;
-
-                    invoke('get_download_dir')
-                        .then((dir) => {
-                            if (dir) {
-                                downloadFolderInput.value = dir;
-                            }
-                        })
-                        .catch((err) => {
-                            console.error('Error getting download dir from Tauri:', err);
-                            // Fallback to any locally remembered value
-                            const localDir = localStorage.getItem('downloadFolderPath');
-                            if (localDir) {
-                                downloadFolderInput.value = localDir;
-                            }
-                        });
-
-                    chooseDownloadFolderBtn.addEventListener('click', async () => {
-                        try {
-                            const dir = await invoke('choose_download_dir');
-                            if (dir) {
-                                downloadFolderInput.value = dir;
-                                // Store for display only; actual path is owned by Tauri backend.
-                                localStorage.setItem('downloadFolderPath', dir);
-                                showToast(`Download folder set to: ${dir}`);
-                            }
-                        } catch (err) {
-                            // User cancelled the dialog or error occurred
-                            if (err !== 'No folder selected') {
-                                console.error('Error choosing download folder:', err);
-                                showToast('Error choosing download folder');
-                            }
-                        }
-                    });
-                } else {
-                    // In a regular browser: indicate that the system Downloads folder is used
-                    downloadFolderInput.value = 'Browser: uses system Downloads folder';
-                    chooseDownloadFolderBtn.disabled = true;
-                    chooseDownloadFolderBtn.textContent = 'Desktop app only';
-                }
-            }
+      document
+        .getElementById('importProfileBtn')
+        .addEventListener('click', () => {
+          document.getElementById('importProfileFile').click();
         });
 
-        // Export/Import Event Listeners
-        document.getElementById('exportProfileBtn').addEventListener('click', exportProfile);
-        
-        document.getElementById('importProfileBtn').addEventListener('click', () => {
-            document.getElementById('importProfileFile').click();
-        });
-        
-        document.getElementById('importProfileFile').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
-                    showToast('Please select a JSON file');
-                    return;
-                }
-                
-                importProfile(file).catch(error => {
-                    console.error('Import failed:', error);
-                });
+      document
+        .getElementById('importProfileFile')
+        .addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            if (
+              file.type !== 'application/json' &&
+              !file.name.endsWith('.json')
+            ) {
+              showToast('Please select a JSON file');
+              return;
             }
-            // Clear file input to allow re-selecting same file
-            e.target.value = '';
+
+            importProfile(file).catch((error) => {
+              console.error('Import failed:', error);
+            });
+          }
+          // Clear file input to allow re-selecting same file
+          e.target.value = '';
         });
 
-        // Toast icons
-        const TOAST_ICONS = {
-            success: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
-            error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
-            warning: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
-            default: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`
+      // Toast icons
+      const TOAST_ICONS = {
+        success: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
+        error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
+        warning: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
+        default: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`,
+      };
+
+      function showToast(message, type = 'default', duration = 3000) {
+        if (!toastContainer) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast${type !== 'default' ? ` toast-${type}` : ''}`;
+
+        const icon = TOAST_ICONS[type] || TOAST_ICONS.default;
+        toast.innerHTML = `${icon}<span>${message}</span>`;
+
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.animation = 'toast-slide-out 0.2s ease-in forwards';
+          setTimeout(() => toast.remove(), 200);
+        }, duration);
+      }
+
+      // Validation summary helpers
+      const validationSummary = document.getElementById('validationSummary');
+      const validationSummaryText = document.getElementById(
+        'validationSummaryText'
+      );
+
+      function showValidationSummary(missingFields) {
+        if (validationSummary && validationSummaryText) {
+          validationSummaryText.textContent =
+            'Please complete: ' + missingFields.join(', ');
+          validationSummary.style.display = 'flex';
+        }
+      }
+
+      function hideValidationSummary() {
+        if (validationSummary) {
+          validationSummary.style.display = 'none';
+        }
+      }
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        // Clear previous errors
+        hideError('phoneError');
+        hideError('emailError');
+        hideError('companyEmailError');
+        hideError('hoursError');
+        hideError('plusCodeError');
+        hideValidationSummary();
+
+        // Get form data
+        const userData = {
+          employeeName: document.getElementById('employeeName').value.trim(),
+          jobTitle: jobTitleInput.value.trim(),
+          companyEmail: companyEmailInput.value.trim(),
+          storeName: storeNameInput.value.trim(),
+          storeLocation: storeLocationInput.value.trim(),
+          storePhone: storePhoneInput.value.trim(),
+          storeEmail: storeEmailInput.value.trim(),
+          storeAddress: storeAddressInput.value.trim(),
+          storePlusCode: storePlusCodeInput.value.trim(),
+          storeHours: storeHoursInput.value.trim(),
+          storeDirections: storeDirectionsInput.value.trim(),
         };
 
-        function showToast(message, type = 'default', duration = 3000) {
-            if (!toastContainer) return;
+        // Collect all missing/invalid fields
+        const missingFields = [];
 
-            const toast = document.createElement('div');
-            toast.className = `toast${type !== 'default' ? ` toast-${type}` : ''}`;
+        // Check required text fields
+        if (!userData.employeeName) missingFields.push('Your Name');
+        if (!userData.jobTitle) missingFields.push('Job Title');
+        if (!userData.storeName) missingFields.push('Store Name');
+        if (!userData.storeLocation) missingFields.push('Store Location');
+        if (!userData.storeAddress) missingFields.push('Store Address');
 
-            const icon = TOAST_ICONS[type] || TOAST_ICONS.default;
-            toast.innerHTML = `${icon}<span>${message}</span>`;
-
-            toastContainer.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.animation = 'toast-slide-out 0.2s ease-in forwards';
-                setTimeout(() => toast.remove(), 200);
-            }, duration);
+        // Validate phone
+        const phoneValidation = validatePhone(userData.storePhone);
+        if (!userData.storePhone) {
+          missingFields.push('Store Phone');
+        } else if (!phoneValidation.isValid) {
+          showError('phoneError', phoneValidation.error);
+          missingFields.push('Store Phone (invalid format)');
         }
 
-        // Validation summary helpers
-        const validationSummary = document.getElementById('validationSummary');
-        const validationSummaryText = document.getElementById('validationSummaryText');
-
-        function showValidationSummary(missingFields) {
-            if (validationSummary && validationSummaryText) {
-                validationSummaryText.textContent = 'Please complete: ' + missingFields.join(', ');
-                validationSummary.style.display = 'flex';
-            }
+        // Validate email
+        const emailValidation = validateEmail(userData.storeEmail);
+        if (!userData.storeEmail) {
+          missingFields.push('Store Email');
+        } else if (!emailValidation.isValid) {
+          showError('emailError', emailValidation.error);
+          missingFields.push('Store Email (invalid format)');
         }
 
-        function hideValidationSummary() {
-            if (validationSummary) {
-                validationSummary.style.display = 'none';
-            }
+        // Validate company email (if required)
+        const companyEmailValidation = validateCompanyEmail(
+          userData.companyEmail,
+          userData.jobTitle
+        );
+        if (!companyEmailValidation.isValid) {
+          showError('companyEmailError', companyEmailValidation.error);
+          missingFields.push('Company Email');
         }
 
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
+        // Validate store hours
+        const hoursValidation = validateStoreHours(userData.storeHours);
+        if (!userData.storeHours) {
+          missingFields.push('Store Hours');
+        } else if (!hoursValidation.isValid) {
+          showError('hoursError', hoursValidation.error);
+          missingFields.push('Store Hours (invalid format)');
+        }
 
-            // Clear previous errors
-            hideError('phoneError');
-            hideError('emailError');
-            hideError('companyEmailError');
-            hideError('hoursError');
-            hideError('plusCodeError');
-            hideValidationSummary();
+        // Validate Plus Code (optional, but check format if provided)
+        const plusCodeValidation = validatePlusCode(userData.storePlusCode);
+        if (!plusCodeValidation.isValid) {
+          showError('plusCodeError', plusCodeValidation.error);
+          missingFields.push('Plus Code (invalid format)');
+        }
 
-            // Get form data
-            const userData = {
-                employeeName: document.getElementById('employeeName').value.trim(),
-                jobTitle: jobTitleInput.value.trim(),
-                companyEmail: companyEmailInput.value.trim(),
-                storeName: storeNameInput.value.trim(),
-                storeLocation: storeLocationInput.value.trim(),
-                storePhone: storePhoneInput.value.trim(),
-                storeEmail: storeEmailInput.value.trim(),
-                storeAddress: storeAddressInput.value.trim(),
-                storePlusCode: storePlusCodeInput.value.trim(),
-                storeHours: storeHoursInput.value.trim(),
-                storeDirections: storeDirectionsInput.value.trim()
-            };
+        // If there are missing fields, show summary and stop
+        if (missingFields.length > 0) {
+          showValidationSummary(missingFields);
+          showToast('Please complete all required fields', 'error');
+          return;
+        }
 
-            // Collect all missing/invalid fields
-            const missingFields = [];
+        // Save to localStorage
+        try {
+          localStorage.setItem('userProfile', JSON.stringify(userData));
+          showToast('Profile saved successfully!');
 
-            // Check required text fields
-            if (!userData.employeeName) missingFields.push('Your Name');
-            if (!userData.jobTitle) missingFields.push('Job Title');
-            if (!userData.storeName) missingFields.push('Store Name');
-            if (!userData.storeLocation) missingFields.push('Store Location');
-            if (!userData.storeAddress) missingFields.push('Store Address');
+          // Check for return URL param (from profile gate redirect)
+          const urlParams = new URLSearchParams(window.location.search);
+          const returnUrl = urlParams.get('return');
 
-            // Validate phone
-            const phoneValidation = validatePhone(userData.storePhone);
-            if (!userData.storePhone) {
-                missingFields.push('Store Phone');
-            } else if (!phoneValidation.isValid) {
-                showError('phoneError', phoneValidation.error);
-                missingFields.push('Store Phone (invalid format)');
+          // Redirect after a short delay
+          setTimeout(() => {
+            if (returnUrl) {
+              // Decode and validate return URL (only allow local pages)
+              const decodedUrl = decodeURIComponent(returnUrl);
+              if (decodedUrl.endsWith('.html') && !decodedUrl.includes('://')) {
+                window.location.href = decodedUrl;
+              } else {
+                window.location.href = 'index.html';
+              }
+            } else {
+              window.location.href = 'index.html';
             }
-
-            // Validate email
-            const emailValidation = validateEmail(userData.storeEmail);
-            if (!userData.storeEmail) {
-                missingFields.push('Store Email');
-            } else if (!emailValidation.isValid) {
-                showError('emailError', emailValidation.error);
-                missingFields.push('Store Email (invalid format)');
-            }
-
-            // Validate company email (if required)
-            const companyEmailValidation = validateCompanyEmail(userData.companyEmail, userData.jobTitle);
-            if (!companyEmailValidation.isValid) {
-                showError('companyEmailError', companyEmailValidation.error);
-                missingFields.push('Company Email');
-            }
-
-            // Validate store hours
-            const hoursValidation = validateStoreHours(userData.storeHours);
-            if (!userData.storeHours) {
-                missingFields.push('Store Hours');
-            } else if (!hoursValidation.isValid) {
-                showError('hoursError', hoursValidation.error);
-                missingFields.push('Store Hours (invalid format)');
-            }
-
-            // Validate Plus Code (optional, but check format if provided)
-            const plusCodeValidation = validatePlusCode(userData.storePlusCode);
-            if (!plusCodeValidation.isValid) {
-                showError('plusCodeError', plusCodeValidation.error);
-                missingFields.push('Plus Code (invalid format)');
-            }
-
-            // If there are missing fields, show summary and stop
-            if (missingFields.length > 0) {
-                showValidationSummary(missingFields);
-                showToast('Please complete all required fields', 'error');
-                return;
-            }
-
-            // Save to localStorage
-            try {
-                localStorage.setItem('userProfile', JSON.stringify(userData));
-                showToast('Profile saved successfully!');
-
-                // Check for return URL param (from profile gate redirect)
-                const urlParams = new URLSearchParams(window.location.search);
-                const returnUrl = urlParams.get('return');
-
-                // Redirect after a short delay
-                setTimeout(() => {
-                    if (returnUrl) {
-                        // Decode and validate return URL (only allow local pages)
-                        const decodedUrl = decodeURIComponent(returnUrl);
-                        if (decodedUrl.endsWith('.html') && !decodedUrl.includes('://')) {
-                            window.location.href = decodedUrl;
-                        } else {
-                            window.location.href = 'index.html';
-                        }
-                    } else {
-                        window.location.href = 'index.html';
-                    }
-                }, 1000);
-            } catch (e) {
-                console.error('Error saving user data:', e);
-                showToast('Error saving profile. Please try again.');
-            }
-        });
+          }, 1000);
+        } catch (e) {
+          console.error('Error saving user data:', e);
+          showToast('Error saving profile. Please try again.');
+        }
+      });
     </script>
     <script>
-        // Page Transitions for start.html
-        (function() {
-            const TRANSITION_DURATION = 300;
+      // Page Transitions for start.html
+      (function () {
+        const TRANSITION_DURATION = 300;
 
-            document.querySelectorAll('a[href$=".html"]').forEach(link => {
-                if (link.hostname === window.location.hostname) {
-                    link.addEventListener('click', function(event) {
-                        if (event.metaKey || event.ctrlKey || event.shiftKey) return;
-                        if (this.target === '_blank') return;
+        document.querySelectorAll('a[href$=".html"]').forEach((link) => {
+          if (link.hostname === window.location.hostname) {
+            link.addEventListener('click', function (event) {
+              if (event.metaKey || event.ctrlKey || event.shiftKey) return;
+              if (this.target === '_blank') return;
 
-                        event.preventDefault();
-                        const href = this.getAttribute('href');
-                        const pageContent = document.querySelector('.page-content');
+              event.preventDefault();
+              const href = this.getAttribute('href');
+              const pageContent = document.querySelector('.page-content');
 
-                        if (pageContent) {
-                            pageContent.classList.add('fade-out');
-                            setTimeout(() => { window.location.href = href; }, TRANSITION_DURATION);
-                        } else {
-                            window.location.href = href;
-                        }
-                    });
-                }
+              if (pageContent) {
+                pageContent.classList.add('fade-out');
+                setTimeout(() => {
+                  window.location.href = href;
+                }, TRANSITION_DURATION);
+              } else {
+                window.location.href = href;
+              }
             });
-        })();
+          }
+        });
+      })();
     </script>
-</body>
+  </body>
 </html>

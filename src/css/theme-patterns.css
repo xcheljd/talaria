@@ -1,0 +1,187 @@
+/* ==========================================================================
+   THEME PATTERNS
+   Unique geometric patterns for each palette (uses only palette colors)
+   ========================================================================== */
+
+/* Pattern overlay applied to body */
+html > body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999 !important;
+  opacity: 0.25 !important;
+}
+
+/* -------------------- LIGHT MODES -------------------- */
+
+/* 1. GitHub Light: Diagonal stripes */
+[data-light-palette='github']::before {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--border) 0,
+    var(--border) 1px,
+    transparent 1px,
+    transparent 24px
+  ) !important;
+}
+
+/* 2. SpaceGray Light: Dotted grid */
+[data-light-palette='spacegray']::before {
+  background-image: radial-gradient(var(--border) 1.5px, transparent 1.5px);
+  background-size: 16px 16px !important;
+}
+
+/* 3. Catppuccin Latte: Small squares */
+[data-light-palette='catppuccin-latte']::before {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 12px 12px !important;
+}
+
+/* 4. Nord Light: Horizontal lines */
+[data-light-palette='nord']::before {
+  background: repeating-linear-gradient(
+    0deg,
+    var(--border) 0,
+    var(--border) 1px,
+    transparent 1px,
+    transparent 20px
+  ) !important;
+}
+
+/* 5. Rose Pine Dawn: Soft diagonal dashes */
+[data-light-palette='rose-pine-dawn']::before {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0,
+    transparent 4px,
+    var(--border) 4px,
+    var(--border) 8px
+  ) !important;
+}
+
+/* 6. Tokyo Night Day: Small cross pattern */
+[data-light-palette='tokyo-day']::before {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position:
+    0 0,
+    10px 10px !important;
+}
+
+/* 7. Solarized Light: Diagonal wave */
+[data-light-palette='solarized']::before {
+  background: repeating-linear-gradient(
+    30deg,
+    transparent 0,
+    transparent 10px,
+    var(--border) 10px,
+    var(--border) 11px,
+    transparent 11px,
+    transparent 20px
+  ) !important;
+}
+
+/* 8. One Light: Chevron pattern */
+[data-light-palette='one-light']::before {
+  background:
+    linear-gradient(45deg, var(--border) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--border) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--border) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--border) 75%);
+  background-size: 20px 20px;
+  background-position:
+    0 0,
+    10px 0,
+    10px -10px,
+    0px 10px !important;
+}
+
+/* -------------------- DARK MODES -------------------- */
+
+/* 9. GitHub Dark: Diagonal stripes */
+[data-dark-palette='github']::before {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--border) 0,
+    var(--border) 1px,
+    transparent 1px,
+    transparent 24px
+  );
+  opacity: 0.12;
+}
+
+/* 10. SpaceGray Dark: Dotted grid */
+[data-dark-palette='spacegray']::before {
+  background-image: radial-gradient(var(--border) 1.5px, transparent 1.5px);
+  background-size: 16px 16px !important;
+}
+
+/* 11. Catppuccin Mocha: Small squares */
+[data-dark-palette='catppuccin-mocha']::before {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 12px 12px !important;
+}
+
+/* 12. Nord Dark: Horizontal lines */
+[data-dark-palette='nord']::before {
+  background: repeating-linear-gradient(
+    0deg,
+    var(--border) 0,
+    var(--border) 1px,
+    transparent 1px,
+    transparent 20px
+  ) !important;
+}
+
+/* 13. Rose Pine Dark: Soft diagonal dashes */
+[data-dark-palette='rose-pine']::before {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0,
+    transparent 4px,
+    var(--border) 4px,
+    var(--border) 8px
+  ) !important;
+}
+
+/* 14. Tokyo Night: Small cross pattern */
+[data-dark-palette='tokyo-night']::before {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position:
+    0 0,
+    10px 10px !important;
+}
+
+/* 15. Monokai: Bold diagonal lines */
+[data-dark-palette='monokai']::before {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--border) 0,
+    var(--border) 2px,
+    transparent 2px,
+    transparent 16px
+  ) !important;
+}
+
+/* 16. Kanagawa: Wave pattern */
+[data-dark-palette='kanagawa']::before {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0,
+    transparent 12px,
+    var(--border) 12px,
+    var(--border) 13px,
+    transparent 13px,
+    transparent 24px
+  ) !important;
+}
