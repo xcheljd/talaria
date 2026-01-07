@@ -342,15 +342,22 @@ function setupOutputButtons() {
       const htmlContent = codeArea.value;
 
       // Create EML file without recipients
-      const emlContent = await createEMLFile(
-        '', // fromName - empty for draft
-        '', // fromEmail - empty for draft
-        '', // to - empty
-        '', // bcc - empty
-        subject,
-        htmlContent,
-        promotionState.attachedPDFs || []
-      );
+      let emlContent;
+      try {
+        emlContent = await createEMLFile(
+          '', // fromName - empty for draft
+          '', // fromEmail - empty for draft
+          '', // to - empty
+          '', // bcc - empty
+          subject,
+          htmlContent,
+          promotionState.attachedPDFs || []
+        );
+      } catch (error) {
+        console.error('Failed to create EML file:', error);
+        showToast('Failed to create EML file');
+        return;
+      }
 
       // Download the file
       const blob = new Blob([emlContent], { type: 'message/rfc822' });
