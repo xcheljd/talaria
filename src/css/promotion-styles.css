@@ -7,6 +7,7 @@
 @import './theme-palettes.css';
 @import './theme-patterns.css';
 @import './theme-transitions.css';
+@import './shared-components.css';
 
 * {
   margin: 0;
@@ -100,6 +101,18 @@ body {
     filter: blur(0);
     transform: translateY(0);
   }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
 }
 
 @keyframes fade-in {

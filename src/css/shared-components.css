@@ -1,0 +1,227 @@
+/**
+ * Shared Components CSS
+ * Common UI components used across multiple pages (index, promotion, start)
+ * Eliminates duplication between styles.css and promotion-styles.css
+ */
+
+/* ==========================================================================
+    COMPONENT: BUTTONS (.btn)
+    ========================================================================== */
+
+.btn,
+.btn-primary-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  transition: var(--transition-all);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  height: 2.25rem;
+}
+
+.btn svg,
+.btn-primary-base svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.btn:hover,
+.btn-primary-base:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:active,
+.btn-primary-base:active {
+  transform: scale(0.98) translateY(0);
+}
+
+.btn:focus-visible,
+.btn-primary-base:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--ring);
+}
+
+.btn:disabled,
+.btn-primary-base:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Secondary Button */
+.btn-secondary,
+.btn-secondary-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  transition: var(--transition-all);
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  border: none;
+  cursor: pointer;
+  height: 2.25rem;
+}
+
+.btn-secondary svg,
+.btn-secondary-base svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.btn-secondary:hover,
+.btn-secondary-base:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Ghost Button */
+.btn-ghost,
+.btn-ghost-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  transition: var(--transition-all);
+  background-color: transparent;
+  color: var(--muted-foreground);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Danger Button */
+.btn-danger,
+.btn-danger-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  transition: var(--transition-all);
+  background-color: var(--destructive);
+  color: var(--destructive-foreground);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+/* Icon Button */
+.btn-icon,
+.btn-icon-base {
+  padding: 0.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon-sm {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0.25rem;
+}
+
+/* ==========================================================================
+    COMPONENT: CARDS (.card)
+    ========================================================================== */
+
+.card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-sm);
+  padding: 1.5rem;
+  transition: var(--transition-all);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--ring);
+}
+
+/* ==========================================================================
+    COMPONENT: FORMS & INPUTS
+    ========================================================================== */
+
+.form-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.form-input,
+.form-textarea,
+.form-select,
+.search-box {
+  display: flex;
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--input);
+  background-color: transparent;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  transition: var(--transition-all);
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus,
+.search-box:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--ring);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder,
+.search-box::placeholder {
+  color: var(--muted-foreground);
+}

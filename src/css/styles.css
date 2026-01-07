@@ -3,6 +3,7 @@
 @import './theme-palettes.css';
 @import './theme-patterns.css';
 @import './theme-transitions.css';
+@import './shared-components.css';
 /* ==========================================================================
    GLOBAL STYLES & RESET
    ========================================================================== */
