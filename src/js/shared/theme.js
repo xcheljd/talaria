@@ -19,7 +19,7 @@ const VALID_DARK_PALETTES = [
   'kanagawa',
 ];
 
-function validatePalette(palette, type) {
+export function validatePalette(palette, type) {
   const validList =
     type === 'light' ? VALID_LIGHT_PALETTES : VALID_DARK_PALETTES;
   return validList.includes(palette) ? palette : 'github';

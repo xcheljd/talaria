@@ -6,7 +6,13 @@
     "dev": "vite",
     "build": "vite build && cp dist-helpers/* dist/",
     "preview": "vite preview",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
     "lint": "eslint src/js/**/*.js",
     "format": "prettier --write \"src/js/**/*.js\" \"src/css/**/*.css\"",
     "tauri": "tauri",
@@ -28,13 +34,18 @@
   "homepage": "https://github.com/xcheljd/citizen-communication-templates#readme",
   "description": "Communication Template Generator desktop app",
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@tauri-apps/cli": "^2.9.6",
     "@vitejs/plugin-legacy": "^7.2.1",
+    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/ui": "^4.0.16",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
+    "jsdom": "^27.4.0",
     "prettier": "^3.6.2",
-    "vite": "^7.1.12"
+    "vite": "^7.1.12",
+    "vitest": "^4.0.16"
   },
   "dependencies": {
     "jszip": "^3.10.1"
