@@ -56,6 +56,7 @@ import {
   getStorePhone,
   getStoreName,
   getStoreLocation,
+  getStoreEmail,
 } from './shared/profile.js';
 // Import from html-utils.js for HTML escaping
 import { escapeAttr } from './shared/html-utils.js';
@@ -352,6 +353,26 @@ export function updateLivePreview() {
 
   // If no date range, regenerate the empty state with current theme colors
   if (!dateRangeInput || !dateRangeInput.value.trim()) {
+    writeEmptyStateToIframe(previewIframe);
+    // Still update status dots even when clearing preview
+    debouncedStatusUpdate();
+    return;
+  }
+
+  const dateRangeInput = document.getElementById('promoDateRange');
+  console.log('[DEBUG] dateRangeInput:', dateRangeInput);
+  console.log(
+    '[DEBUG] dateRangeInput.value:',
+    dateRangeInput ? dateRangeInput.value : 'N/A'
+  );
+  console.log(
+    '[DEBUG] dateRangeInput.value.trim():',
+    dateRangeInput ? dateRangeInput.value.trim() : 'N/A'
+  );
+
+  // If no date range, regenerate the empty state with current theme colors
+  if (!dateRangeInput || !dateRangeInput.value.trim()) {
+    console.log('[DEBUG] No date range, showing empty state');
     writeEmptyStateToIframe(previewIframe);
     // Still update status dots even when clearing preview
     debouncedStatusUpdate();
