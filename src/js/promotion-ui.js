@@ -359,26 +359,6 @@ export function updateLivePreview() {
     return;
   }
 
-  const dateRangeInput = document.getElementById('promoDateRange');
-  console.log('[DEBUG] dateRangeInput:', dateRangeInput);
-  console.log(
-    '[DEBUG] dateRangeInput.value:',
-    dateRangeInput ? dateRangeInput.value : 'N/A'
-  );
-  console.log(
-    '[DEBUG] dateRangeInput.value.trim():',
-    dateRangeInput ? dateRangeInput.value.trim() : 'N/A'
-  );
-
-  // If no date range, regenerate the empty state with current theme colors
-  if (!dateRangeInput || !dateRangeInput.value.trim()) {
-    console.log('[DEBUG] No date range, showing empty state');
-    writeEmptyStateToIframe(previewIframe);
-    // Still update status dots even when clearing preview
-    debouncedStatusUpdate();
-    return;
-  }
-
   const yearInput = document.getElementById('promoYear');
   const titleInput = document.getElementById('promoTitle');
 
