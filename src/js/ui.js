@@ -5,6 +5,10 @@ import {
   getStorePhone,
   getStoreName,
   getStoreLocation,
+  getEmployeeName,
+  getJobTitle,
+  getCompanyEmail,
+  getStoreEmail,
 } from './shared/profile.js';
 
 // Global variable for current template (used by modules)
@@ -537,33 +541,19 @@ export function clearAll() {
       if (appState.userProfile) {
         if (
           (fieldId === 'employeeName' || fieldId === 'yourName') &&
-          appState.userProfile.employeeName
+          getEmployeeName()
         ) {
-          defaultValue = appState.userProfile.employeeName;
-        } else if (fieldId === 'jobTitle' && appState.userProfile.jobTitle) {
-          defaultValue = appState.userProfile.jobTitle;
-        } else if (
-          fieldId === 'companyEmail' &&
-          appState.userProfile.companyEmail
-        ) {
-          defaultValue = appState.userProfile.companyEmail;
-        } else if (fieldId === 'storeName' && appState.userProfile.storeName) {
-          defaultValue = appState.userProfile.storeName;
-        } else if (
-          fieldId === 'storeLocation' &&
-          appState.userProfile.storeLocation
-        ) {
-          defaultValue = appState.userProfile.storeLocation;
-        } else if (
-          fieldId === 'storePhone' &&
-          appState.userProfile.storePhone
-        ) {
-          defaultValue = appState.userProfile.storePhone;
-        } else if (
-          fieldId === 'storeEmail' &&
-          appState.userProfile.storeEmail
-        ) {
-          defaultValue = appState.userProfile.storeEmail;
+          defaultValue = getEmployeeName();
+        } else if (fieldId === 'jobTitle' && getJobTitle()) {
+          defaultValue = getJobTitle();
+        } else if (fieldId === 'storeName' && getStoreName()) {
+          defaultValue = getStoreName();
+        } else if (fieldId === 'storeLocation' && getStoreLocation()) {
+          defaultValue = getStoreLocation();
+        } else if (fieldId === 'storePhone' && getStorePhone()) {
+          defaultValue = getStorePhone();
+        } else if (fieldId === 'storeEmail' && getStoreEmail()) {
+          defaultValue = getStoreEmail();
         }
       }
 
@@ -724,13 +714,13 @@ ${htmlSignature}
 </html>`;
   }
 
-  const fromName =
-    appState.userProfile.name || `${getStoreName()} ${getStoreLocation()}`;
-  const fromEmail = appState.userProfile.email || 'store@citizenwatchgroup.com';
+  const profile = getUserProfile();
+  const fromName = profile?.name || `${getStoreName()} ${getStoreLocation()}`;
+  const fromEmail = profile?.email || 'store@citizenwatchgroup.com';
 
   // Create EML file content
-  createEMLFile(fromName, fromEmail, '', '', subject, htmlBody, []).then(
-    (emlContent) => {
+  createEMLFile(fromName, fromEmail, '', '', subject, htmlBody, [])
+    .then((emlContent) => {
       const blob = new Blob([emlContent], { type: 'message/rfc822' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -741,8 +731,11 @@ ${htmlSignature}
       link.download = `${safeSubject}${extension}`;
       link.click();
       URL.revokeObjectURL(url);
-    }
-  );
+    })
+    .catch((error) => {
+      console.error('Error creating EML file:', error);
+      showToast('✗ Failed to create email file');
+    });
 }
 
 // ===== INITIALIZATION =====
@@ -1131,13 +1124,13 @@ export function selectTemplate(key) {
       if (appState.userProfile) {
         if (
           (field === 'employeeName' || field === 'yourName') &&
-          appState.userProfile.employeeName
+          getEmployeeName()
         ) {
-          autoFillValue = escapeAttr(appState.userProfile.employeeName);
-        } else if (field === 'storePhone' && appState.userProfile.storePhone) {
-          autoFillValue = escapeAttr(appState.userProfile.storePhone);
-        } else if (field === 'storeName' && appState.userProfile.storeName) {
-          autoFillValue = escapeAttr(appState.userProfile.storeName);
+          autoFillValue = escapeAttr(getEmployeeName());
+        } else if (field === 'storePhone' && getStorePhone()) {
+          autoFillValue = escapeAttr(getStorePhone());
+        } else if (field === 'storeName' && getStoreName()) {
+          autoFillValue = escapeAttr(getStoreName());
         }
       }
 
