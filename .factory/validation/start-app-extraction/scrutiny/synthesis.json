@@ -1,0 +1,63 @@
+{
+  "milestone": "start-app-extraction",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "npm run test",
+      "exitCode": 0,
+      "observation": "78 tests passed across 2 test files (theme.test.js: 44 tests, start-app.test.js: 34 tests). No regressions."
+    },
+    "typecheck": {
+      "passed": true,
+      "command": null,
+      "exitCode": null,
+      "observation": "No typecheck configured for this JavaScript project (no tsc or type-check script in package.json). Skipped."
+    },
+    "lint": {
+      "passed": true,
+      "command": "npm run lint",
+      "exitCode": 0,
+      "observation": "0 errors, 1 pre-existing warning in signature.js (no-unused-vars 'colors'). No new lint issues introduced."
+    }
+  },
+  "reviewsSummary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "failedFeatures": ["extract-start-html-inline-js"]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "extract-start-html-inline-js",
+      "severity": "blocking",
+      "description": "Missing palette select sync after initTheme(). The original inline initTheme() synced #lightPaletteSelect.value and #darkPaletteSelect.value with localStorage values after setting data attributes. The shared initTheme() from theme.js does NOT sync select elements (it was designed for index.html/promotion.html which lack palette selects). On page load, the palette dropdowns always show 'github' (the HTML default) regardless of stored preferences. This violates VAL-THEME-005. Fix: add 4 lines after initTheme() call in start-app.js to sync select values from localStorage.",
+      "file": "src/js/start-app.js",
+      "line": 459,
+      "suggestedFix": "After initTheme() call, add:\nconst lightPaletteSelect = document.getElementById('lightPaletteSelect');\nif (lightPaletteSelect) lightPaletteSelect.value = localStorage.getItem('lightPalette') || 'github';\nconst darkPaletteSelect = document.getElementById('darkPaletteSelect');\nif (darkPaletteSelect) darkPaletteSelect.value = localStorage.getItem('darkPalette') || 'github';"
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Document that shared initTheme() does NOT sync palette <select> element values — it only sets data-* attributes on documentElement. Pages with palette selects (currently only start.html) must sync select values themselves after calling initTheme().",
+      "evidence": "Feature extract-start-html-inline-js dropped the palette select sync when replacing local initTheme with shared initTheme. The shared function in src/js/shared/theme.js:29-52 has no select sync logic.",
+      "isSystemic": false
+    },
+    {
+      "target": "skills/refactoring-worker",
+      "suggestion": "Add verification step: when extracting code that syncs UI state with localStorage on load, verify that all state-dependent UI elements (selects, checkboxes, radio buttons) are properly synced after the shared initialization function runs. Specifically check that select.value matches localStorage values, not just that data attributes are set.",
+      "evidence": "Worker verified page loads and visual rendering but missed that palette select values weren't synced with localStorage. VAL-THEME-005 requires programmatic state restoration, not just visual correctness.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "No typecheck configured — considered noting this as a gap",
+      "reason": "This is a pure JavaScript project with no TypeScript. Typecheck is not applicable."
+    }
+  ],
+  "previousRound": null
+}

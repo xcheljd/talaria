@@ -1,0 +1,56 @@
+{
+  "featureId": "extract-start-html-inline-js",
+  "reviewedAt": "2026-03-29T08:30:00.000Z",
+  "commitId": "uncommitted-working-tree",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The extraction of ~500 lines of inline JS from start.html into src/js/start-app.js is well-executed overall. The module correctly imports shared utilities, preserves all page-specific logic, exports validation functions for unit testing, and adds 34 thorough tests. However, there is one blocking behavioral change: the shared initTheme() does not sync palette select values on page load, while the original inline initTheme() did. This will cause VAL-THEME-005 to fail.",
+    "issues": [
+      {
+        "file": "src/js/start-app.js",
+        "line": 459,
+        "severity": "blocking",
+        "description": "Missing palette select sync after initTheme(). The original inline initTheme() had code to sync #lightPaletteSelect.value and #darkPaletteSelect.value with their localStorage values after setting the data attributes. The shared initTheme() from shared/theme.js does NOT sync select elements (it was designed for index.html/promotion.html which don't have palette selects). This means on page load, the palette dropdowns will always show 'github' (the HTML default) regardless of the user's stored palette preference. This violates VAL-THEME-005 which requires '#lightPaletteSelect.value' to match the pre-set localStorage value. Fix: add select sync after initTheme() call, e.g.: const lp = document.getElementById('lightPaletteSelect'); if (lp) lp.value = localStorage.getItem('lightPalette') || 'github'; (same for dark)."
+      },
+      {
+        "file": "src/js/start-app.js",
+        "line": 15,
+        "severity": "non_blocking",
+        "description": "Imports updateThemeIndicator from shared/theme.js in addition to the four functions listed in the feature description (initTheme/toggleTheme/setLightPalette/setDarkPalette). This is actually correct behavior — the original inline code had a local updateThemeIndicator function that's now replaced by the shared version. The feature description simply didn't list it. No action needed, but worth noting for documentation accuracy."
+      },
+      {
+        "file": "src/js/start-app.js",
+        "line": 103,
+        "severity": "non_blocking",
+        "description": "Minor behavioral fix in validateStoreHours: added ': null' at end of the error ternary chain. The original code would show 'Include opening/closing times...' even when both hasDays && hasTimes were true (valid input). The fix correctly returns null for valid input. This is technically a behavior change but is a bugfix, not a regression. Handoff correctly documents this as an intentional fix."
+      },
+      {
+        "file": "src/js/start-app.js",
+        "line": 459,
+        "severity": "suggestion",
+        "description": "The shared initTheme() defaults to 'github' for both palettes, while the original inline code defaulted to 'pastel'/'midnight-blue'. The shared module's validatePalette() migrates invalid names to 'github'. This is an improvement (consistent with the rest of the app) but is a behavioral change for users who had old palette values stored. Consider whether a migration step is needed, or if the shared module's validation is sufficient."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The refactoring-worker skill's Step 6 says to use agent-browser for browser verification but does not mention checking that select/input values sync with stored state on page load. The worker verified the page loads and functions work, but missed the palette select sync issue because it only checked visual rendering, not programmatic state restoration.",
+      "evidence": "Worker's interactiveChecks show: 'Page loads without console errors, all form fields present, theme applies correctly, palette selectors visible' — but no check that palette selectors reflect stored values. VAL-THEME-005 in validation-contract.md requires this check."
+    },
+    {
+      "area": "conventions",
+      "observation": "The shared initTheme() in shared/theme.js doesn't sync palette <select> values because index.html and promotion.html don't have palette selects. Only start.html has them. This means start-app.js needs to handle select sync as page-specific logic after calling initTheme(). This pattern should be documented in AGENTS.md or the mission AGENTS.md so future workers know that shared initTheme() doesn't cover select syncing.",
+      "evidence": "src/js/shared/theme.js:29-52 (initTheme has no select sync). start.html:864,885 (has lightPaletteSelect/darkPaletteSelect). Original inline initTheme had select sync code that was not carried over."
+    },
+    {
+      "area": "services",
+      "observation": "No observations — the worker correctly used npm run dev on port 8080 and npm run test/npm run lint, all of which are already in services.yaml.",
+      "evidence": "Handoff verification commands match services.yaml entries."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "The extraction is structurally sound — correct module structure, proper imports, no duplicate implementations, thorough test coverage (34 tests), and clean lint. The one blocking issue is that the palette select dropdowns (#lightPaletteSelect, #darkPaletteSelect) are not synced with their localStorage values on page load. The original inline initTheme() synced them, but the shared initTheme() from theme.js does not (it was designed for pages without palette selects). Adding 4 lines after initTheme() to read localStorage and set the select values will fix this and restore behavioral parity."
+}
