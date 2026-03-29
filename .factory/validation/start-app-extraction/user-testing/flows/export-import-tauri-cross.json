@@ -1,0 +1,268 @@
+{
+  "groupId": "export-import-tauri-cross",
+  "testedAt": "2026-03-29T12:00:00.000Z",
+  "isolation": {
+    "appUrl": "http://localhost:8080/start.html",
+    "browserSession": "15d3c19a209a_export",
+    "devServerPort": 8080,
+    "localStorageClearedBeforeEachAssertion": true
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-EXPORT-001",
+      "title": "Export downloads a JSON file with all profile fields",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Clear localStorage, reload start.html, fill all profile fields (employeeName=Jane Doe, jobTitle=Sales Associate, storeName=Citizen Watch Store - Miami, storeLocation=the Miami Design District, storePhone=3055551234, storeEmail=miami@citizenwatchgroup.com, storeAddress, storePlusCode, storeDirections). storeHours had default value.",
+          "expected": "All fields filled",
+          "observed": "All fields filled successfully"
+        },
+        {
+          "action": "Intercept download via patched document.createElement, click Export button",
+          "expected": "Download triggered with correct filename and JSON content",
+          "observed": "Download captured: filename=citizen-profile-2026-03-29.json, version=1.0, exportDate present, profile object with all 14 fields (employeeName, jobTitle, companyEmail, storeName, storeLocation, storePhone, storeEmail, storeAddress, storePlusCode, storeHours, storeDirections, lightPalette, darkPalette, currentMode)"
+        }
+      ],
+      "evidence": {
+        "screenshots": ["start-app-extraction/export-import-tauri-cross/VAL-EXPORT-001-after-export.png"],
+        "consoleErrors": "none",
+        "download": {
+          "filename": "citizen-profile-2026-03-29.json",
+          "version": "1.0",
+          "hasExportDate": true,
+          "profileFields": ["employeeName", "jobTitle", "companyEmail", "storeName", "storeLocation", "storePhone", "storeEmail", "storeAddress", "storePlusCode", "storeHours", "storeDirections", "lightPalette", "darkPalette", "currentMode"]
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-EXPORT-002",
+      "title": "Export blocked when required fields empty",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Clear localStorage, reload page, leave all fields empty, click Export",
+          "expected": "Toast shows error, no download triggered",
+          "observed": "Toast message: 'Please fill in all required fields before exporting'. No download captured (downloadCaptured=false). Button did not enter success state."
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "none",
+        "toastMessage": "Please fill in all required fields before exporting",
+        "downloadCaptured": false,
+        "btnHasSuccessClass": false
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-IMPORT-001",
+      "title": "Import fills all form fields from valid JSON file",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Clear localStorage, reload page, trigger import via JS with a valid JSON file containing all profile fields",
+          "expected": "All form inputs populated with imported values, success toast shown",
+          "observed": "All 11 form fields populated correctly: employeeName=Imported User, jobTitle=Sales Associate, companyEmail='', storeName=Import Store, storeLocation=the Imported Location, storePhone=(555) 987-6543, storeEmail=import@store.com, storeAddress=456 Import St, storePlusCode=9R3V2C8W+Q7, storeHours=Mon-Fri: 9AM-6PM | Sat: 10AM-5PM, storeDirections=Next to the fountain. Toast: '✓ Profile imported successfully'"
+        }
+      ],
+      "evidence": {
+        "screenshots": ["start-app-extraction/export-import-tauri-cross/VAL-IMPORT-001-after-import.png"],
+        "consoleErrors": "none",
+        "toastMessage": "✓ Profile imported successfully",
+        "allFieldsPopulated": true
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-IMPORT-002",
+      "title": "Import restores theme preferences",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Import JSON with lightPalette=nord, darkPalette=monokai, currentMode=dark",
+          "expected": "All theme preferences applied",
+          "observed": "lightPaletteSelect=nord, darkPaletteSelect=monokai, data-theme=dark, data-light-palette=nord, data-dark-palette=monokai, localStorage theme=dark, lightPalette=nord, darkPalette=monokai, slider transform=translateX(20px). Toast: '✓ Profile imported successfully'"
+        }
+      ],
+      "evidence": {
+        "screenshots": ["start-app-extraction/export-import-tauri-cross/VAL-IMPORT-002-dark-mode.png"],
+        "consoleErrors": "none",
+        "themeState": {
+          "lightPaletteSelect": "nord",
+          "darkPaletteSelect": "monokai",
+          "dataTheme": "dark",
+          "dataLightPalette": "nord",
+          "dataDarkPalette": "monokai",
+          "sliderTransform": "translateX(20px)"
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-IMPORT-003",
+      "title": "Import blocked for invalid file format",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Trigger import with a non-JSON file (text/plain)",
+          "expected": "Error toast shown, no form changes",
+          "observed": "Toast: 'Please select a JSON file'. All form fields unchanged (employeeName, storeName, storeLocation, storePhone, storeEmail, storeHours all match pre-import values)."
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "none",
+        "toastMessage": "Please select a JSON file",
+        "fieldsUnchanged": true
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-IMPORT-004",
+      "title": "Import blocked for missing required fields",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Import JSON missing employeeName and storePhone in profile object",
+          "expected": "Error toast with specific missing field names, form unchanged",
+          "observed": "Toast: 'Import failed: Missing required fields: employeeName, storePhone'. employeeName and storeName values unchanged from pre-import state."
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "none",
+        "toastMessage": "Import failed: Missing required fields: employeeName, storePhone",
+        "fieldsUnchanged": true
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-TAURI-001",
+      "title": "Download folder section shows Desktop app only in browser",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Check downloadFolderPath input and chooseDownloadFolderBtn in browser context (no window.__TAURI__)",
+          "expected": "Input shows browser fallback text, button disabled with Desktop app only label",
+          "observed": "downloadFolderPath.value='Browser: uses system Downloads folder', chooseDownloadFolderBtn.disabled=true, chooseDownloadFolderBtn.textContent='Desktop app only', window.__TAURI__=false"
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "none",
+        "inputValue": "Browser: uses system Downloads folder",
+        "btnDisabled": true,
+        "btnText": "Desktop app only",
+        "hasTauri": false
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-001",
+      "title": "Profile gate redirect flow",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Clear localStorage, navigate to start.html?return=promotion.html",
+          "expected": "#profileRequiredBanner visible with Profile required text",
+          "observed": "Banner display=block, text contains 'Profile required'"
+        },
+        {
+          "action": "Fill all required fields (employeeName, jobTitle=Sales Associate, storeName, storeLocation, storePhone, storeEmail, storeAddress) and submit",
+          "expected": "Success toast, redirect to promotion.html",
+          "observed": "Profile saved to localStorage (employeeName=Cross Test User). URL after save: http://localhost:8080/promotion.html. Redirect confirmed."
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "none",
+        "bannerVisible": true,
+        "bannerText": "Profile required: Please complete your profile to continue to the Promotion Email Generator.",
+        "finalUrl": "http://localhost:8080/promotion.html"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-002",
+      "title": "Import then theme update then visual refresh",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Set localStorage to light mode with github palette, navigate to start.html, verify starting state",
+          "expected": "Page in light mode, github palette, slider at translateX(0px)",
+          "observed": "Pre-import: data-theme=light, darkPaletteSelect=github, data-dark-palette=github, sliderTransform=translateX(0px)"
+        },
+        {
+          "action": "Import JSON with currentMode=dark, darkPalette=kanagawa",
+          "expected": "Page switches to dark mode with kanagawa palette",
+          "observed": "Post-import: data-theme=dark, darkPaletteSelect=kanagawa, data-dark-palette=kanagawa, sliderTransform=translateX(20px). Toast: '✓ Profile imported successfully'"
+        }
+      ],
+      "evidence": {
+        "screenshots": ["start-app-extraction/export-import-tauri-cross/VAL-CROSS-002-dark-kanagawa.png"],
+        "consoleErrors": "none",
+        "preState": {
+          "dataTheme": "light",
+          "darkPaletteSelect": "github",
+          "dataDarkPalette": "github",
+          "sliderTransform": "translateX(0px)"
+        },
+        "postState": {
+          "dataTheme": "dark",
+          "darkPaletteSelect": "kanagawa",
+          "dataDarkPalette": "kanagawa",
+          "sliderTransform": "translateX(20px)"
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-003",
+      "title": "Job title change mid-session does not save stale company email",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Clear localStorage, navigate to start.html, select General Manager, fill companyEmail with test@citizenwatchgroup.com",
+          "expected": "Company email field visible and populated",
+          "observed": "companyEmailGroup display changed from none to block, companyEmail value = test@citizenwatchgroup.com"
+        },
+        {
+          "action": "Switch jobTitle to Sales Associate",
+          "expected": "Company email field hides and value clears",
+          "observed": "companyEmailGroup display=none, companyEmail value='' (cleared)"
+        },
+        {
+          "action": "Fill remaining required fields, submit and save, check localStorage userProfile.companyEmail",
+          "expected": "companyEmail must be '' (empty string)",
+          "observed": "savedCompanyEmail='', lsCompanyEmail=''. Confirmed: no stale company email in saved profile."
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "none",
+        "companyEmailAfterClear": "",
+        "savedCompanyEmail": ""
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "agent-browser upload command requires an HTMLInputElement ref, not a button ref. The hidden file input (#importProfileFile) was not discoverable via snapshot -i. Worked around by using JS eval to programmatically create File objects and dispatch change events on the hidden file input.",
+      "resolved": true,
+      "resolution": "Used document.getElementById('importProfileFile') with DataTransfer API and dispatchEvent to trigger import programmatically",
+      "affectedAssertions": ["VAL-IMPORT-001", "VAL-IMPORT-002", "VAL-IMPORT-003", "VAL-IMPORT-004", "VAL-CROSS-002"]
+    },
+    {
+      "description": "Toast messages auto-dismiss quickly, making them hard to capture via snapshot. Initial attempts to check toast text returned null because the toast had already faded.",
+      "resolved": true,
+      "resolution": "Installed MutationObserver on #toastContainer to capture toast text in window.__lastToast variable as soon as it appears",
+      "affectedAssertions": ["VAL-EXPORT-002", "VAL-IMPORT-001", "VAL-IMPORT-002", "VAL-IMPORT-003", "VAL-IMPORT-004"]
+    },
+    {
+      "description": "VAL-CROSS-001 first submit attempt failed validation because storeAddress is also required by the form validation logic (not just the HTML5 required attribute). The validation contract mentions 'required fields' but the app's submit handler checks storeAddress as well.",
+      "resolved": true,
+      "resolution": "Filled storeAddress field and re-submitted successfully",
+      "affectedAssertions": ["VAL-CROSS-001"]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 10 assertions: all 10 passed. Export generates correct JSON with all profile fields and theme preferences. Export blocked when required fields empty. Import populates all form fields and restores theme preferences. Import blocked for non-JSON files and missing required fields. Tauri section correctly shows browser fallback in non-Tauri context. Profile gate redirect works correctly. Theme updates from import apply to all visual and DOM state. Job title change correctly clears company email, preventing stale data from being saved."
+}

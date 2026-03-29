@@ -1,0 +1,223 @@
+{
+  "groupId": "profile-form",
+  "testedAt": "2026-03-29T12:00:00Z",
+  "isolation": {
+    "appUrl": "http://localhost:8080/start.html",
+    "browserSession": "15d3c19a209a_form",
+    "port": 8080,
+    "localStorageCleared": true
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-FORM-001",
+      "title": "Form loads with all expected fields",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Navigate to start.html with cleared localStorage",
+          "expected": "All form fields present with correct types; companyEmailGroup hidden",
+          "observed": "All 11 fields found with correct types (employeeName:text, jobTitle:select, storeName:text, storeLocation:text, storeAddress:textarea, storePlusCode:text, storePhone:tel, storeEmail:email, storeHours:text, storeDirections:text, companyEmail:email). companyEmailGroup display:none. Settings card has lightPaletteSelect, darkPaletteSelect, downloadFolderPath. #setupForm exists."
+        }
+      ],
+      "evidence": {
+        "screenshots": ["start-app-extraction/profile-form/VAL-FORM-001-form-load.png"],
+        "consoleErrors": "none",
+        "jsEvaluation": "All fields present with typeMatch:true. companyEmailGroup.hidden:true. setupForm:true. settingsCard elements all found."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FORM-002",
+      "title": "Company email field visibility toggles with management titles",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Select each management title from jobTitle dropdown",
+          "expected": "companyEmailGroup visible (display != none), companyEmail has required attribute",
+          "observed": "All 6 management titles (Assistant Store Manager, Associate Store Manager, General Manager, Area Manager, Regional Manager, District Manager) show companyEmailGroup (display:block) and set required:true"
+        },
+        {
+          "action": "Select non-management titles",
+          "expected": "companyEmailGroup hidden, no required attribute",
+          "observed": "Sales Associate and Sales Associate/Keyholder hide companyEmailGroup (display:none) and required:false"
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "none",
+        "jsEvaluation": "6/6 management titles: visible=true, required=true. 2 non-management titles: visible=false, required=false."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FORM-003",
+      "title": "Company email value cleared when switching to non-management title",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Select General Manager, type test@citizenwatchgroup.com into companyEmail, then select Sales Associate",
+          "expected": "companyEmail value is empty string, companyEmailError hidden",
+          "observed": "companyEmail.value='', companyEmailError display:none"
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "none",
+        "jsEvaluation": "companyEmailValue:'', companyEmailValueEmpty:true, companyEmailErrorDisplay:'none', companyEmailErrorHidden:true"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FORM-004",
+      "title": "Phone validation on blur",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Focus storePhone, type '5551234567', blur",
+          "expected": "Value auto-formatted to '(555) 123-4567' and phoneError hidden",
+          "observed": "Value correctly formatted to '(555) 123-4567', phoneError hidden. PASS for valid phone."
+        },
+        {
+          "action": "Focus storePhone, type '123', blur",
+          "expected": "phoneError displays 'Phone must have 10 digits' and storePhone has class 'input-error'",
+          "observed": "phoneError display:'none', text:'', no input-error class. FAIL - error not displayed."
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "none",
+        "jsEvaluation": "Valid: value='(555) 123-4567', errorDisplay='none'. Invalid: value='123', errorDisplay='none', errorText='', hasErrorClass=false.",
+        "rootCause": "showError('phoneError', ...) silently fails because document.getElementById('phoneError'.replace('Error', '')) returns null - looks for element with id 'phone' but actual input id is 'storePhone'. The blur handler calls showError which has an if-guard that requires both errorElement and inputElement to exist."
+      },
+      "issues": "showError/hideError functions use fieldId.replace('Error', '') to derive input element ID. For 'phoneError' this yields 'phone' but the actual input ID is 'storePhone'. Same bug affects emailError→email (actual: storeEmail), hoursError→hours (actual: storeHours), plusCodeError→plusCode (actual: storePlusCode). Only companyEmailError→companyEmail works correctly."
+    },
+    {
+      "id": "VAL-FORM-005",
+      "title": "Email validation on blur",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Focus storeEmail, type 'invalid', blur",
+          "expected": "emailError displays 'Invalid email format' and storeEmail has class 'input-error'",
+          "observed": "emailError display:'none', text:'', no input-error class. FAIL - error not displayed."
+        },
+        {
+          "action": "Focus storeEmail, type 'valid@store.com', blur",
+          "expected": "Error hidden and input-error class removed",
+          "observed": "emailError display:'none' (was already none). PASS trivially since error was never shown."
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "none",
+        "jsEvaluation": "Invalid: errorDisplay='none', errorText='', hasErrorClass=false. Valid: errorDisplay='none', hasErrorClass=false.",
+        "rootCause": "Same showError bug as VAL-FORM-004: showError('emailError', ...) looks for input id 'email' but actual id is 'storeEmail'."
+      },
+      "issues": "Same root cause as VAL-FORM-004: showError/hideError derives wrong input element ID."
+    },
+    {
+      "id": "VAL-FORM-006",
+      "title": "Store hours validation on blur",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Focus storeHours, type 'bad format', blur",
+          "expected": "hoursError displays with message about day names and hours",
+          "observed": "hoursError display:'none', text:'', no input-error class. FAIL - error not displayed."
+        },
+        {
+          "action": "Focus storeHours, type 'Mon–Sat: 10AM–8PM | Sun: 10AM–7PM', blur",
+          "expected": "Error hidden",
+          "observed": "hoursError display:'none'. PASS trivially since error was never shown."
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "none",
+        "jsEvaluation": "Invalid: errorDisplay='none', errorText='', hasErrorClass=false. Valid: errorDisplay='none', hasErrorClass=false.",
+        "rootCause": "Same showError bug: showError('hoursError', ...) looks for input id 'hours' but actual id is 'storeHours'."
+      },
+      "issues": "Same root cause as VAL-FORM-004."
+    },
+    {
+      "id": "VAL-FORM-007",
+      "title": "Plus code validation on blur (optional field)",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Focus storePlusCode, leave empty, blur",
+          "expected": "No error shown (optional field)",
+          "observed": "plusCodeError display:'none'. PASS - empty accepted without error."
+        },
+        {
+          "action": "Focus storePlusCode, type '849VCWC8+R9', blur",
+          "expected": "Value accepted (uppercased), no error",
+          "observed": "plusCodeError display:'none'. PASS - valid format accepted."
+        },
+        {
+          "action": "Focus storePlusCode, type 'bad code!!!', blur",
+          "expected": "plusCodeError displays 'Invalid Plus Code format' and input has 'input-error' class",
+          "observed": "plusCodeError display:'none', text:'', hasErrorClass=false. FAIL - error not displayed."
+        }
+      ],
+      "evidence": {
+        "consoleErrors": "none",
+        "jsEvaluation": "Empty: errorDisplay='none'. Valid: errorDisplay='none'. Invalid: errorDisplay='none', errorText='', hasErrorClass=false.",
+        "rootCause": "Same showError bug: showError('plusCodeError', ...) looks for input id 'plusCode' but actual id is 'storePlusCode'."
+      },
+      "issues": "Same root cause as VAL-FORM-004. Empty and valid cases pass, but invalid format error is not displayed."
+    },
+    {
+      "id": "VAL-FORM-008",
+      "title": "Company email validation requires @citizenwatchgroup.com for management titles",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Select General Manager, type 'personal@gmail.com' into companyEmail, blur",
+          "expected": "companyEmailError displays 'Company email must be @citizenwatchgroup.com'",
+          "observed": "companyEmailError display:'block', text:'Company email must be @citizenwatchgroup.com', hasErrorClass:true. PASS."
+        },
+        {
+          "action": "Type 'name@citizenwatchgroup.com', blur",
+          "expected": "Error clears",
+          "observed": "companyEmailError display:'none', hasErrorClass:false. PASS."
+        },
+        {
+          "action": "Leave empty, blur",
+          "expected": "Error shows 'Company email is required for management positions'",
+          "observed": "companyEmailError display:'block', text:'Company email is required for management positions', hasErrorClass:true. PASS."
+        }
+      ],
+      "evidence": {
+        "screenshots": ["start-app-extraction/profile-form/VAL-FORM-008-company-email-validation.png"],
+        "consoleErrors": "none",
+        "jsEvaluation": "Wrong domain: display='block', text matches, hasErrorClass=true. Valid domain: display='none', hasErrorClass=false. Empty required: display='block', text matches, hasErrorClass=true."
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FORM-009",
+      "title": "Validation summary appears on submit with invalid fields",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Leave all fields empty, submit form",
+          "expected": "validationSummary visible with missing field names; error toast appears with 'Please complete all required fields'",
+          "observed": "validationSummary display:'flex' (visible). validationSummaryText:'Please complete: Your Name, Job Title, Store Name, Store Location, Store Address, Store Phone, Store Email'. Toast container contains toast-error element with text 'Please complete all required fields'."
+        }
+      ],
+      "evidence": {
+        "screenshots": ["start-app-extraction/profile-form/VAL-FORM-009-validation-summary.png"],
+        "consoleErrors": "none",
+        "jsEvaluation": "summaryDisplay:'flex', summaryText contains all expected field names, toastContainer has toast-error with correct message text."
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "agent-browser's fill/type commands do not reliably trigger blur event handlers on form inputs. JavaScript .blur() and dispatchEvent(new Event('blur')) were used instead, which also did not trigger the handlers. Root cause investigation revealed this was not a testing tool issue but a code bug (showError/hideError silently failing due to wrong element ID derivation).",
+      "resolved": true,
+      "resolution": "Used JavaScript evaluation to directly test validation behavior, which revealed the showError/hideError bug.",
+      "affectedAssertions": ["VAL-FORM-004", "VAL-FORM-005", "VAL-FORM-006", "VAL-FORM-007"]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 9 assertions: 5 passed, 4 failed. VAL-FORM-001 (form fields), VAL-FORM-002 (company email toggle), VAL-FORM-003 (company email clear), VAL-FORM-008 (company email validation), and VAL-FORM-009 (validation summary) all pass. VAL-FORM-004 (phone blur), VAL-FORM-005 (email blur), VAL-FORM-006 (hours blur), and VAL-FORM-007 (plus code blur) fail due to a shared bug: showError/hideError functions use fieldId.replace('Error','') to derive input element IDs, which produces incorrect IDs for phoneError→'phone' (should be 'storePhone'), emailError→'email' (should be 'storeEmail'), hoursError→'hours' (should be 'storeHours'), plusCodeError→'plusCode' (should be 'storePlusCode'). Only companyEmailError→'companyEmail' works correctly. This bug exists in both the original inline script (commit 0134aac) and the extracted start-app.js module, confirming the refactor preserved existing behavior (zero behavior change)."
+}

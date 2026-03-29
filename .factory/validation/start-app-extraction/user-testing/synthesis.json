@@ -1,0 +1,64 @@
+{
+  "milestone": "start-app-extraction",
+  "round": 1,
+  "status": "fail",
+  "assertionsSummary": {
+    "total": 33,
+    "passed": 29,
+    "failed": 4,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-THEME-001",
+    "VAL-THEME-002",
+    "VAL-THEME-003",
+    "VAL-THEME-004",
+    "VAL-THEME-005",
+    "VAL-FORM-001",
+    "VAL-FORM-002",
+    "VAL-FORM-003",
+    "VAL-FORM-008",
+    "VAL-FORM-009",
+    "VAL-SAVE-001",
+    "VAL-SAVE-002",
+    "VAL-SAVE-003",
+    "VAL-SAVE-004",
+    "VAL-SAVE-005",
+    "VAL-EXPORT-001",
+    "VAL-EXPORT-002",
+    "VAL-IMPORT-001",
+    "VAL-IMPORT-002",
+    "VAL-IMPORT-003",
+    "VAL-IMPORT-004",
+    "VAL-NAV-001",
+    "VAL-NAV-002",
+    "VAL-TAURI-001",
+    "VAL-CROSS-001",
+    "VAL-CROSS-002",
+    "VAL-CROSS-003",
+    "VAL-UNIT-002",
+    "VAL-UNIT-003"
+  ],
+  "failedAssertions": [
+    {
+      "id": "VAL-FORM-004",
+      "reason": "Pre-existing bug: showError('phoneError', ...) uses fieldId.replace('Error','') to derive input element ID, producing 'phone' instead of the actual 'storePhone'. The if-guard silently skips error display. Confirmed identical in original inline code at commit 0134aac — NOT a refactor regression."
+    },
+    {
+      "id": "VAL-FORM-005",
+      "reason": "Pre-existing bug: showError('emailError', ...) derives input ID as 'email' but actual ID is 'storeEmail'. Same root cause as VAL-FORM-004. Confirmed identical in original inline code at commit 0134aac — NOT a refactor regression."
+    },
+    {
+      "id": "VAL-FORM-006",
+      "reason": "Pre-existing bug: showError('hoursError', ...) derives input ID as 'hours' but actual ID is 'storeHours'. Same root cause as VAL-FORM-004. Confirmed identical in original inline code at commit 0134aac — NOT a refactor regression."
+    },
+    {
+      "id": "VAL-FORM-007",
+      "reason": "Pre-existing bug: showError('plusCodeError', ...) derives input ID as 'plusCode' but actual ID is 'storePlusCode'. Same root cause as VAL-FORM-004. Confirmed identical in original inline code at commit 0134aac — NOT a refactor regression."
+    }
+  ],
+  "blockedAssertions": [],
+  "appliedUpdates": [],
+  "previousRound": null,
+  "notes": "All 4 failures are pre-existing bugs in the showError/hideError helper functions that derive input element IDs incorrectly. The bug uses fieldId.replace('Error','') which strips the 'Error' suffix but doesn't map to the actual element IDs (e.g., 'phoneError' → 'phone' instead of 'storePhone'). This was verified against the original inline code at commit 0134aac and confirmed identical. The refactor (extracting inline JS to src/js/start-app.js) preserved this behavior exactly — zero behavioral changes introduced. The 29 passing assertions confirm the refactor successfully preserved all other behaviors including theme system, form structure, profile save/load, export/import, navigation transitions, Tauri fallback, and cross-area flows."
+}

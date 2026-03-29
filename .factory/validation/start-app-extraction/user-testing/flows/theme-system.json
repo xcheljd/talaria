@@ -1,0 +1,208 @@
+{
+  "groupId": "theme-system",
+  "testedAt": "2026-03-29T01:05:00Z",
+  "isolation": {
+    "appUrl": "http://localhost:8080/start.html",
+    "browserSession": "15d3c19a209a_theme",
+    "port": 8080
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-THEME-001",
+      "title": "Theme flash prevention on page load",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Navigate to start.html with clean localStorage (no theme set)",
+          "expected": "data-theme='light' set before first paint, matching default",
+          "observed": "data-theme='light', localStorage theme=null (defaults to light), page renders in light theme immediately — no flash"
+        },
+        {
+          "action": "Pre-set localStorage theme='dark', navigate to start.html",
+          "expected": "data-theme='dark' set before first paint, matching stored preference",
+          "observed": "data-theme='dark', localStorage theme='dark' — dark theme renders immediately with no flash"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/start-app-extraction/theme-system/VAL-THEME-001-initial-load.png",
+          "evidence/start-app-extraction/theme-system/VAL-THEME-001-dark-preload.png"
+        ],
+        "consoleErrors": "none",
+        "jsEvaluation": {
+          "cleanState": {
+            "dataTheme": "light",
+            "localStorageTheme": "null (defaults to light)"
+          },
+          "preSetDark": {
+            "dataTheme": "dark",
+            "localStorageTheme": "dark"
+          }
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-THEME-002",
+      "title": "Theme toggle switches between light/dark and persists",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Navigate to start.html with clean state, check initial light mode",
+          "expected": "data-theme='light', slider at translateX(0)",
+          "observed": "data-theme='light', slider transform=matrix(1,0,0,1,0,0) (translateX(0))"
+        },
+        {
+          "action": "Click #themeToggle button",
+          "expected": "data-theme flips to 'dark', localStorage updated, slider at translateX(20px)",
+          "observed": "data-theme='dark', localStorage='dark', slider transform=matrix(1,0,0,1,20,0) (translateX(20px))"
+        },
+        {
+          "action": "Reload page",
+          "expected": "Dark mode persists — all state preserved",
+          "observed": "data-theme='dark', localStorage='dark', slider transform=matrix(1,0,0,1,20,0)"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/start-app-extraction/theme-system/VAL-THEME-002-dark-mode.png",
+          "evidence/start-app-extraction/theme-system/VAL-THEME-002-dark-after-reload.png"
+        ],
+        "consoleErrors": "none",
+        "jsEvaluation": {
+          "afterToggle": {
+            "dataTheme": "dark",
+            "localStorageTheme": "dark",
+            "sliderTransform": "matrix(1, 0, 0, 1, 20, 0) (translateX(20px))"
+          },
+          "afterReload": {
+            "dataTheme": "dark",
+            "localStorageTheme": "dark",
+            "sliderTransform": "matrix(1, 0, 0, 1, 20, 0) (translateX(20px))"
+          }
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-THEME-003",
+      "title": "Light palette selector updates page colors and persists",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Navigate with clean state, verify initial light palette",
+          "expected": "data-light-palette='github', select value='github'",
+          "observed": "data-light-palette='github', select value='github', localStorage='github'"
+        },
+        {
+          "action": "Change #lightPaletteSelect to 'nord'",
+          "expected": "data-light-palette='nord', localStorage='nord', select value='nord'",
+          "observed": "All three values updated to 'nord'"
+        },
+        {
+          "action": "Reload page",
+          "expected": "Palette persists — select remains 'nord', attributes match",
+          "observed": "data-light-palette='nord', select value='nord', localStorage='nord'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/start-app-extraction/theme-system/VAL-THEME-003-nord-palette.png",
+          "evidence/start-app-extraction/theme-system/VAL-THEME-003-nord-after-reload.png"
+        ],
+        "consoleErrors": "none",
+        "jsEvaluation": {
+          "afterChange": {
+            "dataLightPalette": "nord",
+            "lightPaletteSelectValue": "nord",
+            "localStorageLightPalette": "nord"
+          },
+          "afterReload": {
+            "dataLightPalette": "nord",
+            "lightPaletteSelectValue": "nord",
+            "localStorageLightPalette": "nord"
+          }
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-THEME-004",
+      "title": "Dark palette selector updates page colors and persists",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Navigate with theme='dark', verify initial dark palette",
+          "expected": "data-dark-palette='github', select value='github'",
+          "observed": "data-dark-palette='github', select value='github', localStorage='github'"
+        },
+        {
+          "action": "Change #darkPaletteSelect to 'kanagawa'",
+          "expected": "data-dark-palette='kanagawa', localStorage='kanagawa', select value='kanagawa'",
+          "observed": "All three values updated to 'kanagawa'"
+        },
+        {
+          "action": "Reload page",
+          "expected": "Palette persists — select remains 'kanagawa', attributes match",
+          "observed": "data-dark-palette='kanagawa', select value='kanagawa', localStorage='kanagawa'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/start-app-extraction/theme-system/VAL-THEME-004-kanagawa-palette.png",
+          "evidence/start-app-extraction/theme-system/VAL-THEME-004-kanagawa-after-reload.png"
+        ],
+        "consoleErrors": "none",
+        "jsEvaluation": {
+          "afterChange": {
+            "dataDarkPalette": "kanagawa",
+            "darkPaletteSelectValue": "kanagawa",
+            "localStorageDarkPalette": "kanagawa"
+          },
+          "afterReload": {
+            "dataDarkPalette": "kanagawa",
+            "darkPaletteSelectValue": "kanagawa",
+            "localStorageDarkPalette": "kanagawa"
+          }
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-THEME-005",
+      "title": "Palette selector values sync with stored preferences on load",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Pre-set localStorage: lightPalette='catppuccin-latte', darkPalette='rose-pine'",
+          "expected": "localStorage values set before navigation",
+          "observed": "localStorage values confirmed set"
+        },
+        {
+          "action": "Navigate to start.html",
+          "expected": "Select values and data attributes match pre-set localStorage values",
+          "observed": "#lightPaletteSelect.value='catppuccin-latte', #darkPaletteSelect.value='rose-pine', data-light-palette='catppuccin-latte', data-dark-palette='rose-pine'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/start-app-extraction/theme-system/VAL-THEME-005-preset-palettes.png"
+        ],
+        "consoleErrors": "none",
+        "jsEvaluation": {
+          "lightPaletteSelectValue": "catppuccin-latte",
+          "darkPaletteSelectValue": "rose-pine",
+          "dataLightPalette": "catppuccin-latte",
+          "dataDarkPalette": "rose-pine",
+          "localStorageLightPalette": "catppuccin-latte",
+          "localStorageDarkPalette": "rose-pine"
+        }
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Tested 5 theme system assertions: all 5 passed. Flash prevention works correctly with synchronous inline head script. Theme toggle, palette selectors, and persistence across reload all function as specified. No console errors encountered."
+}
