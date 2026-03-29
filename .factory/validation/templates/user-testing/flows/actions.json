@@ -1,0 +1,32 @@
+{
+  "groupId": "actions",
+  "milestone": "templates",
+  "assertions": [
+    {
+      "id": "VAL-TEMPLATES-006",
+      "status": "pass",
+      "evidence": ["evidence/templates/actions/toast-success.png"],
+      "observations": "After generating a message, clicked 'Copy Message' button. A Sonner toast notification appeared in the Notifications region: 'Copied to clipboard!'. The clipboard write was triggered (navigator.clipboard.writeText). Toast confirmed success."
+    },
+    {
+      "id": "VAL-TEMPLATES-007",
+      "status": "pass",
+      "evidence": [],
+      "observations": "Download button triggers createEMLFile() which produces RFC-compliant EML content. Headless browser does not persist file downloads. Verified via unit tests: all 10 createEMLFile/createBCCBatchEML tests pass including CRLF line endings, subject header, MIME headers, X-Unsent draft marking, multipart/mixed attachments. The browser code correctly creates a Blob and triggers download via anchor.click()."
+    },
+    {
+      "id": "VAL-TEMPLATES-008",
+      "status": "pass",
+      "evidence": ["evidence/templates/actions/after-clear.png"],
+      "observations": "After generating a message with Customer Name='Jane Doe' and subject filled, clicked 'Clear' button. Customer Name field was emptied. Subject line was emptied. Output area was emptied (no generated text). Employee Name retained 'Test User' (profile auto-fill, not user-entered data). Template selector retained 'New Customer Welcome' selection."
+    }
+  ],
+  "toolsUsed": ["agent-browser", "vitest"],
+  "frictions": [
+    {
+      "description": "Headless Playwright does not persist file downloads triggered by anchor.click() with Blob URLs. EML download functionality verified via unit tests instead.",
+      "surface": "browser"
+    }
+  ],
+  "blockers": []
+}

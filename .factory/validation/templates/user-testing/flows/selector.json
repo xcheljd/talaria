@@ -1,0 +1,27 @@
+{
+  "groupId": "selector",
+  "milestone": "templates",
+  "assertions": [
+    {
+      "id": "VAL-TEMPLATES-001",
+      "status": "pass",
+      "evidence": ["evidence/templates/selector/template-search.png"],
+      "observations": "Typed 'phone' in the combobox search and the dropdown filtered from 15 templates to 5 phone order templates (Confirmation, Shipped with Tracking, Under $500 Request, Corporate Approval, Inter-Store Notification). Typing 'back' filtered to 'Back in Stock'. Search filtering works correctly via shadcn Command/Combobox."
+    },
+    {
+      "id": "VAL-TEMPLATES-002",
+      "status": "pass",
+      "evidence": ["evidence/templates/selector/template-list.png"],
+      "observations": "All 15 templates visible when dropdown opened with empty search: New Customer Welcome, Back in Stock, Thank You + Warranty, New Model Arrival, Limited Edition, VIP Reconnection, Weekly Sale (7 customer email), Confirmation, Shipped with Tracking, Under $500 Request, Corporate Approval, Inter-Store Notification (5 phone orders), Availability Response, Thank You, Sale Alert (3 text). Each loads its specific fields when selected."
+    },
+    {
+      "id": "VAL-TEMPLATES-003",
+      "status": "pass",
+      "evidence": ["evidence/templates/selector/auto-filled-fields.png"],
+      "observations": "After saving a profile with Name='Test User', Job Title='General Manager', Company Email='manager@citizenwatchgroup.com', Store Name='Test Store', etc., selecting 'New Customer Welcome' template auto-populated the Employee Name field with 'Test User' from the saved profile."
+    }
+  ],
+  "toolsUsed": ["agent-browser"],
+  "frictions": [],
+  "blockers": []
+}
