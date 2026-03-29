@@ -1,0 +1,87 @@
+{
+  "milestone": "setup",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": { "passed": true, "command": "npx vitest run", "exitCode": 0, "observation": "12 test files, 302 tests passed" },
+    "typecheck": { "passed": true, "command": "npx tsc --noEmit", "exitCode": 0, "observation": "0 TypeScript errors" },
+    "lint": { "passed": true, "command": "npx eslint src/", "exitCode": 0, "observation": "42 prettier formatting errors auto-fixed in legacy JS files (src/js/), 23 warnings remain (all unused vars in legacy code, no errors)" }
+  },
+  "reviewsSummary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [
+    {
+      "target": "library",
+      "description": "Added DropdownMenu to shadcn/ui component listing in architecture.md",
+      "sourceFeature": "shadcn-components-init"
+    },
+    {
+      "target": "library",
+      "description": "Fixed incorrect palette color space claim: changed 'oklch/hsl color space' to 'hex color format' in architecture.md",
+      "sourceFeature": "theme-system-migration"
+    },
+    {
+      "target": "library",
+      "description": "Added Vite/plugin version compatibility notes to environment.md (@vitejs/plugin-react@6 needs vite@8, @tailwindcss/vite@4.2+ for vite@7)",
+      "sourceFeature": "react-vite-setup"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Update AGENTS.md to reflect React SPA architecture: remove references to 'Multi-page entry points: Vite builds 3 separate pages from one config' and 'Entry points: index.html, start.html, promotion.html'. Update WHERE TO LOOK table to reference src/lib/ for migrated TypeScript utilities instead of src/js/shared/. Add note that migrated TS modules live in src/lib/ alongside original src/js/shared/ files during migration.",
+      "evidence": "AGENTS.md UNIQUE STYLES section still says 'Multi-page entry points' after react-vite-setup converted to SPA. Shared utilities migrated to src/lib/ but AGENTS.md structure table still points to src/js/shared/.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Document that profile.ts utility does not expose a clearProfile() function; the ProfileProvider handles clearing directly via localStorage.removeItem(). Also document that createEMLFile() has 4 unused parameters (_fromName, _fromEmail, _to, _bcc) that are silently ignored by design.",
+      "evidence": "shared-utilities-migration review noted clearProfile uses localStorage.removeItem directly while profile.ts only exposes getUserProfile/saveUserProfile. emailUtils.ts has 4 unused parameters matching original JS behavior.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Document that 'use client' directives in shadcn/ui components (form.tsx, dropdown-menu.tsx, select.tsx, collapsible.tsx, tabs.tsx, separator.tsx) are Next.js artifacts that are no-ops in Vite. Workers should not add or remove them.",
+      "evidence": "shadcn-components-init review found 6 component files with 'use client' directives. These are standard shadcn/ui generated output for Next.js.",
+      "isSystemic": false
+    },
+    {
+      "target": "skill",
+      "suggestion": "Update verification steps in feature descriptions to use file path filtering (e.g., 'npx vitest run tests/theme.test.tsx') instead of '--grep' flag, which is not supported by this project's vitest version (v4.0.16).",
+      "evidence": "theme-system-migration reviewer found 'npx vitest run --grep theme' throws CACError: Unknown option `--grep` in vitest v4.0.16. Multiple feature verificationSteps reference --grep.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Sonner next-themes replacement pattern (useSyncExternalStore reading data-theme) should be documented as project convention",
+      "reason": "This is a shadcn/ui implementation detail internal to the component. Documenting it provides little value to future workers who would encounter the same standard shadcn adaptation."
+    },
+    {
+      "observation": "ProfileProvider context value object should be memoized with useMemo",
+      "reason": "Suggestion-level optimization. Profile changes infrequently and the performance impact is negligible. Over-optimization of context values can introduce bugs if done incorrectly."
+    },
+    {
+      "observation": "ProfileProvider should add storage event listener for cross-tab sync",
+      "reason": "Suggestion-level enhancement. The feature provides reloadProfile() for manual sync. Cross-tab sync is not a requirement for the current feature scope."
+    },
+    {
+      "observation": "PaletteName should be typed as union instead of string",
+      "reason": "Non-blocking. Runtime validation exists via validatePalette(). A union type of 16 names would be verbose and provide minimal benefit since palette selection is always user-driven, not code-driven."
+    },
+    {
+      "observation": "Missing CSS transition for theme switching (VAL-THEME-004)",
+      "reason": "VAL-THEME-004 validation will be tested during user-testing-validator. The current smoothness is acceptable and any transition tuning is better done with visual feedback from user testing."
+    },
+    {
+      "observation": "db.ts exposes setDb()/getDb() testing helpers not in original db.js",
+      "reason": "This is a standard testing pattern (dependency injection). Documenting it in AGENTS.md would add noise. Future workers encountering the test files will see the pattern directly."
+    }
+  ],
+  "previousRound": null
+}

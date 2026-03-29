@@ -27,7 +27,7 @@ React SPA (Vite + TypeScript + Tailwind v4)
     ├── Button, Card, Input, Label, Select
     ├── Tabs, Dialog, AlertDialog, Toast
     ├── Form, Badge, Separator, Tooltip
-    └── Collapsible, Textarea, Switch
+    ├── DropdownMenu, Collapsible, Textarea, Switch
 ```
 
 ## Data Flow
@@ -50,7 +50,7 @@ React SPA (Vite + TypeScript + Tailwind v4)
 
 ## Color Palette System
 
-16 palettes defined as CSS variable overrides in oklch/hsl color space:
+16 palettes defined as CSS variable overrides in hex color format:
 - Each palette overrides: --background, --foreground, --primary, --secondary, --muted, --accent, --destructive, --border, --input, --ring, --card, --popover + their foreground variants
 - Applied via data attributes on :root: `data-theme="light|dark"`, `data-light-palette="github|..."`, `data-dark-palette="github|..."`
 - Tailwind reads these via `@theme inline` block mapping CSS vars to Tailwind tokens

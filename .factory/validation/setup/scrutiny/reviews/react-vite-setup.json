@@ -1,0 +1,55 @@
+{
+  "featureId": "react-vite-setup",
+  "reviewedAt": "2026-03-29T21:00:00.000Z",
+  "commitId": "870fbb1",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The react-vite-setup feature correctly establishes the React + TypeScript + Tailwind v4 + shadcn/ui foundation. All required dependencies are installed, vite.config.ts is properly configured with React + Tailwind plugins and @/ path alias, tsconfig.json uses strict mode with correct path aliases, and shadcn/ui is initialized via components.json. React Router is set up with the three required routes (/, /start, /promotion) using a Layout shell with header navigation and theme toggle. The original vite.config.js multi-page setup is correctly replaced with a single-page React approach, and index.html is converted from a full vanilla JS page to a React root mount point with a theme-flash-prevention script. TypeScript compilation passes with 0 errors and all 82 existing tests continue to pass. No new tests were added, which is acceptable for a pure infrastructure/setup feature.",
+    "issues": [
+      {
+        "file": "src/index.css",
+        "line": 92,
+        "severity": "non_blocking",
+        "description": "The original index.css at commit 870fbb1 used a .dark class selector alongside [data-theme='dark'] for dark mode. This was later corrected in the theme-system-migration feature (commit 2798a25) which replaced the dual selectors with data-theme attribute selectors. At the time of this feature, both selectors existed which could cause confusion, but this was a known intermediate state resolved by the subsequent feature."
+      },
+      {
+        "file": "vite.config.ts",
+        "line": null,
+        "severity": "suggestion",
+        "description": "The old vite.config.js had multi-page app configuration with rollupOptions.input for index.html, start.html, and promotion.html. The new vite.config.ts drops this multi-page setup entirely (expected for React SPA migration), but does not add any SPA fallback configuration for client-side routing (e.g., historyApiFallback). This is fine for dev mode (Vite handles it), but worth noting for production/Tauri deployments."
+      },
+      {
+        "file": "src/components/Layout.tsx",
+        "line": 55,
+        "severity": "suggestion",
+        "description": "The Promotions nav link is coded separately from the navLinks array, creating an inconsistency. The navLinks array has { to, label, icon } entries for Templates and Profile, but Promotions is a standalone Link with a hardcoded Layers icon (same as Templates). This works but could be consolidated into the navLinks array for consistency."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The worker noted that @vitejs/plugin-react@6 requires vite@8 while @vitejs/plugin-react@5 supports vite@7, and that @tailwindcss/vite@4.2+ is needed for vite@7 compatibility (4.1.x only supports vite ^5 || ^6). This version compatibility knowledge should be added to .factory/library/environment.md or the skill file to prevent future workers from hitting the same install failures.",
+      "evidence": "handoff.skillFeedback.suggestedChanges: 'The frontend-worker skill could mention that @vitejs/plugin-react@6 requires vite@8 while @vitejs/plugin-react@5 supports vite@7, to avoid initial install failures' and '@tailwindcss/vite@4.2+ is needed for vite@7 compatibility'"
+    },
+    {
+      "area": "library",
+      "observation": "The multi-page to SPA migration removed the rollupOptions.input configuration from vite.config. The old config defined three entry points (main, start, promotion) which matched the multi-page architecture. The new React SPA uses a single entry point with client-side routing. This architectural decision is captured in the commit but should be documented in .factory/library/architecture.md for future reference.",
+      "evidence": "vite.config.js (deleted) had rollupOptions.input with main, start, promotion entries; vite.config.ts (new) has no multi-page input config, relying on React Router for navigation."
+    },
+    {
+      "area": "AGENTS.md",
+      "observation": "AGENTS.md still references 'Multi-page entry points: Vite builds 3 separate pages from one config' in the UNIQUE STYLES section, but this is no longer accurate after the React SPA migration. AGENTS.md also lists 'Entry points: index.html, start.html, promotion.html' which is outdated. The AGENTS.md was not updated as part of this feature (expected, since the feature description didn't include AGENTS.md updates), but it should be updated during the mission to reflect the new React SPA architecture.",
+      "evidence": "AGENTS.md UNIQUE STYLES section: 'Multi-page entry points: Vite builds 3 separate pages from one config' — no longer true after React Router SPA migration."
+    },
+    {
+      "area": "services",
+      "observation": "The worker used 'npm run dev' which matches the dev service in .factory/services.yaml. No missing services or commands were detected. The services.yaml is accurate and complete for this feature.",
+      "evidence": "services.yaml dev service: start: npm run dev, port: 8080 — matches vite.config.ts server.port: 8080"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "The react-vite-setup feature is a well-executed foundation commit that correctly installs and configures React + TypeScript + Tailwind v4 + shadcn/ui. All four validation criteria it fulfills (VAL-SETUP-001 through VAL-SETUP-003, VAL-SETUP-005) are met: the app loads on port 8080 with React rendering, React Router navigates between all three routes, TypeScript strict compilation passes with 0 errors, and Tailwind CSS v4 processes styles correctly. The commit is clean with no blocking issues. Minor observations include a slightly inconsistent nav link structure in Layout.tsx and an outdated AGENTS.md that still references the multi-page architecture. These are non-blocking and were likely addressed in subsequent features."
+}

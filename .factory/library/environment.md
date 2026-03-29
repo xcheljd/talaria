@@ -21,6 +21,7 @@ Environment variables, external dependencies, and setup notes.
 - Vite 7.x with @vitejs/plugin-react and @tailwindcss/vite
 - Path aliases: @/ → src/
 - TypeScript strict mode
+- **Version compatibility:** @vitejs/plugin-react@6 requires vite@8; use @vitejs/plugin-react@5 for vite@7. @tailwindcss/vite@4.2+ is needed for vite@7 compatibility (4.1.x only supports vite ^5 || ^6)
 
 ## Platform Notes
 - App runs as both web app (port 8080) and Tauri desktop app
