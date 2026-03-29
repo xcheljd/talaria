@@ -18,7 +18,7 @@ import {
 import { resetToDefaults } from './promotion-ui.js';
 import { initTheme, toggleTheme } from './shared/theme.js';
 import { initPageTransitions } from './shared/pageTransitions.js';
-import { getUserProfile } from './shared/profile.js';
+import { getUserProfile, getStoreEmail } from './shared/profile.js';
 import { promotionState } from './promotion-state.js';
 import {
   init as initPromotionUI,
@@ -39,7 +39,6 @@ import {
   createEMLFile,
   generateZipFilenameFromHTML,
 } from './shared/emailUtils.js';
-import { appState } from './state.js';
 import { warningIcon } from './shared/icons.js';
 import { initColumnCollapse } from './promotion-column-collapse.js';
 import {
@@ -108,10 +107,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return; // Stop initialization
   }
 
-  // Profile is valid, set it globally
-  window.userProfile = profile;
-  appState.userProfile = profile;
-
   // Initialize theme first (must happen before UI renders)
   initTheme();
 
@@ -176,17 +171,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Update how to shop email when profile might have changed (e.g., user edited profile and returned)
+  let lastKnownStoreEmail = getStoreEmail();
   window.addEventListener('focus', () => {
-    const profile = getUserProfile();
-    if (profile) {
-      const currentEmail = profile?.storeEmail || 'store@citizenwatchgroup.com';
-      const previousEmail =
-        appState.userProfile?.storeEmail || 'store@citizenwatchgroup.com';
-      if (currentEmail !== previousEmail) {
-        appState.userProfile = profile;
-        window.userProfile = profile;
-        updateHowToShopEmail();
-      }
+    const currentEmail = getStoreEmail();
+    if (currentEmail !== lastKnownStoreEmail) {
+      lastKnownStoreEmail = currentEmail;
+      updateHowToShopEmail();
     }
   });
 });

@@ -2,6 +2,7 @@
 export { TOAST_DURATION_MS } from './shared/ui-utils.js';
 import {
   getUserProfile,
+  hasProfile,
   getStorePhone,
   getStoreName,
   getStoreLocation,
@@ -50,18 +51,16 @@ export function isHTMLContent(text) {
   return htmlPattern.test(text);
 }
 
-import { appState } from './state.js';
 import {
   templates,
   templateHelp,
   fieldConfig,
   getFieldSuggestions,
-  getEmployeeSignature,
   convertTextToHTML,
-  sanitizeHTML,
-  escapeAttr,
   assembleTemplateOutput,
 } from './templates.js';
+import { getEmployeeSignature } from './shared/signature.js';
+import { sanitizeHTML, escapeAttr } from './shared/html-utils.js';
 import { toggleTheme, getEmailDarkModeCSS } from './shared/theme.js';
 import {
   showToast,
@@ -72,14 +71,8 @@ import {
 } from './shared/ui-utils.js';
 import { eyePreviewIcon, textLinesIcon, emailIcon } from './shared/icons.js';
 import { createEMLFile } from './shared/emailUtils.js';
+import { plainTextToPreviewHTML } from './shared/emailPreviewUtils.js';
 import {
-  plainTextToPreviewHTML,
-  wrapHtmlForEmailPreview,
-  escapeHtml,
-} from './shared/emailPreviewUtils.js';
-import {
-  extractEditableContent,
-  htmlToPlainText,
   insertPlainText,
   getPlainTextFromPreview,
 } from './shared/htmlTextConversion.js';
@@ -298,14 +291,6 @@ export function showRegularOutput() {
 }
 
 export { writeEmptyStateToIframe, detectOS, getRecommendedFormat };
-
-// Load user profile from localStorage
-export function loadUserProfile() {
-  const profile = getUserProfile();
-  if (profile) {
-    appState.userProfile = profile;
-  }
-}
 
 // Attach event listeners to form fields
 export function attachGlobalEventListeners() {
@@ -538,7 +523,7 @@ export function clearAll() {
 
       // Restore initial (profile-derived) value
       let defaultValue = '';
-      if (appState.userProfile) {
+      if (hasProfile()) {
         if (
           (fieldId === 'employeeName' || fieldId === 'yourName') &&
           getEmployeeName()
@@ -744,9 +729,6 @@ ${htmlSignature}
 export function init() {
   // Cache DOM elements
   cacheElements();
-
-  // Load user profile
-  loadUserProfile();
 
   // Populate template dropdown
   populateDropdown();
@@ -1121,7 +1103,7 @@ export function selectTemplate(key) {
 
       // Auto-fill from user profile
       let autoFillValue = '';
-      if (appState.userProfile) {
+      if (hasProfile()) {
         if (
           (field === 'employeeName' || field === 'yourName') &&
           getEmployeeName()

@@ -1,4 +1,4 @@
-import { appState } from '../state.js';
+import { extractSignatureData } from './profile.js';
 import { sanitizeHTML } from './html-utils.js';
 
 /**
@@ -13,8 +13,6 @@ import { sanitizeHTML } from './html-utils.js';
 const COMPANY_INFO = {
   companyName: 'Citizen Watch America',
   storeName: 'Citizen Company Store',
-  defaultLocation: 'the South Premium Outlets',
-  defaultPhone: '702-357-8990',
 };
 
 const BRAND_LINKS = [
@@ -76,24 +74,6 @@ const ENVIRONMENT_MESSAGE =
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
-
-/**
- * Extract signature data from user profile with fallbacks
- */
-function extractSignatureData() {
-  const profile = appState.userProfile || {};
-
-  return {
-    name: profile.employeeName || 'Employee Name',
-    title: profile.jobTitle || 'Sales Associate',
-    location: profile.storeLocation || COMPANY_INFO.defaultLocation,
-    address: profile.storeAddress || '',
-    phone: profile.storePhone || COMPANY_INFO.defaultPhone,
-    jobTitle: (profile.jobTitle || '').toLowerCase(),
-    companyEmail: profile.companyEmail || '',
-    storeEmail: profile.storeEmail || '',
-  };
-}
 
 /**
  * Determine which email to use based on job title

@@ -1,25 +1,11 @@
-import { appState } from './state.js';
-import { getEmployeeSignature as signatureFunction } from './shared/signature.js';
-import {
-  sanitizeHTML,
-  escapeAttr,
-  sanitizeTemplateData,
-} from './shared/html-utils.js';
+import { getEmployeeSignature } from './shared/signature.js';
+import { sanitizeTemplateData } from './shared/html-utils.js';
 import {
   getStorePhone,
   getStoreName,
   getStoreLocation,
   getFullStoreLocation,
 } from './shared/profile.js';
-
-// Re-export for backward compatibility
-export const getEmployeeSignature = signatureFunction;
-
-// Re-export HTML utilities for backward compatibility
-export { sanitizeHTML, escapeAttr, sanitizeTemplateData };
-
-// Note: getEmployeeSignature() has been moved to signature.js module
-// Import at top of file: import { getEmployeeSignature } from './signature.js';
 
 /**
  * Convert plain text email body to HTML format

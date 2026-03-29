@@ -116,16 +116,7 @@ export function getStorePlusCode() {
  */
 export function getDirections() {
   const profile = getUserProfile();
-  return profile?.directions || '';
-}
-
-/**
- * Get custom location override
- * @returns {string} Custom location
- */
-export function getCustomLocation() {
-  const profile = getUserProfile();
-  return profile?.customLocation || '';
+  return profile?.storeDirections || '';
 }
 
 /**
@@ -144,6 +135,26 @@ export function getEmployeeName() {
 export function getJobTitle() {
   const profile = getUserProfile();
   return profile?.jobTitle || 'Sales Associate';
+}
+
+/**
+ * Extract signature data from user profile with fallbacks
+ * Centralized here so signature.js doesn't need appState
+ * @returns {Object} Signature data object
+ */
+export function extractSignatureData() {
+  const profile = getUserProfile() || {};
+
+  return {
+    name: profile.employeeName || 'Employee Name',
+    title: profile.jobTitle || 'Sales Associate',
+    location: profile.storeLocation || 'the South Premium Outlets',
+    address: profile.storeAddress || '',
+    phone: profile.storePhone || '702-357-8990',
+    jobTitle: (profile.jobTitle || '').toLowerCase(),
+    companyEmail: profile.companyEmail || '',
+    storeEmail: profile.storeEmail || '',
+  };
 }
 
 /**
