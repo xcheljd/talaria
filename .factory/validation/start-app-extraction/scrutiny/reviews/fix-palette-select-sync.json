@@ -1,0 +1,27 @@
+{
+  "featureId": "fix-palette-select-sync",
+  "originalFeatureId": "extract-start-html-inline-js",
+  "reviewedAt": "2026-03-29T08:37:00.000Z",
+  "commitId": "4307a0f",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The fix correctly addresses the blocking issue from the original extract-start-html-inline-js review. A new exported syncPaletteSelects() function reads localStorage lightPalette/darkPalette values (defaulting to 'github') and sets the corresponding #lightPaletteSelect and #darkPaletteSelect element values. It is called immediately after initTheme() in the DOMContentLoaded handler, which is the correct ordering since initTheme() validates and migrates palette values before writing them back to localStorage. The fix restores behavioral parity with the original inline code. 82 tests pass (4 new), lint is clean (only pre-existing unrelated warning), and browser verification confirmed VAL-THEME-005 passes with both stored and default values.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The prior review already noted that shared initTheme() doesn't sync palette select elements because only start.html has them. The fix correctly handles this as page-specific logic in start-app.js. This pattern (shared function + page-specific bridge) should be documented in AGENTS.md for future workers.",
+      "evidence": "src/js/shared/theme.js:29-52 (initTheme has no select sync). src/js/start-app.js:186-195 (syncPaletteSelects bridges the gap)."
+    },
+    {
+      "area": "skills",
+      "observation": "The prior review noted the refactoring-worker skill's Step 6 doesn't mention verifying that select/input values sync with stored state on page load. The fix worker correctly verified VAL-THEME-005 using agent-browser eval to check both select values and data attributes. This validates the approach, but the skill gap remains for future workers.",
+      "evidence": "Handoff verification shows agent-browser eval confirming lightSelect='catppuccin-latte', darkSelect='rose-pine', data-light-palette='catppuccin-latte', data-dark-palette='rose-pine'."
+    }
+  ],
+  "addressesFailureFrom": "/home/x/labs/citizen-communication-templates/.factory/validation/start-app-extraction/scrutiny/reviews/extract-start-html-inline-js.json",
+  "summary": "The fix-palette-select-sync feature adequately resolves the blocking issue from extract-start-html-inline-js. The original review identified that the shared initTheme() does not sync #lightPaletteSelect and #darkPaletteSelect dropdown values with localStorage, causing VAL-THEME-005 to fail. The fix adds a clean syncPaletteSelects() function that reads from localStorage and sets select values, called in the correct order after initTheme(). The implementation is well-tested (4 new unit tests covering localStorage read, default fallback, and missing element handling), passes all 82 tests, lints clean, and was browser-verified against VAL-THEME-005. No new issues were introduced."
+}
