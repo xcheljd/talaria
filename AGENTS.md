@@ -28,6 +28,7 @@ Multi-page template generator app for customer communications (email, text, phon
 | -------------------- | -------------------------------------- | ----------------------------- |
 | Entry points         | index.html, start.html, promotion.html | Multi-page via vite.config.js |
 | App state            | src/js/state.js, promotion-state.js    | localStorage persistence      |
+| Profile page entry   | src/js/start-app.js                    | ES module for start.html      |
 | Template definitions | src/js/templates.js                    | 15+ communication templates   |
 | Email generation     | src/js/shared/emailUtils.js            | EML/EMLTPL with RFC 5322/2045 |
 | Theme system         | src/js/shared/theme.js                 | Light/dark + 16 palettes      |
