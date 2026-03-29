@@ -100,13 +100,14 @@ export function validateStoreHours(hours) {
 
   return {
     isValid: hasDays && hasTimes,
-    error: !hasDays && !hasTimes
-      ? 'Include day names and hours'
-      : !hasDays
-        ? 'Include day names (Mon, Tue, etc.)'
-        : !hasTimes
-          ? 'Include opening/closing times (10AM-8PM or 10:00AM-8:00PM)'
-          : null,
+    error:
+      !hasDays && !hasTimes
+        ? 'Include day names and hours'
+        : !hasDays
+          ? 'Include day names (Mon, Tue, etc.)'
+          : !hasTimes
+            ? 'Include opening/closing times (10AM-8PM or 10:00AM-8:00PM)'
+            : null,
   };
 }
 
@@ -258,7 +259,11 @@ function hideValidationSummary() {
 // Company email field toggle
 // ---------------------------------------------------------------------------
 
-function toggleCompanyEmailField(jobTitleInput, companyEmailInput, companyEmailGroup) {
+function toggleCompanyEmailField(
+  jobTitleInput,
+  companyEmailInput,
+  companyEmailGroup
+) {
   const jobTitle = jobTitleInput.value;
   const requiresEmail = requiresCompanyEmail(jobTitle);
 
@@ -277,10 +282,18 @@ function toggleCompanyEmailField(jobTitleInput, companyEmailInput, companyEmailG
 // Export / Import profile
 // ---------------------------------------------------------------------------
 
-function exportProfile(jobTitleInput, companyEmailInput, storeNameInput,
-  storeLocationInput, storePhoneInput, storeEmailInput,
-  storeAddressInput, storePlusCodeInput, storeHoursInput,
-  storeDirectionsInput) {
+function exportProfile(
+  jobTitleInput,
+  companyEmailInput,
+  storeNameInput,
+  storeLocationInput,
+  storePhoneInput,
+  storeEmailInput,
+  storeAddressInput,
+  storePlusCodeInput,
+  storeHoursInput,
+  storeDirectionsInput
+) {
   const exportBtn = document.getElementById('exportProfileBtn');
 
   exportBtn.classList.add('loading');
@@ -319,7 +332,7 @@ function exportProfile(jobTitleInput, companyEmailInput, storeNameInput,
       'storeHours',
     ];
     const missingFields = requiredFields.filter(
-      (field) => !profileData.profile[field],
+      (field) => !profileData.profile[field]
     );
 
     if (missingFields.length > 0) {
@@ -360,10 +373,20 @@ function exportProfile(jobTitleInput, companyEmailInput, storeNameInput,
   }, 300);
 }
 
-function importProfile(file, jobTitleInput, companyEmailInput, storeNameInput,
-  storeLocationInput, storePhoneInput, storeEmailInput,
-  storeAddressInput, storePlusCodeInput, storeHoursInput,
-  storeDirectionsInput, companyEmailGroup) {
+function importProfile(
+  file,
+  jobTitleInput,
+  companyEmailInput,
+  storeNameInput,
+  storeLocationInput,
+  storePhoneInput,
+  storeEmailInput,
+  storeAddressInput,
+  storePlusCodeInput,
+  storeHoursInput,
+  storeDirectionsInput,
+  companyEmailGroup
+) {
   return new Promise((resolve, reject) => {
     const importBtn = document.getElementById('importProfileBtn');
 
@@ -394,12 +417,12 @@ function importProfile(file, jobTitleInput, companyEmailInput, storeNameInput,
             'storeHours',
           ];
           const missingFields = requiredFields.filter(
-            (field) => !profile[field],
+            (field) => !profile[field]
           );
 
           if (missingFields.length > 0) {
             throw new Error(
-              `Missing required fields: ${missingFields.join(', ')}`,
+              `Missing required fields: ${missingFields.join(', ')}`
             );
           }
 
@@ -432,7 +455,11 @@ function importProfile(file, jobTitleInput, companyEmailInput, storeNameInput,
           storeHoursInput.value = profile.storeHours || '';
           storeDirectionsInput.value = profile.storeDirections || '';
 
-          toggleCompanyEmailField(jobTitleInput, companyEmailInput, companyEmailGroup);
+          toggleCompanyEmailField(
+            jobTitleInput,
+            companyEmailInput,
+            companyEmailGroup
+          );
 
           // Restore theme preferences
           if (profile.lightPalette) {
@@ -451,7 +478,7 @@ function importProfile(file, jobTitleInput, companyEmailInput, storeNameInput,
             localStorage.setItem('theme', profile.currentMode);
             document.documentElement.setAttribute(
               'data-theme',
-              profile.currentMode,
+              profile.currentMode
             );
             updateThemeIndicator(profile.currentMode);
           }
@@ -560,7 +587,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (userData.storeDirections)
         storeDirectionsInput.value = userData.storeDirections;
 
-      toggleCompanyEmailField(jobTitleInput, companyEmailInput, companyEmailGroup);
+      toggleCompanyEmailField(
+        jobTitleInput,
+        companyEmailInput,
+        companyEmailGroup
+      );
     } catch (e) {
       console.error('Error loading user data:', e);
     }
@@ -568,7 +599,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ---- Job title change handler ----
   jobTitleInput.addEventListener('change', () => {
-    toggleCompanyEmailField(jobTitleInput, companyEmailInput, companyEmailGroup);
+    toggleCompanyEmailField(
+      jobTitleInput,
+      companyEmailInput,
+      companyEmailGroup
+    );
   });
 
   // ---- Real-time validation ----
@@ -620,41 +655,48 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ---- Export / Import event listeners ----
-  document
-    .getElementById('exportProfileBtn')
-    .addEventListener('click', () => {
-      exportProfile(
-        jobTitleInput, companyEmailInput, storeNameInput,
-        storeLocationInput, storePhoneInput, storeEmailInput,
-        storeAddressInput, storePlusCodeInput, storeHoursInput,
-        storeDirectionsInput,
-      );
-    });
+  document.getElementById('exportProfileBtn').addEventListener('click', () => {
+    exportProfile(
+      jobTitleInput,
+      companyEmailInput,
+      storeNameInput,
+      storeLocationInput,
+      storePhoneInput,
+      storeEmailInput,
+      storeAddressInput,
+      storePlusCodeInput,
+      storeHoursInput,
+      storeDirectionsInput
+    );
+  });
 
-  document
-    .getElementById('importProfileBtn')
-    .addEventListener('click', () => {
-      document.getElementById('importProfileFile').click();
-    });
+  document.getElementById('importProfileBtn').addEventListener('click', () => {
+    document.getElementById('importProfileFile').click();
+  });
 
   document
     .getElementById('importProfileFile')
     .addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
-        if (
-          file.type !== 'application/json' &&
-          !file.name.endsWith('.json')
-        ) {
+        if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
           showToast('Please select a JSON file');
           return;
         }
 
         importProfile(
-          file, jobTitleInput, companyEmailInput, storeNameInput,
-          storeLocationInput, storePhoneInput, storeEmailInput,
-          storeAddressInput, storePlusCodeInput, storeHoursInput,
-          storeDirectionsInput, companyEmailGroup,
+          file,
+          jobTitleInput,
+          companyEmailInput,
+          storeNameInput,
+          storeLocationInput,
+          storePhoneInput,
+          storeEmailInput,
+          storeAddressInput,
+          storePlusCodeInput,
+          storeHoursInput,
+          storeDirectionsInput,
+          companyEmailGroup
         ).catch((error) => {
           console.error('Import failed:', error);
         });
@@ -665,7 +707,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Tauri download folder integration ----
   const downloadFolderInput = document.getElementById('downloadFolderPath');
   const chooseDownloadFolderBtn = document.getElementById(
-    'chooseDownloadFolderBtn',
+    'chooseDownloadFolderBtn'
   );
 
   if (downloadFolderInput && chooseDownloadFolderBtn) {
@@ -759,7 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const companyEmailValidation = validateCompanyEmail(
       formData.companyEmail,
-      formData.jobTitle,
+      formData.jobTitle
     );
     if (!companyEmailValidation.isValid) {
       showError('companyEmailError', companyEmailValidation.error);

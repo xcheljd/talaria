@@ -66,8 +66,6 @@ import {
 // Import from html-utils.js for HTML escaping
 import { escapeAttr } from './shared/html-utils.js';
 
-
-
 // ===== HELPER FUNCTIONS =====
 
 export { detectOS, getRecommendedFormat };
