@@ -72,6 +72,28 @@ export function updateThemeIndicator(theme) {
   }
 }
 
+/**
+ * Set the light mode palette, updating the DOM attribute and persisting to localStorage.
+ * Invalid palette names fall back to 'github'.
+ * @param {string} name - Palette name to set
+ */
+export function setLightPalette(name) {
+  const validated = validatePalette(name, 'light');
+  document.documentElement.setAttribute('data-light-palette', validated);
+  localStorage.setItem('lightPalette', validated);
+}
+
+/**
+ * Set the dark mode palette, updating the DOM attribute and persisting to localStorage.
+ * Invalid palette names fall back to 'github'.
+ * @param {string} name - Palette name to set
+ */
+export function setDarkPalette(name) {
+  const validated = validatePalette(name, 'dark');
+  document.documentElement.setAttribute('data-dark-palette', validated);
+  localStorage.setItem('darkPalette', validated);
+}
+
 // Get CSS that simulates email client dark mode color inversion
 export function getEmailDarkModeCSS() {
   return `

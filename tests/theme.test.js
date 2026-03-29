@@ -6,6 +6,8 @@ import {
   validatePalette,
   getEmailDarkModeCSS,
   getScrollbarCSS,
+  setLightPalette,
+  setDarkPalette,
 } from '../src/js/shared/theme.js';
 
 describe('validatePalette', () => {
@@ -281,5 +283,193 @@ describe('getScrollbarCSS', () => {
   it('includes hover state for thumb', () => {
     const css = getScrollbarCSS();
     expect(css).toContain('::-webkit-scrollbar-thumb:hover');
+  });
+});
+
+describe('setLightPalette', () => {
+  beforeEach(() => {
+    document.documentElement.removeAttribute('data-light-palette');
+    localStorage.clear();
+  });
+
+  it('sets data-light-palette attribute on documentElement', () => {
+    setLightPalette('nord');
+
+    expect(
+      document.documentElement.getAttribute('data-light-palette')
+    ).toBe('nord');
+  });
+
+  it('persists to localStorage.lightPalette', () => {
+    setLightPalette('nord');
+
+    expect(localStorage.getItem('lightPalette')).toBe('nord');
+  });
+
+  it('works for all valid light palettes', () => {
+    const validPalettes = [
+      'github',
+      'spacegray',
+      'catppuccin-latte',
+      'nord',
+      'rose-pine-dawn',
+      'tokyo-day',
+      'solarized',
+      'one-light',
+    ];
+
+    for (const palette of validPalettes) {
+      setLightPalette(palette);
+      expect(
+        document.documentElement.getAttribute('data-light-palette')
+      ).toBe(palette);
+      expect(localStorage.getItem('lightPalette')).toBe(palette);
+    }
+  });
+
+  it('handles invalid palette names gracefully (no crash)', () => {
+    expect(() => setLightPalette('invalid-palette')).not.toThrow();
+    expect(() => setLightPalette('')).not.toThrow();
+    expect(() => setLightPalette(null)).not.toThrow();
+    expect(() => setLightPalette(undefined)).not.toThrow();
+  });
+
+  it('falls back to github for invalid palette names', () => {
+    setLightPalette('invalid-palette');
+
+    expect(
+      document.documentElement.getAttribute('data-light-palette')
+    ).toBe('github');
+    expect(localStorage.getItem('lightPalette')).toBe('github');
+  });
+
+  it('falls back to github for empty string', () => {
+    setLightPalette('');
+
+    expect(
+      document.documentElement.getAttribute('data-light-palette')
+    ).toBe('github');
+    expect(localStorage.getItem('lightPalette')).toBe('github');
+  });
+
+  it('falls back to github for null', () => {
+    setLightPalette(null);
+
+    expect(
+      document.documentElement.getAttribute('data-light-palette')
+    ).toBe('github');
+    expect(localStorage.getItem('lightPalette')).toBe('github');
+  });
+
+  it('falls back to github for undefined', () => {
+    setLightPalette(undefined);
+
+    expect(
+      document.documentElement.getAttribute('data-light-palette')
+    ).toBe('github');
+    expect(localStorage.getItem('lightPalette')).toBe('github');
+  });
+
+  it('does not accept dark-only palettes', () => {
+    setLightPalette('monokai');
+
+    expect(
+      document.documentElement.getAttribute('data-light-palette')
+    ).toBe('github');
+    expect(localStorage.getItem('lightPalette')).toBe('github');
+  });
+});
+
+describe('setDarkPalette', () => {
+  beforeEach(() => {
+    document.documentElement.removeAttribute('data-dark-palette');
+    localStorage.clear();
+  });
+
+  it('sets data-dark-palette attribute on documentElement', () => {
+    setDarkPalette('monokai');
+
+    expect(
+      document.documentElement.getAttribute('data-dark-palette')
+    ).toBe('monokai');
+  });
+
+  it('persists to localStorage.darkPalette', () => {
+    setDarkPalette('monokai');
+
+    expect(localStorage.getItem('darkPalette')).toBe('monokai');
+  });
+
+  it('works for all valid dark palettes', () => {
+    const validPalettes = [
+      'github',
+      'spacegray',
+      'catppuccin-mocha',
+      'nord',
+      'rose-pine',
+      'tokyo-night',
+      'monokai',
+      'kanagawa',
+    ];
+
+    for (const palette of validPalettes) {
+      setDarkPalette(palette);
+      expect(
+        document.documentElement.getAttribute('data-dark-palette')
+      ).toBe(palette);
+      expect(localStorage.getItem('darkPalette')).toBe(palette);
+    }
+  });
+
+  it('handles invalid palette names gracefully (no crash)', () => {
+    expect(() => setDarkPalette('invalid-palette')).not.toThrow();
+    expect(() => setDarkPalette('')).not.toThrow();
+    expect(() => setDarkPalette(null)).not.toThrow();
+    expect(() => setDarkPalette(undefined)).not.toThrow();
+  });
+
+  it('falls back to github for invalid palette names', () => {
+    setDarkPalette('invalid-palette');
+
+    expect(
+      document.documentElement.getAttribute('data-dark-palette')
+    ).toBe('github');
+    expect(localStorage.getItem('darkPalette')).toBe('github');
+  });
+
+  it('falls back to github for empty string', () => {
+    setDarkPalette('');
+
+    expect(
+      document.documentElement.getAttribute('data-dark-palette')
+    ).toBe('github');
+    expect(localStorage.getItem('darkPalette')).toBe('github');
+  });
+
+  it('falls back to github for null', () => {
+    setDarkPalette(null);
+
+    expect(
+      document.documentElement.getAttribute('data-dark-palette')
+    ).toBe('github');
+    expect(localStorage.getItem('darkPalette')).toBe('github');
+  });
+
+  it('falls back to github for undefined', () => {
+    setDarkPalette(undefined);
+
+    expect(
+      document.documentElement.getAttribute('data-dark-palette')
+    ).toBe('github');
+    expect(localStorage.getItem('darkPalette')).toBe('github');
+  });
+
+  it('does not accept light-only palettes', () => {
+    setDarkPalette('one-light');
+
+    expect(
+      document.documentElement.getAttribute('data-dark-palette')
+    ).toBe('github');
+    expect(localStorage.getItem('darkPalette')).toBe('github');
   });
 });
