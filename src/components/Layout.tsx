@@ -1,49 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Layers, User, Sun, Moon } from 'lucide-react';
+import { Layers, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
-
-function ThemeToggle() {
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return (
-      localStorage.getItem('theme') === 'dark' ||
-      document.documentElement.getAttribute('data-theme') === 'dark'
-    );
-  });
-
-  useEffect(() => {
-    const theme = isDark ? 'dark' : 'light';
-    localStorage.setItem('theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [isDark]);
-
-  return (
-    <button
-      onClick={() => setIsDark((prev) => !prev)}
-      className={cn(
-        'relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-        isDark ? 'bg-secondary' : 'bg-primary'
-      )}
-      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      aria-label="Toggle light/dark mode"
-    >
-      <span
-        className={cn(
-          'pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform',
-          isDark ? 'translate-x-7' : 'translate-x-1'
-        )}
-      >
-        {isDark ? (
-          <Moon className="h-5 w-5 p-0.5 text-foreground" />
-        ) : (
-          <Sun className="h-5 w-5 p-0.5 text-primary-foreground" />
-        )}
-      </span>
-    </button>
-  );
-}
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const navLinks = [
   { to: '/', label: 'Templates', icon: Layers },
