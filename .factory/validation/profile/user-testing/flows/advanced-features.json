@@ -1,0 +1,113 @@
+{
+  "groupId": "advanced-features",
+  "testedAt": "2026-03-29T19:25:00.000Z",
+  "isolation": {
+    "appUrl": "http://localhost:8080",
+    "browserSession": "896978d1bbb4__advanced-features",
+    "route": "/start"
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-PROFILE-005",
+      "title": "Profile export/import works",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Navigate to /start and clear localStorage",
+          "expected": "Profile form loads with empty/default fields",
+          "observed": "Profile form loaded with empty fields after localStorage clear and reload"
+        },
+        {
+          "action": "Fill profile data (name, store name, phone) and click Save",
+          "expected": "Profile data saved to localStorage",
+          "observed": "Save completed, profile data persisted"
+        },
+        {
+          "action": "Click Export button",
+          "expected": "JSON file downloads with profile data",
+          "observed": "Export triggered, citizen-profile-2026-01-06.json downloaded to ~/Downloads with correct profile JSON structure containing version, exportDate, and profile fields"
+        },
+        {
+          "action": "Create test JSON file and upload via hidden file input (importProfileFile)",
+          "expected": "Form fields populated with imported data",
+          "observed": "After dispatching change event on file input, form fields updated: name='Import Test User', store='Import Test Store', phone='(555) 111-2222'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "profile/advanced-features/VAL-PROFILE-005-export-triggered.png",
+          "profile/advanced-features/VAL-PROFILE-005-import-populated.png"
+        ],
+        "consoleErrors": "none",
+        "network": "N/A (export/import are local file operations)"
+      },
+      "issues": null,
+      "notes": "Export downloads a JSON file with version, exportDate, and profile object. Import requires programmatically setting the hidden file input and dispatching change event - the Import button triggers document.getElementById('importProfileFile').click() to open native file picker. The FileReader in importProfile() correctly parses the JSON and populates all form fields."
+    },
+    {
+      "id": "VAL-PROFILE-006",
+      "title": "Download folder picker works in Tauri",
+      "status": "blocked",
+      "steps": [
+        {
+          "action": "Check for download folder picker button on /start page",
+          "expected": "Button exists but is disabled in browser mode (Tauri-only feature)",
+          "observed": "Button with id='chooseDownloadFolderBtn' found, text='Desktop app only', disabled=true. Read-only input shows 'Browser: uses system Downloads folder'."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "profile/advanced-features/VAL-PROFILE-006-tauri-only-button.png"
+        ],
+        "consoleErrors": "none",
+        "network": "N/A"
+      },
+      "issues": "Tauri-only feature - cannot test native folder picker dialog in browser mode. The button correctly shows as disabled with 'Desktop app only' text when not running in Tauri.",
+      "notes": "The feature is properly guarded: the button is disabled in browser mode and the input shows a fallback message. Native dialog functionality requires Tauri runtime."
+    },
+    {
+      "id": "VAL-PROFILE-007",
+      "title": "Palette selectors on settings page",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Navigate to /start and scroll to settings card",
+          "expected": "Two palette selectors visible (Light Mode, Dark Mode) each with 8 options",
+          "observed": "Two select elements found: lightPaletteSelect with 8 options (github, spacegray, catppuccin-latte, nord, rose-pine-dawn, tokyo-day, solarized, one-light) and darkPaletteSelect with 8 options (github, spacegray, catppuccin-mocha, nord, rose-pine, tokyo-night, monokai, kanagawa)"
+        },
+        {
+          "action": "Select 'Rose Pine Dawn' from Light Mode palette selector",
+          "expected": "Palette immediately applied, data-light-palette attribute updated",
+          "observed": "data-light-palette attribute changed to 'rose-pine-dawn' immediately on selection"
+        },
+        {
+          "action": "Select 'Tokyo Night' from Dark Mode palette selector",
+          "expected": "Palette immediately applied, data-dark-palette attribute updated",
+          "observed": "data-dark-palette attribute changed to 'tokyo-night' immediately on selection"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "profile/advanced-features/VAL-PROFILE-007-palette-selectors.png",
+          "profile/advanced-features/VAL-PROFILE-007-changed-light-palette.png",
+          "profile/advanced-features/VAL-PROFILE-007-changed-dark-palette.png"
+        ],
+        "consoleErrors": "none",
+        "network": "N/A (palette selection is local state change)"
+      },
+      "issues": null,
+      "notes": "Both palette selectors show exactly 8 options each, matching the specification. Palette changes are applied immediately via CSS custom properties, confirmed by checking data-light-palette and data-dark-palette attributes on the document element."
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Import functionality uses a hidden file input (display:none) triggered by button click. In headless browser testing, the native file picker cannot be opened, so the file input must be set programmatically via JavaScript DataTransfer API and change event dispatch.",
+      "resolved": true,
+      "resolution": "Used eval to create a File object, set it on the hidden input via DataTransfer, and dispatch a change event. This correctly triggered the FileReader-based import logic.",
+      "affectedAssertions": ["VAL-PROFILE-005"]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 3 assertions: 2 passed (VAL-PROFILE-005, VAL-PROFILE-007), 1 blocked (VAL-PROFILE-006 - Tauri-only feature). Export downloads valid JSON, import populates form fields correctly, both palette selectors show 8 options each with immediate application."
+}

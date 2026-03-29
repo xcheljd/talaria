@@ -1,0 +1,114 @@
+{
+  "groupId": "form-interaction",
+  "testedAt": "2026-03-29T12:00:00Z",
+  "isolation": {
+    "appUrl": "http://localhost:8080",
+    "browserSession": "896978d1bbb4__form-interaction",
+    "route": "/start (via React Router from /)",
+    "port": 8080
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-PROFILE-002",
+      "title": "Job title selection shows/hides company email",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Navigate to React app at / then click Profile link to reach /start",
+          "expected": "Profile form loads with no Company Email field visible (no job title selected)",
+          "observed": "Profile form loaded. Company Email input element does not exist in the DOM when no management title is selected."
+        },
+        {
+          "action": "Open Job Title dropdown and select 'General Manager'",
+          "expected": "Company Email field appears in the form",
+          "observed": "After selecting General Manager, snapshot shows 'textbox \"Company Email *\" [ref=e11]' - field is conditionally rendered by React."
+        },
+        {
+          "action": "Open Job Title dropdown and select 'Sales Associate' (non-management)",
+          "expected": "Company Email field disappears from the form",
+          "observed": "After selecting Sales Associate, Company Email field is no longer present in the snapshot - React unmounts it."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "profile/form-interaction/VAL-PROFILE-002-staff-no-company-email.png",
+          "profile/form-interaction/VAL-PROFILE-002-manager-with-company-email.png"
+        ],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PROFILE-003",
+      "title": "Profile validation with Zod schemas",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Click Save with all required fields empty",
+          "expected": "Validation errors appear for empty required fields and validation summary lists all errors",
+          "observed": "Validation summary alert (role=alert) appears: 'Please complete all required fields: Your name is required, Store name is required, Store location is required, Phone must have 10 digits, Invalid email format'. Individual field errors (p.text-sm.text-destructive) appear below each invalid field."
+        },
+        {
+          "action": "Fill fields with invalid formats: phone='123', email='not-an-email', plusCode='INVALID_PLUS_CODE', hours='Mon-Fri 9-5'",
+          "expected": "Format-specific validation errors appear",
+          "observed": "4 validation errors: 'Invalid Plus Code format (e.g., 849VCWC8+R9)', 'Phone must have 10 digits', 'Invalid email format', 'Include day names and times (e.g., Mon-Sat: 10AM-8PM)'. Validation summary lists all errors."
+        },
+        {
+          "action": "Verify validation summary is visible as a destructive alert",
+          "expected": "Destructive alert with role=alert shows all error messages",
+          "observed": "Found 1 alert element with role='alert' and class containing 'destructive'. Text: 'Please complete all required fields: Phone must have 10 digits, Invalid email format, Include day names and times (e.g., Mon-Sat: 10AM-8PM), Invalid Plus Code format (e.g., 849VCWC8+R9)'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "profile/form-interaction/VAL-PROFILE-003-validation-errors.png",
+          "profile/form-interaction/VAL-PROFILE-003-validation-errors-field-level.png"
+        ],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-PROFILE-004",
+      "title": "Profile saves to localStorage",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Fill all required fields with valid data (Name='Jane Doe', Job Title='Sales Associate', Store Name='Citizen Company Store - Orlando', Location='the Orlando Premium Outlets', Phone='555-123-4567', Email='store@citizenwatchgroup.com', Hours='Mon-Sat: 10AM-8PM | Sun: 10AM-7PM') and click Save",
+          "expected": "Profile is saved to localStorage under 'userProfile' key",
+          "observed": "localStorage.getItem('userProfile') returns a JSON object with all fields. Phone was auto-formatted to '(555) 123-4567'. No validation errors."
+        },
+        {
+          "action": "Navigate to Templates page (/), then back to Profile page (/start)",
+          "expected": "Form fields are pre-filled with saved values",
+          "observed": "All form fields show saved values: Name='Jane Doe', Job Title='Sales Associate', Store Name='Citizen Company Store - Orlando', Location='the Orlando Premium Outlets', Phone='(555) 123-4567', Email='store@citizenwatchgroup.com', Hours='Mon-Sat: 10AM-8PM | Sun: 10AM-7PM', Plus Code='CWCV+R9', Address='123 Main Street\\nOrlando, FL 32819', Directions='Entrance E, near Polo Ralph Lauren'"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "profile/form-interaction/VAL-PROFILE-004-filled-form.png",
+          "profile/form-interaction/VAL-PROFILE-004-form-after-reload.png"
+        ],
+        "consoleErrors": "none"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Direct navigation to http://localhost:8080/start serves the old vanilla JS start.html instead of the React SPA. Must navigate to / first, then use React Router (click Profile link) to reach the React /start page. This is because Vite serves static HTML files for matching paths before the SPA client-side routing takes over.",
+      "resolved": true,
+      "resolution": "Navigated to http://localhost:8080/ first (React root), then clicked the 'Profile' nav link to reach /start via React Router.",
+      "affectedAssertions": ["VAL-PROFILE-002", "VAL-PROFILE-003", "VAL-PROFILE-004"]
+    },
+    {
+      "description": "The Plus Code validation regex (/^[A-Z0-9]{2,4}\\+[A-Z0-9]{2,3}$/i) is more restrictive than the example shown in the error message ('849VCWC8+R9' - which has 8 chars before the +). Had to use a shorter code ('CWCV+R9') to pass validation.",
+      "resolved": true,
+      "resolution": "Used 'CWCV+R9' which matches the regex pattern (4 chars before +, 2 chars after).",
+      "affectedAssertions": ["VAL-PROFILE-004"]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 3 assertions: all 3 passed. VAL-PROFILE-002: Company Email field conditionally renders/hides based on management job title selection. VAL-PROFILE-003: Zod validation shows field-level errors and a destructive alert summary listing all errors including format validation for phone, email, plus code, and store hours. VAL-PROFILE-004: Profile saves to localStorage and pre-fills form on navigation back to the page."
+}

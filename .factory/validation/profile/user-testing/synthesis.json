@@ -1,0 +1,41 @@
+{
+  "milestone": "profile",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 8,
+    "passed": 7,
+    "failed": 0,
+    "blocked": 1
+  },
+  "passedAssertions": [
+    "VAL-PROFILE-001",
+    "VAL-PROFILE-002",
+    "VAL-PROFILE-003",
+    "VAL-PROFILE-004",
+    "VAL-PROFILE-005",
+    "VAL-PROFILE-007",
+    "VAL-PROFILE-008"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [
+    {
+      "id": "VAL-PROFILE-006",
+      "blockedBy": "Tauri-only feature — native folder picker requires Tauri runtime, cannot test in browser. Button correctly disabled with 'Desktop app only' text in browser mode."
+    }
+  ],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added frictions: direct URL navigation serves vanilla JS (must use React Router), Plus Code validation regex mismatch with example, hidden file input for import requires DataTransfer API",
+      "source": "flow-report"
+    }
+  ],
+  "previousRound": null,
+  "flowReports": [
+    "form-rendering.json",
+    "form-interaction.json",
+    "advanced-features.json"
+  ],
+  "notes": "All 7 testable assertions passed. VAL-PROFILE-006 (Tauri download folder picker) is blocked as expected — it's a Tauri-only feature that requires native runtime. The button is correctly guarded and shows appropriate fallback text in browser mode. The profile settings page fully implements all required features: shadcn form components, job title conditional rendering, Zod validation with error summary, localStorage persistence, export/import, palette selectors, and responsive layout."
+}

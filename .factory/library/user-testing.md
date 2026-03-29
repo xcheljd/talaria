@@ -21,6 +21,9 @@
 
 ### Known Frictions
 - `/promotion` page redirect: When no profile is saved, navigating to `/promotion` redirects to the legacy `start.html` page instead of the React `/start` route. This is expected behavior but can complicate cross-page palette persistence testing.
+- **Direct URL navigation serves vanilla JS:** Navigating directly to `http://localhost:8080/start` or `http://localhost:8080/promotion` serves the legacy vanilla JS HTML files, not the React SPA. Must always navigate to `http://localhost:8080/` first (React root), then use React Router (nav links or `router.navigate()`) to reach `/start` or `/promotion`. This is because Vite serves static HTML files for matching paths before SPA client-side routing takes over.
+- **Plus Code validation regex:** The regex (`/^[A-Z0-9]{2,4}\+[A-Z0-9]{2,3}$/i`) accepts 2-4 chars before `+` and 2-3 chars after. The example in the error message (`849VCWC8+R9`) doesn't match — use shorter codes like `CWCV+R9` for testing.
+- **Hidden file input for import:** Profile import uses a hidden `<input type="file">` triggered by button click. In headless testing, use `DataTransfer` API + `change` event dispatch to set the file programmatically.
 
 ## Known Issues (from setup milestone)
 - ~~**VAL-THEME-004**: `theme-transitions.css` is not imported into the React app's `src/index.css`.~~ **RESOLVED in Round 2** — Transition rules (background-color, color, border-color, box-shadow at 0.3s cubic-bezier) added directly to `src/index.css`. Assertion now passes.
