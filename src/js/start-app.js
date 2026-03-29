@@ -198,9 +198,25 @@ export function syncPaletteSelects() {
 // DOM helpers (not exported — page-specific)
 // ---------------------------------------------------------------------------
 
+/**
+ * Map from error element IDs to their corresponding input element IDs.
+ * The suffix-stripping approach (e.g. 'phoneError' -> 'phone') does not work
+ * because the actual input IDs are prefixed (e.g. 'storePhone', not 'phone').
+ */
+const errorToInputMap = {
+  phoneError: 'storePhone',
+  emailError: 'storeEmail',
+  hoursError: 'storeHours',
+  plusCodeError: 'storePlusCode',
+  companyEmailError: 'companyEmail',
+};
+
 function showError(fieldId, message) {
   const errorElement = document.getElementById(fieldId);
-  const inputElement = document.getElementById(fieldId.replace('Error', ''));
+  const inputId = errorToInputMap[fieldId];
+  const inputElement = inputId
+    ? document.getElementById(inputId)
+    : document.getElementById(fieldId.replace('Error', ''));
 
   if (errorElement && inputElement) {
     errorElement.textContent = message;
@@ -211,7 +227,10 @@ function showError(fieldId, message) {
 
 function hideError(fieldId) {
   const errorElement = document.getElementById(fieldId);
-  const inputElement = document.getElementById(fieldId.replace('Error', ''));
+  const inputId = errorToInputMap[fieldId];
+  const inputElement = inputId
+    ? document.getElementById(inputId)
+    : document.getElementById(fieldId.replace('Error', ''));
 
   if (errorElement && inputElement) {
     errorElement.style.display = 'none';
