@@ -62,23 +62,6 @@ export function savePDFToIndexedDB(pdfData) {
   });
 }
 
-// Get all PDFs from IndexedDB
-export function getAllPDFsFromIndexedDB() {
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      resolve([]);
-      return;
-    }
-
-    const transaction = db.transaction([STORE_NAME], 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.getAll();
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result || []);
-  });
-}
-
 // Get specific PDF from IndexedDB
 export function getPDFFromIndexedDB(pdfId) {
   return new Promise((resolve, reject) => {

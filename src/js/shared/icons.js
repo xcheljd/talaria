@@ -139,38 +139,6 @@ export function dragHandleIcon({ size = 16, className = '' } = {}) {
  * @param {Object} options - Configuration options
  * @returns {string} SVG element as string
  */
-export function compositeIcon(
-  pathNames,
-  {
-    size = 16,
-    viewBox = '0 0 24 24',
-    fill = 'none',
-    stroke = 'currentColor',
-    strokeWidth = 2,
-    className = '',
-  } = {}
-) {
-  const paths = pathNames
-    .map((name) => {
-      const d = ICON_PATHS[name];
-      if (!d) return '';
-      // Check if this is a circle path (contains 'Circle' in name)
-      if (name.includes('Circle')) {
-        const match = d.match(/M(\d+) (\d+)a(\d+)/);
-        if (match) {
-          return `<circle cx="${match[1]}" cy="${match[2]}" r="${match[3]}"/>`;
-        }
-      }
-      return `<path d="${d}"/>`;
-    })
-    .filter(Boolean)
-    .join('');
-
-  const classAttr = className ? ` class="${className}"` : '';
-
-  return `<svg width="${size}" height="${size}" viewBox="${viewBox}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"${classAttr}>${paths}</svg>`;
-}
-
 /**
  * Creates a close/X icon SVG
  * @param {Object} options - Configuration options
@@ -226,15 +194,6 @@ export function eyePreviewIcon({ size = 16, className = '' } = {}) {
  * @param {string} options.className - Additional CSS classes
  * @returns {string} SVG element as string
  */
-export function codeBracketsIcon({ size = 16, className = '' } = {}) {
-  const classAttr = className ? ` class="${className}"` : '';
-
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"${classAttr}>
-    <polyline points="16 18 22 12 16 6"></polyline>
-    <polyline points="8 6 2 12 8 18"></polyline>
-  </svg>`;
-}
-
 /**
  * Creates an upload arrow icon SVG
  * @param {Object} options - Configuration options

@@ -12,6 +12,7 @@ import {
   savePDFToIndexedDB,
   getPDFFromIndexedDB,
   deletePDFFromIndexedDB,
+  clearAllPDFsFromIndexedDB,
   saveBulkEmailRecipientsToIndexedDB,
   clearBulkEmailRecipientsFromIndexedDB,
 } from './shared/db.js';
@@ -57,12 +58,15 @@ import {
   getStoreName,
   getStoreLocation,
   getStoreEmail,
+  getStoreAddress,
+  getStoreHours,
+  getStorePlusCode,
+  getDirections,
 } from './shared/profile.js';
 // Import from html-utils.js for HTML escaping
 import { escapeAttr } from './shared/html-utils.js';
 
-// Import appState for user profile access
-import { appState } from './state.js';
+
 
 // ===== HELPER FUNCTIONS =====
 
@@ -2142,11 +2146,7 @@ export function renderImportantNotesSection() {
 
 // Ensure profile store directions / location notes are represented in Important Notes
 function ensureStoreDirectionsImportantNote() {
-  if (!appState.userProfile || !appState.userProfile.storeDirections) {
-    return;
-  }
-
-  const directions = appState.userProfile.storeDirections.trim();
+  const directions = getDirections().trim();
   if (!directions) {
     return;
   }
@@ -3131,37 +3131,22 @@ export function generatePromotionEmailHTML(data) {
     }
   });
 
-  // Get store-specific details from user profile
-  let storeAddress =
-    '7400 Las Vegas Blvd. South, Suite 231<br>Las Vegas, NV 89123';
+  // Get store-specific details from user profile via helpers
+  const storeAddress = getStoreAddress().replace(/\n/g, '<br>');
   let storeMapLink =
     'https://www.google.com/maps?q=36.05145495363422,-115.16933573536541';
-  let storeEmail = getStoreEmail();
-  let storeHours = 'Mon–Sat: 10AM–8PM | Sun: 10AM–7PM';
+  const storeEmail = getStoreEmail();
+  const storeHours = getStoreHours();
 
-  // Override with user profile data if available
-  if (appState.userProfile) {
-    if (appState.userProfile.storeAddress) {
-      storeAddress = appState.userProfile.storeAddress.replace(/\n/g, '<br>');
-    }
-
-    if (appState.userProfile.storeHours) {
-      storeHours = appState.userProfile.storeHours;
-    }
-
-    // Generate map link
-    if (
-      appState.userProfile.storePlusCode &&
-      appState.userProfile.storePlusCode.trim()
-    ) {
-      storeMapLink = `https://www.google.com/maps?q=${encodeURIComponent(appState.userProfile.storePlusCode)}`;
-    } else if (
-      appState.userProfile.storeAddress &&
-      appState.userProfile.storeAddress.trim()
-    ) {
-      const addressForSearch = appState.userProfile.storeAddress
-        .replace(/<br>/g, ' ')
-        .replace(/\n/g, ' ');
+  // Generate map link from plus code or address
+  const plusCode = getStorePlusCode();
+  if (plusCode && plusCode.trim()) {
+    storeMapLink = `https://www.google.com/maps?q=${encodeURIComponent(plusCode)}`;
+  } else {
+    const addressForSearch = getStoreAddress()
+      .replace(/<br>/g, ' ')
+      .replace(/\n/g, ' ');
+    if (addressForSearch.trim()) {
       storeMapLink = `https://www.google.com/maps?q=${encodeURIComponent(addressForSearch)}`;
     }
   }
@@ -3375,12 +3360,10 @@ export async function resetToDefaults() {
   initializeDefaultItems();
 
   // Clear attached PDFs from state and IndexedDB
-  for (const pdf of promotionState.attachedPDFs) {
-    try {
-      await deletePDFFromIndexedDB(pdf.id);
-    } catch (error) {
-      console.warn('Failed to delete PDF from IndexedDB:', error);
-    }
+  try {
+    await clearAllPDFsFromIndexedDB();
+  } catch (error) {
+    console.warn('Failed to clear PDFs from IndexedDB:', error);
   }
   promotionState.attachedPDFs = [];
 
