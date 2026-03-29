@@ -13,8 +13,9 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "lint": "eslint src/js/**/*.js",
-    "format": "prettier --write \"src/js/**/*.js\" \"src/css/**/*.css\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,css}\"",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
@@ -36,6 +37,11 @@
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@tauri-apps/cli": "^2.9.6",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-legacy": "^7.2.1",
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
@@ -48,6 +54,21 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
-    "jszip": "^3.10.1"
+    "@hookform/resolvers": "^5.2.2",
+    "@tailwindcss/vite": "^4.2.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "jszip": "^3.10.1",
+    "lucide-react": "^1.7.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-hook-form": "^7.72.0",
+    "react-router-dom": "^7.13.2",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^6.0.2",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.12"
   }
 }
