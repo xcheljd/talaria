@@ -23,4 +23,4 @@
 - `/promotion` page redirect: When no profile is saved, navigating to `/promotion` redirects to the legacy `start.html` page instead of the React `/start` route. This is expected behavior but can complicate cross-page palette persistence testing.
 
 ## Known Issues (from setup milestone)
-- **VAL-THEME-004**: `theme-transitions.css` is not imported into the React app's `src/index.css`. The legacy file defines 0.3s cubic-bezier transitions for background-color, color, border-color, box-shadow on html/body, but it's only imported in legacy CSS files (`styles.css`, `promotion-styles.css`). Fix: add transition rules to `src/index.css`.
+- ~~**VAL-THEME-004**: `theme-transitions.css` is not imported into the React app's `src/index.css`.~~ **RESOLVED in Round 2** — Transition rules (background-color, color, border-color, box-shadow at 0.3s cubic-bezier) added directly to `src/index.css`. Assertion now passes.

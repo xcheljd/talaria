@@ -27,6 +27,29 @@
 }
 
 /* ==========================================================================
+   THEME TRANSITIONS
+   Smooth cross-fade when switching palettes
+   ========================================================================== */
+
+/* Smooth cross-fade on all theme-related properties */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pattern overlay gets fade transition */
+body::before {
+  transition:
+    opacity 0.3s ease,
+    background-image 0.3s ease;
+}
+
+/* ==========================================================================
    BASE TOKENS (Default: GitHub Light)
    ========================================================================== */
 :root {
