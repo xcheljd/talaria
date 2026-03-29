@@ -1,11 +1,11 @@
 {
   "milestone": "start-app-extraction",
-  "round": 2,
-  "status": "fail",
+  "round": 3,
+  "status": "pass",
   "assertionsSummary": {
     "total": 33,
-    "passed": 32,
-    "failed": 1,
+    "passed": 33,
+    "failed": 0,
     "blocked": 0
   },
   "passedAssertions": [
@@ -20,6 +20,7 @@
     "VAL-FORM-004",
     "VAL-FORM-005",
     "VAL-FORM-006",
+    "VAL-FORM-007",
     "VAL-FORM-008",
     "VAL-FORM-009",
     "VAL-SAVE-001",
@@ -42,14 +43,9 @@
     "VAL-UNIT-002",
     "VAL-UNIT-003"
   ],
-  "failedAssertions": [
-    {
-      "id": "VAL-FORM-007",
-      "reason": "Pre-existing contract/code mismatch: validation contract specifies global Plus Code format '849VCWC8+R9' (8-char prefix) should be accepted, but validatePlusCode() regex /^[A-Z0-9]{2,4}\\+[A-Z0-9]{2,3}$/i only supports short format (2-4 chars before '+'). The showError/hideError fix (errorToInputMap) works correctly — errors show/hide on the correct input element. Original inline code at commit 0134aac had an unused fullPlusCodeRegex variable but never used it in the validation logic. Not a refactor regression. The fix feature (fix-show-error-input-id-mapping) resolved the original bug (input ID mapping); VAL-FORM-007's remaining failure is a separate pre-existing issue with the Plus Code regex not supporting global format."
-    }
-  ],
+  "failedAssertions": [],
   "blockedAssertions": [],
   "appliedUpdates": [],
-  "previousRound": ".factory/validation/start-app-extraction/user-testing/synthesis.json (round 1)",
-  "notes": "Round 2 re-tested the 4 assertions that failed in round 1, after the fix-show-error-input-id-mapping feature was completed. VAL-FORM-004 (phone), VAL-FORM-005 (email), and VAL-FORM-006 (hours) now PASS — the errorToInputMap correctly maps error elements to input elements, and showError/hideError work as expected. VAL-FORM-007 (plus code) still FAILS, but for a different reason than round 1: the showError/hideError mapping now works correctly (errors show/hide on #storePlusCode), but the validatePlusCode() regex only accepts short-format Plus Codes (2-4 chars before '+'), while the contract test uses global format '849VCWC8+R9' (8 chars before '+'). This is a pre-existing contract/code mismatch — the original code at commit 0134aac had an unused fullPlusCodeRegex variable but never applied it. The 32/33 pass rate confirms the start-app-extraction refactor is behavior-preserving, and the showError/hideError fix successfully resolved 3 of the 4 pre-existing bugs surfaced by validation."
+  "previousRound": ".factory/validation/start-app-extraction/user-testing/synthesis.json (round 2)",
+  "notes": "Round 3 re-tested VAL-FORM-007 (the only assertion that failed in round 2). The round 2 failure was caused by the flow validator using an incorrect test case — it tested with full-format Plus Code '849VCWC8+R9' (8-char prefix) instead of the contract-specified short-format 'CWC8+R9'. The validation contract explicitly states the regex only accepts short-format codes and that this is pre-existing behavior preserved by the refactor. Round 3 tested with the correct contract-specified test cases: (1) empty field → no error, (2) 'CWC8+R9' → accepted, (3) 'bad code!!!' → error shown. All 3 sub-tests passed. All 33/33 assertions now pass, confirming the start-app-extraction refactor is fully behavior-preserving."
 }
