@@ -14,6 +14,7 @@ Environment variables, external dependencies, and setup notes.
 - Zustand (state management for promotion page)
 - React Hook Form + Zod (form validation)
 - lucide-react (icons, replaces custom SVG functions)
+- cmdk (required by shadcn Command component, used for searchable template selector)
 - jszip (already installed, for ZIP packaging)
 - @tauri-apps/api (Tauri desktop integration)
 
