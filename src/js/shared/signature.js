@@ -90,7 +90,7 @@ function determineSignatureEmail(jobTitle, companyEmail, storeEmail) {
 /**
  * Render name and title section
  */
-function renderNameTitle(data, format, colors) {
+function renderNameTitle(data, format) {
   if (format === 'html') {
     return `<p style="margin: 0; padding: 0;">
         <strong style="font-size: ${SIGNATURE_STYLES.fontSize.name};">${sanitizeHTML(data.name)}</strong> │ ${sanitizeHTML(data.title)}
@@ -231,7 +231,7 @@ export function getEmployeeSignature(
 
   if (format === 'html') {
     return `<div style="font-family: ${SIGNATURE_STYLES.fontFamily}; font-size: ${SIGNATURE_STYLES.fontSize.name}; color: ${colors.primary};">
-    ${renderNameTitle(data, format, colors)}
+    ${renderNameTitle(data, format)}
     ${renderSeparator(format, colors)}
     ${renderCompanyInfo(data, format, colors)}
     ${renderAddress(data, format, colors)}
@@ -247,7 +247,7 @@ export function getEmployeeSignature(
   const addressLine = data.address ? `${data.address}\n` : '';
   const emailLine = email ? `\nEmail: ${email}\n` : '\n';
 
-  return `${renderNameTitle(data, format, colors)}
+  return `${renderNameTitle(data, format)}
 ${renderSeparator(format, colors)}
 ${renderCompanyInfo(data, format, colors)}
 ${addressLine}${renderPhone(data, format, colors)}

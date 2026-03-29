@@ -1,14 +1,15 @@
 commands:
   install: npm install
+  typecheck: npx tsc --noEmit
   build: npm run build
-  test: npm run test
-  lint: npm run lint
-  e2e: npm run test:e2e
+  test: npx vitest run
+  lint: npx eslint src/
+  dev: npm run dev
 
 services:
   dev:
     start: npm run dev
-    stop: lsof -ti :8080 | xargs kill
-    healthcheck: curl -sf http://localhost:8080/start.html | head -1
+    stop: lsof -ti :8080 | xargs kill 2>/dev/null || true
+    healthcheck: curl -sf http://localhost:8080/
     port: 8080
     depends_on: []

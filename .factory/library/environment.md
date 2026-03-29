@@ -6,30 +6,24 @@ Environment variables, external dependencies, and setup notes.
 **What does NOT belong here:** Service ports/commands (use `.factory/services.yaml`).
 
 ---
+## Key Dependencies
+- React 19 + ReactDOM 19
+- TypeScript 5.x
+- Tailwind CSS v4 (via @tailwindcss/vite plugin, NO tailwind.config.js)
+- shadcn/ui (source components in src/components/ui/)
+- Zustand (state management for promotion page)
+- React Hook Form + Zod (form validation)
+- lucide-react (icons, replaces custom SVG functions)
+- jszip (already installed, for ZIP packaging)
+- @tauri-apps/api (Tauri desktop integration)
 
-## Dependencies
+## Build Toolchain
+- Vite 7.x with @vitejs/plugin-react and @tailwindcss/vite
+- Path aliases: @/ → src/
+- TypeScript strict mode
 
-- **Node.js** — required for dev server, build, tests
-- **npm** — package manager (no yarn/pnpm)
-- **Vite 7.x** — dev server and bundler
-- **Vitest 4.x** — unit test runner with jsdom environment
-- **Playwright** — e2e test runner
-- **Tauri CLI** — optional, for desktop app builds
-
-## No External Services
-
-This is a fully client-side SPA. No databases, APIs, or external services required for development or testing.
-
-## No Environment Variables
-
-No `.env` files or environment variables needed.
-
-## Tauri Desktop Mode
-
-The app detects Tauri via `window.__TAURI__` and enables native folder picker dialogs. In a regular browser, Tauri-specific features degrade gracefully (disabled buttons, fallback text).
-
-## Build Notes
-
-- `npm run build` builds all three entry points via Vite's multi-page config
-- `dist-helpers/*` is copied to `dist/` after build
-- Built app requires a local server (CORS) due to ES module format
+## Platform Notes
+- App runs as both web app (port 8080) and Tauri desktop app
+- Tauri config in src-tauri/tauri.conf.json points to frontendDist: "../dist"
+- Multi-page build being replaced by SPA with React Router
+- No environment variables needed (all data is local: localStorage + IndexedDB)
