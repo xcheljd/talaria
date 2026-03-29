@@ -1,0 +1,100 @@
+{
+  "features": [
+    {
+      "id": "add-palette-setters-to-theme",
+      "description": "Add `setLightPalette(name)` and `setDarkPalette(name)` exports to `src/js/shared/theme.js`. Each function sets the corresponding `data-*-palette` attribute on `documentElement` and persists to localStorage. Add unit tests for both functions covering valid palettes, invalid palettes (graceful handling), and DOM attribute updates.",
+      "skillName": "refactoring-worker",
+      "milestone": "shared-module-enhancements",
+      "preconditions": [
+        "Existing theme.js exports initTheme, toggleTheme, updateThemeIndicator, validatePalette",
+        "Existing tests in tests/theme.test.js (26 passing)"
+      ],
+      "expectedBehavior": [
+        "setLightPalette('nord') sets data-light-palette='nord' on documentElement and localStorage.lightPalette='nord'",
+        "setDarkPalette('monokai') sets data-dark-palette='monokai' on documentElement and localStorage.darkPalette='monokai'",
+        "Both functions handle invalid palette names gracefully (no crash)",
+        "New unit tests pass alongside all existing 26 tests",
+        "npm run lint passes"
+      ],
+      "verificationSteps": [
+        "npm run test -- all tests pass including new palette setter tests",
+        "npm run lint -- clean"
+      ],
+      "fulfills": ["VAL-UNIT-001"],
+      "status": "pending"
+    },
+    {
+      "id": "extract-start-html-inline-js",
+      "description": "Extract all inline JavaScript from start.html into src/js/start-app.js as a proper ES module. Replace 3 inline `<script>` blocks at end of body with one `<script type=\"module\" src=\"/src/js/start-app.js\">`. Import shared modules: initTheme/toggleTheme/setLightPalette/setDarkPalette from shared/theme.js, initPageTransitions from shared/pageTransitions.js, saveUserProfile/getUserProfile from shared/profile.js, showToast from shared/ui-utils.js. Keep all page-specific logic (form validation, profile lifecycle, export/import, Tauri download folder integration) in start-app.js. Retain the inline `<head>` flash-prevention script. Zero behavior change.",
+      "skillName": "refactoring-worker",
+      "milestone": "start-app-extraction",
+      "preconditions": [
+        "setLightPalette/setDarkPalette available in shared/theme.js (from prior feature)",
+        "start.html has 3 inline <script> blocks totaling ~500 lines of JS",
+        "vite.config.js already lists start.html as a multi-page entry point"
+      ],
+      "expectedBehavior": [
+        "start.html body ends with single <script type=\"module\" src=\"/src/js/start-app.js\"></script>",
+        "start-app.js imports and uses initTheme, toggleTheme, setLightPalette, setDarkPalette from shared/theme.js",
+        "start-app.js imports and uses initPageTransitions from shared/pageTransitions.js",
+        "start-app.js imports and uses saveUserProfile/getUserProfile from shared/profile.js",
+        "start-app.js imports and uses showToast from shared/ui-utils.js (replaces inline toast)",
+        "Inline <head> flash-prevention script remains unchanged",
+        "All form validation functions preserved identically",
+        "Profile save/load cycle works identically",
+        "Export/import JSON round-trip works identically",
+        "Tauri download folder integration preserved",
+        "Theme toggle and palette selectors work identically",
+        "Page transitions work identically (now using shared module with bfcache support)",
+        "npm run dev serves start.html without errors",
+        "npm run lint passes",
+        "All existing tests pass"
+      ],
+      "verificationSteps": [
+        "npm run test -- all tests pass",
+        "npm run lint -- clean",
+        "npm run dev, navigate to http://localhost:8080/start.html, verify page loads without console errors",
+        "Manual: fill profile form, save, reload -- data persists",
+        "Manual: toggle theme, change palette, reload -- persists",
+        "Manual: export profile, verify JSON download",
+        "Manual: import profile, verify form populated"
+      ],
+      "fulfills": [
+        "VAL-THEME-001",
+        "VAL-THEME-002",
+        "VAL-THEME-003",
+        "VAL-THEME-004",
+        "VAL-THEME-005",
+        "VAL-FORM-001",
+        "VAL-FORM-002",
+        "VAL-FORM-003",
+        "VAL-FORM-004",
+        "VAL-FORM-005",
+        "VAL-FORM-006",
+        "VAL-FORM-007",
+        "VAL-FORM-008",
+        "VAL-FORM-009",
+        "VAL-SAVE-001",
+        "VAL-SAVE-002",
+        "VAL-SAVE-003",
+        "VAL-SAVE-004",
+        "VAL-SAVE-005",
+        "VAL-EXPORT-001",
+        "VAL-EXPORT-002",
+        "VAL-IMPORT-001",
+        "VAL-IMPORT-002",
+        "VAL-IMPORT-003",
+        "VAL-IMPORT-004",
+        "VAL-NAV-001",
+        "VAL-NAV-002",
+        "VAL-TAURI-001",
+        "VAL-CROSS-001",
+        "VAL-CROSS-002",
+        "VAL-CROSS-003",
+        "VAL-UNIT-002",
+        "VAL-UNIT-003"
+      ],
+      "status": "pending"
+    }
+  ]
+}

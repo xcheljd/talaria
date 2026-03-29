@@ -1,0 +1,14 @@
+commands:
+  install: npm install
+  build: npm run build
+  test: npm run test
+  lint: npm run lint
+  e2e: npm run test:e2e
+
+services:
+  dev:
+    start: npm run dev
+    stop: lsof -ti :8080 | xargs kill
+    healthcheck: curl -sf http://localhost:8080/start.html | head -1
+    port: 8080
+    depends_on: []
