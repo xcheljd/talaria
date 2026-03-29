@@ -1,0 +1,191 @@
+{
+  "groupId": "form-validation-fix",
+  "testedAt": "2026-03-29T12:00:00.000Z",
+  "isolation": {
+    "appUrl": "http://localhost:8080/start.html",
+    "session": "b2603963fe63",
+    "localStorageCleared": true
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-FORM-004",
+      "title": "Phone validation on blur",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Clear localStorage, reload start.html",
+          "expected": "Clean form state",
+          "observed": "storePhone.value is empty string"
+        },
+        {
+          "action": "Focus #storePhone, type '5551234567', blur",
+          "expected": "Value auto-formatted to '(555) 123-4567', #phoneError hidden",
+          "observed": "phoneValue='(555) 123-4567', phoneErrorDisplay='none', phoneHasError=false"
+        },
+        {
+          "action": "Focus #storePhone, type '123', blur",
+          "expected": "#phoneError shows 'Phone must have 10 digits', input has input-error class",
+          "observed": "phoneErrorDisplay='block', phoneErrorText='Phone must have 10 digits', phoneHasError=true"
+        }
+      ],
+      "evidence": {
+        "screenshots": ["start-app-extraction/form-validation-fix/VAL-FORM-004-phone-validation.png"],
+        "consoleErrors": "none",
+        "jsEvaluation": {
+          "validPhone": {
+            "storePhone.value": "(555) 123-4567",
+            "phoneError.style.display": "none",
+            "storePhone.classList.contains('input-error')": false
+          },
+          "invalidPhone": {
+            "storePhone.value": "123",
+            "phoneError.style.display": "block",
+            "phoneError.textContent": "Phone must have 10 digits",
+            "storePhone.classList.contains('input-error')": true
+          }
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FORM-005",
+      "title": "Email validation on blur",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Clear localStorage, reload start.html",
+          "expected": "Clean form state",
+          "observed": "Page reloaded with clean state"
+        },
+        {
+          "action": "Focus #storeEmail, type 'invalid', blur",
+          "expected": "#emailError shows 'Invalid email format', input has input-error class",
+          "observed": "emailErrorDisplay='block', emailErrorText='Invalid email format', emailHasError=true"
+        },
+        {
+          "action": "Focus #storeEmail, type 'valid@store.com', blur",
+          "expected": "Error hidden, input-error class removed",
+          "observed": "emailErrorDisplay='none', emailHasError=false"
+        }
+      ],
+      "evidence": {
+        "screenshots": ["start-app-extraction/form-validation-fix/VAL-FORM-005-email-validation.png"],
+        "consoleErrors": "none",
+        "jsEvaluation": {
+          "invalidEmail": {
+            "emailError.style.display": "block",
+            "emailError.textContent": "Invalid email format",
+            "storeEmail.classList.contains('input-error')": true
+          },
+          "validEmail": {
+            "emailError.style.display": "none",
+            "storeEmail.classList.contains('input-error')": false
+          }
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FORM-006",
+      "title": "Store hours validation on blur",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Clear localStorage, reload start.html",
+          "expected": "Clean form state",
+          "observed": "Page reloaded with clean state"
+        },
+        {
+          "action": "Focus #storeHours, type 'bad format', blur",
+          "expected": "#hoursError displays with message about day names/hours",
+          "observed": "hoursErrorDisplay='block', hoursErrorText='Include opening/closing times (10AM-8PM or 10:00AM-8:00PM)', hoursHasError=true"
+        },
+        {
+          "action": "Focus #storeHours, type 'Mon–Sat: 10AM–8PM | Sun: 10AM–7PM', blur",
+          "expected": "Error hidden",
+          "observed": "hoursErrorDisplay='none', hoursHasError=false"
+        }
+      ],
+      "evidence": {
+        "screenshots": ["start-app-extraction/form-validation-fix/VAL-FORM-006-hours-validation.png"],
+        "consoleErrors": "none",
+        "jsEvaluation": {
+          "invalidHours": {
+            "hoursError.style.display": "block",
+            "hoursError.textContent": "Include opening/closing times (10AM-8PM or 10:00AM-8:00PM)",
+            "storeHours.classList.contains('input-error')": true
+          },
+          "validHours": {
+            "hoursError.style.display": "none",
+            "storeHours.classList.contains('input-error')": false
+          }
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-FORM-007",
+      "title": "Plus code validation on blur (optional field)",
+      "status": "fail",
+      "steps": [
+        {
+          "action": "Clear localStorage, reload start.html",
+          "expected": "Clean form state",
+          "observed": "Page reloaded with clean state"
+        },
+        {
+          "action": "Focus #storePlusCode, leave empty, blur",
+          "expected": "No error shown (optional field)",
+          "observed": "plusCodeErrorDisplay='none', plusCodeHasError=false — CORRECT"
+        },
+        {
+          "action": "Focus #storePlusCode, type '849VCWC8+R9', blur",
+          "expected": "Value accepted (uppercased), no error",
+          "observed": "plusCodeErrorDisplay='block', plusCodeErrorText='Invalid Plus Code format (e.g., 849VCWC8+R9)', plusCodeHasError=true — FAIL: Global plus code format rejected by regex"
+        },
+        {
+          "action": "Focus #storePlusCode, type 'bad code!!!', blur",
+          "expected": "#plusCodeError shows 'Invalid Plus Code format', input has input-error class",
+          "observed": "plusCodeErrorDisplay='block', plusCodeErrorText='Invalid Plus Code format (e.g., 849VCWC8+R9)', plusCodeHasError=true — CORRECT"
+        },
+        {
+          "action": "Focus #storePlusCode, type 'CWC8+R9' (short format), blur",
+          "expected": "Value accepted, no error",
+          "observed": "plusCodeValue='CWC8+R9', plusCodeErrorDisplay='none', plusCodeHasError=false — CORRECT (hideError mapping works)"
+        }
+      ],
+      "evidence": {
+        "screenshots": ["start-app-extraction/form-validation-fix/VAL-FORM-007-pluscode-validation.png"],
+        "consoleErrors": "none",
+        "jsEvaluation": {
+          "emptyValue": {
+            "plusCodeError.style.display": "none",
+            "storePlusCode.classList.contains('input-error')": false
+          },
+          "globalFormat_849VCWC8+R9": {
+            "plusCodeError.style.display": "block",
+            "plusCodeError.textContent": "Invalid Plus Code format (e.g., 849VCWC8+R9)",
+            "storePlusCode.classList.contains('input-error')": true,
+            "note": "FAIL: Regex /^[A-Z0-9]{2,4}\\+[A-Z0-9]{2,3}$/i only allows 2-4 chars before +, but global format has 8 chars"
+          },
+          "invalidFormat_badcode": {
+            "plusCodeError.style.display": "block",
+            "plusCodeError.textContent": "Invalid Plus Code format (e.g., 849VCWC8+R9)",
+            "storePlusCode.classList.contains('input-error')": true
+          },
+          "shortFormat_CWC8+R9": {
+            "plusCodeValue": "CWC8+R9",
+            "plusCodeError.style.display": "none",
+            "storePlusCode.classList.contains('input-error')": false,
+            "note": "hideError('plusCodeError') mapping works correctly after fix"
+          }
+        }
+      },
+      "issues": "The showError/hideError fix (errorToInputMap) is working correctly for plusCodeError — errors show and hide properly on the correct input element. However, the validation contract specifies that '849VCWC8+R9' (global Plus Code format) should be accepted, but the validatePlusCode() regex only supports short format (2-4 chars before '+'). The regex is /^[A-Z0-9]{2,4}\\+[A-Z0-9]{2,3}$/i which rejects the 8-character prefix in global Plus Codes. This is a pre-existing behavior mismatch between the contract specification and the code implementation, NOT a regression from the showError/hideError fix."
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "Re-tested 4 assertions after showError/hideError input ID mapping fix. VAL-FORM-004 (phone), VAL-FORM-005 (email), VAL-FORM-006 (hours) all PASS — the fix correctly maps error elements to input elements. VAL-FORM-007 (plus code) FAILS for a different reason: the validatePlusCode regex only supports short-format Plus Codes (2-4 chars before '+'), but the contract specifies global format '849VCWC8+R9' (8 chars before '+') should be accepted. The hideError/showError mapping itself works correctly for plusCodeError. The fail is a pre-existing contract/code mismatch, not a regression from the fix."
+}
