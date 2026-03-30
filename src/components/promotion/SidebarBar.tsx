@@ -1,36 +1,37 @@
 /**
- * SkinnyColumnBar — Thin sidebar showing collapsed card titles with status dots.
+ * SidebarBar — Thin sidebar showing collapsed card titles with status dots.
  *
  * Appears when a column is collapsed. Clicking it expands that column.
  * Shows card titles with status dots for quick reference.
+ * Always renders on the far left of the layout.
  */
 
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export interface SkinnyCardInfo {
+export interface SidebarCardInfo {
   cardId: string;
   title: string;
   hasContent: boolean;
 }
 
-export interface SkinnyColumnBarProps {
+export interface SidebarBarProps {
   /** Column label for aria */
   ariaLabel: string;
-  /** Card titles and status for the skinny bar */
-  cards: SkinnyCardInfo[];
+  /** Card titles and status for the sidebar bar */
+  cards: SidebarCardInfo[];
   /** Whether this bar's column is currently expanded */
   isExpanded: boolean;
-  /** Callback when the skinny bar is clicked to expand */
+  /** Callback when the sidebar bar is clicked to expand */
   onExpand: () => void;
 }
 
-export function SkinnyColumnBar({
+export function SidebarBar({
   ariaLabel,
   cards,
   isExpanded,
   onExpand,
-}: SkinnyColumnBarProps) {
+}: SidebarBarProps) {
   if (isExpanded) return null;
 
   return (

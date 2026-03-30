@@ -8,7 +8,7 @@
  *
  * Features:
  * - Collapsible cards with status dots (filled/empty)
- * - Skinny column collapse/expand navigation (desktop only)
+ * - Sidebar collapse/expand navigation (desktop only)
  * - Responsive layout below 1024px (single column, all stacked)
  * - Profile redirect if no profile saved
  * - Live HTML preview in iframe (right column)
@@ -38,9 +38,9 @@ import { useHasProfile } from '@/contexts/ProfileProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { CollapsibleCard } from '@/components/promotion/CollapsibleCard';
 import {
-  SkinnyColumnBar,
-  type SkinnyCardInfo,
-} from '@/components/promotion/SkinnyColumnBar';
+  SidebarBar,
+  type SidebarCardInfo,
+} from '@/components/promotion/SidebarBar';
 import { BasicDetailsEditor } from '@/components/promotion/BasicDetailsEditor';
 import { DiscountEntriesEditor } from '@/components/promotion/DiscountEntriesEditor';
 import { FormattableItemEditor } from '@/components/promotion/FormattableItemEditor';
@@ -295,9 +295,9 @@ function ColumnCards({ column }: { column: 'left' | 'center' }) {
   );
 }
 
-// ===== Skinny Bar Data =====
+// ===== Sidebar Bar Data =====
 
-function useSkinnyCards(column: 'left' | 'center'): SkinnyCardInfo[] {
+function useSidebarCards(column: 'left' | 'center'): SidebarCardInfo[] {
   const store = usePromotionStore();
   const cards = CARD_CONFIGS.filter((c) => c.column === column);
 
@@ -765,9 +765,9 @@ export function PromotionPage() {
   const leftExpanded = store.columnState === 'left-expanded';
   const centerExpanded = store.columnState === 'center-expanded';
 
-  // Skinny bar data
-  const leftSkinnyCards = useSkinnyCards('left');
-  const centerSkinnyCards = useSkinnyCards('center');
+  // Sidebar bar data
+  const leftSidebarCards = useSidebarCards('left');
+  const centerSidebarCards = useSidebarCards('center');
 
   // Column toggle handlers
   const handleExpandLeft = useCallback(() => {
@@ -785,15 +785,23 @@ export function PromotionPage() {
 
   return (
     <>
-      {/* ===== Desktop Layout (>=1024px): Three columns with skinny bars ===== */}
+      {/* ===== Desktop Layout (>=1024px): Three columns with sidebar ===== */}
       <div className="hidden lg:flex h-[calc(100vh-3.5rem)] overflow-hidden">
-        {/* Left Skinny Bar — shown when left column is collapsed */}
+        {/* Sidebar — always on far left, shows collapsed column's cards */}
         {!leftExpanded && (
-          <SkinnyColumnBar
-            cards={leftSkinnyCards}
+          <SidebarBar
+            cards={leftSidebarCards}
             isExpanded={false}
             onExpand={handleExpandLeft}
-            ariaLabel="Expand Promo Body Details column"
+            ariaLabel="Expand Promo Body Details"
+          />
+        )}
+        {!centerExpanded && (
+          <SidebarBar
+            cards={centerSidebarCards}
+            isExpanded={false}
+            onExpand={handleExpandCenter}
+            ariaLabel="Expand Email Tools"
           />
         )}
 
@@ -806,16 +814,6 @@ export function PromotionPage() {
         >
           <ColumnCards column="left" />
         </div>
-
-        {/* Center Skinny Bar — shown when center column is collapsed */}
-        {!centerExpanded && (
-          <SkinnyColumnBar
-            cards={centerSkinnyCards}
-            isExpanded={false}
-            onExpand={handleExpandCenter}
-            ariaLabel="Expand Email Tools column"
-          />
-        )}
 
         {/* Center Column: Email Tools */}
         <div

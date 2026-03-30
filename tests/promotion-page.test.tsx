@@ -1,5 +1,5 @@
 /**
- * Tests for PromotionPage, CollapsibleCard, and SkinnyColumnBar components.
+ * Tests for PromotionPage, CollapsibleCard, and SidebarBar components.
  *
  * Tests cover:
  * - Profile redirect when no profile saved
@@ -7,7 +7,7 @@
  * - All 8 collapsible cards render with correct titles
  * - Cards collapse/expand with animation
  * - Status dots show empty/filled state
- * - Skinny column collapse/expand navigation
+ * - Sidebar collapse/expand navigation
  * - Responsive layout class application
  */
 
@@ -19,7 +19,7 @@ import * as jestDom from '@testing-library/jest-dom';
 
 import { PromotionPage } from '@/pages/PromotionPage';
 import { CollapsibleCard } from '@/components/promotion/CollapsibleCard';
-import { SkinnyColumnBar } from '@/components/promotion/SkinnyColumnBar';
+import { SidebarBar } from '@/components/promotion/SidebarBar';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
@@ -230,9 +230,9 @@ describe('CollapsibleCard', () => {
   });
 });
 
-// ===== SkinnyColumnBar Tests =====
+// ===== SidebarBar Tests =====
 
-describe('SkinnyColumnBar', () => {
+describe('SidebarBar', () => {
   const mockCards = [
     { cardId: 'card1', title: 'Card One', hasContent: false },
     { cardId: 'card2', title: 'Card Two', hasContent: true },
@@ -240,7 +240,7 @@ describe('SkinnyColumnBar', () => {
 
   it('renders nothing when isExpanded is true', () => {
     const { container } = render(
-      <SkinnyColumnBar
+      <SidebarBar
         cards={mockCards}
         isExpanded={true}
         onExpand={() => {}}
@@ -252,7 +252,7 @@ describe('SkinnyColumnBar', () => {
 
   it('renders when isExpanded is false', () => {
     render(
-      <SkinnyColumnBar
+      <SidebarBar
         cards={mockCards}
         isExpanded={false}
         onExpand={() => {}}
@@ -264,9 +264,9 @@ describe('SkinnyColumnBar', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows card titles in skinny bar', () => {
+  it('shows card titles in sidebar bar', () => {
     render(
-      <SkinnyColumnBar
+      <SidebarBar
         cards={mockCards}
         isExpanded={false}
         onExpand={() => {}}
@@ -279,7 +279,7 @@ describe('SkinnyColumnBar', () => {
 
   it('shows status dots for each card', () => {
     const { container } = render(
-      <SkinnyColumnBar
+      <SidebarBar
         cards={mockCards}
         isExpanded={false}
         onExpand={() => {}}
@@ -291,7 +291,7 @@ describe('SkinnyColumnBar', () => {
 
   it('shows filled/empty status correctly', () => {
     const { container } = render(
-      <SkinnyColumnBar
+      <SidebarBar
         cards={mockCards}
         isExpanded={false}
         onExpand={() => {}}
@@ -310,7 +310,7 @@ describe('SkinnyColumnBar', () => {
     const user = userEvent.setup();
     const onExpand = vi.fn();
     render(
-      <SkinnyColumnBar
+      <SidebarBar
         cards={mockCards}
         isExpanded={false}
         onExpand={onExpand}
