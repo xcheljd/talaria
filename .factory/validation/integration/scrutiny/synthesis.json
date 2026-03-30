@@ -1,0 +1,57 @@
+{
+  "milestone": "integration",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": { "passed": true, "command": "npx vitest run", "exitCode": 0, "detail": "618 tests passed across 21 test files" },
+    "typecheck": { "passed": true, "command": "npx tsc --noEmit", "exitCode": 0, "detail": "0 TypeScript errors" },
+    "lint": { "passed": true, "command": "npx eslint src/", "exitCode": 0, "detail": "0 ESLint errors" }
+  },
+  "reviewsSummary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "appliedUpdates": [
+    {
+      "target": "AGENTS.md",
+      "description": "Fixed stale test count from 700 to 618 (actual count after legacy test removal)",
+      "sourceFeature": "build-and-cleanup"
+    },
+    {
+      "target": "library",
+      "description": "Added 'Known Documentation Drift' section to architecture.md noting that README.md, docs/README.md, docs/ARCHITECTURE-MAP.md, and docs/SIGNATURE-FORMAT.md still reference the old vanilla JS multi-page architecture",
+      "sourceFeature": "build-and-cleanup"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Strengthen XSS prevention guidance: clarify that ALL values interpolated into HTML must be escaped (including profile-derived fields like storeAddress, storePhone, storeEmail, storeHours), not just direct user input. The current guidance says 'Use sanitizeHTML() from html-utils on all user input' which omits profile-derived data that also needs escapeHtml().",
+      "evidence": "Feature cross-page-integration fixed an XSS gap where profile-derived fields in promotion-email-html.ts were not HTML-escaped. The fix added escapeHtml() calls for storeAddress, storePhone, storeEmail, storeHours, dateRange, and year.",
+      "isSystemic": false
+    },
+    {
+      "target": "skills",
+      "suggestion": "Update frontend-worker SKILL.md lines 42-46 which still reference src/js/ and src/css/ paths (e.g., 'For theme: read src/js/shared/theme.js', 'For profile page: read src/js/start-app.js, start.html'). These paths were deleted in build-and-cleanup and should reference src/lib/, src/pages/, src/contexts/ instead.",
+      "evidence": "build-and-cleanup review found stale references in .factory/skills/frontend-worker/SKILL.md:42-46",
+      "isSystemic": true
+    },
+    {
+      "target": "skills",
+      "suggestion": "Update or retire refactoring-worker SKILL.md which extensively references start.html (lines 103, 130, 146, 148, 154, 163, 177, 192, 206, 208, 211). The project is now a React SPA with no start.html, so this skill is outdated.",
+      "evidence": "build-and-cleanup review found 10+ stale references to start.html in .factory/skills/refactoring-worker/SKILL.md",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "IndexedDB orphaned blobs — PDF cleanup on remove/reset is incomplete",
+      "reason": "already-documented",
+      "detail": "This is already documented in architecture.md Key Invariants section: 'PDF cleanup on remove/reset is incomplete (orphaned blobs)'"
+    }
+  ],
+  "previousRound": null
+}

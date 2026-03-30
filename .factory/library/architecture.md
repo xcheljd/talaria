@@ -83,3 +83,13 @@ React SPA (Vite + TypeScript + Tailwind v4)
 | PDF attachments | IndexedDB | Custom hook (useIndexedDB) |
 | Bulk email recipients | IndexedDB | Custom hook (useIndexedDB) — NOTE: BulkEmailTools.tsx calls db.ts functions directly instead of using the hook |
 | Navigation | URL | React Router |
+
+## Known Documentation Drift (Post-Migration)
+
+The following docs still reference the old vanilla JS multi-page architecture and are **stale**:
+- `README.md` — Describes src/js/, start.html, promotion.html, old Pages table
+- `docs/README.md` — References src/js/ modules, old file structure, old entry points
+- `docs/ARCHITECTURE-MAP.md` — Scoped to "source modules under src/js/", references deleted HTML files
+- `docs/SIGNATURE-FORMAT.md` — References start.html for profile setup
+
+These were not updated during the build-and-cleanup feature. AGENTS.md and `.factory/library/architecture.md` are the authoritative sources for the current React SPA architecture.
