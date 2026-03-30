@@ -59,6 +59,9 @@ export type ColumnState = 'left-expanded' | 'center-expanded';
 
 /** Serialized state for IndexedDB persistence */
 export interface PromotionPersistedState {
+  promoDateRange: string;
+  promoYear: string;
+  promoTitle: string;
   promotionEntries: PromotionEntry[];
   specialHours: SpecialHour[];
   howToShopItems: HowToShopItem[];
@@ -72,6 +75,9 @@ export interface PromotionPersistedState {
 
 export interface PromotionState {
   // Data
+  promoDateRange: string;
+  promoYear: string;
+  promoTitle: string;
   promotionEntries: PromotionEntry[];
   specialHours: SpecialHour[];
   howToShopItems: HowToShopItem[];
@@ -142,6 +148,11 @@ export interface PromotionState {
   // Column state
   setColumnState: (state: ColumnState) => void;
 
+  // Basic details
+  setPromoDateRange: (value: string) => void;
+  setPromoYear: (value: string) => void;
+  setPromoTitle: (value: string) => void;
+
   // Initialization
   setInitializing: (value: boolean) => void;
 
@@ -192,6 +203,9 @@ const STORAGE_KEY = 'promotionBuilderState';
 
 function getEmptyState() {
   return {
+    promoDateRange: '' as string,
+    promoYear: '' as string,
+    promoTitle: '' as string,
     promotionEntries: [] as PromotionEntry[],
     specialHours: [] as SpecialHour[],
     howToShopItems: [] as HowToShopItem[],
@@ -431,6 +445,12 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
 
   setColumnState: (columnState: ColumnState) => set({ columnState }),
 
+  // ===== Basic Details =====
+
+  setPromoDateRange: (value: string) => set({ promoDateRange: value }),
+  setPromoYear: (value: string) => set({ promoYear: value }),
+  setPromoTitle: (value: string) => set({ promoTitle: value }),
+
   // ===== Initialization =====
 
   setInitializing: (value: boolean) => set({ isInitializing: value }),
@@ -440,6 +460,9 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   saveToIndexedDB: async () => {
     const state = get();
     const persistData: PromotionPersistedState = {
+      promoDateRange: state.promoDateRange,
+      promoYear: state.promoYear,
+      promoTitle: state.promoTitle,
       promotionEntries: state.promotionEntries,
       specialHours: state.specialHours,
       howToShopItems: state.howToShopItems,
@@ -538,6 +561,9 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         attachedPDFs: restoredPDFs,
         generatedSubjectLines: parsed.generatedSubjectLines || [],
         selectedSubjectLine: parsed.selectedSubjectLine || null,
+        promoDateRange: parsed.promoDateRange || '',
+        promoYear: parsed.promoYear || '',
+        promoTitle: parsed.promoTitle || '',
         isInitializing: false,
       });
     } catch (error) {

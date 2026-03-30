@@ -11,9 +11,16 @@
  * - Skinny column collapse/expand navigation (desktop only)
  * - Responsive layout below 1024px (single column, all stacked)
  * - Profile redirect if no profile saved
+ * - Live HTML preview in iframe (right column)
+ * - Preview/HTML Code tabs (shadcn Tabs)
+ * - HTML Code tab shows raw source in readonly textarea
+ * - Download buttons: Generate Email Batches, Download Email Draft (single EML), Download HTML
+ * - Start Over button with shadcn AlertDialog confirmation
+ * - Import/Export promotion config as JSON
+ * - Auto-save state to IndexedDB with debounced persistence
  */
 
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import {
   RotateCcw,
@@ -21,6 +28,9 @@ import {
   Code,
   Mail,
   FileDown,
+  FileCode,
+  Download,
+  Upload,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -31,14 +41,36 @@ import {
   SkinnyColumnBar,
   type SkinnyCardInfo,
 } from '@/components/promotion/SkinnyColumnBar';
+import { BasicDetailsEditor } from '@/components/promotion/BasicDetailsEditor';
 import { DiscountEntriesEditor } from '@/components/promotion/DiscountEntriesEditor';
 import { FormattableItemEditor } from '@/components/promotion/FormattableItemEditor';
 import { SpecialHoursEditor } from '@/components/promotion/SpecialHoursEditor';
 import { PDFAttachments } from '@/components/promotion/PDFAttachments';
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
+import {
+  generatePromotionEmailHTML,
+  buildExportConfig,
+  validateImportConfig,
+  type PromotionEmailData,
+} from '@/lib/promotion-email-html';
+import { createEMLFile } from '@/lib/emailUtils';
+import { getEmployeeSignature } from '@/lib/signature';
+import { getStoreEmail, getEmployeeName } from '@/lib/profile';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 // ===== Card Configuration =====
 
@@ -105,6 +137,8 @@ const CARD_CONFIGS: CardConfig[] = [
 /** Get content component for a specific card */
 function getCardContent(cardId: string) {
   switch (cardId) {
+    case 'basicDetailsCard':
+      return <BasicDetailsEditor />;
     case 'discountEntriesCard':
       return <DiscountEntriesEditor />;
     case 'howToShopCard':
@@ -167,8 +201,6 @@ function ImportantNotesEditor() {
 /** Placeholder content for cards not yet migrated */
 function CardPlaceholderContent({ cardId }: { cardId: string }) {
   const messages: Record<string, string> = {
-    basicDetailsCard:
-      'Promotion title, dates, and intro text will be configured here.',
     bulkEmailCard:
       'Manage recipients and generate email batches for bulk sending.',
   };
@@ -285,22 +317,306 @@ function useSkinnyCards(column: 'left' | 'center'): SkinnyCardInfo[] {
   );
 }
 
+// ===== Download Helper =====
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 // ===== Preview Column Component =====
 
 function PreviewColumn() {
+  const store = usePromotionStore();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [activeTab, setActiveTab] = useState('preview');
+
+  // Generate email HTML from current store data
+  const emailHTML = useMemo(() => {
+    if (!store.promoDateRange) return '';
+
+    const data: PromotionEmailData = {
+      promoDateRange: store.promoDateRange,
+      promoYear: store.promoYear,
+      promoTitle: store.promoTitle,
+      promotionEntries: store.promotionEntries,
+      specialHours: store.specialHours,
+      howToShopItems: store.howToShopItems,
+      importantNotesItems: store.importantNotesItems,
+    };
+
+    return generatePromotionEmailHTML(data);
+  }, [
+    store.promoDateRange,
+    store.promoYear,
+    store.promoTitle,
+    store.promotionEntries,
+    store.specialHours,
+    store.howToShopItems,
+    store.importantNotesItems,
+  ]);
+
+  // Update iframe when emailHTML changes
+  useEffect(() => {
+    if (!iframeRef.current) return;
+
+    if (!emailHTML) {
+      // Write empty state
+      const doc = iframeRef.current.contentDocument;
+      if (doc) {
+        doc.open();
+        doc.write(`
+          <html>
+            <body style="display:flex;align-items:center;justify-content:center;min-height:400px;font-family:system-ui,sans-serif;color:#888;">
+              <p style="text-align:center;">Enter promotion details to see preview</p>
+            </body>
+          </html>
+        `);
+        doc.close();
+      }
+      return;
+    }
+
+    const doc = iframeRef.current.contentDocument;
+    if (doc) {
+      doc.open();
+      doc.write(emailHTML);
+      doc.close();
+    }
+  }, [emailHTML]);
+
+  // Download Email Draft (single EML)
+  const handleDownloadDraft = useCallback(async () => {
+    if (!emailHTML) {
+      toast.error('No email content to download');
+      return;
+    }
+
+    try {
+      const fromName = getEmployeeName();
+      const fromEmail = getStoreEmail();
+      const subject = store.selectedSubjectLine || 'Weekly Sale';
+
+      // Include signature in the email body
+      const signature = getEmployeeSignature('html');
+      const fullHTML = emailHTML.replace(
+        '</body>',
+        `<br><br>${signature}</body>`
+      );
+
+      // Get PDF attachments
+      const attachments = store.attachedPDFs
+        .filter((pdf) => pdf.data)
+        .map((pdf) => ({ name: pdf.name, data: pdf.data }));
+
+      const emlContent = await createEMLFile(
+        fromName,
+        fromEmail,
+        '',
+        '',
+        subject,
+        fullHTML,
+        attachments
+      );
+
+      const blob = new Blob([emlContent], {
+        type: 'message/rfc822',
+      });
+      downloadBlob(blob, `promotion-email-${Date.now()}.eml`);
+      toast.success('Email draft downloaded');
+    } catch (error) {
+      console.error('Download draft error:', error);
+      toast.error('Failed to download email draft');
+    }
+  }, [emailHTML, store.selectedSubjectLine, store.attachedPDFs]);
+
+  // Download HTML
+  const handleDownloadHTML = useCallback(() => {
+    if (!emailHTML) {
+      toast.error('No HTML content to download');
+      return;
+    }
+
+    const blob = new Blob([emailHTML], { type: 'text/html' });
+    downloadBlob(blob, `promotion-email-${Date.now()}.html`);
+    toast.success('HTML file downloaded');
+  }, [emailHTML]);
+
+  // Start Over
+  const handleStartOver = useCallback(() => {
+    store.resetState();
+    localStorage.removeItem('promotionBuilderState');
+    toast.success('Reset to defaults completed');
+  }, [store]);
+
+  // Export Config
+  const handleExportConfig = useCallback(() => {
+    try {
+      const data: PromotionEmailData = {
+        promoDateRange: store.promoDateRange,
+        promoYear: store.promoYear,
+        promoTitle: store.promoTitle,
+        promotionEntries: store.promotionEntries,
+        specialHours: store.specialHours,
+        howToShopItems: store.howToShopItems,
+        importantNotesItems: store.importantNotesItems,
+      };
+
+      const config = buildExportConfig(
+        data,
+        store.attachedPDFs,
+        store.generatedSubjectLines,
+        store.selectedSubjectLine
+      );
+
+      const jsonStr = JSON.stringify(config, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      downloadBlob(
+        blob,
+        `promotion-template-${new Date().toISOString().split('T')[0]}.json`
+      );
+      toast.success('Config exported successfully');
+    } catch (error) {
+      console.error('Export config error:', error);
+      toast.error('Failed to export config');
+    }
+  }, [store]);
+
+  // Import Config
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const handleImportConfig = useCallback(() => {
+    importInputRef.current?.click();
+  }, []);
+
+  const handleImportFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const raw = JSON.parse(event.target?.result as string);
+          const validation = validateImportConfig(raw);
+
+          if (!validation.ok) {
+            toast.error(`Invalid config: ${validation.reason}`);
+            return;
+          }
+
+          const config = validation.config;
+
+          // Apply imported config to store
+          store.setPromoDateRange(config.dateRange);
+          store.setPromoYear(config.year);
+          store.setPromoTitle(config.title);
+
+          // Replace entries
+          usePromotionStore.setState({
+            promotionEntries: config.promotionEntries,
+            specialHours: config.specialHours,
+            howToShopItems: config.howToShopItems,
+            importantNotesItems: config.importantNotesItems,
+            generatedSubjectLines: config.generatedSubjectLines,
+            selectedSubjectLine: config.selectedSubjectLine,
+          });
+
+          toast.success('Config imported successfully');
+        } catch (error) {
+          console.error('Import config error:', error);
+          toast.error('Failed to import config — invalid JSON');
+        }
+      };
+      reader.readAsText(file);
+
+      // Reset input so the same file can be re-selected
+      e.target.value = '';
+    },
+    [store]
+  );
+
+  const hasContent = !!emailHTML;
+
   return (
     <div className="flex h-full flex-col">
+      {/* Hidden file input for import */}
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={handleImportFileChange}
+        data-testid="import-config-input"
+      />
+
       {/* Preview Header */}
       <div className="flex items-center justify-between border-b px-4 py-2">
         <h2 className="text-sm font-semibold">Email Preview</h2>
-        <Button variant="destructive" size="sm" className="gap-1.5">
-          <RotateCcw className="h-3.5 w-3.5" />
-          Start Over
-        </Button>
+
+        <div className="flex items-center gap-1.5">
+          {/* Import Config */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={handleImportConfig}
+            aria-label="Import Config"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Import Config
+          </Button>
+
+          {/* Export Config */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={handleExportConfig}
+            disabled={!hasContent}
+            aria-label="Export Config"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export Config
+          </Button>
+
+          {/* Start Over with AlertDialog */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="gap-1.5">
+                <RotateCcw className="h-3.5 w-3.5" />
+                Start Over
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset to Defaults</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will reset everything to defaults and cannot be undone.
+                  All promotion data, entries, and attachments will be cleared.
+                  Continue?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleStartOver}>
+                  Reset
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {/* Preview Tabs */}
-      <Tabs defaultValue="preview" className="flex flex-1 flex-col overflow-hidden">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="flex flex-1 flex-col overflow-hidden"
+      >
         <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
           <TabsTrigger
             value="preview"
@@ -319,19 +635,29 @@ function PreviewColumn() {
         </TabsList>
 
         <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
-          <div className="flex h-full items-center justify-center p-4">
-            <div className="flex min-h-[400px] w-full items-center justify-center rounded-lg border border-dashed">
-              <p className="text-sm text-muted-foreground">
-                Enter promotion details to see preview
-              </p>
+          {hasContent ? (
+            <iframe
+              ref={iframeRef}
+              className="h-full w-full border-0"
+              title="Email Preview"
+              sandbox="allow-same-origin"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center p-4">
+              <div className="flex min-h-[400px] w-full items-center justify-center rounded-lg border border-dashed">
+                <p className="text-sm text-muted-foreground">
+                  Enter promotion details to see preview
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </TabsContent>
 
         <TabsContent value="code" className="flex-1 m-0 overflow-hidden">
           <div className="h-full p-4">
             <textarea
               className="h-full w-full rounded-md border bg-muted/50 p-3 font-mono text-xs"
+              value={emailHTML || ''}
               placeholder="HTML code will appear here..."
               readOnly
             />
@@ -341,17 +667,74 @@ function PreviewColumn() {
 
       {/* Preview Actions */}
       <div className="flex flex-wrap gap-2 border-t px-4 py-3">
-        <Button size="sm" className="gap-1.5">
+        <Button size="sm" className="gap-1.5" disabled>
           <Mail className="h-3.5 w-3.5" />
           Generate Email Batches
         </Button>
-        <Button size="sm" variant="outline" className="gap-1.5">
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={handleDownloadDraft}
+          disabled={!hasContent}
+        >
           <FileDown className="h-3.5 w-3.5" />
           Download Email Draft
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={handleDownloadHTML}
+          disabled={!hasContent}
+        >
+          <FileCode className="h-3.5 w-3.5" />
+          Download HTML
         </Button>
       </div>
     </div>
   );
+}
+
+// ===== Auto-Save Hook =====
+
+/** Debounced auto-save to IndexedDB */
+function useAutoSave() {
+  const store = usePromotionStore();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Watch for state changes and trigger debounced save
+  useEffect(() => {
+    // Don't auto-save during initialization
+    if (store.isInitializing) return;
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    timerRef.current = setTimeout(() => {
+      store.saveToIndexedDB();
+    }, 500);
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [
+    store.isInitializing,
+    store.promoDateRange,
+    store.promoYear,
+    store.promoTitle,
+    store.promotionEntries,
+    store.specialHours,
+    store.howToShopItems,
+    store.importantNotesItems,
+    store.attachedPDFs,
+    store.generatedSubjectLines,
+    store.selectedSubjectLine,
+    store.saveToIndexedDB,
+  ]);
 }
 
 // ===== Main Page Component =====
@@ -365,6 +748,9 @@ export function PromotionPage() {
     store.loadFromIndexedDB();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-save with debounce
+  useAutoSave();
 
   // Column visibility based on store state
   const leftExpanded = store.columnState === 'left-expanded';
