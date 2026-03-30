@@ -34,6 +34,8 @@ import {
 import { DiscountEntriesEditor } from '@/components/promotion/DiscountEntriesEditor';
 import { FormattableItemEditor } from '@/components/promotion/FormattableItemEditor';
 import { SpecialHoursEditor } from '@/components/promotion/SpecialHoursEditor';
+import { PDFAttachments } from '@/components/promotion/PDFAttachments';
+import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -111,6 +113,10 @@ function getCardContent(cardId: string) {
       return <ImportantNotesEditor />;
     case 'specialHoursCard':
       return <SpecialHoursEditor />;
+    case 'pdfCard':
+      return <PDFAttachments />;
+    case 'subjectCard':
+      return <SubjectLineGenerator />;
     default:
       return <CardPlaceholderContent cardId={cardId} />;
   }
@@ -163,8 +169,6 @@ function CardPlaceholderContent({ cardId }: { cardId: string }) {
   const messages: Record<string, string> = {
     basicDetailsCard:
       'Promotion title, dates, and intro text will be configured here.',
-    pdfCard: 'Upload PDF attachments to include with the promotion email.',
-    subjectCard: 'Generate email subject lines from promotion content.',
     bulkEmailCard:
       'Manage recipients and generate email batches for bulk sending.',
   };
