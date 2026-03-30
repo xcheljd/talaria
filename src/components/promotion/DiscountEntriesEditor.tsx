@@ -17,7 +17,10 @@ import {
   GripVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePromotionStore, type PromotionEntry } from '@/stores/promotion-store';
+import {
+  usePromotionStore,
+  type PromotionEntry,
+} from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 

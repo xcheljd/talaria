@@ -101,9 +101,7 @@ export function savePDFToIndexedDB(pdfData: PDFRecord): Promise<string> {
 /**
  * Get specific PDF from IndexedDB.
  */
-export function getPDFFromIndexedDB(
-  pdfId: string
-): Promise<PDFRecord | null> {
+export function getPDFFromIndexedDB(pdfId: string): Promise<PDFRecord | null> {
   return new Promise((resolve, reject) => {
     if (!db) {
       resolve(null);
@@ -115,8 +113,7 @@ export function getPDFFromIndexedDB(
     const request = store.get(pdfId);
 
     request.onerror = () => reject(request.error);
-    request.onsuccess = () =>
-      resolve((request.result as PDFRecord) || null);
+    request.onsuccess = () => resolve((request.result as PDFRecord) || null);
   });
 }
 

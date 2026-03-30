@@ -40,8 +40,8 @@ interface ProfileProviderProps {
 }
 
 export function ProfileProvider({ children }: ProfileProviderProps) {
-  const [profile, setProfile] = useState<UserProfile | null>(
-    () => getUserProfile()
+  const [profile, setProfile] = useState<UserProfile | null>(() =>
+    getUserProfile()
   );
 
   const saveProfile = useCallback((newProfile: UserProfile) => {

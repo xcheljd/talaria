@@ -383,9 +383,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
 
   removeImportantNotesItem: (id: number) =>
     set((state) => ({
-      importantNotesItems: state.importantNotesItems.filter(
-        (i) => i.id !== id
-      ),
+      importantNotesItems: state.importantNotesItems.filter((i) => i.id !== id),
     })),
 
   updateImportantNotesItem: (id: number, text: string) =>
@@ -646,15 +644,10 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
               });
             } else {
               // No data available, skip this PDF
-              console.warn(
-                `PDF ${metadata.name} data not found, skipping.`
-              );
+              console.warn(`PDF ${metadata.name} data not found, skipping.`);
             }
           } catch (error) {
-            console.warn(
-              `Failed to restore PDF ${metadata.name}:`,
-              error
-            );
+            console.warn(`Failed to restore PDF ${metadata.name}:`, error);
           }
         }
       }

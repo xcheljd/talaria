@@ -175,7 +175,9 @@ function HowToShopEditor() {
       }}
       placeholder="e.g., Visit us in-store for outlet-exclusive deals"
       itemLabel="Item"
-      emptyMessage={'No shopping instructions yet. Click "Add Item" to get started.'}
+      emptyMessage={
+        'No shopping instructions yet. Click "Add Item" to get started.'
+      }
     />
   );
 }
@@ -213,7 +215,10 @@ function CardPlaceholderContent({ cardId }: { cardId: string }) {
 
 // ===== Check if a card has content =====
 
-function getCardHasContent(cardId: string, store: ReturnType<typeof usePromotionStore.getState>): boolean {
+function getCardHasContent(
+  cardId: string,
+  store: ReturnType<typeof usePromotionStore.getState>
+): boolean {
   switch (cardId) {
     case 'basicDetailsCard':
       return (
@@ -231,15 +236,12 @@ function getCardHasContent(cardId: string, store: ReturnType<typeof usePromotion
     case 'importantNotesCard':
       return store.importantNotesItems.some((i) => i.text?.trim());
     case 'specialHoursCard':
-      return store.specialHours.some(
-        (h) => h.day?.trim() || h.hours?.trim()
-      );
+      return store.specialHours.some((h) => h.day?.trim() || h.hours?.trim());
     case 'pdfCard':
       return store.attachedPDFs.length > 0;
     case 'subjectCard':
       return !!(
-        store.selectedSubjectLine ||
-        store.generatedSubjectLines.length > 0
+        store.selectedSubjectLine || store.generatedSubjectLines.length > 0
       );
     case 'bulkEmailCard':
       return false;
@@ -306,7 +308,6 @@ function useSkinnyCards(column: 'left' | 'center'): SkinnyCardInfo[] {
         title: config.title,
         hasContent: getCardHasContent(config.id, store),
       })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       column,
       store.promotionEntries,
@@ -754,7 +755,6 @@ export function PromotionPage() {
       store.initializeDefaultItems();
     };
     init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-save with debounce

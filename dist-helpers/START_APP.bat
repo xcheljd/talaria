@@ -4,8 +4,7 @@ REM Opens the built app directly in the default browser without starting a local
 
 cd /d "%~dp0"
 
-set HTML=start.html
-if not exist "%HTML%" set HTML=index.html
+set HTML=index.html
 
 set APP_PATH=%CD%\%HTML%
 

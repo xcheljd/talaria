@@ -43,10 +43,7 @@ export function BasicDetailsEditor() {
     <div className="space-y-3">
       {/* Date Range */}
       <div className="space-y-1">
-        <label
-          htmlFor="promoDateRange"
-          className="text-xs font-medium"
-        >
+        <label htmlFor="promoDateRange" className="text-xs font-medium">
           Date Range *
         </label>
         <Input
@@ -63,10 +60,7 @@ export function BasicDetailsEditor() {
 
       {/* Year Override */}
       <div className="space-y-1">
-        <label
-          htmlFor="promoYear"
-          className="text-xs font-medium"
-        >
+        <label htmlFor="promoYear" className="text-xs font-medium">
           Year (optional)
         </label>
         <Input
@@ -83,10 +77,7 @@ export function BasicDetailsEditor() {
 
       {/* Title Override */}
       <div className="space-y-1">
-        <label
-          htmlFor="promoTitle"
-          className="text-xs font-medium"
-        >
+        <label htmlFor="promoTitle" className="text-xs font-medium">
           Title (optional)
         </label>
         <Input

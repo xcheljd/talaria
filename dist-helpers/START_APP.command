@@ -5,10 +5,7 @@
 # Move to the directory containing this script (i.e., the built dist/ folder)
 cd "$(dirname "$0")" || exit 1
 
-HTML="start.html"
-if [ ! -f "$HTML" ]; then
-  HTML="index.html"
-fi
+HTML="index.html"
 
 APP_PATH="$PWD/$HTML"
 

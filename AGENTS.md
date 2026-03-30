@@ -1,85 +1,103 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2025-01-06T20:36:02Z
-**Commit:** 8cbaba1
+**Updated:** 2026-03-29
 **Branch:** main
 
 ## OVERVIEW
 
-Multi-page template generator app for customer communications (email, text, phone). Vite SPA with Tauri desktop shell.
+Single-page React app for customer communications (email, text, phone). Vite SPA with React Router, TypeScript, Tailwind CSS v4, shadcn/ui, and Tauri desktop shell.
 
 ## STRUCTURE
 
 ```
 ./
-├── index.html            # Main template generator
-├── start.html            # Profile setup
-├── promotion.html        # Promotion email generator
+├── index.html               # Single entry point (React root)
 ├── src/
-│   ├── css/              # Stylesheets (theme system)
-│   ├── js/               # App logic
-│   └── js/shared/        # Cross-page utilities (email, DB, theme)
-└── src-tauri/src/        # Rust backend (IPC handlers)
+│   ├── main.tsx             # React entry
+│   ├── App.tsx              # Router + providers
+│   ├── index.css            # Tailwind + CSS variables (palettes)
+│   ├── components/          # React components
+│   │   ├── ui/              # shadcn/ui components
+│   │   ├── promotion/       # Promotion page components
+│   │   ├── Layout.tsx       # App shell with header/nav
+│   │   ├── ThemeToggle.tsx  # Light/dark toggle
+│   │   └── ...              # Other shared components
+│   ├── pages/               # Route page components
+│   ├── contexts/            # React contexts (Theme, Profile)
+│   ├── stores/              # Zustand stores (promotion)
+│   ├── hooks/               # Custom hooks (useTauri, useIndexedDB)
+│   ├── lib/                 # Pure utilities (emailUtils, templates, etc.)
+│   └── vite-env.d.ts        # Vite type declarations
+├── dist-helpers/            # Copied to dist/ after build
+└── src-tauri/src/           # Rust backend (IPC handlers)
 ```
 
 ## WHERE TO LOOK
 
-| Task                 | Location                               | Notes                         |
-| -------------------- | -------------------------------------- | ----------------------------- |
-| Entry points         | index.html, start.html, promotion.html | Multi-page via vite.config.js |
-| App state            | src/js/state.js, promotion-state.js    | localStorage persistence      |
-| Profile page entry   | src/js/start-app.js                    | ES module for start.html      |
-| Template definitions | src/js/templates.js                    | 15+ communication templates   |
-| Email generation     | src/js/shared/emailUtils.js            | EML/EMLTPL with RFC 5322/2045 |
-| Theme system         | src/js/shared/theme.js                 | Light/dark + 16 palettes      |
-| PDF storage          | src/js/shared/db.js                    | IndexedDB wrapper             |
-| Tauri IPC            | src-tauri/src/lib.rs                   | Download folder dialog        |
+| Task                 | Location                                    | Notes                              |
+| -------------------- | ------------------------------------------- | ---------------------------------- |
+| Entry point          | index.html → src/main.tsx                   | Single-page React app              |
+| Routes               | src/App.tsx                                 | React Router: /, /start, /promotion |
+| Template definitions | src/lib/templates.ts                        | 15+ communication templates        |
+| Email generation     | src/lib/emailUtils.ts                       | EML/EMLTPL with RFC 5322/2045      |
+| Theme system         | src/contexts/ThemeProvider.tsx, src/lib/theme-utils.ts | Light/dark + 16 palettes |
+| Profile management   | src/contexts/ProfileProvider.tsx, src/lib/profile.ts | localStorage-backed    |
+| PDF storage          | src/lib/db.ts                               | IndexedDB wrapper                  |
+| Promotion state      | src/stores/promotion-store.ts               | Zustand with IndexedDB persistence |
+| Tauri IPC            | src/hooks/useTauri.ts, src-tauri/src/lib.rs | Download folder dialog             |
 
 ## CONVENTIONS
 
-- **Shared utilities**: All reusable code in `src/js/shared/`, page-specific logic at root level
-- **State management**: `appState` object with localStorage sync
-- **XSS prevention**: Use `sanitizeHTML()` from templates.js on all user input
-- **Profile data**: Access via helpers (`getStorePhone()`, `getStoreName()`) not direct localStorage
+- **Path alias**: `@/` maps to `src/` (TypeScript + Vite)
+- **Pure utilities**: Business logic in `src/lib/` with no React imports
+- **Components**: React components in `src/components/` and `src/pages/`
+- **XSS prevention**: Use `sanitizeHTML()` from `html-utils` on all user input
+- **Profile data**: Access via ProfileProvider hooks (`useProfile()`, `useStorePhone()`)
 - **EML files**: Must use CRLF line endings (`\r\n`) for email client compatibility
-- **Module boundary**: No index.js - explicit imports from shared/
+- **Forms**: React Hook Form + Zod validation schemas
+- **State**: React Context for theme/profile, Zustand for promotion page
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
-- Never access localStorage directly for profile data - use helper functions
+- Never access localStorage directly for profile data - use hooks from ProfileProvider
 - Never suppress XSS warnings - always sanitize template data
 - Never use `\n` line endings in EML files - use `\r\n`
 - Never hardcode paths - use Tauri's `app.path().app_data_dir()`
+- Never add custom CSS files - use Tailwind utility classes
 
 ## UNIQUE STYLES
 
-- **Multi-palette themes**: Light/dark mode with 8 palettes each (CSS custom properties)
+- **Multi-palette themes**: Light/dark mode with 8 palettes each (CSS custom properties → Tailwind)
 - **Signature generation**: Job title-based email selection (management → company email, staff → store email)
-- **Multi-page entry points**: Vite builds 3 separate pages from one config
+- **SPA routing**: React Router with BrowserRouter for client-side navigation
+- **Tauri integration**: Desktop app wraps the SPA with native IPC for file dialogs
 
 ## COMMANDS
 
 ```bash
 npm run dev                    # Vite dev server (port 8080)
 npm run build                  # Build + copy dist-helpers/* to dist/
-npm run lint                   # ESLint on src/js/**/*.js
-npm run format                 # Prettier on JS/CSS
+npm run preview                # Serve built dist/ via Vite preview
+npm run test                   # Vitest unit tests
+npm run typecheck              # TypeScript type check
+npm run lint                   # ESLint on src/
+npm run format                 # Prettier on JS/TS/CSS
 npm run tauri:dev              # Tauri dev mode
 npm run tauri:build            # Build desktop app
-npm run tauri:build:win        # Windows portable exe
-npm run tauri:build:mac        # Mac .app as zip
 ```
 
 ## NOTES
 
-- **ES modules**: Built app requires local server (CORS) due to ES format
+- **TypeScript strict mode**: All source is TypeScript with strict compilation
 - **Helper files**: dist-helpers/ copied to dist/ after build
 - **Tauri config**: Stored in app userData/downloads-config.json (JSON)
 - **IndexedDB**: Database name "PDFStorage", store "pdfs"
 - **Profile keys**: `userProfile`, `theme`, `lightPalette`, `darkPalette`
+- **Tests**: 700 tests in tests/ using Vitest + React Testing Library
 
 ## DOCUMENTATION
 
 - `docs/ARCHITECTURE-MAP.md` - Module architecture with data flow
 - `docs/SIGNATURE-FORMAT.md` - Email signature structure
 - `docs/CHANGELOG.md` - Version history
+- `.factory/library/architecture.md` - Detailed React architecture

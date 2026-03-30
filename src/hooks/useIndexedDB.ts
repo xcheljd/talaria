@@ -58,23 +58,20 @@ export function useIndexedDB(): UseIndexedDBReturn {
     });
   }, []);
 
-  const wrapOp = useCallback(
-    async <T>(fn: () => Promise<T>): Promise<T> => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await fn();
-        return result;
-      } catch (e) {
-        const err = e instanceof Error ? e : new Error(String(e));
-        setError(err);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
+  const wrapOp = useCallback(async <T>(fn: () => Promise<T>): Promise<T> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await fn();
+      return result;
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      setError(err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   return {
     isInitialized,

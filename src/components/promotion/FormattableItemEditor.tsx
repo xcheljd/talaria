@@ -72,10 +72,7 @@ function FormatButton({ active, onClick, label, children }: FormatButtonProps) {
       aria-label={label}
       aria-pressed={active}
       data-active={active || undefined}
-      className={cn(
-        'h-6 w-6',
-        active && 'bg-primary text-primary-foreground'
-      )}
+      className={cn('h-6 w-6', active && 'bg-primary text-primary-foreground')}
     >
       {children}
     </Button>

@@ -86,7 +86,7 @@ export function PDFAttachments() {
           }
 
           store.addPDF(pdf);
-        } catch (e) {
+        } catch {
           toast.error(`Error reading ${file.name}`);
           hasErrors = true;
         }
@@ -102,21 +102,15 @@ export function PDFAttachments() {
   );
 
   // Drag-and-drop handlers
-  const handleDragOver = useCallback(
-    (e: DragEvent) => {
-      e.preventDefault();
-      setIsDragOver(true);
-    },
-    []
-  );
+  const handleDragOver = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
 
-  const handleDragLeave = useCallback(
-    (e: DragEvent) => {
-      e.preventDefault();
-      setIsDragOver(false);
-    },
-    []
-  );
+  const handleDragLeave = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
 
   const handleDrop = useCallback(
     (e: DragEvent) => {
@@ -315,10 +309,7 @@ export function PDFAttachments() {
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={closePreview}
-            >
+            <Button variant="outline" onClick={closePreview}>
               Close
             </Button>
             <Button onClick={handleDownload} className="gap-1.5">

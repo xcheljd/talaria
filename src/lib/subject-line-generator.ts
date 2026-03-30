@@ -81,18 +81,30 @@ function getHolidayDates(year: number): HolidayDates {
 // ===== Date Range Parsing =====
 
 const MONTHS: Record<string, number> = {
-  jan: 0, january: 0,
-  feb: 1, february: 1,
-  mar: 2, march: 2,
-  apr: 3, april: 3,
+  jan: 0,
+  january: 0,
+  feb: 1,
+  february: 1,
+  mar: 2,
+  march: 2,
+  apr: 3,
+  april: 3,
   may: 4,
-  jun: 5, june: 5,
-  jul: 6, july: 6,
-  aug: 7, august: 7,
-  sep: 8, sept: 8, september: 8,
-  oct: 9, october: 9,
-  nov: 10, november: 10,
-  dec: 11, december: 11,
+  jun: 5,
+  june: 5,
+  jul: 6,
+  july: 6,
+  aug: 7,
+  august: 7,
+  sep: 8,
+  sept: 8,
+  september: 8,
+  oct: 9,
+  october: 9,
+  nov: 10,
+  november: 10,
+  dec: 11,
+  december: 11,
 };
 
 interface DateRange {
@@ -129,10 +141,7 @@ function parseDate(dateRangeStr: string): DateRange | null {
 
     let year = currentYear;
     const tentativeDate = new Date(year, month, day);
-    if (
-      tentativeDate.getTime() <
-      now.getTime() - 60 * 24 * 60 * 60 * 1000
-    ) {
+    if (tentativeDate.getTime() < now.getTime() - 60 * 24 * 60 * 60 * 1000) {
       year = currentYear + 1;
     }
 
@@ -469,8 +478,7 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
       }
     }
   } else {
-    const seasonCapitalized =
-      season.charAt(0).toUpperCase() + season.slice(1);
+    const seasonCapitalized = season.charAt(0).toUpperCase() + season.slice(1);
     if (maxDiscount > 0) {
       subjects.push(
         `${seasonCapitalized} Watch Sale – ${getDiscountPhrase(maxDiscount)}`

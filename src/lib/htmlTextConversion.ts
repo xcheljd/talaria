@@ -9,7 +9,9 @@
  * @param previewElement - The contenteditable preview element
  * @returns HTML content of body only (no signature)
  */
-export function extractEditableContent(previewElement: HTMLElement | null): string {
+export function extractEditableContent(
+  previewElement: HTMLElement | null
+): string {
   if (!previewElement) return '';
 
   const clone = previewElement.cloneNode(true) as HTMLElement;
@@ -27,7 +29,9 @@ export function extractEditableContent(previewElement: HTMLElement | null): stri
  * Convert HTML content to plain text.
  * Handles: paragraphs, line breaks, lists, and preserves structure.
  */
-export function htmlToPlainText(htmlContent: string | null | undefined): string {
+export function htmlToPlainText(
+  htmlContent: string | null | undefined
+): string {
   if (!htmlContent || typeof htmlContent !== 'string') {
     return '';
   }

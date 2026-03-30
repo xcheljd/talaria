@@ -216,23 +216,17 @@ export function ComponentsShowcase() {
             </TabsList>
             <TabsContent value="tab1">
               <Card>
-                <CardContent className="pt-6">
-                  Content for Tab 1.
-                </CardContent>
+                <CardContent className="pt-6">Content for Tab 1.</CardContent>
               </Card>
             </TabsContent>
             <TabsContent value="tab2">
               <Card>
-                <CardContent className="pt-6">
-                  Content for Tab 2.
-                </CardContent>
+                <CardContent className="pt-6">Content for Tab 2.</CardContent>
               </Card>
             </TabsContent>
             <TabsContent value="tab3">
               <Card>
-                <CardContent className="pt-6">
-                  Content for Tab 3.
-                </CardContent>
+                <CardContent className="pt-6">Content for Tab 3.</CardContent>
               </Card>
             </TabsContent>
           </Tabs>

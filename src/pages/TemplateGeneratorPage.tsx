@@ -40,8 +40,9 @@ export function TemplateGeneratorPage() {
     }
   );
 
-  const [templateResult, setTemplateResult] =
-    useState<TemplateResult | null>(null);
+  const [templateResult, setTemplateResult] = useState<TemplateResult | null>(
+    null
+  );
   const [bodyContent, setBodyContent] = useState<string | null>(null);
   const [fullTextContent, setFullTextContent] = useState<string | null>(null);
   const [subjectLine, setSubjectLine] = useState<string>('');
@@ -58,17 +59,14 @@ export function TemplateGeneratorPage() {
 
   // ─── Template selection ──────────────────────────────────────────────────
 
-  const handleTemplateChange = useCallback(
-    (key: string | null) => {
-      setSelectedTemplate(key);
-      // Clear output when template changes
-      setTemplateResult(null);
-      setBodyContent(null);
-      setFullTextContent(null);
-      setSubjectLine('');
-    },
-    []
-  );
+  const handleTemplateChange = useCallback((key: string | null) => {
+    setSelectedTemplate(key);
+    // Clear output when template changes
+    setTemplateResult(null);
+    setBodyContent(null);
+    setFullTextContent(null);
+    setSubjectLine('');
+  }, []);
 
   // ─── Generate message ───────────────────────────────────────────────────
 
@@ -135,18 +133,13 @@ export function TemplateGeneratorPage() {
 
   // ─── Subject line change ─────────────────────────────────────────────────
 
-  const handleSubjectChange = useCallback(
-    (newSubject: string) => {
-      setSubjectLine(newSubject);
-    },
-    []
-  );
+  const handleSubjectChange = useCallback((newSubject: string) => {
+    setSubjectLine(newSubject);
+  }, []);
 
   // ─── Template info ──────────────────────────────────────────────────────
 
-  const currentTemplate = selectedTemplate
-    ? templates[selectedTemplate]
-    : null;
+  const currentTemplate = selectedTemplate ? templates[selectedTemplate] : null;
 
   // ─── Render ──────────────────────────────────────────────────────────────
 

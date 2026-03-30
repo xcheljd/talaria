@@ -293,8 +293,7 @@ export function formatDateRangeForFilename(dateRangeText: string): string {
   if (rangeMatch) {
     const [, startMonth, startDay, endMonth, endDay, year] = rangeMatch;
 
-    const startMonthAbbrev =
-      monthMap[startMonth] || startMonth.substring(0, 3);
+    const startMonthAbbrev = monthMap[startMonth] || startMonth.substring(0, 3);
     const endMonthAbbrev = endMonth
       ? monthMap[endMonth] || endMonth.substring(0, 3)
       : startMonthAbbrev;

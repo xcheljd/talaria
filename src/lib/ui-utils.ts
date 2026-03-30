@@ -101,7 +101,9 @@ export function showToast(
 /**
  * Write empty state placeholder to an iframe.
  */
-export function writeEmptyStateToIframe(iframe: HTMLIFrameElement | null): void {
+export function writeEmptyStateToIframe(
+  iframe: HTMLIFrameElement | null
+): void {
   if (!iframe) return;
 
   const iframeDoc =
@@ -110,8 +112,7 @@ export function writeEmptyStateToIframe(iframe: HTMLIFrameElement | null): void 
   if (!iframeDoc) return;
 
   const computedStyle = getComputedStyle(document.documentElement);
-  const bgColor =
-    computedStyle.getPropertyValue('--card').trim() || '#f6f8fa';
+  const bgColor = computedStyle.getPropertyValue('--card').trim() || '#f6f8fa';
   const textColor =
     computedStyle.getPropertyValue('--foreground').trim() || '#24292f';
   const textSecondary =

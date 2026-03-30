@@ -167,8 +167,7 @@ export function SubjectLineGenerator() {
                   className="mt-1.5 shrink-0"
                 >
                   {charCount} chars{' '}
-                  {charCount > 0 &&
-                    (isOptimal ? '✓' : `(>${OPTIMAL_LENGTH})`)}
+                  {charCount > 0 && (isOptimal ? '✓' : `(>${OPTIMAL_LENGTH})`)}
                 </Badge>
               </div>
             </div>

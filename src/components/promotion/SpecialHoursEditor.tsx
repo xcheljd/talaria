@@ -7,13 +7,7 @@
  */
 
 import { useCallback, type ChangeEvent } from 'react';
-import {
-  Plus,
-  X,
-  ChevronUp,
-  ChevronDown,
-  GripVertical,
-} from 'lucide-react';
+import { Plus, X, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
 import { usePromotionStore, type SpecialHour } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -143,7 +137,8 @@ export function SpecialHoursEditor() {
       {/* Hours List */}
       {hours.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-2">
-          No special hours added yet. Click &quot;Add Hours&quot; to set special hours for the promotion period.
+          No special hours added yet. Click &quot;Add Hours&quot; to set special
+          hours for the promotion period.
         </p>
       ) : (
         <div className="space-y-2">

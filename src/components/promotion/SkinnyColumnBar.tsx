@@ -54,9 +54,7 @@ export function SkinnyColumnBar({
           <span
             className={cn(
               'inline-block h-2 w-2 rounded-full transition-colors',
-              card.hasContent
-                ? 'bg-primary'
-                : 'bg-muted-foreground/30'
+              card.hasContent ? 'bg-primary' : 'bg-muted-foreground/30'
             )}
             data-status={card.hasContent ? 'filled' : 'empty'}
             aria-hidden="true"

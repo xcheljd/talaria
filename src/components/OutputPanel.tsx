@@ -4,19 +4,10 @@
  */
 
 import { useState, useCallback } from 'react';
-import {
-  Copy,
-  Download,
-  Eye,
-  FileText,
-} from 'lucide-react';
+import { Copy, Download, Eye, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
-import {
-  templates,
-  isHTMLContent,
-  type TemplateResult,
-} from '@/lib/templates';
+import { templates, isHTMLContent, type TemplateResult } from '@/lib/templates';
 import { createEMLFile } from '@/lib/emailUtils';
 import { getEmployeeSignature } from '@/lib/signature';
 import { plainTextToPreviewHTML } from '@/lib/emailPreviewUtils';
@@ -98,8 +89,7 @@ export function OutputPanel({
   const handleDownloadEML = useCallback(async () => {
     if (!templateKey || !template) return;
 
-    const useBodyContent =
-      bodyContent || (templateResult?.body ?? '');
+    const useBodyContent = bodyContent || (templateResult?.body ?? '');
     const subject = subjectLine || '';
     const isHTML = isHTMLContent(useBodyContent);
 
@@ -133,10 +123,8 @@ ${htmlSignature}
     }
 
     const profile = getUserProfile();
-    const fromName =
-      profile?.employeeName || 'Citizen Company Store';
-    const fromEmail =
-      profile?.storeEmail || 'store@citizenwatchgroup.com';
+    const fromName = profile?.employeeName || 'Citizen Company Store';
+    const fromEmail = profile?.storeEmail || 'store@citizenwatchgroup.com';
 
     try {
       const emlContent = await createEMLFile(
@@ -153,9 +141,7 @@ ${htmlSignature}
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      const safeSubject = subject
-        .replace(/[^a-z0-9]/gi, '_')
-        .toLowerCase();
+      const safeSubject = subject.replace(/[^a-z0-9]/gi, '_').toLowerCase();
       const format = getRecommendedFormat();
       const extension = format === 'emltpl' ? '.emltpl' : '.eml';
       link.download = `${safeSubject}${extension}`;
@@ -166,7 +152,14 @@ ${htmlSignature}
       console.error('Error creating EML file:', error);
       toast.error('Failed to create email file');
     }
-  }, [templateKey, template, bodyContent, templateResult, subjectLine, includeSignature]);
+  }, [
+    templateKey,
+    template,
+    bodyContent,
+    templateResult,
+    subjectLine,
+    includeSignature,
+  ]);
 
   if (!templateKey) return null;
 
@@ -181,10 +174,7 @@ ${htmlSignature}
         {/* Subject line input (for enhanced templates) */}
         {hasEnhancedFeatures && (
           <div className="space-y-1.5">
-            <Label
-              htmlFor="subjectLine"
-              className="text-sm font-medium"
-            >
+            <Label htmlFor="subjectLine" className="text-sm font-medium">
               Subject
             </Label>
             <div className="flex items-center gap-2">
@@ -240,11 +230,7 @@ ${htmlSignature}
         {/* Action buttons */}
         {hasContent && (
           <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="default"
-              onClick={handleCopy}
-            >
+            <Button type="button" variant="default" onClick={handleCopy}>
               <Copy className="mr-1.5 h-4 w-4" />
               Copy Message
             </Button>

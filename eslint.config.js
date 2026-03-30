@@ -1,8 +1,9 @@
 import globals from "globals";
 import pluginJs from "@eslint/js";
+import tseslint from "typescript-eslint";
 import pluginPrettier from "eslint-plugin-prettier/recommended";
 
-export default [
+export default tseslint.config(
   {
     languageOptions: {
       globals: {
@@ -10,19 +11,16 @@ export default [
         ...globals.node,
         JSZip: 'readonly',
       },
-      ecmaVersion: 2021,
-      sourceType: "module",
     },
   },
   pluginJs.configs.recommended,
+  ...tseslint.configs.recommended,
   pluginPrettier,
   {
-    files: ["src/js/**/*.js"],
+    files: ["src/**/*.{ts,tsx}"],
     rules: {
-      "no-unused-vars": "warn",
-      // Add any specific ESLint rules you want to enforce here
-      // For example, to disallow console.log in production:
-      // "no-console": "warn"
+      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
-];
+);

@@ -6,7 +6,10 @@
 import { useState, useCallback, useEffect } from 'react';
 
 /** Tauri core invoke type */
-type TauriInvoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+type TauriInvoke = (
+  cmd: string,
+  args?: Record<string, unknown>
+) => Promise<unknown>;
 
 /** Shape of the Tauri window object */
 interface TauriWindow {
@@ -41,7 +44,10 @@ export interface UseTauriReturn {
    * @param args - Arguments to pass to the command
    * @returns The result of the IPC call
    */
-  invoke: <T = unknown>(command: string, args?: Record<string, unknown>) => Promise<T>;
+  invoke: <T = unknown>(
+    command: string,
+    args?: Record<string, unknown>
+  ) => Promise<T>;
 
   /**
    * Open a native folder picker dialog.
@@ -100,9 +106,7 @@ export function useTauri(): UseTauriReturn {
 
   const openFolderDialog = useCallback(async (): Promise<string | null> => {
     try {
-      const result = await invokeCommand<string>(
-        'open_download_folder_dialog'
-      );
+      const result = await invokeCommand<string>('open_download_folder_dialog');
       return result;
     } catch {
       return null;

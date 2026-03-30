@@ -24,7 +24,9 @@ function EmptyPreviewState() {
     <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
       <Mail className="mb-4 h-16 w-16 opacity-30" />
       <h3 className="mb-1 text-lg font-medium">No Preview Yet</h3>
-      <p className="text-sm">Content will appear here when you generate a message</p>
+      <p className="text-sm">
+        Content will appear here when you generate a message
+      </p>
     </div>
   );
 }

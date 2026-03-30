@@ -87,7 +87,7 @@ function computeEmailStats(rawText: string): EmailStats {
 
 /** Clamp batch size within allowed range, stepping by 50 */
 function clampBatchSize(value: number): number {
-  let clamped = Math.round(value / 50) * 50;
+  const clamped = Math.round(value / 50) * 50;
   return Math.min(Math.max(clamped, 50), 1000);
 }
 
@@ -160,8 +160,7 @@ export function BulkEmailTools() {
       return null;
     }
     const numBatches = Math.ceil(emailStats.valid / batchSize);
-    const lastBatchSize =
-      emailStats.valid % batchSize || batchSize;
+    const lastBatchSize = emailStats.valid % batchSize || batchSize;
 
     return {
       numBatches,
@@ -171,28 +170,25 @@ export function BulkEmailTools() {
   }, [emailStats.valid, batchSize]);
 
   // Handle recipient text changes
-  const handleRecipientChange = useCallback(
-    (newText: string) => {
-      setRecipientText(newText);
-      const stats = computeEmailStats(newText);
-      setEmailStats(stats);
+  const handleRecipientChange = useCallback((newText: string) => {
+    setRecipientText(newText);
+    const stats = computeEmailStats(newText);
+    setEmailStats(stats);
 
-      // Debounced save to IndexedDB
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-      saveTimerRef.current = setTimeout(async () => {
-        try {
-          if (newText.trim()) {
-            await saveBulkEmailRecipientsToIndexedDB(newText);
-          }
-        } catch (error) {
-          console.warn('Failed to save recipients:', error);
+    // Debounced save to IndexedDB
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        if (newText.trim()) {
+          await saveBulkEmailRecipientsToIndexedDB(newText);
         }
-      }, 1000);
-    },
-    []
-  );
+      } catch (error) {
+        console.warn('Failed to save recipients:', error);
+      }
+    }, 1000);
+  }, []);
 
   // Handle paste with feedback
   const handlePaste = useCallback(
@@ -409,7 +405,8 @@ export function BulkEmailTools() {
         placeholder="Enter email addresses (one per line, comma-separated, or paste from spreadsheet)..."
         className={cn(
           'min-h-[120px] font-mono text-sm',
-          emailStats.invalid > 0 && 'border-destructive/50 focus-visible:ring-destructive/30'
+          emailStats.invalid > 0 &&
+            'border-destructive/50 focus-visible:ring-destructive/30'
         )}
         data-testid="bulk-email-list"
       />
@@ -615,11 +612,7 @@ function FormatStatus() {
     const extension = os === 'mac' ? '.emltpl' : '.eml';
 
     const osName =
-      os === 'windows'
-        ? 'Windows'
-        : os === 'mac'
-          ? 'macOS'
-          : 'Other Platform';
+      os === 'windows' ? 'Windows' : os === 'mac' ? 'macOS' : 'Other Platform';
 
     setFormatInfo({ formatName, extension, osName });
   }, []);

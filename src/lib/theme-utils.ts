@@ -61,7 +61,8 @@ export function validatePalette(
   type: 'light' | 'dark'
 ): PaletteName {
   if (!palette) return 'github';
-  const validList = type === 'light' ? VALID_LIGHT_PALETTES : VALID_DARK_PALETTES;
+  const validList =
+    type === 'light' ? VALID_LIGHT_PALETTES : VALID_DARK_PALETTES;
   return validList.includes(palette) ? palette : 'github';
 }
 

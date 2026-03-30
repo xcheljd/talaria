@@ -116,11 +116,7 @@ function getOrdinalWeekday(
   return new Date(year, month, date);
 }
 
-function getLastWeekday(
-  year: number,
-  month: number,
-  dayOfWeek: number
-): Date {
+function getLastWeekday(year: number, month: number, dayOfWeek: number): Date {
   const lastDay = new Date(year, month + 1, 0);
   const lastDayOfWeek = lastDay.getDay();
   let dayOffset = lastDayOfWeek - dayOfWeek;
@@ -155,18 +151,30 @@ interface ParsedDateRange {
 }
 
 const MONTHS_MAP: Record<string, number> = {
-  jan: 0, january: 0,
-  feb: 1, february: 1,
-  mar: 2, march: 2,
-  apr: 3, april: 3,
+  jan: 0,
+  january: 0,
+  feb: 1,
+  february: 1,
+  mar: 2,
+  march: 2,
+  apr: 3,
+  april: 3,
   may: 4,
-  jun: 5, june: 5,
-  jul: 6, july: 6,
-  aug: 7, august: 7,
-  sep: 8, sept: 8, september: 8,
-  oct: 9, october: 9,
-  nov: 10, november: 10,
-  dec: 11, december: 11,
+  jun: 5,
+  june: 5,
+  jul: 6,
+  july: 6,
+  aug: 7,
+  august: 7,
+  sep: 8,
+  sept: 8,
+  september: 8,
+  oct: 9,
+  october: 9,
+  nov: 10,
+  november: 10,
+  dec: 11,
+  december: 11,
 };
 
 function parseDateRange(dateRangeStr: string): ParsedDateRange | null {
@@ -178,7 +186,10 @@ function parseDateRange(dateRangeStr: string): ParsedDateRange | null {
 
   const parts = str.split(/\s*[-–—]\s*|\s+to\s+/);
 
-  const parseDate = (part: string, fallbackMonth: number | null = null): Date | null => {
+  const parseDate = (
+    part: string,
+    fallbackMonth: number | null = null
+  ): Date | null => {
     const monthMatch = part.match(
       /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i
     );
@@ -382,7 +393,11 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
 
     if (!entry.line || !entry.line.trim()) continue;
 
-    brandSections += buildEntryHTML(entry.line, entry.collections, entry.callout);
+    brandSections += buildEntryHTML(
+      entry.line,
+      entry.collections,
+      entry.callout
+    );
   }
 
   // Store info
@@ -612,10 +627,7 @@ export function validateImportConfig(
 
   const config = raw as Record<string, unknown>;
 
-  if (
-    config.templateType &&
-    config.templateType !== 'promotion-email'
-  ) {
+  if (config.templateType && config.templateType !== 'promotion-email') {
     return { ok: false, reason: 'wrongType' };
   }
 
@@ -644,7 +656,8 @@ export function validateImportConfig(
     config: {
       templateType: 'promotion-email',
       version: (config.version as number) || 1,
-      dateRange: (config.dateRange as string) || (config.promoDateRange as string) || '',
+      dateRange:
+        (config.dateRange as string) || (config.promoDateRange as string) || '',
       year: (config.year as string) || (config.promoYear as string) || '',
       title: (config.title as string) || (config.promoTitle as string) || '',
       promotionEntries: config.promotionEntries as PromotionEntry[],
@@ -652,10 +665,11 @@ export function validateImportConfig(
       howToShopItems: (config.howToShopItems as HowToShopItem[]) || [],
       importantNotesItems:
         (config.importantNotesItems as ImportantNotesItem[]) || [],
-      attachedPDFs: (config.attachedPDFs as PromotionConfigForExport['attachedPDFs']) || [],
-      generatedSubjectLines:
-        (config.generatedSubjectLines as string[]) || [],
-      selectedSubjectLine: (config.selectedSubjectLine as string | null) || null,
+      attachedPDFs:
+        (config.attachedPDFs as PromotionConfigForExport['attachedPDFs']) || [],
+      generatedSubjectLines: (config.generatedSubjectLines as string[]) || [],
+      selectedSubjectLine:
+        (config.selectedSubjectLine as string | null) || null,
     },
   };
 }

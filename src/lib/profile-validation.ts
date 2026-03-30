@@ -191,10 +191,11 @@ export const phoneSchema = z.string().refine(
 );
 
 /** Email validation */
-export const emailSchema = z.string().refine(
-  (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
-  { message: 'Invalid email format' }
-);
+export const emailSchema = z
+  .string()
+  .refine((val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+    message: 'Invalid email format',
+  });
 
 /** Store hours validation */
 export const storeHoursSchema = z.string().refine(
@@ -217,15 +218,17 @@ export const plusCodeSchema = z.string().refine(
 );
 
 /** Company email validation (conditional) */
-export const companyEmailSchema = z.string().refine(
-  (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
-  { message: 'Invalid email format' }
-);
+export const companyEmailSchema = z
+  .string()
+  .refine((val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+    message: 'Invalid email format',
+  });
 
-export const citizenEmailSchema = z.string().refine(
-  (val) => /^[^\s@]+@citizenwatchgroup\.com$/.test(val),
-  { message: 'Company email must be @citizenwatchgroup.com' }
-);
+export const citizenEmailSchema = z
+  .string()
+  .refine((val) => /^[^\s@]+@citizenwatchgroup\.com$/.test(val), {
+    message: 'Company email must be @citizenwatchgroup.com',
+  });
 
 /**
  * Full profile form schema for React Hook Form + Zod validation.

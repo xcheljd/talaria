@@ -58,9 +58,7 @@ export function CollapsibleCard({
           <span
             className={cn(
               'inline-block h-2.5 w-2.5 rounded-full transition-colors',
-              hasContent
-                ? 'bg-primary'
-                : 'bg-muted-foreground/30'
+              hasContent ? 'bg-primary' : 'bg-muted-foreground/30'
             )}
             data-status={hasContent ? 'filled' : 'empty'}
             aria-hidden="true"

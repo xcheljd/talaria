@@ -248,9 +248,7 @@ export function ProfileSettingsPage() {
           setImportError(null);
         } catch (error) {
           setImportError(
-            error instanceof Error
-              ? error.message
-              : 'Failed to import profile'
+            error instanceof Error ? error.message : 'Failed to import profile'
           );
         }
       };
@@ -277,7 +275,8 @@ export function ProfileSettingsPage() {
   // ─── Profile Required Banner ──────────────────────────────────────────────
 
   const showProfileBanner =
-    searchParams.has('return') || (location.state as { from?: string })?.from === '/promotion';
+    searchParams.has('return') ||
+    (location.state as { from?: string })?.from === '/promotion';
 
   // ─── Validation Summary ───────────────────────────────────────────────────
 
@@ -390,10 +389,7 @@ export function ProfileSettingsPage() {
                         Your Name <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="e.g., John Smith"
-                          {...field}
-                        />
+                        <Input placeholder="e.g., John Smith" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -689,13 +685,8 @@ export function ProfileSettingsPage() {
 
             {/* Light Palette Selector */}
             <div>
-              <Label className="mb-2 block">
-                Light Mode Color Palette
-              </Label>
-              <Select
-                value={lightPalette}
-                onValueChange={setLightPalette}
-              >
+              <Label className="mb-2 block">Light Mode Color Palette</Label>
+              <Select value={lightPalette} onValueChange={setLightPalette}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -714,13 +705,8 @@ export function ProfileSettingsPage() {
 
             {/* Dark Palette Selector */}
             <div>
-              <Label className="mb-2 block">
-                Dark Mode Color Palette
-              </Label>
-              <Select
-                value={darkPalette}
-                onValueChange={setDarkPalette}
-              >
+              <Label className="mb-2 block">Dark Mode Color Palette</Label>
+              <Select value={darkPalette} onValueChange={setDarkPalette}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -763,10 +749,7 @@ export function ProfileSettingsPage() {
             >
               Cancel
             </Button>
-            <Button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-            >
+            <Button type="button" onClick={() => fileInputRef.current?.click()}>
               <Upload className="mr-1 h-4 w-4" />
               Choose File
             </Button>

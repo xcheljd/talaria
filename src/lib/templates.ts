@@ -8,11 +8,7 @@
  */
 
 import { sanitizeTemplateData } from './html-utils';
-import {
-  getStorePhone,
-  getStoreName,
-  getFullStoreLocation,
-} from './profile';
+import { getStorePhone, getStoreName, getFullStoreLocation } from './profile';
 import { getEmployeeSignature } from './signature';
 
 // Re-export getEmployeeSignature for consumers that need it
@@ -426,11 +422,7 @@ Thank you for choosing ${getStoreName()}!${generateClosing()}`,
     ],
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
-      const features = [
-        safe.keyFeature1,
-        safe.keyFeature2,
-        safe.keyFeature3,
-      ]
+      const features = [safe.keyFeature1, safe.keyFeature2, safe.keyFeature3]
         .filter((feature) => feature && (feature as string).trim())
         .map((feature) => `• ${feature}`)
         .join('\n');
@@ -888,7 +880,11 @@ export function getTemplateGroups(): TemplateGroup[] {
 /**
  * Get a flat list of all template keys and names.
  */
-export function getAllTemplates(): { key: string; name: string; category: string }[] {
+export function getAllTemplates(): {
+  key: string;
+  name: string;
+  category: string;
+}[] {
   return Object.entries(templates).map(([key, template]) => ({
     key,
     name: template.name,
@@ -899,7 +895,9 @@ export function getAllTemplates(): { key: string; name: string; category: string
 /**
  * Search templates by name or category.
  */
-export function searchTemplates(query: string): { key: string; name: string; category: string }[] {
+export function searchTemplates(
+  query: string
+): { key: string; name: string; category: string }[] {
   if (!query.trim()) return getAllTemplates();
   const lowerQuery = query.toLowerCase();
   return getAllTemplates().filter(

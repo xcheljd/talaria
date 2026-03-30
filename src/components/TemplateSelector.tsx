@@ -116,9 +116,7 @@ export function TemplateSelector({
                         <Check
                           className={cn(
                             'h-4 w-4',
-                            value === item.key
-                              ? 'opacity-100'
-                              : 'opacity-0'
+                            value === item.key ? 'opacity-100' : 'opacity-0'
                           )}
                         />
                         <span>{item.name}</span>
