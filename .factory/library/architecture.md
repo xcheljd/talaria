@@ -30,7 +30,17 @@ React SPA (Vite + TypeScript + Tailwind v4)
 │   ├── DropdownMenu, Collapsible, Textarea, Switch
 └── Promotion Components (src/components/promotion/)
     ├── CollapsibleCard (card + collapsible + status dot)
-    └── SkinnyColumnBar (collapsed column sidebar)
+    ├── SkinnyColumnBar (collapsed column sidebar)
+    ├── BasicDetailsEditor (promo date range, title, year)
+    ├── DiscountEntriesEditor (line/collections/callout per entry)
+    ├── FormattableItemEditor (reusable for HowToShop & ImportantNotes)
+    ├── HowToShopEditor (wraps FormattableItemEditor + store actions)
+    ├── ImportantNotesEditor (wraps FormattableItemEditor + store actions)
+    ├── SpecialHoursEditor (day + hours per row)
+    ├── PDFAttachments (drag-drop upload, preview dialog, file list)
+    ├── SubjectLineGenerator (generate, select, edit subject lines)
+    ├── BulkEmailTools (recipient parsing, batch controls, EML/ZIP generation)
+    └── PreviewColumn (iframe live preview, HTML code tab, download buttons)
 ```
 
 ## Data Flow
@@ -44,12 +54,15 @@ React SPA (Vite + TypeScript + Tailwind v4)
 
 ## Key Invariants
 
-- All user input is sanitized via sanitizeHTML() before rendering
+- All user input (including profile-derived fields like storeAddress, storePhone, storeEmail, storeHours) must be escaped via escapeHtml() before HTML interpolation. sanitizeHTML() is used for rich text content.
+- **Known gap**: promotion-email-html.ts escapes entry/notes fields but not profile-derived fields (storeAddress, storePhone, storeEmail, storeHours) or dateRange. This needs to be fixed.
 - EML files use CRLF line endings (RFC 5322)
 - Email signatures depend on job title (management → company email, staff → store email)
 - Theme state persists via localStorage, applied as CSS variables on :root
 - Profile data accessed through helper functions, never direct localStorage
 - IndexedDB used for binary data (PDFs) and bulk email recipients only
+- **ID generation convention**: Stores use `Date.now() * 1000 + ++counter` (monotonic, module-level) for unique IDs. The promotion store exports `generateId()` and `_resetIdCounter()`.
+- **IndexedDB ownership**: The Zustand promotion store calls `savePDFToIndexedDB`/`getPDFFromIndexedDB` for PDF persistence. The `db.ts` module exports additional CRUD functions (`deletePDFFromIndexedDB`, `clearAllPDFsFromIndexedDB`) that are NOT used by the store — PDF cleanup on remove/reset is incomplete (orphaned blobs).
 
 ## Color Palette System
 
@@ -68,5 +81,5 @@ React SPA (Vite + TypeScript + Tailwind v4)
 | Profile form fields | Component state | React Hook Form + Zod |
 | Promotion entries, hours, items | Zustand store | Zustand (auto-save to IndexedDB) |
 | PDF attachments | IndexedDB | Custom hook (useIndexedDB) |
-| Bulk email recipients | IndexedDB | Custom hook (useIndexedDB) |
+| Bulk email recipients | IndexedDB | Custom hook (useIndexedDB) — NOTE: BulkEmailTools.tsx calls db.ts functions directly instead of using the hook |
 | Navigation | URL | React Router |

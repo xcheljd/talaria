@@ -1,0 +1,43 @@
+{
+  "featureId": "promotion-state-store",
+  "milestone": "promotion",
+  "reviewedAt": "2026-03-30T21:42:00Z",
+  "commitId": "9e4dbae",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Well-structured Zustand store with comprehensive CRUD, reorder, formatting, and persistence actions. 82 tests pass covering all entity types and edge cases. Code is clean, type-safe, and follows project conventions. Two non-blocking observations noted below.",
+    "issues": [
+      {
+        "file": "src/stores/promotion-store.ts",
+        "line": null,
+        "severity": "non_blocking",
+        "description": "removePDF does not delete the corresponding PDF blob from IndexedDB (only removes from store array). If a user removes a PDF attachment, the binary data remains in IndexedDB as orphaned data. The deletePDFFromIndexedDB function exists in db.ts and is imported by the test mock but not used in the store. Consider adding IndexedDB cleanup in removePDF and clearAllPDFs, or documenting that this is handled elsewhere (e.g., in a UI component or during reset)."
+      },
+      {
+        "file": "tests/promotion-store.test.ts",
+        "line": null,
+        "severity": "suggestion",
+        "description": "The 'isInitializing defaults to true on store creation' test is a no-op placeholder (expect(true).toBe(true)). Since Zustand's create() runs once and subsequent resetState() calls set isInitializing to false, testing the initial value would require a fresh store instance. This is minor but the placeholder could be misleading."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "library",
+      "observation": "The store imports from @/lib/db (savePDFToIndexedDB, getPDFFromIndexedDB) and @/lib/profile (getStorePhone, getStoreEmail, getDirections). The db.ts module exports deletePDFFromIndexedDB and clearAllPDFsFromIndexedDB but the store doesn't use them. The architecture.md says 'Zustand store (auto-save to IndexedDB)' but doesn't document which IndexedDB operations the store owns. This could confuse future workers.",
+      "evidence": "src/stores/promotion-store.ts:5-7 imports savePDFToIndexedDB and getPDFFromIndexedDB but not deletePDFFromIndexedDB or clearAllPDFsFromIndexedDB from @/lib/db. src/lib/db.ts exports all four functions.",
+      "suggestedTarget": "library",
+      "suggestedKey": "architecture.md"
+    },
+    {
+      "area": "conventions",
+      "observation": "The store uses a module-level monotonic counter (_idCounter) with a Date.now() * 1000 + counter pattern for unique IDs. This pattern is not documented in AGENTS.md or architecture.md. Future workers creating new stores should know whether to use this pattern or a different one (e.g., crypto.randomUUID, nanoid).",
+      "evidence": "src/stores/promotion-store.ts:158-165 — generateId() function with _idCounter and _resetIdCounter() export.",
+      "suggestedTarget": "library",
+      "suggestedKey": "architecture.md"
+    }
+  ],
+  "summary": "The promotion-state-store feature is well-implemented. The Zustand store covers all required types (PromotionEntry, SpecialHour, HowToShopItem, ImportantNotesItem, AttachedPDF, SubjectLine, ColumnState) with full CRUD, reorder, formatting, PDF, subject line, and column state actions. Persistence uses localStorage for lightweight state and IndexedDB for PDF binary data, with debounced auto-save handled at the consumer level (PromotionPage.tsx). The initializeDefaultItems action (added in a follow-up commit b5e9ab1) correctly populates defaults only when arrays are empty. 82 tests pass covering all actions and edge cases. Two non-blocking observations: (1) removePDF doesn't clean up IndexedDB binary data, and (2) the ID generation pattern should be documented for consistency across stores."
+}

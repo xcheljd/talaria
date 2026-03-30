@@ -1,0 +1,65 @@
+{
+  "featureId": "promotion-editors",
+  "reviewedAt": "2026-03-30T20:14:00.000Z",
+  "commitId": "f86b672",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Well-implemented feature that creates four promotion form editors (DiscountEntriesEditor, FormattableItemEditor, SpecialHoursEditor) plus two store-connected wrappers (HowToShopEditor, ImportantNotesEditor). All editors properly integrate with the Zustand promotion store for CRUD operations, reordering, and collapse/expand. The FormattableItemEditor is cleanly designed as a reusable generic component with injected actions, avoiding code duplication between How to Shop and Important Notes. 42 comprehensive tests cover all major behaviors. TypeScript compiles cleanly and all tests pass.",
+    "issues": [
+      {
+        "file": "src/components/promotion/DiscountEntriesEditor.tsx",
+        "line": null,
+        "severity": "non_blocking",
+        "description": "Feature description mentions 'brand/discount/details fields per entry' but the implementation uses 'line/collections/callout' fields. The field names match the store's PromotionEntry type and the original vanilla JS promotion-ui.js behavior, so this is a naming mismatch in the feature spec rather than a code bug. The implementation is correct for the actual data model."
+      },
+      {
+        "file": "src/components/promotion/DiscountEntriesEditor.tsx",
+        "line": null,
+        "severity": "non_blocking",
+        "description": "Feature description says 'Entries show summary text when collapsed' which is implemented correctly for DiscountEntriesEditor. However, FormattableItemEditor (How to Shop and Important Notes) does not implement collapse/expand behavior, only DiscountEntriesEditor does. The feature description groups these together: 'Discount Entries (dynamic list with add/remove/reorder...), How to Shop (dynamic list with add/remove/reorder...), Important Notes (same as How to Shop)'. Since collapse is only mentioned for 'Entries show summary text when collapsed' at the end, and How to Shop/Important Notes are described differently (no mention of collapse), this is acceptable. The original vanilla JS also did not have collapse for How to Shop/Important Notes items."
+      },
+      {
+        "file": "src/components/promotion/FormattableItemEditor.tsx",
+        "line": null,
+        "severity": "suggestion",
+        "description": "The FormattableItemEditor exports its own FormattableItem interface, but the store uses HowToShopItem and ImportantNotesItem types which have identical shape. The component's FormattableItem type is structurally compatible (duck typing in TypeScript), but explicitly documenting this relationship with a comment would improve clarity for future maintainers."
+      },
+      {
+        "file": "src/components/promotion/SpecialHoursEditor.tsx",
+        "line": null,
+        "severity": "non_blocking",
+        "description": "Feature description says 'Special Hours (date + hours fields per row, add/remove)'. The implementation uses 'day' and 'hours' field names (matching the store's SpecialHour type and original vanilla JS). 'Day' is used instead of 'date' which is consistent with the original app where this field is free-text like 'Friday Nov 29' rather than a date picker. This is correct behavior."
+      },
+      {
+        "file": "tests/promotion-editors.test.tsx",
+        "line": null,
+        "severity": "suggestion",
+        "description": "Integration tests for HowToShop and ImportantNotes use manual rerender patterns instead of letting Zustand's reactivity handle re-renders. This works but is slightly brittle. The unit tests for FormattableItemEditor itself use mocked actions which is good isolation. Consider using a wrapper that subscribes to store state for integration tests, but this is a minor test quality observation."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "observation": "The eslint.config.js only covers 'src/js/**/*.js' (legacy vanilla JS files). All new React TypeScript files (.ts, .tsx) are not covered by ESLint. This affects all React migration features, not just this one. The worker noted this in the transcript but it should be addressed at the project level.",
+      "evidence": "eslint.config.js line: files: ['src/js/**/*.js'] — only legacy JS files are linted. All new components in src/components/promotion/*.tsx and src/pages/*.tsx are not covered.",
+      "suggestedTarget": "AGENTS.md",
+      "suggestedKey": "eslint-coverage"
+    },
+    {
+      "observation": "The feature description in features.json uses field names 'brand/discount/details' for discount entries, but the actual store and implementation use 'line/collections/callout'. This naming mismatch exists in the feature spec. The architecture.md and store code use the correct names from the original vanilla JS app.",
+      "evidence": "features.json promotion-editors description says 'brand/discount/details fields per entry'. promotion-store.ts PromotionEntry type has 'line, collections, callout'. DiscountEntriesEditor.tsx uses the store field names correctly.",
+      "suggestedTarget": "library",
+      "suggestedKey": "promotion-field-names"
+    },
+    {
+      "observation": "The Button component uses custom size variants 'icon-xs' and 'xs' that are not part of the standard shadcn/ui Button. These appear to be custom additions. This is worth documenting in the architecture or library docs since it's a project-specific extension.",
+      "evidence": "DiscountEntriesEditor.tsx line 70: size='icon-xs', line 86: size='xs'. FormattableItemEditor.tsx line 49: size='icon-xs'. SpecialHoursEditor.tsx line 60: size='icon-xs'. These are used consistently across all editor components.",
+      "suggestedTarget": "library",
+      "suggestedKey": "custom-button-sizes"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Feature passes review. The implementation correctly delivers all four promotion form editors (DiscountEntriesEditor, FormattableItemEditor for How to Shop and Important Notes, SpecialHoursEditor) with proper Zustand store integration, add/remove/reorder, formatting toggles, and collapse/expand behavior. Code quality is good with consistent patterns, proper TypeScript typing, and 42 comprehensive tests. Minor observations about ESLint coverage gap (project-wide, not specific to this feature) and feature spec naming mismatches (non-blocking) are noted as shared state observations."
+}

@@ -1,0 +1,52 @@
+{
+  "featureId": "promotion-bulk-email",
+  "milestone": "promotion",
+  "reviewedAt": "2026-03-30T03:41:00.000Z",
+  "commitId": "7448d14",
+  "transcriptSkeletonReviewed": false,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The BulkEmailTools component is well-implemented and fully covers all expected behaviors from the feature specification. It correctly handles recipient parsing (one-per-line, comma-separated, semicolon-separated), email validation with real-time stats, duplicate flagging, collapsible invalid emails list, batch size controls (50-1000, step 50), download format radio group (individual vs ZIP), batch preview with chunk breakdown, EML generation via emailUtils + jszip, and progress indication. The component properly integrates with the promotion store, persists recipients to IndexedDB, and saves batch size/format to localStorage. 20 tests cover all key behaviors and all pass.",
+    "issues": [
+      {
+        "severity": "non_blocking",
+        "file": "src/components/promotion/BulkEmailTools.tsx",
+        "line": 158,
+        "description": "The handlePaste callback uses setTimeout(fn, 0) which duplicates the computation already done by handleRecipientChange (which fires on onChange after paste). The paste handler reads e.target.value and calls setRecipientText + setEmailStats again, which is redundant since the onChange handler already does this. It works correctly but the paste handler adds unnecessary re-renders."
+      },
+      {
+        "severity": "non_blocking",
+        "file": "src/components/promotion/BulkEmailTools.tsx",
+        "line": 300,
+        "description": "The signature is inserted via string replacement of '</body>' in the HTML. If the generated email HTML doesn't contain '</body>' (e.g., if generatePromotionEmailHTML returns a partial), the signature would silently be omitted. This is a minor robustness concern."
+      },
+      {
+        "severity": "non_blocking",
+        "file": "src/components/promotion/BulkEmailTools.tsx",
+        "line": 96,
+        "description": "The component uses local state for all UI (recipientText, batchSize, downloadFormat) rather than the promotion store. This is actually reasonable since these are ephemeral tool settings, not promotion data. However, note that the promotion-app.js (vanilla JS) stores recipients in the store — there's a slight inconsistency in persistence approach between the two implementations."
+      },
+      {
+        "severity": "suggestion",
+        "file": "tests/bulk-email-tools.test.tsx",
+        "line": null,
+        "description": "Tests mock the promotion store via resetStore() but don't mock IndexedDB operations (the db module warnings appear in stderr). The tests still pass because the component catches IndexedDB errors gracefully, but explicitly mocking the db module would produce cleaner test output."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "observation": "The project has a useIndexedDB hook (src/hooks/useIndexedDB.ts) that wraps saveBulkEmailRecipientsToIndexedDB, getBulkEmailRecipientsFromIndexedDB, and clearBulkEmailRecipientsFromIndexedDB, but the BulkEmailTools component calls the db functions directly instead of using this hook. The component uses its own pattern with useRef for debouncing and useEffect for loading. This hook abstraction exists but isn't consistently used.",
+      "suggestedTarget": "library",
+      "suggestedKey": "useIndexedDB hook usage pattern"
+    },
+    {
+      "observation": "The FormatStatus sub-component uses navigator.platform / navigator.userAgent for OS detection to recommend .eml vs .emltpl format. This detection logic is also present in the vanilla JS promotion-app.js. This OS-based format recommendation is a project-specific pattern not documented in AGENTS.md.",
+      "suggestedTarget": "AGENTS.md",
+      "suggestedKey": "EML format conventions"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "The promotion-bulk-email feature is well-implemented with complete coverage of all specification requirements. The BulkEmailTools component handles recipient parsing in multiple formats, real-time email validation with duplicate detection, batch size controls with proper clamping, download format selection, batch preview, EML generation via emailUtils + jszip with progress indication, and persistence to IndexedDB/localStorage. 20 tests cover all expected behaviors and pass cleanly. TypeScript compiles without errors. A few non-blocking observations about redundant paste handling, signature insertion robustness, and inconsistent use of the useIndexedDB hook, but none affect correctness."
+}
