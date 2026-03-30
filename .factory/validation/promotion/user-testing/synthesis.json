@@ -1,0 +1,70 @@
+{
+  "milestone": "promotion",
+  "round": 1,
+  "status": "fail",
+  "assertionsSummary": {
+    "total": 22,
+    "passed": 21,
+    "failed": 1,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-PROMO-001",
+    "VAL-PROMO-002",
+    "VAL-PROMO-003",
+    "VAL-PROMO-004",
+    "VAL-PROMO-005",
+    "VAL-PROMO-006",
+    "VAL-PROMO-007",
+    "VAL-PROMO-008",
+    "VAL-PROMO-009",
+    "VAL-PROMO-010",
+    "VAL-PROMO-011",
+    "VAL-PROMO-012",
+    "VAL-PROMO-013",
+    "VAL-PROMO-014",
+    "VAL-PROMO-015",
+    "VAL-PROMO-016",
+    "VAL-PROMO-017",
+    "VAL-PROMO-018",
+    "VAL-PROMO-019",
+    "VAL-PROMO-020",
+    "VAL-PROMO-022"
+  ],
+  "failedAssertions": [
+    {
+      "id": "VAL-PROMO-021",
+      "reason": "Profile redirect to /start works correctly, but no 'profile required' banner is displayed on the /start page. The React ProfileSettingsPage component does not read the router location.state.from value to show a notification. The legacy start.html had this feature via a query parameter and a dedicated banner div.",
+      "suggestedFix": "Add a useEffect in ProfileSettingsPage that checks location.state?.from and displays a toast or banner notification informing the user that a profile is required to access that page."
+    }
+  ],
+  "blockedAssertions": [],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added friction about collapsed center column sidebar intercepting pointer events on PDF section buttons (VAL-PROMO-008). Must expand Email Tools column before interacting with PDF elements.",
+      "source": "flow-report"
+    },
+    {
+      "target": "user-testing.md",
+      "description": "Added friction about PDF upload area using a div with role='button' instead of a file input. Upload requires programmatically finding hidden input[type='file'] and using DataTransfer API + change event dispatch.",
+      "source": "flow-report"
+    },
+    {
+      "target": "user-testing.md",
+      "description": "Added friction about radio button interaction via agent-browser being unreliable due to Playwright strict mode / overlay detection. Workaround: use eval-based element.click().",
+      "source": "flow-report"
+    },
+    {
+      "target": "user-testing.md",
+      "description": "Added note that company email field requires @citizenwatchgroup.com domain for management positions.",
+      "source": "flow-report"
+    }
+  ],
+  "previousRound": null,
+  "flowReports": [
+    "layout-structure.json",
+    "editors-forms.json",
+    "preview-export.json"
+  ]
+}
