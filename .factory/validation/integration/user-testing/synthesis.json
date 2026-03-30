@@ -1,0 +1,31 @@
+{
+  "milestone": "integration",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-CROSS-001",
+    "VAL-CROSS-002",
+    "VAL-CROSS-003",
+    "VAL-CROSS-004",
+    "VAL-CROSS-005",
+    "VAL-CROSS-006",
+    "VAL-CROSS-007",
+    "VAL-SETUP-007"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [],
+  "previousRound": null,
+  "flowReports": [
+    ".factory/validation/integration/user-testing/flows/shell-assertions.json",
+    ".factory/validation/integration/user-testing/flows/cross-flows.json",
+    ".factory/validation/integration/user-testing/flows/data-flows.json"
+  ],
+  "summary": "All 8 integration milestone assertions passed. Shell assertions (VAL-SETUP-007 build, VAL-CROSS-007 Tauri build) both verified. Cross-area browser assertions confirmed: complete user flow (profile→template→copy), full promotion workflow, profile data flows into templates and signatures, theme persistence across pages, and XSS prevention. VAL-CROSS-003 verified via code analysis that employee signature logic correctly selects company email for management and store email for staff, though the live preview only shows store-level info (individual signatures are added during EML download). VAL-CROSS-007 Tauri build completed in 30.62s producing an 11.2 MB release binary."
+}

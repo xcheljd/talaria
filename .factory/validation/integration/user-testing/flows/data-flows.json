@@ -1,0 +1,177 @@
+{
+  "groupId": "data-flows",
+  "testedAt": "2026-03-29T12:00:00Z",
+  "isolation": {
+    "appUrl": "http://localhost:8080",
+    "browserSession": "f7f76ef46c37__data-flows"
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-CROSS-002",
+      "title": "Profile data flows into generated templates",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Seed profile via localStorage with employeeName, jobTitle, storeName, storePhone, storeEmail, etc.",
+          "expected": "Profile stored in localStorage",
+          "observed": "Profile successfully stored and verified via localStorage.getItem"
+        },
+        {
+          "action": "Reload page and select 'New Customer Welcome' template",
+          "expected": "Template form appears with auto-filled fields",
+          "observed": "Template form rendered with Customer Name and Employee Name fields"
+        },
+        {
+          "action": "Fill Customer Name='Bob Johnson', Employee Name='Jane Smith', click Generate",
+          "expected": "Generated output contains profile data",
+          "observed": "Output contains: 'Jane Smith' (employee name), 'New York' (store location), '456 Oak Ave' (store address), '212-555-0100' (store phone), 'info@watchworld.com' (store email)"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/integration/data-flows/VAL-CROSS-002-profile-data-in-output.png"
+        ],
+        "consoleErrors": "none"
+      },
+      "observations": "Profile data correctly flows from localStorage into the generated template output. The signature section includes employee name, store location, address, phone, and email - all pulled from the seeded profile. Note: profile field is 'employeeName' (not 'name') per the UserProfile interface.",
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-003",
+      "title": "Profile data flows into promotion signature",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Seed profile with management job title (General Manager) and companyEmail (jane.smith@citizenwatchgroup.com)",
+          "expected": "Profile stored with management data",
+          "observed": "Profile stored and verified - jobTitle includes 'manager', isManager=true"
+        },
+        {
+          "action": "Navigate to /promotion, fill Basic Details and discount entry",
+          "expected": "Live preview renders with promotion content",
+          "observed": "Live preview shows store info (phone, email, address, hours) in the store footer section"
+        },
+        {
+          "action": "Check live preview for company email (jane.smith@citizenwatchgroup.com)",
+          "expected": "Company email in preview signature",
+          "observed": "Live preview shows store-level info (info@watchworld.com) but NOT individual signature. The employee signature is added during EML download, not in the live preview."
+        },
+        {
+          "action": "Verify signature logic: determineSignatureEmail('General Manager', 'jane.smith@citizenwatchgroup.com', 'info@watchworld.com')",
+          "expected": "Returns company email for management",
+          "observed": "Correctly returns 'jane.smith@citizenwatchgroup.com' because 'General Manager' contains 'manager'"
+        },
+        {
+          "action": "Verify staff profile signature logic",
+          "expected": "Returns store email for staff",
+          "observed": "Staff profile (Sales Associate, no companyEmail) correctly falls through to store email 'info@watchworld.com'"
+        },
+        {
+          "action": "Verify Download Email Draft includes signature via getEmployeeSignature('html')",
+          "expected": "Signature appended to HTML before EML creation",
+          "observed": "Code in PromotionPage.tsx handleDownloadDraft() appends getEmployeeSignature('html') before </body>. Same pattern in BulkEmailTools.tsx for batch generation."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/integration/data-flows/VAL-CROSS-003-signature-management-email.png",
+          "evidence/integration/data-flows/VAL-CROSS-003-signature-store-email.png"
+        ],
+        "consoleErrors": "none",
+        "codeVerification": "determineSignatureEmail() correctly selects company email for management titles (manager, director, supervisor, assistant manager) and store email for staff. Both handleDownloadDraft and generateEmailBatches append the signature."
+      },
+      "observations": "The promotion page live preview (iframe) shows store-level info (phone, email, address, hours) but does NOT include the individual employee signature. The employee signature with job-title-based email selection is added during EML download (both single draft and batch generation). The signature logic correctly: (1) uses company email for management titles, (2) falls back to store email for staff, (3) is appended to the HTML before EML creation. Unit tests confirm 'renders with signature when includeSignature is true' passes.",
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-004",
+      "title": "Theme persists across all pages",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Navigate to / (Templates), verify light mode default",
+          "expected": "Light mode active (data-theme=light, white background)",
+          "observed": "data-theme=light, bodyBg=rgb(255, 255, 255), toggle shows 'Switch to dark mode'"
+        },
+        {
+          "action": "Click theme toggle to switch to dark mode on Templates page",
+          "expected": "Dark mode applied (data-theme=dark, dark background)",
+          "observed": "data-theme=dark, bodyBg=rgb(13, 17, 23), toggle shows 'Switch to light mode' [checked]"
+        },
+        {
+          "action": "Navigate to /start (Profile) via nav link",
+          "expected": "Dark mode persists",
+          "observed": "data-theme=dark, bodyBg=rgb(13, 17, 23) - dark mode persisted"
+        },
+        {
+          "action": "Navigate to /promotion via nav link",
+          "expected": "Dark mode persists",
+          "observed": "data-theme=dark, bodyBg=rgb(13, 17, 23) - dark mode persisted"
+        },
+        {
+          "action": "Switch back to light mode on promotion page",
+          "expected": "Light mode applied",
+          "observed": "data-theme=light, bodyBg=rgb(255, 255, 255)"
+        },
+        {
+          "action": "Navigate to / (Templates) via nav link",
+          "expected": "Light mode persists",
+          "observed": "data-theme=light, bodyBg=rgb(255, 255, 255) - light mode persisted"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/integration/data-flows/VAL-CROSS-004-light-mode-templates.png",
+          "evidence/integration/data-flows/VAL-CROSS-004-dark-mode-templates.png",
+          "evidence/integration/data-flows/VAL-CROSS-004-dark-mode-profile.png",
+          "evidence/integration/data-flows/VAL-CROSS-004-dark-mode-promotion.png"
+        ],
+        "consoleErrors": "none"
+      },
+      "observations": "Theme persists correctly across all three pages (/, /start, /promotion) via React Router navigation. No flash of wrong theme observed. Theme is applied via data-theme attribute on <html> element and persisted in localStorage. Toggle correctly updates between light and dark modes.",
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-006",
+      "title": "XSS prevention in generated content",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Select New Customer Welcome template, enter '<script>alert(\"xss\")</script>' in Customer Name, click Generate",
+          "expected": "Script tag escaped, no alert dialog",
+          "observed": "Script properly escaped to &amp;lt;script&amp;gt; in HTML, &lt;script&gt; in text. No alert dialog triggered. hasScriptTag=false"
+        },
+        {
+          "action": "Enter '<img src=x onerror=alert(1)>' in Customer Name, click Generate",
+          "expected": "Img tag escaped, onerror not executed",
+          "observed": "Img tag escaped to &amp;lt;img src=x onerror=alert(1)&amp;gt;. No actual <img> element created, no alert triggered."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/integration/data-flows/VAL-CROSS-006-xss-attempt-sanitized.png"
+        ],
+        "consoleErrors": "none"
+      },
+      "observations": "XSS prevention works correctly. Both script tag injection and img onerror payloads are properly sanitized via sanitizeTemplateData() (which uses sanitizeHTML from html-utils). The escaped content is displayed as literal text in both Preview (HTML) and Text tabs. No JavaScript execution occurred.",
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Profile field name in localStorage is 'employeeName' (not 'name'). The task instructions used 'name' which would not populate the signature correctly.",
+      "resolved": true,
+      "resolution": "Discovered the correct field name by examining the UserProfile interface in src/lib/profile.ts and re-seeded with 'employeeName'.",
+      "affectedAssertions": ["VAL-CROSS-002", "VAL-CROSS-003"]
+    },
+    {
+      "description": "Brand selection in template combobox requires typing and pressing ArrowDown+Enter; options don't appear as role=option elements in the accessibility tree when the combobox is focused.",
+      "resolved": true,
+      "resolution": "Used fill + ArrowDown + Enter keystroke combination to select a brand from the combobox.",
+      "affectedAssertions": ["VAL-CROSS-002"]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 4 assertions: all 4 passed. VAL-CROSS-002 confirmed profile data (name, phone, store, email) flows into generated template output with signature. VAL-CROSS-003 confirmed signature email selection logic works correctly (management=company email, staff=store email), though the live preview only shows store-level info - individual signatures are added during EML download. VAL-CROSS-004 confirmed theme persists across all pages (/start, /, /promotion) with no flash. VAL-CROSS-006 confirmed XSS payloads (script tags, img onerror) are properly sanitized."
+}
