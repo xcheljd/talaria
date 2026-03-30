@@ -31,6 +31,9 @@ import {
   SkinnyColumnBar,
   type SkinnyCardInfo,
 } from '@/components/promotion/SkinnyColumnBar';
+import { DiscountEntriesEditor } from '@/components/promotion/DiscountEntriesEditor';
+import { FormattableItemEditor } from '@/components/promotion/FormattableItemEditor';
+import { SpecialHoursEditor } from '@/components/promotion/SpecialHoursEditor';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -95,20 +98,71 @@ const CARD_CONFIGS: CardConfig[] = [
   },
 ];
 
-// ===== Placeholder Content for Cards =====
+// ===== Card Content Components =====
 
+/** Get content component for a specific card */
+function getCardContent(cardId: string) {
+  switch (cardId) {
+    case 'discountEntriesCard':
+      return <DiscountEntriesEditor />;
+    case 'howToShopCard':
+      return <HowToShopEditor />;
+    case 'importantNotesCard':
+      return <ImportantNotesEditor />;
+    case 'specialHoursCard':
+      return <SpecialHoursEditor />;
+    default:
+      return <CardPlaceholderContent cardId={cardId} />;
+  }
+}
+
+/** How to Shop editor connected to store */
+function HowToShopEditor() {
+  const store = usePromotionStore();
+  return (
+    <FormattableItemEditor
+      items={store.howToShopItems}
+      actions={{
+        addItem: store.addHowToShopItem,
+        removeItem: store.removeHowToShopItem,
+        updateItem: store.updateHowToShopItem,
+        moveItemUp: store.moveHowToShopItemUp,
+        moveItemDown: store.moveHowToShopItemDown,
+        toggleFormat: store.toggleHowToShopFormat,
+      }}
+      placeholder="e.g., Visit us in-store for outlet-exclusive deals"
+      itemLabel="Item"
+      emptyMessage={'No shopping instructions yet. Click "Add Item" to get started.'}
+    />
+  );
+}
+
+/** Important Notes editor connected to store */
+function ImportantNotesEditor() {
+  const store = usePromotionStore();
+  return (
+    <FormattableItemEditor
+      items={store.importantNotesItems}
+      actions={{
+        addItem: store.addImportantNotesItem,
+        removeItem: store.removeImportantNotesItem,
+        updateItem: store.updateImportantNotesItem,
+        moveItemUp: store.moveImportantNotesItemUp,
+        moveItemDown: store.moveImportantNotesItemDown,
+        toggleFormat: store.toggleImportantNotesFormat,
+      }}
+      placeholder="e.g., Important safety information or key details"
+      itemLabel="Note"
+      emptyMessage={'No important notes yet. Click "Add Note" to get started.'}
+    />
+  );
+}
+
+/** Placeholder content for cards not yet migrated */
 function CardPlaceholderContent({ cardId }: { cardId: string }) {
   const messages: Record<string, string> = {
     basicDetailsCard:
       'Promotion title, dates, and intro text will be configured here.',
-    discountEntriesCard:
-      'Add discount entries with brand, discount percentage, and details.',
-    howToShopCard:
-      'Add shopping instructions with bold/italic/underline formatting.',
-    importantNotesCard:
-      'Add important notes and fine print for the promotion.',
-    specialHoursCard:
-      'Add special hours for the promotion period (e.g., extended hours).',
     pdfCard: 'Upload PDF attachments to include with the promotion email.',
     subjectCard: 'Generate email subject lines from promotion content.',
     bulkEmailCard:
@@ -182,7 +236,7 @@ function PromotionCard({ config }: { config: CardConfig }) {
       hasContent={hasContent}
       defaultCollapsed={config.defaultCollapsed}
     >
-      <CardPlaceholderContent cardId={config.id} />
+      {getCardContent(config.id)}
     </CollapsibleCard>
   );
 }
