@@ -453,6 +453,7 @@ function PreviewColumn() {
   // Start Over
   const handleStartOver = useCallback(() => {
     store.resetState();
+    store.initializeDefaultItems();
     localStorage.removeItem('promotionBuilderState');
     toast.success('Reset to defaults completed');
   }, [store]);
