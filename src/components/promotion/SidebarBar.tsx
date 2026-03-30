@@ -22,8 +22,8 @@ export interface SidebarBarProps {
   cards: SidebarCardInfo[];
   /** Whether this bar's column is currently expanded */
   isExpanded: boolean;
-  /** Callback when the sidebar bar is clicked to expand */
-  onExpand: () => void;
+  /** Callback when the sidebar bar is clicked to expand. Accepts optional cardId to scroll to a specific card. */
+  onExpand: (cardId?: string) => void;
 }
 
 export function SidebarBar({
@@ -42,15 +42,29 @@ export function SidebarBar({
         'cursor-pointer transition-colors hover:bg-accent/50',
         'hidden lg:flex' /* Only show on large screens (>=1024px) */
       )}
-      onClick={onExpand}
+      onClick={() => onExpand()}
       aria-label={ariaLabel}
       aria-expanded={isExpanded}
     >
       {cards.map((card) => (
         <div
           key={card.cardId}
-          className="flex flex-col items-center gap-1"
+          className="flex flex-col items-center gap-1 cursor-pointer rounded px-0.5 py-0.5 transition-colors hover:bg-accent/70"
           data-card={card.cardId}
+          onClick={(e) => {
+            e.stopPropagation();
+            onExpand(card.cardId);
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label={`Expand and scroll to ${card.title}`}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              onExpand(card.cardId);
+            }
+          }}
         >
           <span
             className={cn(

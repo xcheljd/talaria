@@ -253,7 +253,13 @@ function getCardHasContent(
 // ===== Individual Card Component =====
 // Subscribes to store to compute hasContent per-card
 
-function PromotionCard({ config }: { config: CardConfig }) {
+function PromotionCard({
+  config,
+  forceExpand,
+}: {
+  config: CardConfig;
+  forceExpand?: boolean;
+}) {
   const store = usePromotionStore();
 
   const hasContent = useMemo(
@@ -276,6 +282,7 @@ function PromotionCard({ config }: { config: CardConfig }) {
       title={config.title}
       hasContent={hasContent}
       defaultCollapsed={config.defaultCollapsed}
+      forceExpand={forceExpand}
     >
       {getCardContent(config.id)}
     </CollapsibleCard>
@@ -284,12 +291,22 @@ function PromotionCard({ config }: { config: CardConfig }) {
 
 // ===== Column Card List =====
 
-function ColumnCards({ column }: { column: 'left' | 'center' }) {
+function ColumnCards({
+  column,
+  forceExpandedCardId,
+}: {
+  column: 'left' | 'center';
+  forceExpandedCardId?: string;
+}) {
   const cards = CARD_CONFIGS.filter((c) => c.column === column);
   return (
     <div className="space-y-3 p-4">
       {cards.map((card) => (
-        <PromotionCard key={card.id} config={card} />
+        <PromotionCard
+          key={card.id}
+          config={card}
+          forceExpand={forceExpandedCardId === card.id}
+        />
       ))}
     </div>
   );
@@ -748,6 +765,11 @@ export function PromotionPage() {
   const hasProfile = useHasProfile();
   const store = usePromotionStore();
 
+  // Tracks which card should be force-expanded (from sidebar click)
+  const [forceExpandedCardId, setForceExpandedCardId] = useState<
+    string | undefined
+  >(undefined);
+
   // Load persisted state on mount
   useEffect(() => {
     const init = async () => {
@@ -769,14 +791,41 @@ export function PromotionPage() {
   const leftSidebarCards = useSidebarCards('left');
   const centerSidebarCards = useSidebarCards('center');
 
-  // Column toggle handlers
-  const handleExpandLeft = useCallback(() => {
-    store.setColumnState('left-expanded');
-  }, [store]);
+  // Column toggle handlers — accept optional cardId for sidebar card click
+  const handleExpandLeft = useCallback(
+    (cardId?: string) => {
+      store.setColumnState('left-expanded');
+      setForceExpandedCardId(cardId);
 
-  const handleExpandCenter = useCallback(() => {
-    store.setColumnState('center-expanded');
-  }, [store]);
+      if (cardId) {
+        // Wait for column to expand and card to render, then scroll
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const cardEl = document.querySelector(`[data-card-id="${cardId}"]`);
+            cardEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        });
+      }
+    },
+    [store]
+  );
+
+  const handleExpandCenter = useCallback(
+    (cardId?: string) => {
+      store.setColumnState('center-expanded');
+      setForceExpandedCardId(cardId);
+
+      if (cardId) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const cardEl = document.querySelector(`[data-card-id="${cardId}"]`);
+            cardEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        });
+      }
+    },
+    [store]
+  );
 
   // Profile redirect — if no profile, redirect to /start
   if (!hasProfile) {
@@ -812,7 +861,10 @@ export function PromotionPage() {
             leftExpanded ? 'w-[40%] min-w-0' : 'w-0 overflow-hidden'
           )}
         >
-          <ColumnCards column="left" />
+          <ColumnCards
+            column="left"
+            forceExpandedCardId={leftExpanded ? forceExpandedCardId : undefined}
+          />
         </div>
 
         {/* Center Column: Email Tools */}
@@ -822,7 +874,12 @@ export function PromotionPage() {
             centerExpanded ? 'w-[30%] min-w-0' : 'w-0 overflow-hidden'
           )}
         >
-          <ColumnCards column="center" />
+          <ColumnCards
+            column="center"
+            forceExpandedCardId={
+              centerExpanded ? forceExpandedCardId : undefined
+            }
+          />
         </div>
 
         {/* Right Column: Sticky Live Preview */}

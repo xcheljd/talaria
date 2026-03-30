@@ -7,7 +7,7 @@
  * - Smooth content transitions via Radix Collapsible animations
  */
 
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -25,6 +25,8 @@ export interface CollapsibleCardProps {
   hasContent: boolean;
   /** Whether the card starts collapsed */
   defaultCollapsed?: boolean;
+  /** When true, forces the card to expand (used by sidebar navigation) */
+  forceExpand?: boolean;
   /** Card content (rendered inside the collapsible area) */
   children: ReactNode;
   /** Optional extra class name for the outer container */
@@ -36,10 +38,18 @@ export function CollapsibleCard({
   title,
   hasContent,
   defaultCollapsed = false,
+  forceExpand,
   children,
   className,
 }: CollapsibleCardProps) {
   const [isOpen, setIsOpen] = useState(!defaultCollapsed);
+
+  // Respond to external force-expand requests
+  useEffect(() => {
+    if (forceExpand && !isOpen) {
+      setIsOpen(true);
+    }
+  }, [forceExpand, isOpen]);
 
   return (
     <Collapsible
