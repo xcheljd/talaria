@@ -146,30 +146,28 @@ export function SubjectLineGenerator() {
 
           {/* Editable selected subject line */}
           {store.selectedSubjectLine !== null && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label
                 htmlFor="selected-subject-input"
                 className="text-sm font-medium"
               >
                 Selected Subject Line (customizable):
               </label>
-              <div className="flex items-start gap-2 w-full">
-                <ClearableInput
-                  id="selected-subject-input"
-                  value={store.selectedSubjectLine}
-                  onChange={handleSubjectEdit}
-                  placeholder="Your subject line..."
-                  title="Edit the email subject line. Changes will be reflected in generated emails."
-                  className="min-w-0 flex-1"
-                />
-                <Badge
-                  variant={isOptimal ? 'default' : 'secondary'}
-                  className="mt-1.5 shrink-0"
-                >
-                  {charCount} chars{' '}
-                  {charCount > 0 && (isOptimal ? '✓' : `(>${OPTIMAL_LENGTH})`)}
-                </Badge>
-              </div>
+              <ClearableInput
+                id="selected-subject-input"
+                value={store.selectedSubjectLine}
+                onChange={handleSubjectEdit}
+                placeholder="Your subject line..."
+                title="Edit the email subject line. Changes will be reflected in generated emails."
+                className="w-full"
+              />
+              <Badge
+                variant={isOptimal ? 'default' : 'secondary'}
+                className="text-xs"
+              >
+                {charCount} chars{' '}
+                {charCount > 0 && (isOptimal ? '✓' : `(>${OPTIMAL_LENGTH})`)}
+              </Badge>
             </div>
           )}
         </>
