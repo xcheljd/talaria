@@ -580,29 +580,29 @@ function PreviewColumn() {
         <h2 className="text-sm font-semibold">Email Preview</h2>
 
         <div className="flex items-center gap-1.5">
-          {/* Import Config */}
+          {/* Import */}
           <Button
             variant="ghost"
             size="sm"
             className="gap-1.5 text-xs"
             onClick={handleImportConfig}
-            aria-label="Import Config"
+            aria-label="Import"
           >
             <Upload className="h-3.5 w-3.5" />
-            Import Config
+            Import
           </Button>
 
-          {/* Export Config */}
+          {/* Export */}
           <Button
             variant="ghost"
             size="sm"
             className="gap-1.5 text-xs"
             onClick={handleExportConfig}
             disabled={!hasContent}
-            aria-label="Export Config"
+            aria-label="Export"
           >
             <Download className="h-3.5 w-3.5" />
-            Export Config
+            Export
           </Button>
 
           {/* Start Over with AlertDialog */}
