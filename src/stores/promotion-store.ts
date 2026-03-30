@@ -11,6 +11,7 @@ import {
   getPDFFromIndexedDB,
   type PDFRecord,
 } from '@/lib/db';
+import { getStorePhone, getStoreEmail, getDirections } from '@/lib/profile';
 
 // ===== Types =====
 
@@ -155,6 +156,7 @@ export interface PromotionState {
 
   // Initialization
   setInitializing: (value: boolean) => void;
+  initializeDefaultItems: () => void;
 
   // Auto-save / persistence
   saveToIndexedDB: () => Promise<void>;
@@ -454,6 +456,110 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   // ===== Initialization =====
 
   setInitializing: (value: boolean) => set({ isInitializing: value }),
+
+  initializeDefaultItems: () => {
+    const state = get();
+
+    // Only populate defaults when arrays are empty (i.e., no saved state)
+    const updates: Partial<PromotionState> = {};
+
+    if (state.howToShopItems.length === 0) {
+      const storePhone = getStorePhone();
+      const storeEmail = getStoreEmail();
+
+      updates.howToShopItems = [
+        {
+          id: generateId(),
+          text: 'Visit us in-store for outlet-exclusive deals',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+        {
+          id: generateId(),
+          text: `Call ${storePhone} for availability`,
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+        {
+          id: generateId(),
+          text: '$20 flat-rate ground shipping in US',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+        {
+          id: generateId(),
+          text: `Email ${storeEmail}`,
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+      ];
+    }
+
+    if (state.importantNotesItems.length === 0) {
+      const defaultNotes: ImportantNotesItem[] = [
+        {
+          id: generateId(),
+          text: '*Select models only',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+        {
+          id: generateId(),
+          text: 'See attached PDF for complete model details',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+        {
+          id: generateId(),
+          text: 'Limited availability - while supplies last',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+        {
+          id: generateId(),
+          text: 'Email response time up to 48 hours',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+      ];
+
+      // Add store directions note if available
+      const directions = getDirections().trim();
+      if (directions) {
+        const directionsLower = directions.toLowerCase();
+        const hasDirectionsNote = defaultNotes.some(
+          (item) =>
+            item.text.toLowerCase().includes(directionsLower) ||
+            item.text.toLowerCase().includes('find us at') ||
+            item.text.toLowerCase().includes('directions')
+        );
+
+        if (!hasDirectionsNote) {
+          defaultNotes.push({
+            id: generateId(),
+            text: `Find us at ${directions}`,
+            bold: false,
+            italic: false,
+            underline: false,
+          });
+        }
+      }
+
+      updates.importantNotesItems = defaultNotes;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      set(updates as Partial<PromotionState>);
+    }
+  },
 
   // ===== Auto-Save / Persistence =====
 

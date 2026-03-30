@@ -745,7 +745,12 @@ export function PromotionPage() {
 
   // Load persisted state on mount
   useEffect(() => {
-    store.loadFromIndexedDB();
+    const init = async () => {
+      await store.loadFromIndexedDB();
+      // Populate defaults only when arrays are empty (fresh state)
+      store.initializeDefaultItems();
+    };
+    init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

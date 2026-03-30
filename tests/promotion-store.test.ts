@@ -16,6 +16,7 @@ import type {
   ImportantNotesItem,
   AttachedPDF,
 } from '@/stores/promotion-store';
+import { getStorePhone, getStoreEmail, getDirections } from '@/lib/profile';
 
 // Mock the db module
 vi.mock('@/lib/db', () => ({
@@ -23,6 +24,13 @@ vi.mock('@/lib/db', () => ({
   getPDFFromIndexedDB: vi.fn().mockResolvedValue(null),
   deletePDFFromIndexedDB: vi.fn().mockResolvedValue(undefined),
   clearAllPDFsFromIndexedDB: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock the profile module (used by initializeDefaultItems)
+vi.mock('@/lib/profile', () => ({
+  getStorePhone: vi.fn().mockReturnValue('702-357-8990'),
+  getStoreEmail: vi.fn().mockReturnValue('store@citizenwatchgroup.com'),
+  getDirections: vi.fn().mockReturnValue(''),
 }));
 
 // Helper to get fresh store state for each test
@@ -1071,6 +1079,220 @@ describe('promotion store', () => {
       const state = getFreshStore();
       expect(state.specialHours[0].day).toBe('FIRST');
       expect(state.specialHours[1].day).toBe('SECOND');
+    });
+  });
+
+  // ===== Default Items Initialization =====
+
+  describe('initializeDefaultItems', () => {
+    it('populates 4 default How to Shop items when array is empty', () => {
+      const store = getFreshStore();
+      expect(store.howToShopItems).toHaveLength(0);
+
+      store.initializeDefaultItems();
+
+      const state = getFreshStore();
+      expect(state.howToShopItems).toHaveLength(4);
+      expect(state.howToShopItems[0].text).toBe(
+        'Visit us in-store for outlet-exclusive deals'
+      );
+      expect(state.howToShopItems[1].text).toBe(
+        'Call 702-357-8990 for availability'
+      );
+      expect(state.howToShopItems[2].text).toBe(
+        '$20 flat-rate ground shipping in US'
+      );
+      expect(state.howToShopItems[3].text).toBe(
+        'Email store@citizenwatchgroup.com'
+      );
+    });
+
+    it('populates 4 default Important Notes items when array is empty', () => {
+      const store = getFreshStore();
+      expect(store.importantNotesItems).toHaveLength(0);
+
+      store.initializeDefaultItems();
+
+      const state = getFreshStore();
+      expect(state.importantNotesItems).toHaveLength(4);
+      expect(state.importantNotesItems[0].text).toBe('*Select models only');
+      expect(state.importantNotesItems[1].text).toBe(
+        'See attached PDF for complete model details'
+      );
+      expect(state.importantNotesItems[2].text).toBe(
+        'Limited availability - while supplies last'
+      );
+      expect(state.importantNotesItems[3].text).toBe(
+        'Email response time up to 48 hours'
+      );
+    });
+
+    it('uses profile storePhone in How to Shop items', () => {
+      vi.mocked(getStorePhone).mockReturnValue('555-123-4567');
+
+      const store = getFreshStore();
+      store.initializeDefaultItems();
+
+      const state = getFreshStore();
+      expect(state.howToShopItems[1].text).toBe(
+        'Call 555-123-4567 for availability'
+      );
+    });
+
+    it('uses profile storeEmail in How to Shop items', () => {
+      vi.mocked(getStoreEmail).mockReturnValue('custom@store.com');
+
+      const store = getFreshStore();
+      store.initializeDefaultItems();
+
+      const state = getFreshStore();
+      expect(state.howToShopItems[3].text).toBe('Email custom@store.com');
+    });
+
+    it('adds store directions note to Important Notes when available', () => {
+      vi.mocked(getDirections).mockReturnValue('123 Main St, Las Vegas');
+
+      const store = getFreshStore();
+      store.initializeDefaultItems();
+
+      const state = getFreshStore();
+      expect(state.importantNotesItems).toHaveLength(5);
+      expect(state.importantNotesItems[4].text).toBe(
+        'Find us at 123 Main St, Las Vegas'
+      );
+    });
+
+    it('does not add duplicate directions note', () => {
+      vi.mocked(getDirections).mockReturnValue('123 Main St, Las Vegas');
+
+      const store = getFreshStore();
+      store.initializeDefaultItems();
+
+      const state = getFreshStore();
+      const directionsNotes = state.importantNotesItems.filter(
+        (item) =>
+          item.text.toLowerCase().includes('find us at') ||
+          item.text.toLowerCase().includes('directions')
+      );
+      expect(directionsNotes).toHaveLength(1);
+    });
+
+    it('does not overwrite existing How to Shop items', () => {
+      const store = getFreshStore();
+      store.addHowToShopItem();
+      store.updateHowToShopItem(
+        getFreshStore().howToShopItems[0].id,
+        'Custom item'
+      );
+
+      store.initializeDefaultItems();
+
+      const state = getFreshStore();
+      expect(state.howToShopItems).toHaveLength(1);
+      expect(state.howToShopItems[0].text).toBe('Custom item');
+    });
+
+    it('does not overwrite existing Important Notes items', () => {
+      const store = getFreshStore();
+      store.addImportantNotesItem();
+      store.updateImportantNotesItem(
+        getFreshStore().importantNotesItems[0].id,
+        'Custom note'
+      );
+
+      store.initializeDefaultItems();
+
+      const state = getFreshStore();
+      expect(state.importantNotesItems).toHaveLength(1);
+      expect(state.importantNotesItems[0].text).toBe('Custom note');
+    });
+
+    it('does not overwrite saved state loaded from IndexedDB', async () => {
+      // Simulate saved state in localStorage
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [
+          {
+            id: 1001,
+            text: 'Saved how to shop item',
+            bold: false,
+            italic: false,
+            underline: false,
+          },
+        ],
+        importantNotesItems: [
+          {
+            id: 1002,
+            text: 'Saved important note',
+            bold: true,
+            italic: false,
+            underline: false,
+          },
+        ],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem(
+        'promotionBuilderState',
+        JSON.stringify(savedData)
+      );
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+      store.initializeDefaultItems();
+
+      const state = getFreshStore();
+      // Should preserve saved data, not replace with defaults
+      expect(state.howToShopItems).toHaveLength(1);
+      expect(state.howToShopItems[0].text).toBe('Saved how to shop item');
+      expect(state.importantNotesItems).toHaveLength(1);
+      expect(state.importantNotesItems[0].text).toBe('Saved important note');
+      expect(state.importantNotesItems[0].bold).toBe(true);
+    });
+
+    it('populates defaults when IndexedDB has no saved items', async () => {
+      // Ensure directions mock returns empty string (no directions)
+      vi.mocked(getDirections).mockReturnValue('');
+
+      // Empty localStorage = no saved state
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      // After load, arrays are empty - defaults should populate
+      store.initializeDefaultItems();
+
+      const state = getFreshStore();
+      expect(state.howToShopItems).toHaveLength(4);
+      expect(state.importantNotesItems).toHaveLength(4);
+    });
+
+    it('creates items with unique IDs', () => {
+      const store = getFreshStore();
+      store.initializeDefaultItems();
+
+      const state = getFreshStore();
+      const allIds = [
+        ...state.howToShopItems.map((i) => i.id),
+        ...state.importantNotesItems.map((i) => i.id),
+      ];
+      expect(new Set(allIds).size).toBe(allIds.length);
+    });
+
+    it('creates items with all formatting flags false', () => {
+      const store = getFreshStore();
+      store.initializeDefaultItems();
+
+      const state = getFreshStore();
+      for (const item of [
+        ...state.howToShopItems,
+        ...state.importantNotesItems,
+      ]) {
+        expect(item.bold).toBe(false);
+        expect(item.italic).toBe(false);
+        expect(item.underline).toBe(false);
+      }
     });
   });
 });
