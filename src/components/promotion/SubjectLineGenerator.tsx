@@ -153,14 +153,14 @@ export function SubjectLineGenerator() {
               >
                 Selected Subject Line (customizable):
               </label>
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-2 w-full">
                 <ClearableInput
                   id="selected-subject-input"
                   value={store.selectedSubjectLine}
                   onChange={handleSubjectEdit}
                   placeholder="Your subject line..."
                   title="Edit the email subject line. Changes will be reflected in generated emails."
-                  className="flex-1"
+                  className="min-w-0 flex-1"
                 />
                 <Badge
                   variant={isOptimal ? 'default' : 'secondary'}
