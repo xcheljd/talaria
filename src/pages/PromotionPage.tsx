@@ -47,6 +47,7 @@ import { FormattableItemEditor } from '@/components/promotion/FormattableItemEdi
 import { SpecialHoursEditor } from '@/components/promotion/SpecialHoursEditor';
 import { PDFAttachments } from '@/components/promotion/PDFAttachments';
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
+import { BulkEmailTools } from '@/components/promotion/BulkEmailTools';
 import {
   generatePromotionEmailHTML,
   buildExportConfig,
@@ -151,6 +152,8 @@ function getCardContent(cardId: string) {
       return <PDFAttachments />;
     case 'subjectCard':
       return <SubjectLineGenerator />;
+    case 'bulkEmailCard':
+      return <BulkEmailTools />;
     default:
       return <CardPlaceholderContent cardId={cardId} />;
   }
