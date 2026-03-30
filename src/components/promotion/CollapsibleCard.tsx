@@ -7,7 +7,7 @@
  * - Smooth content transitions via Radix Collapsible animations
  */
 
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -44,12 +44,15 @@ export function CollapsibleCard({
 }: CollapsibleCardProps) {
   const [isOpen, setIsOpen] = useState(!defaultCollapsed);
 
-  // Respond to external force-expand requests
+  // Respond to external force-expand requests (one-shot: only fires on true transition)
+  const prevForceExpandRef = useRef(forceExpand);
+
   useEffect(() => {
-    if (forceExpand && !isOpen) {
+    if (forceExpand && !prevForceExpandRef.current) {
       setIsOpen(true);
     }
-  }, [forceExpand, isOpen]);
+    prevForceExpandRef.current = forceExpand;
+  }, [forceExpand]);
 
   return (
     <Collapsible
