@@ -52,7 +52,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { ClearableInput } from '@/components/ui/clearable-input';
+import { ClearableTextarea } from '@/components/ui/clearable-textarea';
 import {
   Select,
   SelectContent,
@@ -389,7 +390,14 @@ export function ProfileSettingsPage() {
                         Your Name <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., John Smith" {...field} />
+                        <ClearableInput
+                          placeholder="e.g., John Smith"
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -441,10 +449,14 @@ export function ProfileSettingsPage() {
                         </FormLabel>
                         <div className="mx-auto max-w-[50%]">
                           <FormControl>
-                            <Input
+                            <ClearableInput
                               type="email"
                               placeholder="your.name@citizenwatchgroup.com"
-                              {...field}
+                              value={field.value}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
                             />
                           </FormControl>
                         </div>
@@ -471,9 +483,13 @@ export function ProfileSettingsPage() {
                         Store Name <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input
+                        <ClearableInput
                           placeholder="Citizen Company Store - Orlando"
-                          {...field}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormDescription>
@@ -495,9 +511,13 @@ export function ProfileSettingsPage() {
                         <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input
+                        <ClearableInput
                           placeholder="the Orlando Premium Outlets"
-                          {...field}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormDescription>
@@ -516,10 +536,14 @@ export function ProfileSettingsPage() {
                     <FormItem>
                       <FormLabel>Store Address</FormLabel>
                       <FormControl>
-                        <Textarea
+                        <ClearableTextarea
                           placeholder="123 Main Street&#10;City, State ZIP"
                           className="min-h-[80px]"
-                          {...field}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormDescription>
@@ -538,7 +562,14 @@ export function ProfileSettingsPage() {
                     <FormItem>
                       <FormLabel>Google Plus Code (optional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="CWC8+R9" {...field} />
+                        <ClearableInput
+                          placeholder="CWC8+R9"
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </FormControl>
                       <FormDescription>
                         Google Maps Plus Code for precise location
@@ -558,10 +589,14 @@ export function ProfileSettingsPage() {
                         Store Phone <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input
+                        <ClearableInput
                           type="tel"
                           placeholder="555-123-4567"
-                          {...field}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormDescription>
@@ -582,10 +617,14 @@ export function ProfileSettingsPage() {
                         Store Email <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input
+                        <ClearableInput
                           type="email"
                           placeholder="store@citizenwatchgroup.com"
-                          {...field}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormDescription>
@@ -606,7 +645,13 @@ export function ProfileSettingsPage() {
                         Store Hours <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <ClearableInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </FormControl>
                       <FormDescription>
                         Edit as needed for your store's specific hours
@@ -626,9 +671,13 @@ export function ProfileSettingsPage() {
                         Store Directions / Location Notes (optional)
                       </FormLabel>
                       <FormControl>
-                        <Input
+                        <ClearableInput
                           placeholder="e.g., Entrance E, near Polo Ralph Lauren"
-                          {...field}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormDescription>

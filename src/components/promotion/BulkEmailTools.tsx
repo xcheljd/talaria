@@ -44,7 +44,7 @@ import {
 import { getEmployeeSignature } from '@/lib/signature';
 
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { ClearableTextarea } from '@/components/ui/clearable-textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 
@@ -398,9 +398,9 @@ export function BulkEmailTools() {
       </div>
 
       {/* Recipient textarea */}
-      <Textarea
+      <ClearableTextarea
         value={recipientText}
-        onChange={(e) => handleRecipientChange(e.target.value)}
+        onChange={handleRecipientChange}
         onPaste={handlePaste}
         placeholder="Enter email addresses (one per line, comma-separated, or paste from spreadsheet)..."
         className={cn(

@@ -7,7 +7,7 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { useCallback, type ChangeEvent } from 'react';
+import { useCallback } from 'react';
 import {
   Plus,
   X,
@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ClearableInput } from '@/components/ui/clearable-input';
 
 // ===== Types =====
 
@@ -94,8 +94,8 @@ function ItemRow({ item, index, total, actions, placeholder }: ItemRowProps) {
   const isLast = index === total - 1;
 
   const handleTextChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      actions.updateItem(item.id, e.target.value);
+    (val: string) => {
+      actions.updateItem(item.id, val);
     },
     [actions, item.id]
   );
@@ -133,7 +133,7 @@ function ItemRow({ item, index, total, actions, placeholder }: ItemRowProps) {
 
       {/* Text Input */}
       <div className="flex-1 min-w-0">
-        <Input
+        <ClearableInput
           value={item.text}
           onChange={handleTextChange}
           placeholder={placeholder}

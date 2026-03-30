@@ -17,7 +17,7 @@ import { usePromotionStore } from '@/stores/promotion-store';
 import { generateSubjectLines } from '@/lib/subject-line-generator';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ClearableInput } from '@/components/ui/clearable-input';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -70,8 +70,8 @@ export function SubjectLineGenerator() {
 
   // Edit subject line input
   const handleSubjectEdit = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      store.setSelectedSubjectLine(e.target.value);
+    (val: string) => {
+      store.setSelectedSubjectLine(val);
       store.setSubjectLineManuallyEdited(true);
     },
     [store]
@@ -154,7 +154,7 @@ export function SubjectLineGenerator() {
                 Selected Subject Line (customizable):
               </label>
               <div className="flex items-start gap-2">
-                <Input
+                <ClearableInput
                   id="selected-subject-input"
                   value={store.selectedSubjectLine}
                   onChange={handleSubjectEdit}

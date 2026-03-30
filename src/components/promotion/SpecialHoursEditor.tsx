@@ -6,11 +6,11 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { useCallback, type ChangeEvent } from 'react';
+import { useCallback } from 'react';
 import { Plus, X, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
 import { usePromotionStore, type SpecialHour } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ClearableInput } from '@/components/ui/clearable-input';
 
 // ===== Single Hour Row Component =====
 
@@ -25,8 +25,8 @@ function HourRow({ hour, index, total }: HourRowProps) {
 
   const handleChange = useCallback(
     (field: keyof Pick<SpecialHour, 'day' | 'hours'>) =>
-      (e: ChangeEvent<HTMLInputElement>) => {
-        store.updateSpecialHour(hour.id, field, e.target.value);
+      (val: string) => {
+        store.updateSpecialHour(hour.id, field, val);
       },
     [store, hour.id]
   );
@@ -79,7 +79,7 @@ function HourRow({ hour, index, total }: HourRowProps) {
 
       {/* Day Field */}
       <div className="flex-1 min-w-0">
-        <Input
+        <ClearableInput
           value={hour.day}
           onChange={handleChange('day')}
           placeholder="e.g., Friday Nov 29"
@@ -91,7 +91,7 @@ function HourRow({ hour, index, total }: HourRowProps) {
 
       {/* Hours Field */}
       <div className="flex-1 min-w-0">
-        <Input
+        <ClearableInput
           value={hour.hours}
           onChange={handleChange('hours')}
           placeholder="e.g., 6AM–10PM or CLOSED"

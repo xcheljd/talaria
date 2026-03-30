@@ -7,7 +7,7 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { useCallback, type ChangeEvent } from 'react';
+import { useCallback } from 'react';
 import {
   Plus,
   X,
@@ -22,7 +22,7 @@ import {
   type PromotionEntry,
 } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ClearableInput } from '@/components/ui/clearable-input';
 
 // ===== Single Entry Component =====
 
@@ -38,8 +38,8 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
 
   const handleChange = useCallback(
     (field: keyof Pick<PromotionEntry, 'line' | 'collections' | 'callout'>) =>
-      (e: ChangeEvent<HTMLInputElement>) => {
-        store.updatePromotionEntry(entry.id, field, e.target.value);
+      (val: string) => {
+        store.updatePromotionEntry(entry.id, field, val);
       },
     [store, entry.id]
   );
@@ -144,7 +144,7 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
             >
               Promotion Line *
             </label>
-            <Input
+            <ClearableInput
               id={`entry-${entry.id}-line`}
               value={entry.line}
               onChange={handleChange('line')}
@@ -159,7 +159,7 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
             >
               Collections (comma-separated)
             </label>
-            <Input
+            <ClearableInput
               id={`entry-${entry.id}-collections`}
               value={entry.collections}
               onChange={handleChange('collections')}
@@ -174,7 +174,7 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
             >
               Special Callout (optional)
             </label>
-            <Input
+            <ClearableInput
               id={`entry-${entry.id}-callout`}
               value={entry.callout}
               onChange={handleChange('callout')}

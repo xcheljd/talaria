@@ -4,7 +4,6 @@
  */
 
 import { useForm } from 'react-hook-form';
-import { X } from 'lucide-react';
 
 import {
   templates,
@@ -17,8 +16,8 @@ import {
 import { useProfile } from '@/contexts/ProfileProvider';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { ClearableInput } from '@/components/ui/clearable-input';
+import { ClearableTextarea } from '@/components/ui/clearable-textarea';
 import { Label } from '@/components/ui/label';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -155,25 +154,13 @@ export function TemplateFormFields({
                     <span className="ml-1 text-destructive">*</span>
                   )}
                 </Label>
-                <div className="relative">
-                  <Textarea
-                    id={field}
-                    placeholder={config.example || ''}
-                    {...register(field)}
-                    className="min-h-[80px] pr-8"
-                  />
-                  {currentValue && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-1 top-1 h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                      onClick={() => setValue(field, '')}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
+                <ClearableTextarea
+                  id={field}
+                  placeholder={config.example || ''}
+                  value={currentValue}
+                  onChange={(val: string) => setValue(field, val)}
+                  className="min-h-[80px]"
+                />
               </div>
             );
           }
@@ -190,13 +177,13 @@ export function TemplateFormFields({
               <div className="relative">
                 {suggestions.length > 0 ? (
                   <>
-                    <Input
+                    <ClearableInput
                       id={field}
                       type="text"
                       placeholder={config.example || ''}
-                      {...register(field)}
+                      value={currentValue}
+                      onChange={(val: string) => setValue(field, val)}
                       list={`datalist-${field}`}
-                      className="pr-8"
                     />
                     <datalist id={`datalist-${field}`}>
                       {suggestions.map((s) => (
@@ -205,24 +192,13 @@ export function TemplateFormFields({
                     </datalist>
                   </>
                 ) : (
-                  <Input
+                  <ClearableInput
                     id={field}
                     type="text"
                     placeholder={config.example || ''}
-                    {...register(field)}
-                    className="pr-8"
+                    value={currentValue}
+                    onChange={(val: string) => setValue(field, val)}
                   />
-                )}
-                {currentValue && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-1 top-1 h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                    onClick={() => setValue(field, '')}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
                 )}
               </div>
             </div>

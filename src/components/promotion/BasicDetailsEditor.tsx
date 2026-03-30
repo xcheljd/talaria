@@ -9,9 +9,9 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { useCallback, type ChangeEvent } from 'react';
+import { useCallback } from 'react';
 import { usePromotionStore } from '@/stores/promotion-store';
-import { Input } from '@/components/ui/input';
+import { ClearableInput } from '@/components/ui/clearable-input';
 
 // ===== Main Editor Component =====
 
@@ -19,22 +19,22 @@ export function BasicDetailsEditor() {
   const store = usePromotionStore();
 
   const handleDateRangeChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      store.setPromoDateRange(e.target.value);
+    (val: string) => {
+      store.setPromoDateRange(val);
     },
     [store]
   );
 
   const handleYearChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      store.setPromoYear(e.target.value);
+    (val: string) => {
+      store.setPromoYear(val);
     },
     [store]
   );
 
   const handleTitleChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      store.setPromoTitle(e.target.value);
+    (val: string) => {
+      store.setPromoTitle(val);
     },
     [store]
   );
@@ -46,7 +46,7 @@ export function BasicDetailsEditor() {
         <label htmlFor="promoDateRange" className="text-xs font-medium">
           Date Range *
         </label>
-        <Input
+        <ClearableInput
           id="promoDateRange"
           value={store.promoDateRange}
           onChange={handleDateRangeChange}
@@ -63,7 +63,7 @@ export function BasicDetailsEditor() {
         <label htmlFor="promoYear" className="text-xs font-medium">
           Year (optional)
         </label>
-        <Input
+        <ClearableInput
           id="promoYear"
           value={store.promoYear}
           onChange={handleYearChange}
@@ -80,7 +80,7 @@ export function BasicDetailsEditor() {
         <label htmlFor="promoTitle" className="text-xs font-medium">
           Title (optional)
         </label>
-        <Input
+        <ClearableInput
           id="promoTitle"
           value={store.promoTitle}
           onChange={handleTitleChange}

@@ -15,7 +15,7 @@ import { getUserProfile } from '@/lib/profile';
 import { getRecommendedFormat } from '@/lib/ui-utils';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ClearableInput } from '@/components/ui/clearable-input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -178,10 +178,10 @@ ${htmlSignature}
               Subject
             </Label>
             <div className="flex items-center gap-2">
-              <Input
+              <ClearableInput
                 id="subjectLine"
                 value={subjectLine}
-                onChange={(e) => onSubjectChange(e.target.value)}
+                onChange={onSubjectChange}
                 placeholder="Enter a subject line..."
                 className="flex-1"
               />
