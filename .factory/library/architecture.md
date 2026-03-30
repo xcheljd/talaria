@@ -55,7 +55,7 @@ React SPA (Vite + TypeScript + Tailwind v4)
 ## Key Invariants
 
 - All user input (including profile-derived fields like storeAddress, storePhone, storeEmail, storeHours) must be escaped via escapeHtml() before HTML interpolation. sanitizeHTML() is used for rich text content.
-- **Known gap**: promotion-email-html.ts escapes entry/notes fields but not profile-derived fields (storeAddress, storePhone, storeEmail, storeHours) or dateRange. This needs to be fixed.
+- Profile-derived fields in promotion-email-html.ts (storeAddress, storePhone, storeEmail, storeHours, dateRange, year) are now escaped via escapeHtml(). Raw values are preserved for href attributes (tel:, mailto:).
 - EML files use CRLF line endings (RFC 5322)
 - Email signatures depend on job title (management → company email, staff → store email)
 - Theme state persists via localStorage, applied as CSS variables on :root

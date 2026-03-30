@@ -342,18 +342,20 @@ function getOccasionTitle(dateRange: string): string | null {
  * an HTML string suitable for email preview and EML export.
  */
 export function generatePromotionEmailHTML(data: PromotionEmailData): string {
-  const dateRange = data.promoDateRange || '';
+  const dateRangeRaw = data.promoDateRange || '';
+  const dateRange = escapeHtml(dateRangeRaw);
   const title =
     data.promoTitle && data.promoTitle.trim()
       ? escapeHtml(data.promoTitle)
-      : generatePromoTitle(dateRange);
+      : generatePromoTitle(dateRangeRaw);
 
   const year =
     data.promoYear && data.promoYear.trim()
-      ? data.promoYear.trim()
+      ? escapeHtml(data.promoYear.trim())
       : new Date().getFullYear().toString();
 
-  const storePhone = getStorePhone();
+  const storePhoneRaw = getStorePhone();
+  const storePhone = escapeHtml(storePhoneRaw);
 
   // Build brand sections from entries
   let brandSections = '';
@@ -384,9 +386,11 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
   }
 
   // Store info
-  const storeAddress = getStoreAddress().replace(/\n/g, '<br>');
-  const storeEmail = getStoreEmail();
-  const storeHours = getStoreHours();
+  const rawAddress = getStoreAddress();
+  const storeAddress = escapeHtml(rawAddress).replace(/\n/g, '<br>');
+  const storeEmailRaw = getStoreEmail();
+  const storeEmail = escapeHtml(storeEmailRaw);
+  const storeHours = escapeHtml(getStoreHours());
   const plusCode = getStorePlusCode();
 
   let storeMapLink =
@@ -482,8 +486,8 @@ ${brandSections}
                     ${storeAddress}</a>
                 </p>
                 <p style="color: white; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
-                    📞 <a href="tel:+1${storePhone.replace(/\D/g, '')}" target="_blank" style="color: white;">${storePhone}</a> |
-                    📧 <a href="mailto:${storeEmail}" target="_blank" style="color: white;">${storeEmail}</a>
+                    📞 <a href="tel:+1${storePhoneRaw.replace(/\D/g, '')}" target="_blank" style="color: white;">${storePhone}</a> |
+                    📧 <a href="mailto:${storeEmailRaw}" target="_blank" style="color: white;">${storeEmail}</a>
                 </p>
                 <p style="color: #ffd700; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 13px; margin: 10px 0 0 0;">
                     <b>STORE HOURS</b><br>
