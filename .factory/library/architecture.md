@@ -23,11 +23,14 @@ React SPA (Vite + TypeScript + Tailwind v4)
 │   ├── db (IndexedDB wrapper)
 │   ├── profile (localStorage helpers)
 │   └── emailPreviewUtils (HTML preview rendering)
-└── shadcn/ui Components (src/components/ui/)
-    ├── Button, Card, Input, Label, Select
-    ├── Tabs, Dialog, AlertDialog, Toast
-    ├── Form, Badge, Separator, Tooltip
-    ├── DropdownMenu, Collapsible, Textarea, Switch
+├── shadcn/ui Components (src/components/ui/)
+│   ├── Button, Card, Input, Label, Select
+│   ├── Tabs, Dialog, AlertDialog, Toast
+│   ├── Form, Badge, Separator, Tooltip
+│   ├── DropdownMenu, Collapsible, Textarea, Switch
+└── Promotion Components (src/components/promotion/)
+    ├── CollapsibleCard (card + collapsible + status dot)
+    └── SkinnyColumnBar (collapsed column sidebar)
 ```
 
 ## Data Flow
