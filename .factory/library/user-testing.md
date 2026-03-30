@@ -17,10 +17,11 @@
 ### Isolation Rules
 - Each browser session uses a unique `--session` ID (e.g., `2d08ac2d6394__setup-ui`, `2d08ac2d6394__theme`)
 - localStorage is shared across sessions on the same origin — validators touching theme state (VAL-THEME-*) should be aware of potential interference
-- The `/promotion` route redirects to React `/start` (via React Router `<Navigate>`) when no profile is saved. The redirect works correctly but no "profile required" banner is displayed (VAL-PROMO-021 failed). Profile must be seeded via `localStorage.setItem('userProfile', ...)` before testing promotion features.
+- The `/promotion` route redirects to React `/start` (via React Router `<Navigate>`) when no profile is saved. A yellow Alert banner "Profile required" is displayed on the profile page (VAL-PROMO-021 fixed). Profile must be seeded via `localStorage.setItem('userProfile', ...)` before testing promotion features.
 
 ### Known Frictions
-- **Profile redirect on /promotion:** When no profile is saved, navigating to `/promotion` redirects to the React `/start` route. However, no "profile required" banner/notification is displayed on the profile page (VAL-PROMO-021 is a known failure). Always seed a profile via localStorage before testing promotion features.
+- **Profile redirect on /promotion:** When no profile is saved, navigating to `/promotion` redirects to the React `/start` route and displays a yellow Alert banner "Profile required: Please complete your profile to continue to the Promotion Email Generator." (VAL-PROMO-021 fixed in Round 2). Always seed a profile via localStorage before testing promotion features.
+- **Hash-based navigation doesn't trigger React Router:** `window.location.hash = '#/promotion'` does not work — only clicking React Router `<Link>` components properly triggers route changes. Always use nav link clicks for in-page navigation.
 - **Direct URL navigation serves vanilla JS:** Navigating directly to `http://localhost:8080/start` or `http://localhost:8080/promotion` serves the legacy vanilla JS HTML files, not the React SPA. Must always navigate to `http://localhost:8080/` first (React root), then use React Router (nav links or `router.navigate()`) to reach `/start` or `/promotion`. This is because Vite serves static HTML files for matching paths before SPA client-side routing takes over.
 - **Plus Code validation regex:** The regex (`/^[A-Z0-9]{2,4}\+[A-Z0-9]{2,3}$/i`) accepts 2-4 chars before `+` and 2-3 chars after. The example in the error message (`849VCWC8+R9`) doesn't match — use shorter codes like `CWCV+R9` for testing.
 - **Hidden file input for import:** Profile import uses a hidden `<input type="file">` triggered by button click. In headless testing, use `DataTransfer` API + `change` event dispatch to set the file programmatically.
@@ -31,3 +32,6 @@
 
 ## Known Issues (from setup milestone)
 - ~~**VAL-THEME-004**: `theme-transitions.css` is not imported into the React app's `src/index.css`.~~ **RESOLVED in Round 2** — Transition rules (background-color, color, border-color, box-shadow at 0.3s cubic-bezier) added directly to `src/index.css`. Assertion now passes.
+
+## Resolved Issues (from promotion milestone)
+- ~~**VAL-PROMO-021**: No "profile required" banner displayed on /start when redirected from /promotion.~~ **RESOLVED in Round 2** — ProfileSettingsPage now reads `location.state.from === '/promotion'` and displays a yellow Alert banner. PromotionPage passes `state={{ from: '/promotion' }}` in the Navigate component.

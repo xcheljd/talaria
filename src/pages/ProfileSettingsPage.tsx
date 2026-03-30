@@ -14,7 +14,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
   Save,
   Upload,
@@ -85,6 +85,7 @@ import { Label } from '@/components/ui/label';
 
 export function ProfileSettingsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { profile, saveProfile } = useProfile();
   const { lightPalette, darkPalette, setLightPalette, setDarkPalette } =
@@ -275,7 +276,8 @@ export function ProfileSettingsPage() {
 
   // ─── Profile Required Banner ──────────────────────────────────────────────
 
-  const showProfileBanner = searchParams.has('return');
+  const showProfileBanner =
+    searchParams.has('return') || (location.state as { from?: string })?.from === '/promotion';
 
   // ─── Validation Summary ───────────────────────────────────────────────────
 
