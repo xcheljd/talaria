@@ -24,10 +24,9 @@ function HourRow({ hour, index, total }: HourRowProps) {
   const store = usePromotionStore();
 
   const handleChange = useCallback(
-    (field: keyof Pick<SpecialHour, 'day' | 'hours'>) =>
-      (val: string) => {
-        store.updateSpecialHour(hour.id, field, val);
-      },
+    (field: keyof Pick<SpecialHour, 'day' | 'hours'>) => (val: string) => {
+      store.updateSpecialHour(hour.id, field, val);
+    },
     [store, hour.id]
   );
 

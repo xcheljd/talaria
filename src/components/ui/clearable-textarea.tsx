@@ -4,8 +4,10 @@ import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 
-export interface ClearableTextareaProps
-  extends Omit<React.ComponentProps<'textarea'>, 'onChange' | 'value'> {
+export interface ClearableTextareaProps extends Omit<
+  React.ComponentProps<'textarea'>,
+  'onChange' | 'value'
+> {
   /** Controlled value — X button is shown when truthy (non-empty / non-whitespace) */
   value?: string;
   /** Called with the new value on every keystroke */

@@ -4,8 +4,10 @@ import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 
-export interface ClearableInputProps
-  extends Omit<React.ComponentProps<'input'>, 'onChange' | 'value'> {
+export interface ClearableInputProps extends Omit<
+  React.ComponentProps<'input'>,
+  'onChange' | 'value'
+> {
   /** Controlled value — X button is shown when truthy (non-empty / non-whitespace) */
   value?: string;
   /** Called with the new value on every keystroke */

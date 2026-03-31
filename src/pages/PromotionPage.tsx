@@ -1,17 +1,18 @@
 /**
  * PromotionPage — React migration of promotion.html
  *
- * Three-column layout:
- *   Left column  → Promo body details (Basic Details, Discount Entries, How to Shop, Important Notes, Special Hours)
- *   Center column → Email tools (PDF Attachments, Subject Lines, Bulk Email Tools)
- *   Right column → Sticky live preview (iframe)
+ * Desktop layout (>=1024px): ResizablePanels 50/50 split
+ *   Left panel  → Sidebar strip + active column cards (left OR center, toggled)
+ *   Right panel → Sticky live preview (iframe)
+ *
+ * Mobile layout (<1024px): Single column, all cards stacked + preview
  *
  * Features:
  * - Collapsible cards with status dots (filled/empty)
- * - Sidebar collapse/expand navigation (desktop only)
+ * - Sidebar shows all 8 cards grouped by column, with active indicator
  * - Responsive layout below 1024px (single column, all stacked)
  * - Profile redirect if no profile saved
- * - Live HTML preview in iframe (right column)
+ * - Live HTML preview in iframe (right panel)
  * - Preview/HTML Code tabs (shadcn Tabs)
  * - HTML Code tab shows raw source in readonly textarea
  * - Download buttons: Generate Email Batches, Download Email Draft (single EML), Download HTML
@@ -33,13 +34,13 @@ import {
   Upload,
 } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
 import { useHasProfile } from '@/contexts/ProfileProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { CollapsibleCard } from '@/components/promotion/CollapsibleCard';
 import {
   SidebarBar,
   type SidebarCardInfo,
+  type SidebarCardGroup,
 } from '@/components/promotion/SidebarBar';
 import { BasicDetailsEditor } from '@/components/promotion/BasicDetailsEditor';
 import { DiscountEntriesEditor } from '@/components/promotion/DiscountEntriesEditor';
@@ -72,6 +73,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { ResizablePanels } from '@/components/ui/resizable-panels';
 
 // ===== Card Configuration =====
 
@@ -791,38 +793,39 @@ export function PromotionPage() {
   const leftSidebarCards = useSidebarCards('left');
   const centerSidebarCards = useSidebarCards('center');
 
-  // Column toggle handlers — accept optional cardId for sidebar card click
-  const handleExpandLeft = useCallback(
-    (cardId?: string) => {
-      store.setColumnState('left');
-      setForceExpandedCardId(cardId);
-
-      if (cardId) {
-        // Wait for column to expand and card to render, then scroll
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            const cardEl = document.querySelector(`[data-card-id="${cardId}"]`);
-            cardEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          });
-        });
-      }
-    },
-    [store]
+  // Sidebar groups for desktop mode — shows all cards from both columns
+  const sidebarGroups: SidebarCardGroup[] = useMemo(
+    () => [
+      {
+        columnKey: 'left',
+        label: 'Body',
+        isActive: isLeftActive,
+        cards: leftSidebarCards,
+      },
+      {
+        columnKey: 'center',
+        label: 'Tools',
+        isActive: isCenterActive,
+        cards: centerSidebarCards,
+      },
+    ],
+    [isLeftActive, isCenterActive, leftSidebarCards, centerSidebarCards]
   );
 
-  const handleExpandCenter = useCallback(
-    (cardId?: string) => {
-      store.setColumnState('center');
+  // Desktop sidebar card click handler
+  const handleSidebarCardClick = useCallback(
+    (columnKey: string, cardId: string) => {
+      const targetColumn = columnKey as 'left' | 'center';
+      store.setColumnState(targetColumn);
       setForceExpandedCardId(cardId);
 
-      if (cardId) {
+      // Wait for column to render, then scroll to card
+      requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            const cardEl = document.querySelector(`[data-card-id="${cardId}"]`);
-            cardEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          });
+          const cardEl = document.querySelector(`[data-card-id="${cardId}"]`);
+          cardEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
-      }
+      });
     },
     [store]
   );
@@ -834,58 +837,34 @@ export function PromotionPage() {
 
   return (
     <>
-      {/* ===== Desktop Layout (>=1024px): Three columns with sidebar ===== */}
+      {/* ===== Desktop Layout (>=1024px): ResizablePanels 50/50 split ===== */}
       <div className="hidden lg:flex h-[calc(100vh-3.5rem)] overflow-hidden">
-        {/* Sidebar — always on far left, shows collapsed column's cards */}
-        {!isLeftActive && (
-          <SidebarBar
-            cards={leftSidebarCards}
-            isExpanded={false}
-            onExpand={handleExpandLeft}
-            ariaLabel="Expand Promo Body Details"
-          />
-        )}
-        {!isCenterActive && (
-          <SidebarBar
-            cards={centerSidebarCards}
-            isExpanded={false}
-            onExpand={handleExpandCenter}
-            ariaLabel="Expand Email Tools"
-          />
-        )}
-
-        {/* Left Column: Promo Body Details */}
-        <div
-          className={cn(
-            'flex-shrink-0 overflow-y-auto border-r transition-all duration-300',
-            isLeftActive ? 'w-[40%] min-w-0' : 'w-0 overflow-hidden'
-          )}
+        <ResizablePanels
+          orientation="vertical"
+          defaultSplit={50}
+          minPx={[280, 280]}
         >
-          <ColumnCards
-            column="left"
-            forceExpandedCardId={isLeftActive ? forceExpandedCardId : undefined}
-          />
-        </div>
+          {/* Left panel: Sidebar + active column */}
+          <div className="flex h-full min-w-0">
+            {/* Sidebar — always visible, shows all cards from both columns */}
+            <SidebarBar
+              mode="desktop"
+              groups={sidebarGroups}
+              onCardClick={handleSidebarCardClick}
+            />
 
-        {/* Center Column: Email Tools */}
-        <div
-          className={cn(
-            'flex-shrink-0 overflow-y-auto border-r transition-all duration-300',
-            isCenterActive ? 'w-[30%] min-w-0' : 'w-0 overflow-hidden'
-          )}
-        >
-          <ColumnCards
-            column="center"
-            forceExpandedCardId={
-              isCenterActive ? forceExpandedCardId : undefined
-            }
-          />
-        </div>
+            {/* Active column cards */}
+            <div className="flex-1 overflow-y-auto min-w-0">
+              <ColumnCards
+                column={isLeftActive ? 'left' : 'center'}
+                forceExpandedCardId={forceExpandedCardId}
+              />
+            </div>
+          </div>
 
-        {/* Right Column: Sticky Live Preview */}
-        <div className="flex-1 min-w-0 overflow-hidden">
+          {/* Right panel: Email Preview */}
           <PreviewColumn />
-        </div>
+        </ResizablePanels>
       </div>
 
       {/* ===== Mobile Layout (<1024px): Single column, all stacked ===== */}
