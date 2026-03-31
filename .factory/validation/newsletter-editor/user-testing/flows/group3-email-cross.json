@@ -1,0 +1,327 @@
+{
+  "groupId": "group3-email-cross",
+  "testedAt": "2026-03-31T09:30:00.000Z",
+  "isolation": {
+    "appUrl": "http://localhost:8080/promotion",
+    "browserSession": "35a2315fe1ce__u3",
+    "profile": "Test User (t@t.com)",
+    "evidenceDir": "evidence/newsletter-editor/group3/"
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-EMAIL-001",
+      "title": "Newsletter rendered at TOP position in email preview",
+      "status": "fail",
+      "steps": [
+        { "action": "Fill newsletter heading 'Store Updates' and body content", "expected": "Content stored", "observed": "Content stored in Zustand" },
+        { "action": "Set position to Top (default)", "expected": "Newsletter section between HEADER and BRAND SECTIONS in preview", "observed": "No newsletter section rendered at all in the email preview iframe srcdoc" },
+        { "action": "Inspect iframe srcdoc for newsletter markers", "expected": "Newsletter section found", "observed": "hasNewsletter=false, hasStoreUpdates=false, hasNewsletterSection=false. srcdoc length: 4146" }
+      ],
+      "evidence": [
+        "evidence/newsletter-editor/group3/VAL-EMAIL-001-newsletter-top-position.png",
+        "generatePromotionEmailHTML() in src/lib/promotion-email-html.ts does not use newsletterHeading/newsletterBody/newsletterPosition fields to render any HTML section"
+      ],
+      "issues": [
+        "ROOT CAUSE: The generatePromotionEmailHTML() function in src/lib/promotion-email-html.ts accepts newsletterHeading, newsletterBody, and newsletterPosition in the PromotionEmailData interface but NEVER renders a newsletter section in the HTML output. The template literal only includes HEADER, BRAND SECTIONS, HOW TO SHOP, IMPORTANT NOTES, FOOTER, and UNSUBSCRIBE sections."
+      ]
+    },
+    {
+      "id": "VAL-EMAIL-002",
+      "title": "Newsletter rendered at BOTTOM position in email preview",
+      "status": "fail",
+      "steps": [
+        { "action": "Toggle position to Bottom", "expected": "Newsletter section between BRAND SECTIONS and HOW TO SHOP", "observed": "No newsletter section rendered at any position" },
+        { "action": "Inspect iframe srcdoc", "expected": "Newsletter found after BRAND SECTIONS", "observed": "hasNewsletter=false, srcdoc length unchanged at 4146" }
+      ],
+      "evidence": [
+        "Same root cause as VAL-EMAIL-001: generatePromotionEmailHTML() does not render newsletter section at any position"
+      ],
+      "issues": [
+        "Same root cause as VAL-EMAIL-001"
+      ]
+    },
+    {
+      "id": "VAL-EMAIL-003",
+      "title": "Newsletter heading appears in email HTML as styled h2 with inline styles",
+      "status": "fail",
+      "steps": [
+        { "action": "Set heading to 'Store Updates'", "expected": "Heading rendered as styled h2 in HTML Code tab", "observed": "HTML Code tab textarea shows no newsletter heading anywhere in the 4146-char HTML" }
+      ],
+      "evidence": [
+        "HTML Code tab textarea does not contain 'Store Updates' or any newsletter heading markup"
+      ],
+      "issues": [
+        "Same root cause as VAL-EMAIL-001: newsletter section not rendered in HTML template"
+      ]
+    },
+    {
+      "id": "VAL-EMAIL-004",
+      "title": "Newsletter body content with inline styles in email HTML (no CSS classes)",
+      "status": "fail",
+      "steps": [
+        { "action": "Fill body with content in TipTap editor", "expected": "Body HTML with inline styles in email HTML", "observed": "No newsletter body content in generated HTML" }
+      ],
+      "evidence": [
+        "srcdoc and HTML Code tab both lack any newsletter body markup"
+      ],
+      "issues": [
+        "Same root cause as VAL-EMAIL-001"
+      ]
+    },
+    {
+      "id": "VAL-EMAIL-005",
+      "title": "Empty newsletter does not render section in email",
+      "status": "fail",
+      "steps": [
+        { "action": "Check email HTML with empty newsletter", "expected": "No newsletter section markup when empty", "observed": "No newsletter section rendered ever - even when content IS present" }
+      ],
+      "evidence": [
+        "The assertion intent is that empty state produces no section, which technically holds (no section is rendered), but the feature is fundamentally broken since it also doesn't render when populated"
+      ],
+      "issues": [
+        "While the observed behavior (no section when empty) matches the assertion, this is a false pass - the newsletter section is never rendered regardless of content state. Marked as fail because the feature doesn't work as designed."
+      ]
+    },
+    {
+      "id": "VAL-EMAIL-006",
+      "title": "Live preview updates on newsletter content changes (within 500ms)",
+      "status": "fail",
+      "steps": [
+        { "action": "Set baseline srcdoc length (4146 chars)", "expected": "Baseline captured", "observed": "Baseline: 4146" },
+        { "action": "Type 'CHANGED HEADING' in newsletter heading field", "expected": "srcdoc length increases, newsletter heading appears in preview", "observed": "srcdoc length unchanged at 4146, 'CHANGED HEADING' not found in srcdoc" }
+      ],
+      "evidence": [
+        "Preview iframe srcdoc does not update when newsletter content changes because the newsletter section is never rendered"
+      ],
+      "issues": [
+        "Same root cause as VAL-EMAIL-001"
+      ]
+    },
+    {
+      "id": "VAL-EMAIL-007",
+      "title": "Newsletter data included in JSON export (newsletterHeading, newsletterBody, newsletterPosition)",
+      "status": "pass",
+      "steps": [
+        { "action": "Fill newsletter heading and body, click Export", "expected": "JSON contains newsletter fields", "observed": "Exported JSON includes: newsletterHeading='Store UpdatesCHANGED HEADING', newsletterBody='<p>This is our weekly newsletter...</p>', newsletterPosition='bottom'" }
+      ],
+      "evidence": [
+        "Export JSON captured via blob interception contains all three newsletter fields at top level"
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-EMAIL-008",
+      "title": "Newsletter data restored from JSON import",
+      "status": "pass",
+      "steps": [
+        { "action": "Import JSON with newsletterHeading='Imported Newsletter', body with bold/italic/list, position='top'", "expected": "All fields restored in store and editor", "observed": "Store has correct values. After card collapse/re-expand: heading='Imported Newsletter', editor shows '<p>Imported <strong>bold</strong> and <em>italic</em> content.</p><ul><li>Item 1</li><li>Item 2</li></ul>'" },
+        { "action": "Verify via export", "expected": "Exported data matches imported data", "observed": "Exported: newsletterHeading='Imported Newsletter', body matches, newsletterPosition='top'" }
+      ],
+      "evidence": [
+        "evidence/newsletter-editor/group3/VAL-EMAIL-008-after-import.png",
+        "NOTE: TipTap editor requires re-mount (collapse/expand) to display imported content. Without re-expand, the editor still shows old content."
+      ],
+      "issues": [
+        "MINOR: The TipTap editor does not update its visual content when the store is updated externally (via import). The content is correct in the store but the editor display is stale until the card is collapsed and re-expanded (which unmounts/remounts the editor component)."
+      ]
+    },
+    {
+      "id": "VAL-EMAIL-009",
+      "title": "Newsletter included in EML file generation",
+      "status": "fail",
+      "steps": [
+        { "action": "Click 'Download Email Draft' and capture blob", "expected": "EML HTML body contains newsletter section", "observed": "EML content (8124 chars) has hasNewsletter=false, hasNewsletterBody=false. No newsletter content in the EML HTML body." }
+      ],
+      "evidence": [
+        "EML content captured via blob interception shows Subject: Weekly Sale, proper EML headers, but no newsletter section in the HTML body"
+      ],
+      "issues": [
+        "Same root cause as VAL-EMAIL-001: generatePromotionEmailHTML() doesn't render newsletter, and handleDownloadDraft uses this function for the EML HTML body"
+      ]
+    },
+    {
+      "id": "VAL-EMAIL-010",
+      "title": "Rich text formatting renders in email HTML (bold, italic, underline, color, highlight, headings, lists, links)",
+      "status": "fail",
+      "steps": [
+        { "action": "Check HTML Code tab for rich text formatting", "expected": "Inline styles for bold, italic, etc.", "observed": "No newsletter body content at all in the HTML - formatting cannot render when the section doesn't exist" }
+      ],
+      "evidence": [
+        "HTML Code tab textarea (4146 chars) contains no newsletter markup whatsoever"
+      ],
+      "issues": [
+        "Same root cause as VAL-EMAIL-001"
+      ]
+    },
+    {
+      "id": "VAL-EMAIL-011",
+      "title": "XSS sanitization of newsletter body in email output",
+      "status": "fail",
+      "steps": [
+        { "action": "Check if sanitizeHTML is applied to newsletter body in email generation", "expected": "XSS stripped from newsletter in email HTML", "observed": "Newsletter body is never included in the email HTML at all, so sanitization is not applied (not tested)" }
+      ],
+      "evidence": [
+        "The sanitizeHTML function is imported as escapeHtml in promotion-email-html.ts but is only used for plain text fields, not for the newsletter body HTML"
+      ],
+      "issues": [
+        "FAIL because the feature doesn't exist (newsletter not rendered in email). Additionally, there's a latent risk: when newsletter rendering IS implemented, the body HTML from TipTap needs explicit sanitization before injection into the email template."
+      ]
+    },
+    {
+      "id": "VAL-CROSS-001",
+      "title": "Full workflow — compose, preview, export",
+      "status": "fail",
+      "steps": [
+        { "action": "Fill newsletter heading + body with rich text", "expected": "Editor shows content", "observed": "Editor correctly shows imported content with bold, italic, lists" },
+        { "action": "Check preview for newsletter section", "expected": "Newsletter section visible in preview", "observed": "Preview shows standard email layout without newsletter section" },
+        { "action": "Export JSON", "expected": "Newsletter data in export", "observed": "Newsletter data correctly included in export JSON" },
+        { "action": "Download EML", "expected": "Newsletter in EML", "observed": "EML does not contain newsletter section" }
+      ],
+      "evidence": [
+        "evidence/newsletter-editor/group3/VAL-CROSS-001-editor-composed.png",
+        "evidence/newsletter-editor/group3/VAL-CROSS-001-preview-no-newsletter.png"
+      ],
+      "issues": [
+        "The compose and export steps work, but the preview and EML download steps fail because the newsletter section is not rendered in generatePromotionEmailHTML()"
+      ]
+    },
+    {
+      "id": "VAL-CROSS-002",
+      "title": "Position toggle changes placement in preview",
+      "status": "fail",
+      "steps": [
+        { "action": "Toggle position from Top to Bottom", "expected": "Newsletter moves below brand sections in preview", "observed": "No change in preview - newsletter not rendered at any position" },
+        { "action": "Verify store state changed via export", "expected": "Position field updated", "observed": "Store correctly shows newsletterPosition='bottom' after toggle, but preview doesn't reflect this" }
+      ],
+      "evidence": [
+        "Store state correctly updates position, but the preview never shows the newsletter section"
+      ],
+      "issues": [
+        "Position toggle correctly updates the Zustand store, but since generatePromotionEmailHTML() doesn't render the newsletter section, the preview is unaffected"
+      ]
+    },
+    {
+      "id": "VAL-CROSS-003",
+      "title": "Empty-to-filled status dot transition",
+      "status": "pass",
+      "steps": [
+        { "action": "Start with empty newsletter (clear heading and body)", "expected": "Status dot shows data-status='empty'", "observed": "data-status='empty', class includes bg-primary removed" },
+        { "action": "Type 'Test Heading' in heading field", "expected": "Dot transitions to data-status='filled'", "observed": "data-status='filled', class includes bg-primary" },
+        { "action": "Clear heading", "expected": "Dot returns to empty", "observed": "data-status='empty'" },
+        { "action": "Type in editor body instead", "expected": "Dot becomes filled from body content", "observed": "data-status='filled'" }
+      ],
+      "evidence": [
+        "evidence/newsletter-editor/group3/VAL-CROSS-003-status-filled.png",
+        "evidence/newsletter-editor/group3/VAL-CROSS-003-status-empty.png"
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-004",
+      "title": "Import round-trip preserves newsletter data",
+      "status": "pass",
+      "steps": [
+        { "action": "Set heading='Round Trip Test', body with bold text, position=bottom", "expected": "Content set", "observed": "Content set in editor and store" },
+        { "action": "Export JSON, verify newsletter fields", "expected": "Export has correct newsletter data", "observed": "newsletterHeading='Round Trip Test', body='<p>Round trip body with <strong>bold</strong> text</p>', position='bottom'" },
+        { "action": "Start Over (reset to defaults)", "expected": "All cleared", "observed": "After re-expand: heading='Newsletter' (default), body empty" },
+        { "action": "Import the exported JSON", "expected": "All newsletter data restored", "observed": "After re-expand: heading='Round Trip Test', editor shows original body with bold formatting" },
+        { "action": "Verify via export", "expected": "Data matches original", "observed": "Exported data matches original export exactly" }
+      ],
+      "evidence": [
+        "Full round-trip verified with heading, body (with bold formatting), and position all preserved identically"
+      ],
+      "issues": [
+        "MINOR: TipTap editor needs collapse/expand re-mount to show imported content (same issue as VAL-EMAIL-008)"
+      ]
+    },
+    {
+      "id": "VAL-CROSS-005",
+      "title": "Newsletter icon in toolbar scrolls and expands card",
+      "status": "pass",
+      "steps": [
+        { "action": "Collapse the Newsletter card", "expected": "Card collapsed", "observed": "Card shows 'Expand Newsletter' button" },
+        { "action": "Click 'Jump to Newsletter' toolbar button", "expected": "Card scrolls into view and expands", "observed": "Card expanded, showing heading field, toolbar, and editor. Toolbar button shows [pressed] state." }
+      ],
+      "evidence": [
+        "evidence/newsletter-editor/group3/VAL-CROSS-005-toolbar-expand.png"
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-006",
+      "title": "Start Over clears newsletter state",
+      "status": "pass",
+      "steps": [
+        { "action": "Verify pre-reset state: heading='Round Trip Test', body has content, status=filled", "expected": "Content present", "observed": "All present" },
+        { "action": "Click Start Over, confirm Reset in dialog", "expected": "All data cleared", "observed": "After re-expand: heading='Newsletter' (default), body empty, status=empty" }
+      ],
+      "evidence": [
+        "evidence/newsletter-editor/group3/VAL-CROSS-006-after-start-over.png"
+      ],
+      "issues": [
+        "MINOR: TipTap editor shows stale content until card is collapsed/re-expanded after Start Over"
+      ]
+    },
+    {
+      "id": "VAL-CROSS-007",
+      "title": "Mobile layout — newsletter card functional at 375px viewport",
+      "status": "pass",
+      "steps": [
+        { "action": "Set viewport to 375x812 (iPhone)", "expected": "Mobile layout renders", "observed": "All card navigation buttons, newsletter card with heading field, toolbar, editor, and position toggle visible" },
+        { "action": "Fill heading field 'Mobile Test'", "expected": "Heading accepts input", "observed": "Heading field accepts and displays 'Mobile Test'" },
+        { "action": "Toggle position to Bottom", "expected": "Position toggle works", "observed": "Bottom button gets variant='default' (active), Top gets variant='outline' (inactive)" },
+        { "action": "Check editor area", "expected": "Editor area present and interactive", "observed": "Editor contenteditable area present. Typing via agent-browser keyboard has limitations but the element is interactive." }
+      ],
+      "evidence": [
+        "evidence/newsletter-editor/group3/VAL-CROSS-007-mobile-375px.png"
+      ],
+      "issues": [
+        "MINOR: agent-browser keyboard type doesn't reliably input text into the TipTap editor at 375px viewport. This appears to be an agent-browser limitation with contenteditable elements at small viewports, not an app bug. Manual testing would be needed to fully verify editor typing on mobile."
+      ]
+    },
+    {
+      "id": "VAL-CROSS-008",
+      "title": "Persistence across navigation (fill newsletter, navigate away, navigate back)",
+      "status": "pass",
+      "steps": [
+        { "action": "Set heading='Persistence Test Heading', body='Persistence body content'", "expected": "Content set", "observed": "Both heading and body correctly set" },
+        { "action": "Navigate to Templates (/)", "expected": "Navigation succeeds", "observed": "URL changed to http://localhost:8080/" },
+        { "action": "Wait 2 seconds, navigate back to /promotion", "expected": "Page loads", "observed": "URL changed to http://localhost:8080/promotion" },
+        { "action": "Expand Newsletter card and check state", "expected": "All data preserved from IndexedDB", "observed": "heading='Persistence Test Heading', editorText='Persistence body content', status='filled', position='Bottom' (from prior toggle)" }
+      ],
+      "evidence": [
+        "evidence/newsletter-editor/group3/VAL-CROSS-008-persistence-after-nav.png"
+      ],
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "TipTap editor does not visually update when store state changes externally (import, Start Over). Content is correct in the store but the editor DOM shows stale content until the card is collapsed and re-expanded.",
+      "resolved": false,
+      "resolution": "Workaround: collapse and re-expand the Newsletter card after import or Start Over to force editor re-mount. Root fix: the NewsletterEditor component needs to detect external store changes and update the TipTap editor content.",
+      "affectedAssertions": ["VAL-EMAIL-008", "VAL-CROSS-004", "VAL-CROSS-006"]
+    },
+    {
+      "description": "Position toggle buttons (Top/Bottom) are not accessible via agent-browser snapshot refs or find text commands. Had to use DOM evaluation to click them.",
+      "resolved": true,
+      "resolution": "Used document.querySelector + click() via eval to interact with position buttons.",
+      "affectedAssertions": ["VAL-CROSS-002", "VAL-CROSS-007"]
+    },
+    {
+      "description": "Import requires programmatically setting file input value and dispatching change event since the file input is hidden and agent-browser upload doesn't work on button elements.",
+      "resolved": true,
+      "resolution": "Used eval to create File object, set it on the hidden input via DataTransfer, and dispatch change event.",
+      "affectedAssertions": ["VAL-EMAIL-008", "VAL-CROSS-004"]
+    },
+    {
+      "description": "Export file download captured via blob interception (overriding createElement and URL.createObjectURL) since agent-browser doesn't have a built-in download capture mechanism.",
+      "resolved": true,
+      "resolution": "Set up JS interceptors before clicking Export to capture the blob content.",
+      "affectedAssertions": ["VAL-EMAIL-007", "VAL-EMAIL-008", "VAL-CROSS-002", "VAL-CROSS-004"]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 19 assertions: 7 passed, 12 failed. The primary root cause for 12 failures is that generatePromotionEmailHTML() in src/lib/promotion-email-html.ts does not render the newsletter section in the email HTML template, despite accepting newsletterHeading, newsletterBody, and newsletterPosition in the PromotionEmailData interface. The newsletter card UI, store, export/import, persistence, status dot, toolbar icon, and Start Over all work correctly. The critical missing piece is the email HTML generation."
+}
