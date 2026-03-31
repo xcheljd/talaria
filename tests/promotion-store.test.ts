@@ -1295,4 +1295,142 @@ describe('promotion store', () => {
       }
     });
   });
+
+  // ===== Newsletter Actions =====
+
+  describe('newsletter actions', () => {
+    it('initializes with default newsletter state after reset', () => {
+      const state = usePromotionStore.getState();
+      expect(state.newsletterHeading).toBe('Newsletter');
+      expect(state.newsletterBody).toBe('');
+      expect(state.newsletterPosition).toBe('top');
+    });
+
+    it('sets newsletter heading', () => {
+      const store = getFreshStore();
+      store.setNewsletterHeading('Store Updates');
+
+      expect(getFreshStore().newsletterHeading).toBe('Store Updates');
+    });
+
+    it('sets newsletter body', () => {
+      const store = getFreshStore();
+      store.setNewsletterBody('<p>Hello <strong>world</strong></p>');
+
+      expect(getFreshStore().newsletterBody).toBe(
+        '<p>Hello <strong>world</strong></p>'
+      );
+    });
+
+    it('sets newsletter position to bottom', () => {
+      const store = getFreshStore();
+      store.setNewsletterPosition('bottom');
+
+      expect(getFreshStore().newsletterPosition).toBe('bottom');
+    });
+
+    it('sets newsletter position back to top', () => {
+      const store = getFreshStore();
+      store.setNewsletterPosition('bottom');
+      store.setNewsletterPosition('top');
+
+      expect(getFreshStore().newsletterPosition).toBe('top');
+    });
+
+    it('clears newsletter to defaults', () => {
+      const store = getFreshStore();
+      store.setNewsletterHeading('Custom Heading');
+      store.setNewsletterBody('<p>Some content</p>');
+      store.setNewsletterPosition('bottom');
+
+      store.clearNewsletter();
+
+      const state = getFreshStore();
+      expect(state.newsletterHeading).toBe('Newsletter');
+      expect(state.newsletterBody).toBe('');
+      expect(state.newsletterPosition).toBe('top');
+    });
+
+    it('resetState clears newsletter to defaults', () => {
+      const store = getFreshStore();
+      store.setNewsletterHeading('Custom Heading');
+      store.setNewsletterBody('<p>Content</p>');
+      store.setNewsletterPosition('bottom');
+
+      store.resetState();
+
+      const state = getFreshStore();
+      expect(state.newsletterHeading).toBe('Newsletter');
+      expect(state.newsletterBody).toBe('');
+      expect(state.newsletterPosition).toBe('top');
+    });
+
+    it('saves newsletter fields to localStorage', async () => {
+      const store = getFreshStore();
+      store.setNewsletterHeading('My Heading');
+      store.setNewsletterBody('<p>Body</p>');
+      store.setNewsletterPosition('bottom');
+
+      await store.saveToIndexedDB();
+
+      const saved = JSON.parse(
+        localStorage.getItem('promotionBuilderState')!
+      );
+      expect(saved.newsletterHeading).toBe('My Heading');
+      expect(saved.newsletterBody).toBe('<p>Body</p>');
+      expect(saved.newsletterPosition).toBe('bottom');
+    });
+
+    it('loads newsletter fields from localStorage', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+        newsletterHeading: 'Loaded Heading',
+        newsletterBody: '<p>Loaded Body</p>',
+        newsletterPosition: 'bottom',
+      };
+      localStorage.setItem(
+        'promotionBuilderState',
+        JSON.stringify(savedData)
+      );
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      const state = getFreshStore();
+      expect(state.newsletterHeading).toBe('Loaded Heading');
+      expect(state.newsletterBody).toBe('<p>Loaded Body</p>');
+      expect(state.newsletterPosition).toBe('bottom');
+    });
+
+    it('loads newsletter defaults when localStorage has no newsletter fields', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+        // No newsletter fields
+      };
+      localStorage.setItem(
+        'promotionBuilderState',
+        JSON.stringify(savedData)
+      );
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      const state = getFreshStore();
+      expect(state.newsletterHeading).toBe('Newsletter');
+      expect(state.newsletterBody).toBe('');
+      expect(state.newsletterPosition).toBe('top');
+    });
+  });
 });

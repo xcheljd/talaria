@@ -264,6 +264,9 @@ export function BulkEmailTools() {
         specialHours: store.specialHours,
         howToShopItems: store.howToShopItems,
         importantNotesItems: store.importantNotesItems,
+        newsletterHeading: store.newsletterHeading,
+        newsletterBody: store.newsletterBody,
+        newsletterPosition: store.newsletterPosition,
       };
 
       let htmlContent = generatePromotionEmailHTML(data);

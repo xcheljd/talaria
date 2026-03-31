@@ -17,6 +17,7 @@ import type {
   SpecialHour,
   HowToShopItem,
   ImportantNotesItem,
+  NewsletterPosition,
 } from '@/stores/promotion-store';
 
 // ===== Types =====
@@ -29,6 +30,9 @@ export interface PromotionEmailData {
   specialHours: SpecialHour[];
   howToShopItems: HowToShopItem[];
   importantNotesItems: ImportantNotesItem[];
+  newsletterHeading: string;
+  newsletterBody: string;
+  newsletterPosition: NewsletterPosition;
 }
 
 export interface PromotionConfigForExport {
@@ -49,6 +53,9 @@ export interface PromotionConfigForExport {
   }>;
   generatedSubjectLines: string[];
   selectedSubjectLine: string | null;
+  newsletterHeading: string;
+  newsletterBody: string;
+  newsletterPosition: NewsletterPosition;
 }
 
 // ===== Helpers =====
@@ -610,6 +617,9 @@ export function buildExportConfig(
     })),
     generatedSubjectLines: [...generatedSubjectLines],
     selectedSubjectLine,
+    newsletterHeading: data.newsletterHeading,
+    newsletterBody: data.newsletterBody,
+    newsletterPosition: data.newsletterPosition,
   };
 }
 
@@ -670,6 +680,10 @@ export function validateImportConfig(
       generatedSubjectLines: (config.generatedSubjectLines as string[]) || [],
       selectedSubjectLine:
         (config.selectedSubjectLine as string | null) || null,
+      newsletterHeading: (config.newsletterHeading as string) || 'Newsletter',
+      newsletterBody: (config.newsletterBody as string) || '',
+      newsletterPosition:
+        (config.newsletterPosition as NewsletterPosition) || 'top',
     },
   };
 }

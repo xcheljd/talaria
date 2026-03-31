@@ -290,6 +290,9 @@ function PreviewColumn() {
       specialHours: store.specialHours,
       howToShopItems: store.howToShopItems,
       importantNotesItems: store.importantNotesItems,
+      newsletterHeading: store.newsletterHeading,
+      newsletterBody: store.newsletterBody,
+      newsletterPosition: store.newsletterPosition,
     };
 
     return generatePromotionEmailHTML(data);
@@ -301,6 +304,9 @@ function PreviewColumn() {
     store.specialHours,
     store.howToShopItems,
     store.importantNotesItems,
+    store.newsletterHeading,
+    store.newsletterBody,
+    store.newsletterPosition,
   ]);
 
   // Download Email Draft (single EML)
@@ -379,6 +385,9 @@ function PreviewColumn() {
         specialHours: store.specialHours,
         howToShopItems: store.howToShopItems,
         importantNotesItems: store.importantNotesItems,
+        newsletterHeading: store.newsletterHeading,
+        newsletterBody: store.newsletterBody,
+        newsletterPosition: store.newsletterPosition,
       };
 
       const config = buildExportConfig(
@@ -438,6 +447,9 @@ function PreviewColumn() {
             importantNotesItems: config.importantNotesItems,
             generatedSubjectLines: config.generatedSubjectLines,
             selectedSubjectLine: config.selectedSubjectLine,
+            newsletterHeading: config.newsletterHeading,
+            newsletterBody: config.newsletterBody,
+            newsletterPosition: config.newsletterPosition,
           });
 
           toast.success('Config imported successfully');

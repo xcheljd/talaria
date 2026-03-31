@@ -59,6 +59,8 @@ export interface SubjectLine {
 export type ColumnState = 'left' | 'center';
 
 /** Serialized state for IndexedDB persistence */
+export type NewsletterPosition = 'top' | 'bottom';
+
 export interface PromotionPersistedState {
   promoDateRange: string;
   promoYear: string;
@@ -70,6 +72,9 @@ export interface PromotionPersistedState {
   attachedPDFs: AttachedPDF[];
   generatedSubjectLines: string[];
   selectedSubjectLine: string | null;
+  newsletterHeading: string;
+  newsletterBody: string;
+  newsletterPosition: NewsletterPosition;
 }
 
 // ===== Store State & Actions =====
@@ -90,6 +95,11 @@ export interface PromotionState {
   entryCollapsedStates: Record<number, boolean>;
   columnState: ColumnState;
   isInitializing: boolean;
+
+  // Newsletter
+  newsletterHeading: string;
+  newsletterBody: string;
+  newsletterPosition: NewsletterPosition;
 
   // Promotion entry actions
   addPromotionEntry: () => void;
@@ -157,6 +167,12 @@ export interface PromotionState {
   setPromoDateRange: (value: string) => void;
   setPromoYear: (value: string) => void;
   setPromoTitle: (value: string) => void;
+
+  // Newsletter actions
+  setNewsletterHeading: (value: string) => void;
+  setNewsletterBody: (value: string) => void;
+  setNewsletterPosition: (value: NewsletterPosition) => void;
+  clearNewsletter: () => void;
 
   // Initialization
   setInitializing: (value: boolean) => void;
@@ -227,6 +243,9 @@ function getEmptyState() {
     attachedPDFs: [] as AttachedPDF[],
     generatedSubjectLines: [] as string[],
     selectedSubjectLine: null as string | null,
+    newsletterHeading: 'Newsletter' as string,
+    newsletterBody: '' as string,
+    newsletterPosition: 'top' as NewsletterPosition,
   };
 }
 
@@ -491,6 +510,19 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   setPromoYear: (value: string) => set({ promoYear: value }),
   setPromoTitle: (value: string) => set({ promoTitle: value }),
 
+  // ===== Newsletter Actions =====
+
+  setNewsletterHeading: (value: string) => set({ newsletterHeading: value }),
+  setNewsletterBody: (value: string) => set({ newsletterBody: value }),
+  setNewsletterPosition: (value: NewsletterPosition) =>
+    set({ newsletterPosition: value }),
+  clearNewsletter: () =>
+    set({
+      newsletterHeading: 'Newsletter',
+      newsletterBody: '',
+      newsletterPosition: 'top',
+    }),
+
   // ===== Initialization =====
 
   setInitializing: (value: boolean) => set({ isInitializing: value }),
@@ -621,6 +653,9 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       })),
       generatedSubjectLines: state.generatedSubjectLines,
       selectedSubjectLine: state.selectedSubjectLine,
+      newsletterHeading: state.newsletterHeading,
+      newsletterBody: state.newsletterBody,
+      newsletterPosition: state.newsletterPosition,
     };
 
     try {
@@ -703,6 +738,9 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         promoDateRange: parsed.promoDateRange || '',
         promoYear: parsed.promoYear || '',
         promoTitle: parsed.promoTitle || '',
+        newsletterHeading: parsed.newsletterHeading || 'Newsletter',
+        newsletterBody: parsed.newsletterBody || '',
+        newsletterPosition: parsed.newsletterPosition || 'top',
         isInitializing: false,
       });
     } catch (error) {

@@ -37,6 +37,23 @@ import { usePromotionStore } from '@/stores/promotion-store';
 // Extend expect with jest-dom matchers
 expect.extend(jestDom);
 
+/** Helper to create a complete PromotionEmailData with newsletter defaults */
+function makeEmailData(overrides: Partial<PromotionEmailData> = {}): PromotionEmailData {
+  return {
+    promoDateRange: '',
+    promoYear: '',
+    promoTitle: '',
+    promotionEntries: [],
+    specialHours: [],
+    howToShopItems: [],
+    importantNotesItems: [],
+    newsletterHeading: 'Newsletter',
+    newsletterBody: '',
+    newsletterPosition: 'top',
+    ...overrides,
+  };
+}
+
 // Mock profile data for store helpers
 const MOCK_PROFILE = {
   employeeName: 'John Doe',
@@ -126,6 +143,9 @@ describe('generatePromotionEmailHTML', () => {
     importantNotesItems: [
       { id: 1, text: 'While supplies last', bold: false, italic: false, underline: false },
     ],
+    newsletterHeading: 'Newsletter',
+    newsletterBody: '',
+    newsletterPosition: 'top',
   };
 
   beforeEach(() => {
@@ -267,15 +287,11 @@ describe('buildExportConfig', () => {
   });
 
   it('builds a valid config object', () => {
-    const data: PromotionEmailData = {
+    const data = makeEmailData({
       promoDateRange: 'Nov 28 - Dec 1',
       promoYear: '2025',
       promoTitle: 'Test Sale',
-      promotionEntries: [],
-      specialHours: [],
-      howToShopItems: [],
-      importantNotesItems: [],
-    };
+    });
     const config = buildExportConfig(data, [], [], null);
     expect(config.templateType).toBe('promotion-email');
     expect(config.dateRange).toBe('Nov 28 - Dec 1');
@@ -284,36 +300,40 @@ describe('buildExportConfig', () => {
   });
 
   it('includes subject lines in config', () => {
-    const data: PromotionEmailData = {
-      promoDateRange: '',
-      promoYear: '',
-      promoTitle: '',
-      promotionEntries: [],
-      specialHours: [],
-      howToShopItems: [],
-      importantNotesItems: [],
-    };
+    const data = makeEmailData();
     const config = buildExportConfig(data, [], ['Subject 1', 'Subject 2'], 'Subject 1');
     expect(config.generatedSubjectLines).toEqual(['Subject 1', 'Subject 2']);
     expect(config.selectedSubjectLine).toBe('Subject 1');
   });
 
   it('strips PDF data from export (metadata only)', () => {
-    const data: PromotionEmailData = {
-      promoDateRange: '',
-      promoYear: '',
-      promoTitle: '',
-      promotionEntries: [],
-      specialHours: [],
-      howToShopItems: [],
-      importantNotesItems: [],
-    };
+    const data = makeEmailData();
     const pdfs = [
       { id: '1', name: 'test.pdf', size: 1024, type: 'application/pdf', data: 'data:application/pdf;base64,abc' },
     ];
     const config = buildExportConfig(data, pdfs, [], null);
     // Should not include data property in exported PDFs
     expect(config.attachedPDFs[0]).toEqual({ id: '1', name: 'test.pdf', size: 1024, type: 'application/pdf' });
+  });
+
+  it('includes newsletter fields in export', () => {
+    const data = makeEmailData({
+      newsletterHeading: 'Store Updates',
+      newsletterBody: '<p>Hello <strong>world</strong></p>',
+      newsletterPosition: 'bottom',
+    });
+    const config = buildExportConfig(data, [], [], null);
+    expect(config.newsletterHeading).toBe('Store Updates');
+    expect(config.newsletterBody).toBe('<p>Hello <strong>world</strong></p>');
+    expect(config.newsletterPosition).toBe('bottom');
+  });
+
+  it('includes default newsletter fields in export', () => {
+    const data = makeEmailData();
+    const config = buildExportConfig(data, [], [], null);
+    expect(config.newsletterHeading).toBe('Newsletter');
+    expect(config.newsletterBody).toBe('');
+    expect(config.newsletterPosition).toBe('top');
   });
 });
 
@@ -399,6 +419,35 @@ describe('validateImportConfig', () => {
       expect(result.config.dateRange).toBe('Dec 1 - Dec 7');
       expect(result.config.year).toBe('2025');
       expect(result.config.title).toBe('Holiday Sale');
+    }
+  });
+
+  it('defaults newsletter fields when importing config without them', () => {
+    const result = validateImportConfig({
+      promotionEntries: [],
+      specialHours: [],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.newsletterHeading).toBe('Newsletter');
+      expect(result.config.newsletterBody).toBe('');
+      expect(result.config.newsletterPosition).toBe('top');
+    }
+  });
+
+  it('restores newsletter fields from imported config', () => {
+    const result = validateImportConfig({
+      promotionEntries: [],
+      specialHours: [],
+      newsletterHeading: 'Store Updates',
+      newsletterBody: '<p>Hello <strong>world</strong></p>',
+      newsletterPosition: 'bottom',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.newsletterHeading).toBe('Store Updates');
+      expect(result.config.newsletterBody).toBe('<p>Hello <strong>world</strong></p>');
+      expect(result.config.newsletterPosition).toBe('bottom');
     }
   });
 });
@@ -623,7 +672,7 @@ describe('Config round-trip', () => {
   });
 
   it('exported config can be re-imported with same data', () => {
-    const data: PromotionEmailData = {
+    const data = makeEmailData({
       promoDateRange: 'Nov 28 - Dec 1',
       promoYear: '2025',
       promoTitle: 'Holiday Sale',
@@ -639,7 +688,7 @@ describe('Config round-trip', () => {
       importantNotesItems: [
         { id: 1, text: 'While supplies last', bold: false, italic: false, underline: false },
       ],
-    };
+    });
 
     const exported = buildExportConfig(data, [], ['Subject 1'], 'Subject 1');
     const json = JSON.parse(JSON.stringify(exported));
