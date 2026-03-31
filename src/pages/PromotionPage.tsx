@@ -175,6 +175,7 @@ function HowToShopEditor() {
         moveItemUp: store.moveHowToShopItemUp,
         moveItemDown: store.moveHowToShopItemDown,
         toggleFormat: store.toggleHowToShopFormat,
+        reorderItems: store.reorderHowToShopItems,
       }}
       placeholder="e.g., Visit us in-store for outlet-exclusive deals"
       itemLabel="Item"
@@ -198,6 +199,7 @@ function ImportantNotesEditor() {
         moveItemUp: store.moveImportantNotesItemUp,
         moveItemDown: store.moveImportantNotesItemDown,
         toggleFormat: store.toggleImportantNotesFormat,
+        reorderItems: store.reorderImportantNotesItems,
       }}
       placeholder="e.g., Important safety information or key details"
       itemLabel="Note"
@@ -843,42 +845,39 @@ export function PromotionPage() {
   );
 
   // Scroll a card into view inside the mobile card container
-  const scrollMobileCardIntoView = useCallback(
-    (cardId: string) => {
-      const container = mobileCardsContainerRef.current;
-      if (!container) return;
+  const scrollMobileCardIntoView = useCallback((cardId: string) => {
+    const container = mobileCardsContainerRef.current;
+    if (!container) return;
 
-      // Use double-rAF to wait for the card to render after forceExpand
+    // Use double-rAF to wait for the card to render after forceExpand
+    requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const cardEl = container.querySelector(
-            `[data-card-id="${cardId}"]`
-          ) as HTMLElement | null;
-          if (!cardEl) return;
+        const cardEl = container.querySelector(
+          `[data-card-id="${cardId}"]`
+        ) as HTMLElement | null;
+        if (!cardEl) return;
 
-          // Calculate scroll position relative to the scrollable container
-          const containerRect = container.getBoundingClientRect();
-          const cardRect = cardEl.getBoundingClientRect();
+        // Calculate scroll position relative to the scrollable container
+        const containerRect = container.getBoundingClientRect();
+        const cardRect = cardEl.getBoundingClientRect();
 
-          // Scroll the card to the top of the visible area with a small offset
-          const scrollOffset = cardRect.top - containerRect.top;
-          const targetTop = container.scrollTop + scrollOffset - 8;
+        // Scroll the card to the top of the visible area with a small offset
+        const scrollOffset = cardRect.top - containerRect.top;
+        const targetTop = container.scrollTop + scrollOffset - 8;
 
-          // Use scrollTo on the container directly (avoids nested scroll issues)
-          if (typeof container.scrollTo === 'function') {
-            container.scrollTo({
-              top: targetTop,
-              behavior: 'smooth',
-            });
-          } else {
-            // Fallback for jsdom/test environments
-            container.scrollTop = targetTop;
-          }
-        });
+        // Use scrollTo on the container directly (avoids nested scroll issues)
+        if (typeof container.scrollTo === 'function') {
+          container.scrollTo({
+            top: targetTop,
+            behavior: 'smooth',
+          });
+        } else {
+          // Fallback for jsdom/test environments
+          container.scrollTop = targetTop;
+        }
       });
-    },
-    []
-  );
+    });
+  }, []);
 
   // Mobile strip card click handler
   const handleMobileStripCardClick = useCallback(

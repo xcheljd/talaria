@@ -101,6 +101,7 @@ export interface PromotionState {
   ) => void;
   movePromotionEntryUp: (id: number) => void;
   movePromotionEntryDown: (id: number) => void;
+  reorderPromotionEntries: (oldIndex: number, newIndex: number) => void;
   toggleEntryCollapse: (id: number) => void;
 
   // Special hours actions
@@ -113,6 +114,7 @@ export interface PromotionState {
   ) => void;
   moveSpecialHourUp: (id: number) => void;
   moveSpecialHourDown: (id: number) => void;
+  reorderSpecialHours: (oldIndex: number, newIndex: number) => void;
 
   // How-to-shop actions
   addHowToShopItem: () => void;
@@ -120,6 +122,7 @@ export interface PromotionState {
   updateHowToShopItem: (id: number, text: string) => void;
   moveHowToShopItemUp: (id: number) => void;
   moveHowToShopItemDown: (id: number) => void;
+  reorderHowToShopItems: (oldIndex: number, newIndex: number) => void;
   toggleHowToShopFormat: (
     id: number,
     format: 'bold' | 'italic' | 'underline'
@@ -131,6 +134,7 @@ export interface PromotionState {
   updateImportantNotesItem: (id: number, text: string) => void;
   moveImportantNotesItemUp: (id: number) => void;
   moveImportantNotesItemDown: (id: number) => void;
+  reorderImportantNotesItems: (oldIndex: number, newIndex: number) => void;
   toggleImportantNotesFormat: (
     id: number,
     format: 'bold' | 'italic' | 'underline'
@@ -177,6 +181,14 @@ function generateId(): number {
 /** Reset ID counter (useful for testing) */
 export function _resetIdCounter(): void {
   _idCounter = 0;
+}
+
+function reorderItems<T>(items: T[], oldIndex: number, newIndex: number): T[] {
+  if (oldIndex === newIndex) return items;
+  const result = [...items];
+  const [removed] = result.splice(oldIndex, 1);
+  result.splice(newIndex, 0, removed);
+  return result;
 }
 
 function moveItemUp<T extends { id: number }>(items: T[], id: number): T[] {
@@ -269,6 +281,15 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       promotionEntries: moveItemDown(state.promotionEntries, id),
     })),
 
+  reorderPromotionEntries: (oldIndex: number, newIndex: number) =>
+    set((state) => ({
+      promotionEntries: reorderItems(
+        state.promotionEntries,
+        oldIndex,
+        newIndex
+      ),
+    })),
+
   toggleEntryCollapse: (id: number) =>
     set((state) => ({
       entryCollapsedStates: {
@@ -317,6 +338,11 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       specialHours: moveItemDown(state.specialHours, id),
     })),
 
+  reorderSpecialHours: (oldIndex: number, newIndex: number) =>
+    set((state) => ({
+      specialHours: reorderItems(state.specialHours, oldIndex, newIndex),
+    })),
+
   // ===== How to Shop Actions =====
 
   addHowToShopItem: () =>
@@ -353,6 +379,11 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   moveHowToShopItemDown: (id: number) =>
     set((state) => ({
       howToShopItems: moveItemDown(state.howToShopItems, id),
+    })),
+
+  reorderHowToShopItems: (oldIndex: number, newIndex: number) =>
+    set((state) => ({
+      howToShopItems: reorderItems(state.howToShopItems, oldIndex, newIndex),
     })),
 
   toggleHowToShopFormat: (
@@ -401,6 +432,15 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   moveImportantNotesItemDown: (id: number) =>
     set((state) => ({
       importantNotesItems: moveItemDown(state.importantNotesItems, id),
+    })),
+
+  reorderImportantNotesItems: (oldIndex: number, newIndex: number) =>
+    set((state) => ({
+      importantNotesItems: reorderItems(
+        state.importantNotesItems,
+        oldIndex,
+        newIndex
+      ),
     })),
 
   toggleImportantNotesFormat: (

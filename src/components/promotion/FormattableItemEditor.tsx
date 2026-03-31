@@ -3,17 +3,29 @@
  *
  * Used for both How to Shop and Important Notes sections.
  * Each item has a text input and Bold/Italic/Underline formatting toggles.
- * Supports add, remove, reorder (up/down).
+ * Supports add, remove, reorder (up/down), and drag-to-reorder via @dnd-kit.
  * All mutations go through the Zustand promotion store.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import {
   Plus,
   X,
   ChevronUp,
   ChevronDown,
-  GripVertical,
   Bold,
   Italic,
   Underline,
@@ -21,6 +33,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ClearableInput } from '@/components/ui/clearable-input';
+import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
 
 // ===== Types =====
 
@@ -38,6 +51,7 @@ export interface FormattableItemActions {
   updateItem: (id: number, text: string) => void;
   moveItemUp: (id: number) => void;
   moveItemDown: (id: number) => void;
+  reorderItems?: (oldIndex: number, newIndex: number) => void;
   toggleFormat: (id: number, format: 'bold' | 'italic' | 'underline') => void;
 }
 
@@ -101,82 +115,84 @@ function ItemRow({ item, index, total, actions, placeholder }: ItemRowProps) {
   );
 
   return (
-    <div
-      className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2"
-      data-item-id={item.id}
-      aria-label={`${item.text || `Item ${index + 1}`}`}
-    >
-      {/* Drag handle */}
-      <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground cursor-grab" />
-
-      {/* Reorder buttons */}
-      <div className="flex flex-col">
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          onClick={() => actions.moveItemUp(item.id)}
-          disabled={isFirst}
-          aria-label={`Move ${index + 1} up`}
-        >
-          <ChevronUp className="h-3 w-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          onClick={() => actions.moveItemDown(item.id)}
-          disabled={isLast}
-          aria-label={`Move ${index + 1} down`}
-        >
-          <ChevronDown className="h-3 w-3" />
-        </Button>
-      </div>
-
-      {/* Text Input */}
-      <div className="flex-1 min-w-0">
-        <ClearableInput
-          value={item.text}
-          onChange={handleTextChange}
-          placeholder={placeholder}
-          className="h-8 text-sm"
-          data-field="text"
-        />
-      </div>
-
-      {/* Format Toggle Buttons */}
-      <div className="flex items-center gap-0.5 shrink-0">
-        <FormatButton
-          active={item.bold}
-          onClick={() => actions.toggleFormat(item.id, 'bold')}
-          label="Toggle bold"
-        >
-          <Bold className="h-3 w-3" />
-        </FormatButton>
-        <FormatButton
-          active={item.italic}
-          onClick={() => actions.toggleFormat(item.id, 'italic')}
-          label="Toggle italic"
-        >
-          <Italic className="h-3 w-3" />
-        </FormatButton>
-        <FormatButton
-          active={item.underline}
-          onClick={() => actions.toggleFormat(item.id, 'underline')}
-          label="Toggle underline"
-        >
-          <Underline className="h-3 w-3" />
-        </FormatButton>
-      </div>
-
-      {/* Remove Button */}
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        onClick={() => actions.removeItem(item.id)}
-        aria-label={`Remove item ${index + 1}`}
+    <SortableItem id={item.id}>
+      <div
+        className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2"
+        data-item-id={item.id}
+        aria-label={`${item.text || `Item ${index + 1}`}`}
       >
-        <X className="h-3.5 w-3.5" />
-      </Button>
-    </div>
+        {/* Drag handle */}
+        <DragHandle className="SortableItem" />
+
+        {/* Reorder buttons */}
+        <div className="flex flex-col">
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => actions.moveItemUp(item.id)}
+            disabled={isFirst}
+            aria-label={`Move ${index + 1} up`}
+          >
+            <ChevronUp className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => actions.moveItemDown(item.id)}
+            disabled={isLast}
+            aria-label={`Move ${index + 1} down`}
+          >
+            <ChevronDown className="h-3 w-3" />
+          </Button>
+        </div>
+
+        {/* Text Input */}
+        <div className="flex-1 min-w-0">
+          <ClearableInput
+            value={item.text}
+            onChange={handleTextChange}
+            placeholder={placeholder}
+            className="h-8 text-sm"
+            data-field="text"
+          />
+        </div>
+
+        {/* Format Toggle Buttons */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <FormatButton
+            active={item.bold}
+            onClick={() => actions.toggleFormat(item.id, 'bold')}
+            label="Toggle bold"
+          >
+            <Bold className="h-3 w-3" />
+          </FormatButton>
+          <FormatButton
+            active={item.italic}
+            onClick={() => actions.toggleFormat(item.id, 'italic')}
+            label="Toggle italic"
+          >
+            <Italic className="h-3 w-3" />
+          </FormatButton>
+          <FormatButton
+            active={item.underline}
+            onClick={() => actions.toggleFormat(item.id, 'underline')}
+            label="Toggle underline"
+          >
+            <Underline className="h-3 w-3" />
+          </FormatButton>
+        </div>
+
+        {/* Remove Button */}
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={() => actions.removeItem(item.id)}
+          aria-label={`Remove item ${index + 1}`}
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </SortableItem>
   );
 }
 
@@ -192,6 +208,31 @@ export function FormattableItemEditor({
   const handleAdd = useCallback(() => {
     actions.addItem();
   }, [actions]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 5 },
+    })
+  );
+
+  const itemIds = useMemo(() => items.map((item) => item.id), [items]);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id || !actions.reorderItems) return;
+
+      const oldIndex = items.findIndex((item) => item.id === active.id);
+      const newIndex = items.findIndex((item) => item.id === over.id);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        actions.reorderItems(oldIndex, newIndex);
+      }
+    },
+    [actions, items]
+  );
 
   return (
     <div className="space-y-3">
@@ -209,18 +250,29 @@ export function FormattableItemEditor({
           {emptyMessage}
         </p>
       ) : (
-        <div className="space-y-2">
-          {items.map((item, index) => (
-            <ItemRow
-              key={item.id}
-              item={item}
-              index={index}
-              total={items.length}
-              actions={actions}
-              placeholder={placeholder}
-            />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={itemIds}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-2">
+              {items.map((item, index) => (
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  total={items.length}
+                  actions={actions}
+                  placeholder={placeholder}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );
