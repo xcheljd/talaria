@@ -3,8 +3,8 @@
  *
  * Covers:
  * 1. Desktop layout renders icon toolbar + all cards + preview
- * 2. All 8 cards always visible in desktop scrollable column
- * 3. Icon toolbar renders all 8 icon buttons
+ * 2. All 9 cards always visible in desktop scrollable column
+ * 3. Icon toolbar renders all 9 icon buttons
  * 4. Icon toolbar click force-expands and scrolls to card
  * 5. Preview panel always visible
  * 6. ResizablePanels used with correct props (orientation, minPx)
@@ -115,12 +115,13 @@ describe('PromotionPage Desktop Layout', () => {
     expect(container.querySelector('[data-testid="resizable-panels"]')).toBeInTheDocument();
   });
 
-  // 2. All 8 cards always visible in desktop scrollable column
-  it('shows all 8 cards in the desktop scrollable column', () => {
+  // 2. All 9 cards always visible in desktop scrollable column
+  it('shows all 9 cards in the desktop scrollable column', () => {
     renderPromotionPage();
 
     const allCardTitles = [
       'Basic Details',
+      'Newsletter',
       'Discount Entries',
       'How to Shop',
       'Important Notes',
@@ -137,12 +138,13 @@ describe('PromotionPage Desktop Layout', () => {
     }
   });
 
-  // 3. Icon toolbar renders all 8 icon buttons
-  it('renders all 8 icon buttons in the icon toolbar', () => {
+  // 3. Icon toolbar renders all 9 icon buttons
+  it('renders all 9 icon buttons in the icon toolbar', () => {
     const { container } = renderPromotionPage();
 
     const expectedCardIds = [
       'basicDetailsCard',
+      'newsletterCard',
       'discountEntriesCard',
       'howToShopCard',
       'importantNotesCard',

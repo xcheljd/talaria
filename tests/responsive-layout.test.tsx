@@ -3,8 +3,8 @@
  *
  * Covers:
  * 1. Mobile layout renders IconToolbar at top
- * 2. IconToolbar shows all 8 card icons
- * 3. All 8 cards visible in scrollable list
+ * 2. IconToolbar shows all 9 card icons
+ * 3. All 9 cards visible in scrollable list
  * 4. Preview at bottom with horizontal ResizablePanels
  * 5. Tapping toolbar icon sets forceExpandedCardId and scrolls
  * 6. No vertical sidebar rendered on mobile
@@ -210,12 +210,13 @@ describe('PromotionPage Mobile Layout', () => {
     expect(toolbars.length).toBe(1);
   });
 
-  // 2. IconToolbar shows all 8 card icons
-  it('renders all 8 card icons in the mobile IconToolbar', () => {
+  // 2. IconToolbar shows all 9 card icons
+  it('renders all 9 card icons in the mobile IconToolbar', () => {
     const { container } = renderPromotionPage();
 
     const allCardIds = [
       'basicDetailsCard',
+      'newsletterCard',
       'discountEntriesCard',
       'howToShopCard',
       'importantNotesCard',
@@ -236,12 +237,13 @@ describe('PromotionPage Mobile Layout', () => {
     }
   });
 
-  // 3. All 8 cards visible in scrollable list
-  it('renders all 8 cards in the card list area', () => {
+  // 3. All 9 cards visible in scrollable list
+  it('renders all 9 cards in the card list area', () => {
     const { container } = renderPromotionPage();
 
     const allCardIds = [
       'basicDetailsCard',
+      'newsletterCard',
       'discountEntriesCard',
       'howToShopCard',
       'importantNotesCard',
@@ -367,7 +369,7 @@ describe('PromotionPage Mobile Layout', () => {
     const toolbarIcons = mobileContainer!.querySelectorAll(
       '[data-testid^="toolbar-icon-"]'
     );
-    expect(toolbarIcons.length).toBe(8);
+    expect(toolbarIcons.length).toBe(9);
 
     for (const btn of toolbarIcons) {
       expect(btn).toHaveAttribute('aria-label');
@@ -413,7 +415,7 @@ describe('PromotionPage Mobile Layout', () => {
     const toolbarIcons = mobileContainer!.querySelectorAll(
       '[data-testid^="toolbar-icon-"]'
     );
-    expect(toolbarIcons.length).toBe(8);
+    expect(toolbarIcons.length).toBe(9);
 
     for (const btn of toolbarIcons) {
       // Each button should have aria-pressed attribute

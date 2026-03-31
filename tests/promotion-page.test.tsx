@@ -4,7 +4,7 @@
  * Tests cover:
  * - Profile redirect when no profile saved
  * - Layout renders correctly with all cards
- * - All 8 collapsible cards render with correct titles
+ * - All 9 collapsible cards render with correct titles
  * - Cards collapse/expand with animation
  * - Status dots show empty/filled state
  * - SidebarBar component unit tests (legacy mode)
@@ -381,11 +381,12 @@ describe('PromotionPage', () => {
     expect(previews.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders all 8 collapsible card titles', () => {
+  it('renders all 9 collapsible card titles', () => {
     renderPromotionPage({ profile: true });
 
     const expectedTitles = [
       'Basic Details',
+      'Newsletter',
       'Discount Entries',
       'How to Shop',
       'Important Notes',
@@ -442,8 +443,8 @@ describe('PromotionPage', () => {
     const { container } = renderPromotionPage({ profile: true });
     // All cards should have empty status dots by default
     const emptyDots = container.querySelectorAll('[data-status="empty"]');
-    // 8 cards × 2 (desktop + mobile) = 16 empty dots
-    expect(emptyDots.length).toBeGreaterThanOrEqual(8);
+    // 9 cards × 2 (desktop + mobile) = 18 empty dots
+    expect(emptyDots.length).toBeGreaterThanOrEqual(9);
   });
 
   it('shows filled status dots when store has data', () => {
@@ -505,7 +506,7 @@ describe('PromotionPage', () => {
     expect(mobileDiv).toBeInTheDocument();
   });
 
-  it('renders all 8 cards in desktop and mobile layouts', () => {
+  it('renders all 9 cards in desktop and mobile layouts', () => {
     renderPromotionPage({ profile: true });
     // All cards should be visible in desktop layout
     const basicDetails = screen.getAllByText('Basic Details');

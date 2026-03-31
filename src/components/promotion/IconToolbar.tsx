@@ -18,6 +18,7 @@ import {
   Paperclip,
   MessageSquare,
   Mail,
+  Newspaper,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -35,6 +36,11 @@ const CARD_ICONS: Record<string, CardIconConfig> = {
     icon: FileText,
     label: 'Details',
     tooltip: 'Basic Details',
+  },
+  newsletterCard: {
+    icon: Newspaper,
+    label: 'Newsletter',
+    tooltip: 'Newsletter',
   },
   discountEntriesCard: {
     icon: Percent,
@@ -64,6 +70,7 @@ const CARD_ICONS: Record<string, CardIconConfig> = {
 /** Ordered list of card IDs to render in the toolbar */
 const TOOLBAR_CARD_ORDER = [
   'basicDetailsCard',
+  'newsletterCard',
   'discountEntriesCard',
   'howToShopCard',
   'importantNotesCard',

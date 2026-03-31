@@ -11,6 +11,7 @@
 
 import { useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
+import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
@@ -118,6 +119,38 @@ function ColorInput({ label, color, onChange, children }: ColorInputProps) {
   );
 }
 
+// ===== XSS Sanitization Extension =====
+
+/** TipTap extension that strips dangerous HTML from pasted content. */
+const SanitizePasteExtension = Extension.create({
+  name: 'sanitizePaste',
+  priority: 110,
+
+  transformPastedHTML(html) {
+    let cleanHtml = html;
+
+    // Remove script tags and their contents
+    cleanHtml = cleanHtml.replace(
+      /<script\b[^<]*(?:(?!<\/script>)[^<]*)*<\/script>/gi,
+      ''
+    );
+
+    // Remove event handler attributes (onclick, onerror, onload, etc.)
+    cleanHtml = cleanHtml.replace(
+      /\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi,
+      ''
+    );
+
+    // Remove javascript: protocol from href attributes
+    cleanHtml = cleanHtml.replace(
+      /href\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*'|javascript:[^\s>]*)/gi,
+      'href="#"'
+    );
+
+    return cleanHtml;
+  },
+});
+
 // ===== Main Component =====
 
 export function NewsletterEditor() {
@@ -126,6 +159,7 @@ export function NewsletterEditor() {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
+      SanitizePasteExtension,
       StarterKit.configure({
         heading: { levels: [2, 3] },
       }),

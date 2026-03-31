@@ -47,6 +47,7 @@ import { SpecialHoursEditor } from '@/components/promotion/SpecialHoursEditor';
 import { PDFAttachments } from '@/components/promotion/PDFAttachments';
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
 import { BulkEmailTools } from '@/components/promotion/BulkEmailTools';
+import { NewsletterEditor } from '@/components/promotion/NewsletterEditor';
 import {
   generatePromotionEmailHTML,
   buildExportConfig,
@@ -84,6 +85,11 @@ interface CardConfig {
 const CARD_CONFIGS: CardConfig[] = [
   { id: 'basicDetailsCard', title: 'Basic Details', defaultCollapsed: false },
   {
+    id: 'newsletterCard',
+    title: 'Newsletter',
+    defaultCollapsed: true,
+  },
+  {
     id: 'discountEntriesCard',
     title: 'Discount Entries',
     defaultCollapsed: false,
@@ -107,6 +113,8 @@ function getCardContent(cardId: string) {
   switch (cardId) {
     case 'basicDetailsCard':
       return <BasicDetailsEditor />;
+    case 'newsletterCard':
+      return <NewsletterEditor />;
     case 'discountEntriesCard':
       return <DiscountEntriesEditor />;
     case 'howToShopCard':
@@ -196,6 +204,12 @@ function getCardHasContent(
         store.howToShopItems.length > 0 ||
         store.importantNotesItems.length > 0
       );
+    case 'newsletterCard':
+      return (
+        store.newsletterBody.trim() !== '' ||
+        (store.newsletterHeading.trim() !== '' &&
+          store.newsletterHeading.trim() !== 'Newsletter')
+      );
     case 'discountEntriesCard':
       return store.promotionEntries.some(
         (e) => e.line?.trim() || e.collections?.trim() || e.callout?.trim()
@@ -244,6 +258,8 @@ function PromotionCard({
       store.attachedPDFs,
       store.selectedSubjectLine,
       store.generatedSubjectLines,
+      store.newsletterBody,
+      store.newsletterHeading,
     ]
   );
 
@@ -663,6 +679,9 @@ function useAutoSave() {
     store.attachedPDFs,
     store.generatedSubjectLines,
     store.selectedSubjectLine,
+    store.newsletterHeading,
+    store.newsletterBody,
+    store.newsletterPosition,
     store.saveToIndexedDB,
   ]);
 }
