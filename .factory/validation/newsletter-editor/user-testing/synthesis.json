@@ -4,9 +4,9 @@
   "status": "fail",
   "assertionsSummary": {
     "total": 46,
-    "passed": 34,
+    "passed": 35,
     "failed": 0,
-    "blocked": 12
+    "blocked": 11
   },
   "passedAssertions": [
     "VAL-NEWS-001",
@@ -61,5 +61,5 @@
   ],
   "appliedUpdates": [],
   "previousRound": null,
-  "notes": "All 12 blocked assertions belong to the newsletter-email-integration feature which is in the newsletter-email milestone (not newsletter-editor). The newsletter-editor milestone's own features (tiptap-install-and-store, newsletter-editor-component, newsletter-card-integration) all pass. The VAL-EMAIL-007 and VAL-EMAIL-008 assertions (JSON export/import) pass because the store-level newsletter fields were implemented in the newsletter-editor milestone. The remaining VAL-EMAIL and VAL-CROSS assertions that depend on email HTML rendering are blocked until the newsletter-email milestone is implemented."
+  "notes": "All 11 blocked assertions belong to the newsletter-email-integration feature which is in the newsletter-email milestone (not newsletter-editor). The newsletter-editor milestone's own features (tiptap-install-and-store, newsletter-editor-component, newsletter-card-integration) all pass. The VAL-EMAIL-007 and VAL-EMAIL-008 assertions (JSON export/import) pass because the store-level newsletter fields were implemented in the newsletter-editor milestone. The remaining VAL-EMAIL and VAL-CROSS assertions that depend on email HTML rendering are blocked until the newsletter-email milestone is implemented."
 }
