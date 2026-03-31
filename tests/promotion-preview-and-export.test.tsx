@@ -80,7 +80,7 @@ function resetStore() {
     selectedSubjectLine: null,
     subjectLineManuallyEdited: false,
     entryCollapsedStates: {},
-    columnState: 'left-expanded',
+    columnState: 'left',
     isInitializing: false,
   });
 }
@@ -434,13 +434,13 @@ describe('PromotionPage Preview and Export', () => {
 
   it('renders Import Config button', () => {
     renderPromotionPage();
-    const buttons = screen.getAllByRole('button', { name: /import config/i });
+    const buttons = screen.getAllByRole('button', { name: /^import$/i });
     expect(buttons.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders Export Config button', () => {
     renderPromotionPage();
-    const buttons = screen.getAllByRole('button', { name: /export config/i });
+    const buttons = screen.getAllByRole('button', { name: /^export$/i });
     expect(buttons.length).toBeGreaterThanOrEqual(1);
   });
 

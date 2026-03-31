@@ -64,7 +64,7 @@ describe('promotion store', () => {
       expect(state.selectedSubjectLine).toBeNull();
       expect(state.subjectLineManuallyEdited).toBe(false);
       expect(state.entryCollapsedStates).toEqual({});
-      expect(state.columnState).toBe('left-expanded');
+      expect(state.columnState).toBe('left');
     });
 
     it('isInitializing defaults to true on store creation', () => {
@@ -711,23 +711,23 @@ describe('promotion store', () => {
   // ===== Column State =====
 
   describe('column state', () => {
-    it('starts with left-expanded', () => {
-      expect(getFreshStore().columnState).toBe('left-expanded');
+    it('starts with left', () => {
+      expect(getFreshStore().columnState).toBe('left');
     });
 
-    it('sets column state to center-expanded', () => {
+    it('sets column state to center', () => {
       const store = getFreshStore();
-      store.setColumnState('center-expanded');
+      store.setColumnState('center');
 
-      expect(getFreshStore().columnState).toBe('center-expanded');
+      expect(getFreshStore().columnState).toBe('center');
     });
 
-    it('sets column state back to left-expanded', () => {
+    it('sets column state back to left', () => {
       const store = getFreshStore();
-      store.setColumnState('center-expanded');
-      store.setColumnState('left-expanded');
+      store.setColumnState('center');
+      store.setColumnState('left');
 
-      expect(getFreshStore().columnState).toBe('left-expanded');
+      expect(getFreshStore().columnState).toBe('left');
     });
   });
 
@@ -927,7 +927,7 @@ describe('promotion store', () => {
       store.setGeneratedSubjectLines(['Line 1']);
       store.setSelectedSubjectLine('Line 1');
       store.setSubjectLineManuallyEdited(true);
-      store.setColumnState('center-expanded');
+      store.setColumnState('center');
       store.toggleEntryCollapse(getFreshStore().promotionEntries[0].id);
 
       // Reset
@@ -943,7 +943,7 @@ describe('promotion store', () => {
       expect(state.selectedSubjectLine).toBeNull();
       expect(state.subjectLineManuallyEdited).toBe(false);
       expect(state.entryCollapsedStates).toEqual({});
-      expect(state.columnState).toBe('left-expanded');
+      expect(state.columnState).toBe('left');
       expect(state.isInitializing).toBe(false);
     });
   });

@@ -67,7 +67,7 @@ function resetStore() {
     selectedSubjectLine: null,
     subjectLineManuallyEdited: false,
     entryCollapsedStates: {},
-    columnState: 'left-expanded',
+    columnState: 'left',
     isInitializing: false,
   });
 }
@@ -466,7 +466,7 @@ describe('PromotionPage', () => {
     expect(mobileDiv).toBeInTheDocument();
   });
 
-  it('initializes with left-expanded column state', () => {
+  it('initializes with left column state', () => {
     renderPromotionPage({ profile: true });
     // Left column should be visible in desktop layout
     const basicDetails = screen.getAllByText('Basic Details');

@@ -784,8 +784,8 @@ export function PromotionPage() {
   useAutoSave();
 
   // Column visibility based on store state
-  const leftExpanded = store.columnState === 'left-expanded';
-  const centerExpanded = store.columnState === 'center-expanded';
+  const isLeftActive = store.columnState === 'left';
+  const isCenterActive = store.columnState === 'center';
 
   // Sidebar bar data
   const leftSidebarCards = useSidebarCards('left');
@@ -794,7 +794,7 @@ export function PromotionPage() {
   // Column toggle handlers — accept optional cardId for sidebar card click
   const handleExpandLeft = useCallback(
     (cardId?: string) => {
-      store.setColumnState('left-expanded');
+      store.setColumnState('left');
       setForceExpandedCardId(cardId);
 
       if (cardId) {
@@ -812,7 +812,7 @@ export function PromotionPage() {
 
   const handleExpandCenter = useCallback(
     (cardId?: string) => {
-      store.setColumnState('center-expanded');
+      store.setColumnState('center');
       setForceExpandedCardId(cardId);
 
       if (cardId) {
@@ -837,7 +837,7 @@ export function PromotionPage() {
       {/* ===== Desktop Layout (>=1024px): Three columns with sidebar ===== */}
       <div className="hidden lg:flex h-[calc(100vh-3.5rem)] overflow-hidden">
         {/* Sidebar — always on far left, shows collapsed column's cards */}
-        {!leftExpanded && (
+        {!isLeftActive && (
           <SidebarBar
             cards={leftSidebarCards}
             isExpanded={false}
@@ -845,7 +845,7 @@ export function PromotionPage() {
             ariaLabel="Expand Promo Body Details"
           />
         )}
-        {!centerExpanded && (
+        {!isCenterActive && (
           <SidebarBar
             cards={centerSidebarCards}
             isExpanded={false}
@@ -858,12 +858,12 @@ export function PromotionPage() {
         <div
           className={cn(
             'flex-shrink-0 overflow-y-auto border-r transition-all duration-300',
-            leftExpanded ? 'w-[40%] min-w-0' : 'w-0 overflow-hidden'
+            isLeftActive ? 'w-[40%] min-w-0' : 'w-0 overflow-hidden'
           )}
         >
           <ColumnCards
             column="left"
-            forceExpandedCardId={leftExpanded ? forceExpandedCardId : undefined}
+            forceExpandedCardId={isLeftActive ? forceExpandedCardId : undefined}
           />
         </div>
 
@@ -871,13 +871,13 @@ export function PromotionPage() {
         <div
           className={cn(
             'flex-shrink-0 overflow-y-auto border-r transition-all duration-300',
-            centerExpanded ? 'w-[30%] min-w-0' : 'w-0 overflow-hidden'
+            isCenterActive ? 'w-[30%] min-w-0' : 'w-0 overflow-hidden'
           )}
         >
           <ColumnCards
             column="center"
             forceExpandedCardId={
-              centerExpanded ? forceExpandedCardId : undefined
+              isCenterActive ? forceExpandedCardId : undefined
             }
           />
         </div>

@@ -71,7 +71,7 @@ function resetStore() {
     selectedSubjectLine: null,
     subjectLineManuallyEdited: false,
     entryCollapsedStates: {},
-    columnState: 'left-expanded',
+    columnState: 'left',
     isInitializing: false,
   });
 }

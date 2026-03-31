@@ -56,7 +56,7 @@ export interface SubjectLine {
   text: string;
 }
 
-export type ColumnState = 'left-expanded' | 'center-expanded';
+export type ColumnState = 'left' | 'center';
 
 /** Serialized state for IndexedDB persistence */
 export interface PromotionPersistedState {
@@ -225,7 +225,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   ...getEmptyState(),
   subjectLineManuallyEdited: false,
   entryCollapsedStates: {},
-  columnState: 'left-expanded' as ColumnState,
+  columnState: 'left' as ColumnState,
   isInitializing: true,
 
   // ===== Promotion Entry Actions =====
@@ -676,7 +676,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       ...getEmptyState(),
       subjectLineManuallyEdited: false,
       entryCollapsedStates: {},
-      columnState: 'left-expanded' as ColumnState,
+      columnState: 'left' as ColumnState,
       isInitializing: false,
     }),
 }));
