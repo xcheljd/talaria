@@ -2,14 +2,13 @@
  * Tests for PromotionPage mobile responsive layout (<1024px).
  *
  * Covers:
- * 1. Mobile layout renders two horizontal strips at top
- * 2. First strip shows left-column card titles with status dots
- * 3. Second strip shows center-column card titles with status dots
- * 4. All 8 cards visible in scrollable list
- * 5. Preview at bottom with horizontal ResizablePanels
- * 6. Tapping strip card title sets forceExpandedCardId
- * 7. No vertical sidebar rendered on mobile
- * 8. Min heights enforced on panels (via minPx prop)
+ * 1. Mobile layout renders IconToolbar at top
+ * 2. IconToolbar shows all 8 card icons
+ * 3. All 8 cards visible in scrollable list
+ * 4. Preview at bottom with horizontal ResizablePanels
+ * 5. Tapping toolbar icon sets forceExpandedCardId and scrolls
+ * 6. No vertical sidebar rendered on mobile
+ * 7. Min heights enforced on panels (via minPx prop)
  */
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
@@ -35,6 +34,14 @@ beforeAll(() => {
       unobserve() {}
       disconnect() {}
     } as unknown as typeof globalThis.ResizeObserver;
+  }
+  if (typeof globalThis.IntersectionObserver === 'undefined') {
+    globalThis.IntersectionObserver = class IntersectionObserver {
+      constructor() {}
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof globalThis.IntersectionObserver;
   }
   if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = vi.fn();
@@ -192,59 +199,44 @@ describe('PromotionPage Mobile Layout', () => {
     localStorage.clear();
   });
 
-  // 1. Mobile layout renders two horizontal strips at top
-  it('renders two horizontal strips at the top', () => {
+  // 1. Mobile layout renders IconToolbar at top
+  it('renders an IconToolbar in the mobile layout', () => {
     const { container } = renderPromotionPage();
 
-    const strips = container.querySelectorAll('[data-testid="horizontal-strip"]');
-    expect(strips.length).toBe(2);
+    const mobileContainer = container.querySelector('.lg\\:hidden');
+    expect(mobileContainer).toBeInTheDocument();
+
+    const toolbars = mobileContainer!.querySelectorAll('[data-testid="icon-toolbar"]');
+    expect(toolbars.length).toBe(1);
   });
 
-  // 2. First strip shows left-column card titles with status dots
-  it('renders left-column card titles in first strip', () => {
+  // 2. IconToolbar shows all 8 card icons
+  it('renders all 8 card icons in the mobile IconToolbar', () => {
     const { container } = renderPromotionPage();
 
-    // First strip should be "Promo Body"
-    const stripLabels = container.querySelectorAll('[data-testid="strip-label"]');
-    expect(stripLabels[0]).toHaveTextContent('Promo Body');
-
-    // Left column cards: Basic Details, Discount Entries, How to Shop, Important Notes, Special Hours
-    const leftCardIds = [
+    const allCardIds = [
       'basicDetailsCard',
       'discountEntriesCard',
       'howToShopCard',
       'importantNotesCard',
       'specialHoursCard',
+      'pdfCard',
+      'subjectCard',
+      'bulkEmailCard',
     ];
 
-    for (const cardId of leftCardIds) {
-      const stripCard = container.querySelector(
-        `[data-testid="strip-card-${cardId}"]`
+    const mobileContainer = container.querySelector('.lg\\:hidden');
+    expect(mobileContainer).toBeInTheDocument();
+
+    for (const cardId of allCardIds) {
+      const icon = mobileContainer!.querySelector(
+        `[data-testid="toolbar-icon-${cardId}"]`
       );
-      expect(stripCard).toBeInTheDocument();
+      expect(icon).toBeInTheDocument();
     }
   });
 
-  // 3. Second strip shows center-column card titles with status dots
-  it('renders center-column card titles in second strip', () => {
-    const { container } = renderPromotionPage();
-
-    // Second strip should be "Email Tools"
-    const stripLabels = container.querySelectorAll('[data-testid="strip-label"]');
-    expect(stripLabels[1]).toHaveTextContent('Email Tools');
-
-    // Center column cards: PDF Attachments, Subject Lines, Bulk Email Tools
-    const centerCardIds = ['pdfCard', 'subjectCard', 'bulkEmailCard'];
-
-    for (const cardId of centerCardIds) {
-      const stripCard = container.querySelector(
-        `[data-testid="strip-card-${cardId}"]`
-      );
-      expect(stripCard).toBeInTheDocument();
-    }
-  });
-
-  // 4. All 8 cards visible in scrollable list
+  // 3. All 8 cards visible in scrollable list
   it('renders all 8 cards in the card list area', () => {
     const { container } = renderPromotionPage();
 
@@ -269,7 +261,7 @@ describe('PromotionPage Mobile Layout', () => {
     }
   });
 
-  // 5. Preview at bottom with horizontal ResizablePanels
+  // 4. Preview at bottom with horizontal ResizablePanels
   it('renders preview panel with horizontal ResizablePanels on mobile', () => {
     const { container } = renderPromotionPage();
 
@@ -291,61 +283,54 @@ describe('PromotionPage Mobile Layout', () => {
     expect(previews.length).toBeGreaterThanOrEqual(1);
   });
 
-  // 6. Tapping strip card title sets forceExpandedCardId and scrolls
-  it('force-expands card when strip title is tapped', async () => {
+  // 5. Tapping toolbar icon sets forceExpandedCardId and scrolls
+  it('force-expands card when toolbar icon is clicked', async () => {
     const scrollSpy = vi.fn();
-    const originalScrollTo = HTMLElement.prototype.scrollTo;
-    HTMLElement.prototype.scrollTo = scrollSpy;
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrollSpy;
 
     try {
       const user = userEvent.setup();
       const { container } = renderPromotionPage();
 
-      // Tap "How to Shop" in the first strip
-      const howToShopStripBtn = container.querySelector(
-        '[data-testid="strip-card-howToShopCard"]'
+      // Click "How to Shop" toolbar icon
+      const howToShopIcon = container.querySelector(
+        '[data-testid="toolbar-icon-howToShopCard"]'
       );
-      expect(howToShopStripBtn).toBeInTheDocument();
+      expect(howToShopIcon).toBeInTheDocument();
 
-      await user.click(howToShopStripBtn!);
+      await user.click(howToShopIcon!);
 
-      // scrollTo should have been called after the double rAF
+      // scrollIntoView should have been called after the double rAF
       await act(async () => {
         await new Promise((r) => setTimeout(r, 50));
       });
 
       expect(scrollSpy).toHaveBeenCalled();
     } finally {
-      HTMLElement.prototype.scrollTo = originalScrollTo;
+      Element.prototype.scrollIntoView = originalScrollIntoView;
     }
   });
 
-  // 7. No vertical sidebar rendered on mobile
-  it('does not render the vertical desktop sidebar in the mobile section', () => {
+  // 6. Mobile section renders its own IconToolbar (separate from desktop)
+  it('renders an IconToolbar in the mobile section', () => {
     const { container } = renderPromotionPage();
 
-    // The desktop sidebar has data-testid="desktop-sidebar" and class "hidden lg:flex"
-    // It's hidden on mobile via Tailwind's hidden lg:flex
-    const desktopSidebars = container.querySelectorAll(
-      '[data-testid="desktop-sidebar"]'
+    // Desktop layout uses hidden lg:flex
+    const desktopContainers = container.querySelectorAll(
+      '[class*="hidden"][class*="lg:flex"]'
     );
-    // The sidebar exists in the DOM but is hidden via CSS (hidden lg:flex)
-    for (const sidebar of desktopSidebars) {
-      expect(sidebar.className).toContain('hidden');
-      expect(sidebar.className).toContain('lg:flex');
-    }
+    expect(desktopContainers.length).toBeGreaterThanOrEqual(1);
 
-    // Verify no mobile sidebar strip exists (i.e., no column toggle)
-    // The mobile layout should NOT have a columnState toggle
+    // Mobile container should contain its own icon toolbar
     const mobileContainer = container.querySelector('.lg\\:hidden');
     expect(mobileContainer).toBeInTheDocument();
-    // Mobile container should NOT contain desktop sidebar testid
     expect(
-      mobileContainer?.querySelector('[data-testid="desktop-sidebar"]')
-    ).toBeNull();
+      mobileContainer?.querySelector('[data-testid="icon-toolbar"]')
+    ).toBeInTheDocument();
   });
 
-  // 8. Min heights enforced on panels (via minPx prop)
+  // 7. Min heights enforced on panels (via minPx prop)
   it('passes minPx constraints to mobile ResizablePanels', () => {
     const { container } = renderPromotionPage();
 
@@ -372,16 +357,19 @@ describe('PromotionPage Mobile Layout', () => {
     expect(secondPanels.length).toBeGreaterThanOrEqual(2);
   });
 
-  // Additional: Strip buttons have proper aria labels
-  it('has accessible aria-labels on strip buttons', () => {
+  // Additional: Toolbar icons have proper aria labels
+  it('has accessible aria-labels on toolbar icons', () => {
     const { container } = renderPromotionPage();
 
-    const stripButtons = container.querySelectorAll(
-      '[data-testid^="strip-card-"]'
-    );
-    expect(stripButtons.length).toBe(8); // 5 left + 3 center
+    const mobileContainer = container.querySelector('.lg\\:hidden');
+    expect(mobileContainer).toBeInTheDocument();
 
-    for (const btn of stripButtons) {
+    const toolbarIcons = mobileContainer!.querySelectorAll(
+      '[data-testid^="toolbar-icon-"]'
+    );
+    expect(toolbarIcons.length).toBe(8);
+
+    for (const btn of toolbarIcons) {
       expect(btn).toHaveAttribute('aria-label');
       expect(btn.getAttribute('aria-label')).toMatch(/^Jump to /);
     }
@@ -390,18 +378,18 @@ describe('PromotionPage Mobile Layout', () => {
   // Additional: Cards in mobile layout respect forceExpand
   it('cards in mobile layout receive forceExpand prop correctly', async () => {
     const scrollSpy = vi.fn();
-    const originalScrollTo = HTMLElement.prototype.scrollTo;
-    HTMLElement.prototype.scrollTo = scrollSpy;
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrollSpy;
 
     try {
       const user = userEvent.setup();
       const { container } = renderPromotionPage();
 
-      // Click a card title in the strip
-      const basicDetailsBtn = container.querySelector(
-        '[data-testid="strip-card-basicDetailsCard"]'
+      // Click a toolbar icon
+      const basicDetailsIcon = container.querySelector(
+        '[data-testid="toolbar-icon-basicDetailsCard"]'
       );
-      await user.click(basicDetailsBtn!);
+      await user.click(basicDetailsIcon!);
 
       // Wait for rAF callbacks
       await act(async () => {
@@ -411,79 +399,44 @@ describe('PromotionPage Mobile Layout', () => {
       // The card should be force-expanded and scrolled to
       expect(scrollSpy).toHaveBeenCalled();
     } finally {
-      HTMLElement.prototype.scrollTo = originalScrollTo;
+      Element.prototype.scrollIntoView = originalScrollIntoView;
     }
   });
 
-  // Additional: Both strips have distinct labels
-  it('renders distinct labels for each strip', () => {
+  // Additional: Toolbar icons have proper pressed state when active
+  it('toolbar icons use aria-pressed for active state', () => {
     const { container } = renderPromotionPage();
 
-    const stripLabels = container.querySelectorAll('[data-testid="strip-label"]');
-    expect(stripLabels.length).toBe(2);
-    expect(stripLabels[0]).toHaveTextContent('Promo Body');
-    expect(stripLabels[1]).toHaveTextContent('Email Tools');
+    const mobileContainer = container.querySelector('.lg\\:hidden');
+    expect(mobileContainer).toBeInTheDocument();
+
+    const toolbarIcons = mobileContainer!.querySelectorAll(
+      '[data-testid^="toolbar-icon-"]'
+    );
+    expect(toolbarIcons.length).toBe(8);
+
+    for (const btn of toolbarIcons) {
+      // Each button should have aria-pressed attribute
+      expect(btn).toHaveAttribute('aria-pressed');
+    }
   });
 
-  // Additional: Status dots reflect card content state
-  it('shows correct status dots based on store content', () => {
-    // Set up profile and store BEFORE rendering
-    localStorage.setItem('userProfile', JSON.stringify(MOCK_PROFILE));
-    resetStore();
-
-    // Add some content to the store BEFORE render
-    act(() => {
-      usePromotionStore.setState({
-        promotionEntries: [
-          { id: 1, line: 'Test Promo', collections: '', callout: '' },
-        ],
-        attachedPDFs: [{ id: '1', name: 'test.pdf', size: 100, type: 'application/pdf' }],
-      });
-    });
-
-    const { container } = render(
-      <ThemeProvider>
-        <ProfileProvider>
-          <MemoryRouter>
-            <PromotionPage />
-          </MemoryRouter>
-        </ProfileProvider>
-      </ThemeProvider>
-    );
-
-    // Check that basicDetailsCard strip button has filled status (it has content via promotionEntries)
-    const basicDetailsBtn = container.querySelector(
-      '[data-testid="strip-card-basicDetailsCard"]'
-    );
-    expect(basicDetailsBtn).toBeInTheDocument();
-    const basicDetailsDot = basicDetailsBtn?.querySelector('[data-status]');
-    expect(basicDetailsDot).toHaveAttribute('data-status', 'filled');
-
-    // pdfCard should also be filled
-    const pdfBtn = container.querySelector(
-      '[data-testid="strip-card-pdfCard"]'
-    );
-    expect(pdfBtn).toBeInTheDocument();
-    const pdfDot = pdfBtn?.querySelector('[data-status]');
-    expect(pdfDot).toHaveAttribute('data-status', 'filled');
-  });
-
-  // Re-click bug fix: clicking the same strip card twice re-expands a collapsed card
-  it('re-expands a collapsed card when clicking the same strip card title twice', async () => {
-    const originalScrollTo = HTMLElement.prototype.scrollTo;
-    HTMLElement.prototype.scrollTo = vi.fn();
+  // Re-click bug fix: clicking the same toolbar icon twice re-expands a collapsed card
+  it('re-expands a collapsed card when clicking the same toolbar icon twice', async () => {
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = vi.fn();
 
     try {
       const user = userEvent.setup();
       const { container } = renderPromotionPage();
 
-      // Click "How to Shop" strip button to force-expand it
-      const howToShopStripBtn = container.querySelector(
-        '[data-testid="strip-card-howToShopCard"]'
+      // Click "How to Shop" toolbar icon to force-expand it
+      const howToShopIcon = container.querySelector(
+        '[data-testid="toolbar-icon-howToShopCard"]'
       );
-      expect(howToShopStripBtn).toBeInTheDocument();
+      expect(howToShopIcon).toBeInTheDocument();
 
-      await user.click(howToShopStripBtn!);
+      await user.click(howToShopIcon!);
 
       await act(async () => {
         await new Promise((r) => setTimeout(r, 50));
@@ -508,8 +461,8 @@ describe('PromotionPage Mobile Layout', () => {
       const expandBtn = mobileCard.querySelector('[aria-label="Expand How to Shop"]');
       expect(expandBtn).toBeInTheDocument();
 
-      // Click the same strip card again — should re-expand
-      await user.click(howToShopStripBtn!);
+      // Click the same toolbar icon again — should re-expand
+      await user.click(howToShopIcon!);
 
       // Flush the requestAnimationFrame that resets then re-sets forceExpandedCardId
       await act(async () => {
@@ -520,7 +473,7 @@ describe('PromotionPage Mobile Layout', () => {
       const collapseBtnAfter = mobileCard.querySelector('[aria-label="Collapse How to Shop"]');
       expect(collapseBtnAfter).toBeInTheDocument();
     } finally {
-      HTMLElement.prototype.scrollTo = originalScrollTo;
+      Element.prototype.scrollIntoView = originalScrollIntoView;
     }
   });
 });

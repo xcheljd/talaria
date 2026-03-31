@@ -1,6 +1,6 @@
 # User Testing
 
-Testing surface and validation infrastructure for the Promotion Page Layout Refactor mission.
+Testing surface and validation infrastructure for the Newsletter Card with TipTap mission.
 
 ## Validation Surface
 
@@ -14,27 +14,35 @@ Testing surface and validation infrastructure for the Promotion Page Layout Refa
 
 **Profile seeding required** — inject via localStorage before navigating:
 ```js
-localStorage.setItem("userProfile", JSON.stringify({name:"T",companyEmail:"t@c.com",storeName:"S",storeLocation:"L",storeAddress:"A",plusCode:"P",phone:"1",storeEmail:"s@c.com",storeHours:"H",storeDirections:"D"}));
+localStorage.setItem("userProfile", JSON.stringify({firstName:"Test",lastName:"User",email:"t@t.com",storeNumber:"1",storeName:"S",jobTitle:"Manager",companyEmail:"s@t.com",phone:"555-1234"}));
 ```
 
 **Playwright setup:**
 - Chromium path: `/home/x/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome`
 - Environment: `PLAYWRIGHT_BROWSERS_PATH=/home/x/.cache/ms-playwright`
-- Use `{ force: true }` on clicks when layout elements overlap in multi-column views
 - Dev server must be running: `npm run dev` (port 8080)
 
-**Machine resources:** 7.7GB RAM, 8 CPU cores
+## Newsletter Card Testing Specifics
+
+- TipTap editor requires real DOM (jsdom sufficient for component tests)
+- Newsletter card: `data-card-id="newsletterCard"`
+- Icon toolbar newsletter button: `data-testid="toolbar-icon-newsletterCard"`
+- Editor toolbar buttons are standard HTML buttons within the TipTap toolbar
+- Email preview updates reactively via useMemo
 
 ## Validation Concurrency
 
 **Max concurrent validators: 3**
-
-Rationale: Each agent-browser instance uses ~300MB + dev server ~200MB = ~1.1GB for 3 validators. Available headroom ~5GB (7.7GB total - ~2.7GB baseline). Using 70% = 3.5GB. 3 validators at ~1.1GB = 3.3GB, within budget.
+- Each agent-browser instance: ~300MB RAM
+- Dev server: ~200MB RAM
+- Machine: 7.7GB RAM, 8 cores
+- Usable headroom: ~5GB * 0.7 = ~3.5GB
+- 3 validators = ~1.1GB (fits)
 
 ## Notes
 
-- The app redirects to /start if no profile exists — always seed profile data before testing
-- The promotion page uses IndexedDB for PDF storage — tests involving PDFs may need IndexedDB seeding
-- Use `data-card-id` attributes to locate specific cards in the DOM
-- The `ColumnState` type changed from `'left-expanded'|'center-expanded'` to `'left'|'center'` — update any test assertions referencing the old values
-- Resize testing requires viewport manipulation — use Playwright's `page.setViewportSize()` for responsive tests
+- App redirects to /start if no profile — always seed profile data
+- Promotion page uses IndexedDB for state persistence
+- Use `data-card-id` attributes to locate cards
+- Resize testing: use Playwright `page.setViewportSize()`
+- Mock `IntersectionObserver` in tests involving icon toolbar or scroll spy

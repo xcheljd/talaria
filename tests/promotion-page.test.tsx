@@ -3,11 +3,11 @@
  *
  * Tests cover:
  * - Profile redirect when no profile saved
- * - Three-column layout renders correctly
+ * - Layout renders correctly with all cards
  * - All 8 collapsible cards render with correct titles
  * - Cards collapse/expand with animation
  * - Status dots show empty/filled state
- * - Sidebar collapse/expand navigation
+ * - SidebarBar component unit tests (legacy mode)
  * - Responsive layout class application
  */
 
@@ -35,6 +35,14 @@ beforeAll(() => {
       unobserve() {}
       disconnect() {}
     } as unknown as typeof globalThis.ResizeObserver;
+  }
+  if (typeof globalThis.IntersectionObserver === 'undefined') {
+    globalThis.IntersectionObserver = class IntersectionObserver {
+      constructor() {}
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof globalThis.IntersectionObserver;
   }
   if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = vi.fn();
@@ -366,7 +374,7 @@ describe('PromotionPage', () => {
     expect(screen.queryByText('Email Preview')).not.toBeInTheDocument();
   });
 
-  it('renders the three-column layout when profile exists', () => {
+  it('renders the layout when profile exists', () => {
     renderPromotionPage({ profile: true });
     // Both desktop and mobile render Email Preview
     const previews = screen.getAllByText('Email Preview');
@@ -497,9 +505,9 @@ describe('PromotionPage', () => {
     expect(mobileDiv).toBeInTheDocument();
   });
 
-  it('initializes with left column state', () => {
+  it('renders all 8 cards in desktop and mobile layouts', () => {
     renderPromotionPage({ profile: true });
-    // Left column should be visible in desktop layout
+    // All cards should be visible in desktop layout
     const basicDetails = screen.getAllByText('Basic Details');
     expect(basicDetails.length).toBeGreaterThanOrEqual(1);
   });

@@ -33,6 +33,8 @@ export interface CollapsibleCardProps {
   defaultCollapsed?: boolean;
   /** When true, forces the card to expand (used by sidebar navigation) */
   forceExpand?: boolean;
+  /** Callback when user manually toggles the card open/closed */
+  onToggle?: (cardId: string, isOpen: boolean) => void;
   /** Card content (rendered inside the collapsible area) */
   children: ReactNode;
   /** Optional extra class name for the outer container */
@@ -45,6 +47,7 @@ export function CollapsibleCard({
   hasContent,
   defaultCollapsed = false,
   forceExpand,
+  onToggle,
   children,
   className,
 }: CollapsibleCardProps) {
@@ -65,6 +68,7 @@ export function CollapsibleCard({
     (open: boolean) => {
       const wasOpen = isOpen;
       setIsOpen(open);
+      if (onToggle) onToggle(cardId, open);
       if (!wasOpen && open && cardRef.current) {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
@@ -76,7 +80,7 @@ export function CollapsibleCard({
         });
       }
     },
-    [isOpen]
+    [isOpen, cardId, onToggle]
   );
 
   return (

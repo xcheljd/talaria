@@ -2,13 +2,12 @@
  * Tests for PromotionPage desktop layout refactor with ResizablePanels.
  *
  * Covers:
- * 1. Desktop layout renders sidebar + active column + preview
- * 2. Only left column cards visible by default (columnState='left')
- * 3. Switching to center column shows center cards, hides left
- * 4. Sidebar renders all 8 card titles
- * 5. Sidebar click switches column and force-expands card
- * 6. Preview panel always visible
- * 7. ResizablePanels used with correct props (orientation, minPx)
+ * 1. Desktop layout renders icon toolbar + all cards + preview
+ * 2. All 8 cards always visible in desktop scrollable column
+ * 3. Icon toolbar renders all 8 icon buttons
+ * 4. Icon toolbar click force-expands and scrolls to card
+ * 5. Preview panel always visible
+ * 6. ResizablePanels used with correct props (orientation, minPx)
  */
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
@@ -34,6 +33,14 @@ beforeAll(() => {
       unobserve() {}
       disconnect() {}
     } as unknown as typeof globalThis.ResizeObserver;
+  }
+  if (typeof globalThis.IntersectionObserver === 'undefined') {
+    globalThis.IntersectionObserver = class IntersectionObserver {
+      constructor() {}
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof globalThis.IntersectionObserver;
   }
   if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = vi.fn();
@@ -93,12 +100,12 @@ describe('PromotionPage Desktop Layout', () => {
     localStorage.clear();
   });
 
-  // 1. Desktop layout renders sidebar + active column + preview
-  it('renders sidebar, active column cards, and preview panel', () => {
+  // 1. Desktop layout renders icon toolbar + all cards + preview
+  it('renders icon toolbar, all cards, and preview panel', () => {
     const { container } = renderPromotionPage();
 
-    // Desktop sidebar exists
-    expect(container.querySelector('[data-testid="desktop-sidebar"]')).toBeInTheDocument();
+    // Icon toolbar exists
+    expect(container.querySelector('[data-testid="icon-toolbar"]')).toBeInTheDocument();
 
     // Preview is rendered (Email Preview header)
     const previews = screen.getAllByText('Email Preview');
@@ -108,57 +115,32 @@ describe('PromotionPage Desktop Layout', () => {
     expect(container.querySelector('[data-testid="resizable-panels"]')).toBeInTheDocument();
   });
 
-  // 2. Only left column cards visible by default (columnState='left')
-  it('shows left column cards by default (columnState=left)', () => {
+  // 2. All 8 cards always visible in desktop scrollable column
+  it('shows all 8 cards in the desktop scrollable column', () => {
     renderPromotionPage();
 
-    // Left column cards should be visible in the desktop layout
-    // The left column has: Basic Details, Discount Entries, How to Shop, Important Notes, Special Hours
-    const leftCards = [
+    const allCardTitles = [
       'Basic Details',
       'Discount Entries',
       'How to Shop',
       'Important Notes',
       'Special Hours',
+      'PDF Attachments',
+      'Subject Lines',
+      'Bulk Email Tools',
     ];
 
-    for (const title of leftCards) {
+    for (const title of allCardTitles) {
       const elements = screen.getAllByText(title);
-      // Should appear in desktop active column + mobile
-      expect(elements.length).toBeGreaterThanOrEqual(1);
-    }
-
-    // Center column cards should NOT be in the desktop active column area,
-    // but they DO appear in the mobile layout.
-    // Since both mobile and desktop render, we verify the store state
-    expect(usePromotionStore.getState().columnState).toBe('left');
-  });
-
-  // 3. Switching to center column shows center cards, hides left
-  it('shows center column cards when columnState switches to center', () => {
-    const { container } = renderPromotionPage();
-
-    // Switch to center column
-    act(() => {
-      usePromotionStore.setState({ columnState: 'center' });
-    });
-
-    // Store state should be center
-    expect(usePromotionStore.getState().columnState).toBe('center');
-
-    // Center column cards should still be present (they are now in the desktop active column)
-    const centerCards = ['PDF Attachments', 'Subject Lines', 'Bulk Email Tools'];
-    for (const title of centerCards) {
-      const elements = screen.getAllByText(title);
+      // Should appear in desktop + mobile (both render all cards now)
       expect(elements.length).toBeGreaterThanOrEqual(1);
     }
   });
 
-  // 4. Sidebar renders all 8 card titles
-  it('renders all 8 card titles in desktop sidebar', () => {
+  // 3. Icon toolbar renders all 8 icon buttons
+  it('renders all 8 icon buttons in the icon toolbar', () => {
     const { container } = renderPromotionPage();
 
-    // Check sidebar has test id attributes for each card
     const expectedCardIds = [
       'basicDetailsCard',
       'discountEntriesCard',
@@ -171,30 +153,37 @@ describe('PromotionPage Desktop Layout', () => {
     ];
 
     for (const cardId of expectedCardIds) {
-      const card = container.querySelector(`[data-testid="sidebar-card-${cardId}"]`);
-      expect(card).toBeInTheDocument();
+      const iconBtn = container.querySelector(`[data-testid="toolbar-icon-${cardId}"]`);
+      expect(iconBtn).toBeInTheDocument();
     }
   });
 
-  // 5. Sidebar click switches column and force-expands card
-  it('switches active column when clicking a sidebar card in another column', async () => {
+  // 4. Icon toolbar click force-expands card
+  it('force-expands card when clicking icon toolbar button', async () => {
     const user = userEvent.setup();
     const { container } = renderPromotionPage();
 
-    // Initially left column is active
-    expect(usePromotionStore.getState().columnState).toBe('left');
+    // Click "How to Shop" icon button (defaultCollapsed: true)
+    const howToShopBtn = container.querySelector('[data-testid="toolbar-icon-howToShopCard"]');
+    expect(howToShopBtn).toBeInTheDocument();
 
-    // Click a center column card in the sidebar (e.g., PDF Attachments)
-    const pdfSidebarCard = container.querySelector('[data-testid="sidebar-card-pdfCard"]');
-    expect(pdfSidebarCard).toBeInTheDocument();
+    await user.click(howToShopBtn!);
 
-    await user.click(pdfSidebarCard!);
+    // Wait for state updates and rAF
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
 
-    // Column state should switch to center
-    expect(usePromotionStore.getState().columnState).toBe('center');
+    // Card should be expanded — find the card's collapse button in the desktop layout
+    const howToShopCards = container.querySelectorAll('[data-card-id="howToShopCard"]');
+    const desktopCard = howToShopCards[0];
+    expect(desktopCard).toBeInTheDocument();
+
+    const collapseBtn = desktopCard.querySelector('[aria-label="Collapse How to Shop"]');
+    expect(collapseBtn).toBeInTheDocument();
   });
 
-  // 6. Preview panel always visible
+  // 5. Preview panel always visible
   it('always renders the preview panel', () => {
     renderPromotionPage();
 
@@ -207,7 +196,7 @@ describe('PromotionPage Desktop Layout', () => {
     expect(codeTabs.length).toBeGreaterThanOrEqual(1);
   });
 
-  // 7. ResizablePanels used with correct props
+  // 6. ResizablePanels used with correct props
   it('renders ResizablePanels with correct data-testid and structure', () => {
     const { container } = renderPromotionPage();
 
@@ -232,69 +221,24 @@ describe('PromotionPage Desktop Layout', () => {
     expect(secondPanels.length).toBeGreaterThanOrEqual(1);
   });
 
-  // Additional: Sidebar group separator exists
-  it('renders group separator between left and center card groups', () => {
-    const { container } = renderPromotionPage();
-
-    const separator = container.querySelector('[data-testid="sidebar-group-separator"]');
-    expect(separator).toBeInTheDocument();
-  });
-
-  // Additional: Active indicator on left column initially
-  it('shows active indicator on left column group initially', () => {
-    const { container } = renderPromotionPage();
-
-    const leftIndicator = container.querySelector(
-      '[data-testid="sidebar-active-indicator-left"]'
-    );
-    expect(leftIndicator).toBeInTheDocument();
-
-    const centerIndicator = container.querySelector(
-      '[data-testid="sidebar-active-indicator-center"]'
-    );
-    expect(centerIndicator).not.toBeInTheDocument();
-  });
-
-  // Additional: Active indicator moves when column switches
-  it('moves active indicator when column state changes', () => {
-    const { container } = renderPromotionPage();
-
-    act(() => {
-      usePromotionStore.setState({ columnState: 'center' });
-    });
-
-    const centerIndicator = container.querySelector(
-      '[data-testid="sidebar-active-indicator-center"]'
-    );
-    expect(centerIndicator).toBeInTheDocument();
-
-    const leftIndicator = container.querySelector(
-      '[data-testid="sidebar-active-indicator-left"]'
-    );
-    expect(leftIndicator).not.toBeInTheDocument();
-  });
-
-  // Re-click bug fix: clicking the same sidebar card twice re-expands a collapsed card
-  it('re-expands a collapsed card when clicking the same sidebar card title twice', async () => {
+  // Re-click bug fix: clicking the same icon twice re-expands a collapsed card
+  it('re-expands a collapsed card when clicking the same icon toolbar button twice', async () => {
     const user = userEvent.setup();
     const { container } = renderPromotionPage();
 
-    // Click "How to Shop" sidebar card to force-expand it
-    const howToShopSidebarCard = container.querySelector('[data-testid="sidebar-card-howToShopCard"]');
-    expect(howToShopSidebarCard).toBeInTheDocument();
+    // Click "How to Shop" icon button to force-expand it
+    const howToShopBtn = container.querySelector('[data-testid="toolbar-icon-howToShopCard"]');
+    expect(howToShopBtn).toBeInTheDocument();
 
-    await user.click(howToShopSidebarCard!);
+    await user.click(howToShopBtn!);
 
     // Wait for state updates and rAF
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
     });
 
-    // Card should be expanded — find the card's collapse button in the desktop layout
-    // "How to Shop" card has defaultCollapsed: true, but forceExpand should open it
-    // The chevron button aria-label changes based on isOpen
+    // Card should be expanded
     const howToShopCards = container.querySelectorAll('[data-card-id="howToShopCard"]');
-    // Find the one in desktop layout (first one)
     const desktopCard = howToShopCards[0];
     expect(desktopCard).toBeInTheDocument();
 
@@ -312,8 +256,8 @@ describe('PromotionPage Desktop Layout', () => {
     const expandBtn = desktopCard.querySelector('[aria-label="Expand How to Shop"]');
     expect(expandBtn).toBeInTheDocument();
 
-    // Click the same sidebar card again — this should re-expand it
-    await user.click(howToShopSidebarCard!);
+    // Click the same icon button again — this should re-expand it
+    await user.click(howToShopBtn!);
 
     // Need to flush the requestAnimationFrame that resets then re-sets forceExpandedCardId
     await act(async () => {
@@ -324,9 +268,18 @@ describe('PromotionPage Desktop Layout', () => {
     const collapseBtnAfter = desktopCard.querySelector('[aria-label="Collapse How to Shop"]');
     expect(collapseBtnAfter).toBeInTheDocument();
   });
+
+  // No desktop sidebar in new architecture
+  it('does not render desktop sidebar', () => {
+    const { container } = renderPromotionPage();
+
+    // No desktop sidebar should exist
+    expect(container.querySelector('[data-testid="desktop-sidebar"]')).not.toBeInTheDocument();
+  });
 });
 
 // ===== SidebarBar Desktop Mode Unit Tests =====
+// (These still test the SidebarBar component in isolation — it's just no longer used in desktop layout)
 
 describe('SidebarBar desktop mode', () => {
   it('renders card groups with active indicator', () => {

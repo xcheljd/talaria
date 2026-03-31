@@ -2,15 +2,17 @@
  * PromotionPage — React migration of promotion.html
  *
  * Desktop layout (>=1024px): ResizablePanels 50/50 split
- *   Left panel  → Sidebar strip + active column cards (left OR center, toggled)
+ *   Left panel  → Icon toolbar + all 8 cards in single scrollable column
  *   Right panel → Sticky live preview (iframe)
  *
- * Mobile layout (<1024px): Single column, all cards stacked + preview
+ * Mobile layout (<1024px): IconToolbar + all cards stacked + preview
  *
  * Features:
  * - Collapsible cards with status dots (filled/empty)
- * - Sidebar shows all 8 cards grouped by column, with active indicator
- * - Responsive layout below 1024px (single column, all stacked)
+ * - Icon toolbar at top for both desktop and mobile
+ * - Click-based icon highlighting: last-clicked icon stays active
+ * - Click icon to scroll card into view + expand if collapsed
+ * - Responsive layout below 1024px (IconToolbar + all stacked)
  * - Profile redirect if no profile saved
  * - Live HTML preview in iframe (right panel)
  * - Preview/HTML Code tabs (shadcn Tabs)
@@ -37,12 +39,7 @@ import {
 import { useHasProfile } from '@/contexts/ProfileProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { CollapsibleCard } from '@/components/promotion/CollapsibleCard';
-import {
-  SidebarBar,
-  type SidebarCardInfo,
-  type SidebarCardGroup,
-} from '@/components/promotion/SidebarBar';
-import { HorizontalStrip } from '@/components/promotion/HorizontalStrip';
+import { IconToolbar } from '@/components/promotion/IconToolbar';
 import { BasicDetailsEditor } from '@/components/promotion/BasicDetailsEditor';
 import { DiscountEntriesEditor } from '@/components/promotion/DiscountEntriesEditor';
 import { FormattableItemEditor } from '@/components/promotion/FormattableItemEditor';
@@ -81,59 +78,26 @@ import { ResizablePanels } from '@/components/ui/resizable-panels';
 interface CardConfig {
   id: string;
   title: string;
-  column: 'left' | 'center';
   defaultCollapsed: boolean;
 }
 
 const CARD_CONFIGS: CardConfig[] = [
-  {
-    id: 'basicDetailsCard',
-    title: 'Basic Details',
-    column: 'left',
-    defaultCollapsed: false,
-  },
+  { id: 'basicDetailsCard', title: 'Basic Details', defaultCollapsed: false },
   {
     id: 'discountEntriesCard',
     title: 'Discount Entries',
-    column: 'left',
     defaultCollapsed: false,
   },
-  {
-    id: 'howToShopCard',
-    title: 'How to Shop',
-    column: 'left',
-    defaultCollapsed: true,
-  },
+  { id: 'howToShopCard', title: 'How to Shop', defaultCollapsed: true },
   {
     id: 'importantNotesCard',
     title: 'Important Notes',
-    column: 'left',
     defaultCollapsed: true,
   },
-  {
-    id: 'specialHoursCard',
-    title: 'Special Hours',
-    column: 'left',
-    defaultCollapsed: true,
-  },
-  {
-    id: 'pdfCard',
-    title: 'PDF Attachments',
-    column: 'center',
-    defaultCollapsed: false,
-  },
-  {
-    id: 'subjectCard',
-    title: 'Subject Lines',
-    column: 'center',
-    defaultCollapsed: false,
-  },
-  {
-    id: 'bulkEmailCard',
-    title: 'Bulk Email Tools',
-    column: 'center',
-    defaultCollapsed: false,
-  },
+  { id: 'specialHoursCard', title: 'Special Hours', defaultCollapsed: true },
+  { id: 'pdfCard', title: 'PDF Attachments', defaultCollapsed: false },
+  { id: 'subjectCard', title: 'Subject Lines', defaultCollapsed: false },
+  { id: 'bulkEmailCard', title: 'Bulk Email Tools', defaultCollapsed: false },
 ];
 
 // ===== Card Content Components =====
@@ -261,9 +225,11 @@ function getCardHasContent(
 function PromotionCard({
   config,
   forceExpand,
+  onToggle,
 }: {
   config: CardConfig;
   forceExpand?: boolean;
+  onToggle?: (cardId: string, isOpen: boolean) => void;
 }) {
   const store = usePromotionStore();
 
@@ -288,58 +254,10 @@ function PromotionCard({
       hasContent={hasContent}
       defaultCollapsed={config.defaultCollapsed}
       forceExpand={forceExpand}
+      onToggle={onToggle}
     >
       {getCardContent(config.id)}
     </CollapsibleCard>
-  );
-}
-
-// ===== Column Card List =====
-
-function ColumnCards({
-  column,
-  forceExpandedCardId,
-}: {
-  column: 'left' | 'center';
-  forceExpandedCardId?: string;
-}) {
-  const cards = CARD_CONFIGS.filter((c) => c.column === column);
-  return (
-    <div className="space-y-3 p-4">
-      {cards.map((card) => (
-        <PromotionCard
-          key={card.id}
-          config={card}
-          forceExpand={forceExpandedCardId === card.id}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ===== Sidebar Bar Data =====
-
-function useSidebarCards(column: 'left' | 'center'): SidebarCardInfo[] {
-  const store = usePromotionStore();
-  const cards = CARD_CONFIGS.filter((c) => c.column === column);
-
-  return useMemo(
-    () =>
-      cards.map((config) => ({
-        cardId: config.id,
-        title: config.title,
-        hasContent: getCardHasContent(config.id, store),
-      })),
-    [
-      column,
-      store.promotionEntries,
-      store.specialHours,
-      store.howToShopItems,
-      store.importantNotesItems,
-      store.attachedPDFs,
-      store.selectedSubjectLine,
-      store.generatedSubjectLines,
-    ]
   );
 }
 
@@ -743,12 +661,23 @@ export function PromotionPage() {
   const hasProfile = useHasProfile();
   const store = usePromotionStore();
 
-  // Tracks which card should be force-expanded (from sidebar click)
+  // Tracks which card should be force-expanded (from toolbar/strip click)
   const [forceExpandedCardId, setForceExpandedCardId] = useState<
     string | undefined
   >(undefined);
 
-  // Ref to the mobile scrollable card container for manual scroll-to-card
+  // Active card ID for scroll spy highlighting
+  const [activeCardId, setActiveCardId] = useState<string | undefined>(
+    undefined
+  );
+
+  // True when highlight came from click/expand; false when from scroll
+  const isUserActionRef = useRef(false);
+
+  // Ref to the desktop scrollable card container
+  const desktopScrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Ref to the mobile scrollable card container
   const mobileCardsContainerRef = useRef<HTMLDivElement>(null);
 
   // Load persisted state on mount
@@ -764,38 +693,12 @@ export function PromotionPage() {
   // Auto-save with debounce
   useAutoSave();
 
-  // Column visibility based on store state
-  const isLeftActive = store.columnState === 'left';
-  const isCenterActive = store.columnState === 'center';
-
-  // Sidebar bar data
-  const leftSidebarCards = useSidebarCards('left');
-  const centerSidebarCards = useSidebarCards('center');
-
-  // Sidebar groups for desktop mode — shows all cards from both columns
-  const sidebarGroups: SidebarCardGroup[] = useMemo(
-    () => [
-      {
-        columnKey: 'left',
-        label: 'Body',
-        isActive: isLeftActive,
-        cards: leftSidebarCards,
-      },
-      {
-        columnKey: 'center',
-        label: 'Tools',
-        isActive: isCenterActive,
-        cards: centerSidebarCards,
-      },
-    ],
-    [isLeftActive, isCenterActive, leftSidebarCards, centerSidebarCards]
-  );
-
-  // Desktop sidebar card click handler
-  const handleSidebarCardClick = useCallback(
-    (columnKey: string, cardId: string) => {
-      const targetColumn = columnKey as 'left' | 'center';
-      store.setColumnState(targetColumn);
+  // Desktop icon toolbar click handler
+  const handleDesktopIconClick = useCallback(
+    (cardId: string) => {
+      // Highlight the clicked icon and lock it
+      setActiveCardId(cardId);
+      isUserActionRef.current = true;
 
       if (forceExpandedCardId === cardId) {
         setForceExpandedCardId(undefined);
@@ -806,55 +709,25 @@ export function PromotionPage() {
         setForceExpandedCardId(cardId);
       }
 
-      // Wait for column to render, then scroll to card
+      // Scroll to card in desktop container
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           const cardEl = document.querySelector(`[data-card-id="${cardId}"]`);
-          cardEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          cardEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
       });
     },
-    [store, forceExpandedCardId]
+    [forceExpandedCardId]
   );
 
-  // Scroll a card into view inside the mobile card container
-  const scrollMobileCardIntoView = useCallback((cardId: string) => {
-    const container = mobileCardsContainerRef.current;
-    if (!container) return;
-
-    // Use double-rAF to wait for the card to render after forceExpand
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const cardEl = container.querySelector(
-          `[data-card-id="${cardId}"]`
-        ) as HTMLElement | null;
-        if (!cardEl) return;
-
-        // Calculate scroll position relative to the scrollable container
-        const containerRect = container.getBoundingClientRect();
-        const cardRect = cardEl.getBoundingClientRect();
-
-        // Scroll the card to the top of the visible area with a small offset
-        const scrollOffset = cardRect.top - containerRect.top;
-        const targetTop = container.scrollTop + scrollOffset - 8;
-
-        // Use scrollTo on the container directly (avoids nested scroll issues)
-        if (typeof container.scrollTo === 'function') {
-          container.scrollTo({
-            top: targetTop,
-            behavior: 'smooth',
-          });
-        } else {
-          // Fallback for jsdom/test environments
-          container.scrollTop = targetTop;
-        }
-      });
-    });
-  }, []);
-
-  // Mobile strip card click handler
-  const handleMobileStripCardClick = useCallback(
+  // Mobile icon toolbar click handler
+  const handleMobileIconClick = useCallback(
     (cardId: string) => {
+      // Highlight the clicked icon and lock it
+      setActiveCardId(cardId);
+      isUserActionRef.current = true;
+
+      // Force expand if not already
       if (forceExpandedCardId === cardId) {
         setForceExpandedCardId(undefined);
         requestAnimationFrame(() => {
@@ -864,10 +737,117 @@ export function PromotionPage() {
         setForceExpandedCardId(cardId);
       }
 
-      scrollMobileCardIntoView(cardId);
+      // Scroll card into view in mobile container
+      const container = mobileCardsContainerRef.current;
+      if (!container) return;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const cardEl = container.querySelector(
+            `[data-card-id="${cardId}"]`
+          ) as HTMLElement | null;
+          if (cardEl) {
+            cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
+      });
     },
-    [forceExpandedCardId, scrollMobileCardIntoView]
+    [forceExpandedCardId]
   );
+
+  // Handle card expand/collapse via title — lock highlight to that card
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleCardToggle = useCallback((cardId: string, _isOpen: boolean) => {
+    setActiveCardId(cardId);
+    isUserActionRef.current = true;
+  }, []);
+
+  // Desktop scroll spy — IntersectionObserver + scroll listener
+  useEffect(() => {
+    const container = desktopScrollContainerRef.current;
+    if (!container) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout>;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isUserActionRef.current) return; // locked by user action
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          // Find the most visible card
+          let best: { id: string; ratio: number } | null = null;
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              const id = (entry.target as HTMLElement).dataset.cardId;
+              if (id && entry.intersectionRatio > (best?.ratio ?? 0)) {
+                best = { id, ratio: entry.intersectionRatio };
+              }
+            }
+          }
+          if (best) setActiveCardId(best.id);
+        }, 300);
+      },
+      { root: container, threshold: 0.3 }
+    );
+
+    const cards = container.querySelectorAll('[data-card-id]');
+    cards.forEach((card) => observer.observe(card));
+
+    // Scroll listener to unlock user action
+    const handleScroll = () => {
+      isUserActionRef.current = false;
+    };
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      container.removeEventListener('scroll', handleScroll);
+      clearTimeout(debounceTimer);
+    };
+  }, []);
+
+  // Mobile scroll spy — IntersectionObserver + scroll listener
+  useEffect(() => {
+    const container = mobileCardsContainerRef.current;
+    if (!container) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout>;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isUserActionRef.current) return;
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          let best: { id: string; ratio: number } | null = null;
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              const id = (entry.target as HTMLElement).dataset.cardId;
+              if (id && entry.intersectionRatio > (best?.ratio ?? 0)) {
+                best = { id, ratio: entry.intersectionRatio };
+              }
+            }
+          }
+          if (best) setActiveCardId(best.id);
+        }, 300);
+      },
+      { root: container, threshold: 0.3 }
+    );
+
+    const cards = container.querySelectorAll('[data-card-id]');
+    cards.forEach((card) => observer.observe(card));
+
+    const handleScroll = () => {
+      isUserActionRef.current = false;
+    };
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      container.removeEventListener('scroll', handleScroll);
+      clearTimeout(debounceTimer);
+    };
+  }, []);
 
   // Profile redirect — if no profile, redirect to /start
   if (!hasProfile) {
@@ -883,21 +863,26 @@ export function PromotionPage() {
           defaultSplit={50}
           minPx={[280, 280]}
         >
-          {/* Left panel: Sidebar + active column */}
-          <div className="flex h-full min-w-0">
-            {/* Sidebar — always visible, shows all cards from both columns */}
-            <SidebarBar
-              mode="desktop"
-              groups={sidebarGroups}
-              onCardClick={handleSidebarCardClick}
+          {/* Left panel: Icon toolbar + all cards */}
+          <div className="flex h-full min-w-0 flex-col">
+            <IconToolbar
+              activeCardId={activeCardId}
+              onCardClick={handleDesktopIconClick}
             />
-
-            {/* Active column cards */}
-            <div className="flex-1 overflow-y-auto min-w-0">
-              <ColumnCards
-                column={isLeftActive ? 'left' : 'center'}
-                forceExpandedCardId={forceExpandedCardId}
-              />
+            <div
+              className="flex-1 overflow-y-auto min-w-0"
+              ref={desktopScrollContainerRef}
+            >
+              <div className="space-y-3 p-4">
+                {CARD_CONFIGS.map((config) => (
+                  <PromotionCard
+                    key={config.id}
+                    config={config}
+                    forceExpand={forceExpandedCardId === config.id}
+                    onToggle={handleCardToggle}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
@@ -906,18 +891,12 @@ export function PromotionPage() {
         </ResizablePanels>
       </div>
 
-      {/* ===== Mobile Layout (<1024px): Horizontal strips + all cards + preview ===== */}
+      {/* ===== Mobile Layout (<1024px): IconToolbar + all cards + preview ===== */}
       <div className="lg:hidden flex flex-col h-[calc(100vh-3.5rem)]">
-        {/* Horizontal navigation strips */}
-        <HorizontalStrip
-          label="Promo Body"
-          cards={leftSidebarCards}
-          onCardClick={handleMobileStripCardClick}
-        />
-        <HorizontalStrip
-          label="Email Tools"
-          cards={centerSidebarCards}
-          onCardClick={handleMobileStripCardClick}
+        {/* Icon toolbar for mobile navigation */}
+        <IconToolbar
+          activeCardId={activeCardId}
+          onCardClick={handleMobileIconClick}
         />
 
         {/* Resizable split: cards on top, preview on bottom */}
@@ -926,16 +905,18 @@ export function PromotionPage() {
           defaultSplit={60}
           minPx={[200, 150]}
         >
-          {/* All cards from both columns */}
+          {/* All cards */}
           <div className="overflow-y-auto h-full" ref={mobileCardsContainerRef}>
-            <ColumnCards
-              column="left"
-              forceExpandedCardId={forceExpandedCardId}
-            />
-            <ColumnCards
-              column="center"
-              forceExpandedCardId={forceExpandedCardId}
-            />
+            <div className="space-y-3 p-4">
+              {CARD_CONFIGS.map((config) => (
+                <PromotionCard
+                  key={config.id}
+                  config={config}
+                  forceExpand={forceExpandedCardId === config.id}
+                  onToggle={handleCardToggle}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Email preview */}

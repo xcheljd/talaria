@@ -85,6 +85,36 @@ React SPA (Vite + TypeScript + Tailwind v4)
 | Bulk email recipients | IndexedDB | Custom hook (useIndexedDB) — NOTE: BulkEmailTools.tsx calls db.ts functions directly instead of using the hook |
 | Navigation | URL | React Router |
 
+## Promotion Page — Newsletter Card (New)
+
+The Newsletter card is the 9th card, placed at index 1 in CARD_CONFIGS (after Basic Details, before Discount Entries).
+
+### Store Fields
+- `newsletterHeading: string` — Default "Newsletter", editable by user
+- `newsletterBody: string` — TipTap HTML output, default ""
+- `newsletterPosition: 'top' | 'bottom'` — Default 'top'
+
+### Email Integration
+- **Top position:** Newsletter rendered between HEADER and BRAND SECTIONS
+- **Bottom position:** Newsletter rendered between BRAND SECTIONS and HOW TO SHOP BOX
+- Empty newsletter body = no section rendered in email
+- All newsletter HTML uses inline styles for email client compatibility
+
+### TipTap Editor
+- Headless editor styled with Tailwind to match shadcn/ui aesthetic
+- Formatting: Bold, Italic, Underline, Text Color, Highlight, H2, H3, Bullet List, Link
+- Uses @tiptap/react, @tiptap/starter-kit, @tiptap/extension-text-style, @tiptap/extension-color, @tiptap/extension-highlight
+- XSS: sanitizeHTML() applied to newsletter body before email injection
+
+### Data Flow
+```
+TipTap Editor → store.newsletterBody (HTML string)
+               ↓
+PromotionEmailData.newsletterBody → generatePromotionEmailHTML()
+               ↓
+Email HTML with newsletter section at chosen position
+```
+
 ## Known Documentation Drift (Post-Migration)
 
 The following docs still reference the old vanilla JS multi-page architecture and are **stale**:

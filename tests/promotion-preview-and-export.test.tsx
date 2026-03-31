@@ -61,6 +61,14 @@ beforeAll(() => {
       disconnect() {}
     } as unknown as typeof globalThis.ResizeObserver;
   }
+  if (typeof globalThis.IntersectionObserver === 'undefined') {
+    globalThis.IntersectionObserver = class IntersectionObserver {
+      constructor() {}
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof globalThis.IntersectionObserver;
+  }
   if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = vi.fn();
   }
