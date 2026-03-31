@@ -39,6 +39,34 @@ localStorage.setItem("userProfile", JSON.stringify({firstName:"Test",lastName:"U
 - Usable headroom: ~5GB * 0.7 = ~3.5GB
 - 3 validators = ~1.1GB (fits)
 
+## TipTap Editor Access
+
+- TipTap editor instance is NOT accessible via `.tiptap` CSS class or React fiber
+- Access via: `document.querySelector('.ProseMirror').editor` to get the TipTap editor API
+- Use `editor.commands.setContent()` to programmatically set editor content for testing
+- Use `editor.getHTML()` to get current editor HTML for verification
+
+## HTML Code Tab
+
+- HTML Code tab content is only in DOM when the tab is selected
+- Switch to Preview tab makes the HTML panel invisible to querySelector
+- Always ensure HTML Code tab is selected before extracting HTML content
+
+## Position Toggle Buttons
+
+- Position toggle buttons use `aria-label` attributes ("Position: Top", "Position: Bottom")
+- Interact via: `find role button --name 'Position: Top'` / `--name 'Position: Bottom'`
+
+## EML File Capture
+
+- agent-browser `--download-path` cannot be changed mid-session when daemon is running
+- Use a JavaScript Blob constructor interceptor to capture EML content on download
+- Then extract captured content via browser_evaluate
+
+## Flow Validator Guidance: browser
+
+All browser-based validators share the same dev server (port 8080). Isolation is via separate browser sessions. No shared mutable state conflicts — validators are read-only tests against the same running app instance. Each validator must seed its own profile via localStorage in its own session.
+
 ## Notes
 
 - App redirects to /start if no profile — always seed profile data

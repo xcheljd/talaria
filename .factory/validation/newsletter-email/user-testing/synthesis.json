@@ -1,0 +1,37 @@
+{
+  "milestone": "newsletter-email",
+  "round": 1,
+  "status": "fail",
+  "assertionsSummary": {
+    "total": 11,
+    "passed": 10,
+    "failed": 1,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-EMAIL-001",
+    "VAL-EMAIL-002",
+    "VAL-EMAIL-003",
+    "VAL-EMAIL-005",
+    "VAL-EMAIL-006",
+    "VAL-EMAIL-009",
+    "VAL-EMAIL-010",
+    "VAL-EMAIL-011",
+    "VAL-CROSS-001",
+    "VAL-CROSS-002"
+  ],
+  "failedAssertions": [
+    {
+      "id": "VAL-EMAIL-004",
+      "reason": "Newsletter body formatting uses semantic HTML tags (<strong>, <em>) instead of explicit inline CSS style attributes (style=\"font-weight: bold; font-style: italic;\") as required by the validation contract. The specification states 'every visual property is inline (font-weight: bold, font-style: italic, etc.)' but the implementation passes through TipTap's semantic HTML tags. While functionally equivalent for email clients, the implementation does not match the exact specification. Other elements (headings, containers, colored text) do have inline styles correctly."
+    }
+  ],
+  "blockedAssertions": [],
+  "flowReports": [
+    ".factory/validation/newsletter-email/user-testing/flows/email-position-rendering.json",
+    ".factory/validation/newsletter-email/user-testing/flows/live-preview-rich-text-xss.json",
+    ".factory/validation/newsletter-email/user-testing/flows/eml-cross-area.json"
+  ],
+  "appliedUpdates": [],
+  "previousRound": null
+}

@@ -1,0 +1,204 @@
+{
+  "groupId": "eml-cross-area",
+  "testedAt": "2026-03-31T17:00:00Z",
+  "isolation": {
+    "browserSession": "936b9b1408dd__eml-cross",
+    "appUrl": "http://localhost:8080/promotion",
+    "profileSeeded": true,
+    "viewport": "1920x1080"
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-EMAIL-009",
+      "title": "Newsletter included in EML file generation",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Seed profile and navigate to /promotion",
+          "expected": "Promotion page loads",
+          "observed": "Promotion page loaded successfully"
+        },
+        {
+          "action": "Expand Newsletter card, set heading to 'Store Updates', type body text with bold formatting",
+          "expected": "Newsletter content appears in editor",
+          "observed": "Editor shows 'Store Updates' heading and bold body text"
+        },
+        {
+          "action": "Fill required Date Range field to enable preview/download",
+          "expected": "Preview and download buttons become enabled",
+          "observed": "Preview shows email content, Download Email Draft button enabled"
+        },
+        {
+          "action": "Click 'Download Email Draft' button and capture EML content via blob interceptor",
+          "expected": "EML file generated with newsletter section",
+          "observed": "EML content captured (10019 chars) with complete newsletter section"
+        },
+        {
+          "action": "Inspect EML for RFC 5322/2045 compliance",
+          "expected": "Proper MIME headers, CRLF line endings, multipart structure",
+          "observed": "MIME-Version: 1.0, Content-Type: multipart/alternative with boundary, Content-Transfer-Encoding: quoted-printable, CRLF line endings confirmed"
+        },
+        {
+          "action": "Verify newsletter section in HTML part of EML",
+          "expected": "Newsletter HTML with inline styles at configured position",
+          "observed": "Newsletter section found in HTML part with inline styles (background-color, border-left, font-size, color). Position: TOP (newsletter before BRAND SECTIONS, before HOW TO SHOP). Rich text formatting preserved (<strong> tags for bold)."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "newsletter-email/eml-cross-area/VAL-CROSS-001-editor-composed.png",
+          "newsletter-email/eml-cross-area/VAL-CROSS-001-preview.png"
+        ],
+        "emlInspection": {
+          "fileSize": "10019 chars",
+          "hasMIMEVersion": true,
+          "hasContentType": true,
+          "hasSubject": true,
+          "hasCRLF": true,
+          "hasNewsletterComment": true,
+          "hasNewsletterHeading": true,
+          "hasNewsletterBody": true,
+          "hasInlineStyles": true,
+          "hasQuotedPrintable": true,
+          "hasTextPart": true,
+          "hasHTMLPart": true,
+          "hasBoundary": true,
+          "newsletterPosition": "top",
+          "newsletterBeforeBrandSections": true,
+          "richTextPreserved": true
+        },
+        "emlContentFile": "newsletter-email/eml-cross-area/VAL-EMAIL-009-eml-content.txt",
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-001",
+      "title": "Full workflow — compose, preview, export",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Expand Newsletter card and fill heading 'Store Updates'",
+          "expected": "Heading field populated",
+          "observed": "Heading input shows 'Store Updates'"
+        },
+        {
+          "action": "Type body text 'Welcome to our store! We have exciting updates for you this month.' and apply bold formatting",
+          "expected": "Rich text content in editor",
+          "observed": "Editor shows text with bold formatting applied"
+        },
+        {
+          "action": "Check preview panel shows newsletter section",
+          "expected": "Newsletter visible in email preview at correct position",
+          "observed": "Preview shows 'Store Updates' heading and body content in email layout, positioned before brand section"
+        },
+        {
+          "action": "Download EML file via 'Download Email Draft' button",
+          "expected": "EML file generated and downloaded",
+          "observed": "EML content captured via blob interceptor (10019 chars)"
+        },
+        {
+          "action": "Inspect EML HTML part for newsletter content",
+          "expected": "Newsletter section with heading, body, and inline styles at correct position",
+          "observed": "HTML part contains: <!-- NEWSLETTER --> comment, 'Store Updates' heading with inline styles (font-size: 18px, color: #1e40af), body with <strong> tags, inline container styles (background-color: #f9fafb, border-left: 4px solid #2563eb). Newsletter positioned before BRAND SECTIONS (top position)."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "newsletter-email/eml-cross-area/VAL-CROSS-001-editor-composed.png",
+          "newsletter-email/eml-cross-area/VAL-CROSS-001-preview.png"
+        ],
+        "emlInspection": {
+          "hasNewsletterInHTML": true,
+          "hasHeading": true,
+          "hasBodyContent": true,
+          "hasInlineStyles": true,
+          "hasRichText": true,
+          "newsletterBeforeBrand": true,
+          "newsletterBeforeHowToShop": true
+        },
+        "consoleErrors": "none"
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-002",
+      "title": "Position toggle changes placement in preview",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Verify default position is 'Top' (Top button has data-active='true')",
+          "expected": "Position defaults to Top",
+          "observed": "Top button has data-active='true', Bottom button has no data-active"
+        },
+        {
+          "action": "Check preview HTML shows newsletter before BRAND SECTIONS (top position)",
+          "expected": "NEWSLETTER comment before BRAND SECTIONS comment in HTML",
+          "observed": "NEWSLETTER at position 717, BRAND SECTIONS at 1282, PROMO LINE at 1435 - newsletter correctly before brand content"
+        },
+        {
+          "action": "Click 'Position: Bottom' button",
+          "expected": "Bottom button becomes active, Top button deactivates",
+          "observed": "Bottom button data-active='true', Top button data-active=null"
+        },
+        {
+          "action": "Check preview HTML shows newsletter after BRAND SECTIONS (bottom position)",
+          "expected": "NEWSLETTER comment after BRAND SECTIONS comment in HTML",
+          "observed": "BRAND SECTIONS at 717, PROMO LINE at 870, NEWSLETTER at 915 - newsletter correctly after brand content and before HOW TO SHOP (1486)"
+        },
+        {
+          "action": "Click 'Position: Top' button to toggle back",
+          "expected": "Top button becomes active again",
+          "observed": "Top button data-active='true', Bottom button data-active=null"
+        },
+        {
+          "action": "Verify preview returns to top position",
+          "expected": "Newsletter before BRAND SECTIONS again",
+          "observed": "Confirmed top position restored"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "newsletter-email/eml-cross-area/VAL-CROSS-002-position-top-with-brand.png",
+          "newsletter-email/eml-cross-area/VAL-CROSS-002-position-bottom-with-brand.png"
+        ],
+        "htmlPositionVerification": {
+          "topPosition": {
+            "newsletterPos": 717,
+            "brandSectionsPos": 1282,
+            "promoLinePos": 1435,
+            "howToShopPos": 1486,
+            "newsletterBeforeBrand": true
+          },
+          "bottomPosition": {
+            "brandSectionsPos": 717,
+            "promoLinePos": 870,
+            "newsletterPos": 915,
+            "howToShopPos": 1486,
+            "newsletterAfterBrand": true,
+            "newsletterBeforeHowToShop": true
+          }
+        },
+        "consoleErrors": "none"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Position toggle buttons use aria-label attributes ('Position: Top', 'Position: Bottom') rather than visible text labels in the accessibility tree, making them harder to discover via standard snapshot. Had to use semantic locators (find role button --name) to interact with them.",
+      "resolved": true,
+      "resolution": "Used agent-browser find role button click --name 'Position: Top' and 'Position: Bottom' to interact with the toggle buttons.",
+      "affectedAssertions": ["VAL-CROSS-002"]
+    },
+    {
+      "description": "agent-browser --download-path option cannot be changed mid-session when the daemon is already running. Had to use a JavaScript blob interceptor to capture EML content instead of downloading to a specific path.",
+      "resolved": true,
+      "resolution": "Installed a Blob constructor interceptor in the browser to capture the EML content when the download button was clicked, then extracted it via eval.",
+      "affectedAssertions": ["VAL-EMAIL-009", "VAL-CROSS-001"]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 3 assertions: all passed. VAL-EMAIL-009: EML file contains newsletter section at configured position with inline styles and RFC 5322/2045 compliant headers. VAL-CROSS-001: Full compose→preview→export workflow verified end-to-end with rich text preservation. VAL-CROSS-002: Position toggle correctly moves newsletter between top (before brand sections) and bottom (after brand sections, before HOW TO SHOP) in the preview."
+}
