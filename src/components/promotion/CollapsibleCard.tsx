@@ -64,35 +64,34 @@ export function CollapsibleCard({
         className
       )}
     >
-      {/* Card Header */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          {/* Status Dot */}
-          <span
-            className={cn(
-              'inline-block h-2.5 w-2.5 rounded-full transition-colors',
-              hasContent ? 'bg-primary' : 'bg-muted-foreground/30'
-            )}
-            data-status={hasContent ? 'filled' : 'empty'}
-            aria-hidden="true"
-          />
-          <h2 className="text-sm font-semibold leading-none">{title}</h2>
-        </div>
-        <CollapsibleTrigger asChild>
-          <button
-            type="button"
-            className="rounded-md p-1 transition-colors hover:bg-accent"
-            aria-label={isOpen ? `Collapse ${title}` : `Expand ${title}`}
-          >
-            <ChevronDown
+      {/* Card Header — entire row is clickable */}
+      <CollapsibleTrigger asChild>
+        <div
+          className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors rounded-t-xl"
+          role="button"
+          tabIndex={0}
+          aria-label={isOpen ? `Collapse ${title}` : `Expand ${title}`}
+        >
+          <div className="flex items-center gap-2">
+            {/* Status Dot */}
+            <span
               className={cn(
-                'h-4 w-4 transition-transform duration-200',
-                isOpen ? 'rotate-180' : 'rotate-0'
+                'inline-block h-2.5 w-2.5 rounded-full transition-colors',
+                hasContent ? 'bg-primary' : 'bg-muted-foreground/30'
               )}
+              data-status={hasContent ? 'filled' : 'empty'}
+              aria-hidden="true"
             />
-          </button>
-        </CollapsibleTrigger>
-      </div>
+            <h2 className="text-sm font-semibold leading-none">{title}</h2>
+          </div>
+          <ChevronDown
+            className={cn(
+              'h-4 w-4 transition-transform duration-200',
+              isOpen ? 'rotate-180' : 'rotate-0'
+            )}
+          />
+        </div>
+      </CollapsibleTrigger>
 
       {/* Card Content */}
       <CollapsibleContent>

@@ -212,6 +212,37 @@ describe('CollapsibleCard', () => {
     expect(screen.getByText('Hidden content')).toBeInTheDocument();
   });
 
+  it('toggles when clicking the title text area', async () => {
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider>
+        <CollapsibleCard
+          cardId="testCard"
+          title="My Clickable Title"
+          hasContent={false}
+        >
+          <p>Toggle via title</p>
+        </CollapsibleCard>
+      </ThemeProvider>
+    );
+
+    // Content is visible initially (default expanded)
+    expect(screen.getByText('Toggle via title')).toBeInTheDocument();
+
+    // Click the title text itself to collapse
+    const titleText = screen.getByText('My Clickable Title');
+    await user.click(titleText);
+
+    // Content should now be hidden
+    expect(screen.queryByText('Toggle via title')).not.toBeInTheDocument();
+
+    // Click the title text again to expand
+    await user.click(screen.getByText('My Clickable Title'));
+
+    // Content should be visible again
+    expect(screen.getByText('Toggle via title')).toBeInTheDocument();
+  });
+
   it('sets correct data-card-id attribute', () => {
     const { container } = render(
       <ThemeProvider>

@@ -298,7 +298,7 @@ describe('PromotionPage Desktop Layout', () => {
     const desktopCard = howToShopCards[0];
     expect(desktopCard).toBeInTheDocument();
 
-    const collapseBtn = desktopCard.querySelector('button[aria-label="Collapse How to Shop"]');
+    const collapseBtn = desktopCard.querySelector('[aria-label="Collapse How to Shop"]');
     expect(collapseBtn).toBeInTheDocument();
 
     // Manually collapse the card by clicking the collapse button
@@ -309,7 +309,7 @@ describe('PromotionPage Desktop Layout', () => {
     });
 
     // Card should now be collapsed
-    const expandBtn = desktopCard.querySelector('button[aria-label="Expand How to Shop"]');
+    const expandBtn = desktopCard.querySelector('[aria-label="Expand How to Shop"]');
     expect(expandBtn).toBeInTheDocument();
 
     // Click the same sidebar card again — this should re-expand it
@@ -321,7 +321,7 @@ describe('PromotionPage Desktop Layout', () => {
     });
 
     // Card should be expanded again
-    const collapseBtnAfter = desktopCard.querySelector('button[aria-label="Collapse How to Shop"]');
+    const collapseBtnAfter = desktopCard.querySelector('[aria-label="Collapse How to Shop"]');
     expect(collapseBtnAfter).toBeInTheDocument();
   });
 });

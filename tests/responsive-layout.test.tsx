@@ -494,7 +494,7 @@ describe('PromotionPage Mobile Layout', () => {
       const mobileCard = howToShopCards[0];
       expect(mobileCard).toBeInTheDocument();
 
-      const collapseBtn = mobileCard.querySelector('button[aria-label="Collapse How to Shop"]');
+      const collapseBtn = mobileCard.querySelector('[aria-label="Collapse How to Shop"]');
       expect(collapseBtn).toBeInTheDocument();
 
       // Manually collapse the card
@@ -505,7 +505,7 @@ describe('PromotionPage Mobile Layout', () => {
       });
 
       // Card should now be collapsed
-      const expandBtn = mobileCard.querySelector('button[aria-label="Expand How to Shop"]');
+      const expandBtn = mobileCard.querySelector('[aria-label="Expand How to Shop"]');
       expect(expandBtn).toBeInTheDocument();
 
       // Click the same strip card again — should re-expand
@@ -517,7 +517,7 @@ describe('PromotionPage Mobile Layout', () => {
       });
 
       // Card should be expanded again
-      const collapseBtnAfter = mobileCard.querySelector('button[aria-label="Collapse How to Shop"]');
+      const collapseBtnAfter = mobileCard.querySelector('[aria-label="Collapse How to Shop"]');
       expect(collapseBtnAfter).toBeInTheDocument();
     } finally {
       HTMLElement.prototype.scrollTo = originalScrollTo;
