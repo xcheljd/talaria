@@ -6,7 +6,7 @@
  * Uses React context to connect the DragHandle to the useSortable listeners.
  */
 
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
@@ -33,6 +33,16 @@ export interface SortableItemProps {
 
 export function SortableItem({ id, children, className }: SortableItemProps) {
   const sortable = useSortable({ id });
+  const localRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (sortable.isDragging) {
+      localRef.current?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }
+  }, [sortable.isDragging]);
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(sortable.transform),
@@ -42,7 +52,11 @@ export function SortableItem({ id, children, className }: SortableItemProps) {
   return (
     <SortableItemContext value={sortable}>
       <div
-        ref={sortable.setNodeRef}
+        ref={(node) => {
+          sortable.setNodeRef(node);
+          (localRef as React.MutableRefObject<HTMLDivElement | null>).current =
+            node;
+        }}
         style={style}
         className={cn(
           'relative',

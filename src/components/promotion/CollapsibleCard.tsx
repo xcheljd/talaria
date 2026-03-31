@@ -7,7 +7,13 @@
  * - Smooth content transitions via Radix Collapsible animations
  */
 
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  type ReactNode,
+} from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -43,6 +49,7 @@ export function CollapsibleCard({
   className,
 }: CollapsibleCardProps) {
   const [isOpen, setIsOpen] = useState(!defaultCollapsed);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Respond to external force-expand requests (one-shot: only fires on true transition)
   const prevForceExpandRef = useRef(forceExpand);
@@ -54,49 +61,69 @@ export function CollapsibleCard({
     prevForceExpandRef.current = forceExpand;
   }, [forceExpand]);
 
-  return (
-    <Collapsible
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      data-card-id={cardId}
-      className={cn(
-        'rounded-xl border bg-card text-card-foreground shadow-sm',
-        className
-      )}
-    >
-      {/* Card Header — entire row is clickable */}
-      <CollapsibleTrigger asChild>
-        <div
-          className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors rounded-t-xl"
-          role="button"
-          tabIndex={0}
-          aria-label={isOpen ? `Collapse ${title}` : `Expand ${title}`}
-        >
-          <div className="flex items-center gap-2">
-            {/* Status Dot */}
-            <span
-              className={cn(
-                'inline-block h-2.5 w-2.5 rounded-full transition-colors',
-                hasContent ? 'bg-primary' : 'bg-muted-foreground/30'
-              )}
-              data-status={hasContent ? 'filled' : 'empty'}
-              aria-hidden="true"
-            />
-            <h2 className="text-sm font-semibold leading-none">{title}</h2>
-          </div>
-          <ChevronDown
-            className={cn(
-              'h-4 w-4 transition-transform duration-200',
-              isOpen ? 'rotate-180' : 'rotate-0'
-            )}
-          />
-        </div>
-      </CollapsibleTrigger>
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      const wasOpen = isOpen;
+      setIsOpen(open);
+      if (!wasOpen && open && cardRef.current) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            cardRef.current?.scrollIntoView({
+              block: 'nearest',
+              behavior: 'smooth',
+            });
+          });
+        });
+      }
+    },
+    [isOpen]
+  );
 
-      {/* Card Content */}
-      <CollapsibleContent>
-        <div className="border-t px-4 py-4">{children}</div>
-      </CollapsibleContent>
-    </Collapsible>
+  return (
+    <div ref={cardRef}>
+      <Collapsible
+        open={isOpen}
+        onOpenChange={handleOpenChange}
+        data-card-id={cardId}
+        className={cn(
+          'rounded-xl border bg-card text-card-foreground shadow-sm',
+          className
+        )}
+      >
+        {/* Card Header — entire row is clickable */}
+        <CollapsibleTrigger asChild>
+          <div
+            className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors rounded-t-xl"
+            role="button"
+            tabIndex={0}
+            aria-label={isOpen ? `Collapse ${title}` : `Expand ${title}`}
+          >
+            <div className="flex items-center gap-2">
+              {/* Status Dot */}
+              <span
+                className={cn(
+                  'inline-block h-2.5 w-2.5 rounded-full transition-colors',
+                  hasContent ? 'bg-primary' : 'bg-muted-foreground/30'
+                )}
+                data-status={hasContent ? 'filled' : 'empty'}
+                aria-hidden="true"
+              />
+              <h2 className="text-sm font-semibold leading-none">{title}</h2>
+            </div>
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 transition-transform duration-200',
+                isOpen ? 'rotate-180' : 'rotate-0'
+              )}
+            />
+          </div>
+        </CollapsibleTrigger>
+
+        {/* Card Content */}
+        <CollapsibleContent>
+          <div className="border-t px-4 py-4">{children}</div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 }
