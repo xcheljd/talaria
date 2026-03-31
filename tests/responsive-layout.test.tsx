@@ -294,8 +294,8 @@ describe('PromotionPage Mobile Layout', () => {
   // 6. Tapping strip card title sets forceExpandedCardId and scrolls
   it('force-expands card when strip title is tapped', async () => {
     const scrollSpy = vi.fn();
-    const originalScrollIntoView = Element.prototype.scrollIntoView;
-    Element.prototype.scrollIntoView = scrollSpy;
+    const originalScrollTo = HTMLElement.prototype.scrollTo;
+    HTMLElement.prototype.scrollTo = scrollSpy;
 
     try {
       const user = userEvent.setup();
@@ -309,14 +309,14 @@ describe('PromotionPage Mobile Layout', () => {
 
       await user.click(howToShopStripBtn!);
 
-      // scrollIntoView should have been called after the double rAF
+      // scrollTo should have been called after the double rAF
       await act(async () => {
         await new Promise((r) => setTimeout(r, 50));
       });
 
       expect(scrollSpy).toHaveBeenCalled();
     } finally {
-      Element.prototype.scrollIntoView = originalScrollIntoView;
+      HTMLElement.prototype.scrollTo = originalScrollTo;
     }
   });
 
@@ -390,8 +390,8 @@ describe('PromotionPage Mobile Layout', () => {
   // Additional: Cards in mobile layout respect forceExpand
   it('cards in mobile layout receive forceExpand prop correctly', async () => {
     const scrollSpy = vi.fn();
-    const originalScrollIntoView = Element.prototype.scrollIntoView;
-    Element.prototype.scrollIntoView = scrollSpy;
+    const originalScrollTo = HTMLElement.prototype.scrollTo;
+    HTMLElement.prototype.scrollTo = scrollSpy;
 
     try {
       const user = userEvent.setup();
@@ -411,7 +411,7 @@ describe('PromotionPage Mobile Layout', () => {
       // The card should be force-expanded and scrolled to
       expect(scrollSpy).toHaveBeenCalled();
     } finally {
-      Element.prototype.scrollIntoView = originalScrollIntoView;
+      HTMLElement.prototype.scrollTo = originalScrollTo;
     }
   });
 
@@ -470,8 +470,8 @@ describe('PromotionPage Mobile Layout', () => {
 
   // Re-click bug fix: clicking the same strip card twice re-expands a collapsed card
   it('re-expands a collapsed card when clicking the same strip card title twice', async () => {
-    const originalScrollIntoView = Element.prototype.scrollIntoView;
-    Element.prototype.scrollIntoView = vi.fn();
+    const originalScrollTo = HTMLElement.prototype.scrollTo;
+    HTMLElement.prototype.scrollTo = vi.fn();
 
     try {
       const user = userEvent.setup();
@@ -520,7 +520,7 @@ describe('PromotionPage Mobile Layout', () => {
       const collapseBtnAfter = mobileCard.querySelector('button[aria-label="Collapse How to Shop"]');
       expect(collapseBtnAfter).toBeInTheDocument();
     } finally {
-      Element.prototype.scrollIntoView = originalScrollIntoView;
+      HTMLElement.prototype.scrollTo = originalScrollTo;
     }
   });
 });

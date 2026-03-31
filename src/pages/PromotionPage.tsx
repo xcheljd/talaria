@@ -773,6 +773,9 @@ export function PromotionPage() {
     string | undefined
   >(undefined);
 
+  // Ref to the mobile scrollable card container for manual scroll-to-card
+  const mobileCardsContainerRef = useRef<HTMLDivElement>(null);
+
   // Load persisted state on mount
   useEffect(() => {
     const init = async () => {
@@ -839,6 +842,44 @@ export function PromotionPage() {
     [store, forceExpandedCardId]
   );
 
+  // Scroll a card into view inside the mobile card container
+  const scrollMobileCardIntoView = useCallback(
+    (cardId: string) => {
+      const container = mobileCardsContainerRef.current;
+      if (!container) return;
+
+      // Use double-rAF to wait for the card to render after forceExpand
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const cardEl = container.querySelector(
+            `[data-card-id="${cardId}"]`
+          ) as HTMLElement | null;
+          if (!cardEl) return;
+
+          // Calculate scroll position relative to the scrollable container
+          const containerRect = container.getBoundingClientRect();
+          const cardRect = cardEl.getBoundingClientRect();
+
+          // Scroll the card to the top of the visible area with a small offset
+          const scrollOffset = cardRect.top - containerRect.top;
+          const targetTop = container.scrollTop + scrollOffset - 8;
+
+          // Use scrollTo on the container directly (avoids nested scroll issues)
+          if (typeof container.scrollTo === 'function') {
+            container.scrollTo({
+              top: targetTop,
+              behavior: 'smooth',
+            });
+          } else {
+            // Fallback for jsdom/test environments
+            container.scrollTop = targetTop;
+          }
+        });
+      });
+    },
+    []
+  );
+
   // Mobile strip card click handler
   const handleMobileStripCardClick = useCallback(
     (cardId: string) => {
@@ -851,15 +892,9 @@ export function PromotionPage() {
         setForceExpandedCardId(cardId);
       }
 
-      // Wait for card to render, then scroll to it
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const cardEl = document.querySelector(`[data-card-id="${cardId}"]`);
-          cardEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-      });
+      scrollMobileCardIntoView(cardId);
     },
-    [forceExpandedCardId]
+    [forceExpandedCardId, scrollMobileCardIntoView]
   );
 
   // Profile redirect — if no profile, redirect to /start
@@ -920,7 +955,7 @@ export function PromotionPage() {
           minPx={[200, 150]}
         >
           {/* All cards from both columns */}
-          <div className="overflow-y-auto h-full">
+          <div className="overflow-y-auto h-full" ref={mobileCardsContainerRef}>
             <ColumnCards
               column="left"
               forceExpandedCardId={forceExpandedCardId}
