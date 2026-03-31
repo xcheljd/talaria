@@ -1,0 +1,71 @@
+{
+  "milestone": "newsletter-editor",
+  "round": 1,
+  "status": "pass",
+  "validatorsRun": {
+    "test": { "passed": true, "command": "npx vitest run", "exitCode": 0, "observation": "713 tests passed across 25 test files. No failures." },
+    "typecheck": { "passed": true, "command": "npx tsc --noEmit", "exitCode": 0, "observation": "TypeScript compilation succeeded with no errors." },
+    "lint": { "passed": true, "command": "npx eslint src/", "exitCode": 0, "observation": "ESLint passed with no errors or warnings." }
+  },
+  "reviewsSummary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "failedFeatures": []
+  },
+  "blockingIssues": [],
+  "allIssues": {
+    "tiptap-install-and-store": [
+      { "severity": "non_blocking", "description": "validateImportConfig does not validate newsletterPosition is strictly 'top'|'bottom' at runtime — accepts any string via 'as' cast", "file": "src/lib/promotion-email-html.ts", "line": 686 },
+      { "severity": "non_blocking", "description": "handleGenerateBatches useCallback dependency array omits newsletter fields (works due to Zustand stable reference)", "file": "src/components/promotion/BulkEmailTools.tsx", "line": 300 }
+    ],
+    "newsletter-editor-component": [
+      { "severity": "non_blocking", "description": "ColorInput uses document.querySelector with data attribute — fragile if multiple instances exist", "file": "src/components/promotion/NewsletterEditor.tsx", "line": 128 },
+      { "severity": "non_blocking", "description": "useCallback hooks depend on [store] (full object) causing unnecessary re-creation", "file": "src/components/promotion/NewsletterEditor.tsx", "line": 181 },
+      { "severity": "suggestion", "description": "Link handler uses window.prompt() — consider shadcn/ui Dialog for better UX", "file": "src/components/promotion/NewsletterEditor.tsx", "line": 199 }
+    ],
+    "newsletter-card-integration": [
+      { "severity": "non_blocking", "description": "PromotionPage.tsx JSDoc still says 'all 8 cards' — should be 9", "file": "src/pages/PromotionPage.tsx", "line": 5 },
+      { "severity": "non_blocking", "description": "IconToolbar.tsx JSDoc still says '8 icon buttons' — should be 9", "file": "src/components/promotion/IconToolbar.tsx", "line": 4 },
+      { "severity": "non_blocking", "description": "Script tag regex edge case with angle brackets inside script content (low risk, TipTap provides defense-in-depth)", "file": "src/components/promotion/NewsletterEditor.tsx", "line": 136 },
+      { "severity": "non_blocking", "description": "handleLinkClick accepts any URL from window.prompt() including javascript: URIs (pre-existing, not introduced by this feature)", "file": "src/components/promotion/NewsletterEditor.tsx", "line": 205 }
+    ]
+  },
+  "appliedUpdates": [
+    {
+      "target": "AGENTS.md",
+      "description": "Updated test count from 618 to 713 to reflect current state",
+      "sourceFeature": "newsletter-card-integration"
+    },
+    {
+      "target": "library",
+      "description": "Added TipTap SSR/JSDOM compatibility note (immediatelyRender: false) and XSS paste protection documentation to architecture.md",
+      "sourceFeature": "newsletter-editor-component"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add TipTap coding convention: 'useEditor() must use immediatelyRender: false for JSDOM test compatibility.'",
+      "evidence": "newsletter-editor-component reviewer identified this as a critical TipTap requirement that's not documented in project conventions. The worker correctly applied it but future workers may not know.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Consider adding convention: 'Shared types between src/stores/ and src/lib/ can be placed in src/stores/ for now, but a shared types module may be warranted as more cross-layer types emerge.'",
+      "evidence": "tiptap-install-and-store reviewer noted NewsletterPosition type is exported from promotion-store.ts but imported by promotion-email-html.ts (a pure utility), creating mild cross-layer coupling.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "architecture.md describes newsletter email rendering that doesn't exist yet in generatePromotionEmailHTML()",
+      "reason": "The architecture.md is forward-looking design documentation describing the intended architecture. The newsletter-email rendering is the next milestone (newsletter-email). The docs are correctly describing the design intent, not the current implementation state."
+    },
+    {
+      "observation": "TipTap toolbar has 10+ buttons, not the '8 format types' mentioned in feature description",
+      "reason": "The expectedBehavior list is the source of truth and includes undo/redo as a separate criterion. The feature description's '8 format types' is a minor ambiguity but the implementation correctly exceeds it. No action needed."
+    }
+  ],
+  "previousRound": null
+}

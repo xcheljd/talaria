@@ -105,6 +105,8 @@ The Newsletter card is the 9th card, placed at index 1 in CARD_CONFIGS (after Ba
 - Formatting: Bold, Italic, Underline, Text Color, Highlight, H2, H3, Bullet List, Link
 - Uses @tiptap/react, @tiptap/starter-kit, @tiptap/extension-text-style, @tiptap/extension-color, @tiptap/extension-highlight
 - XSS: sanitizeHTML() applied to newsletter body before email injection
+- SSR/JSDOM: `useEditor()` must use `immediatelyRender: false` for test compatibility
+- XSS paste protection: SanitizePasteExtension strips `<script>`, event handlers, and `javascript:` URIs from pasted content
 
 ### Data Flow
 ```

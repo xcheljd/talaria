@@ -1,0 +1,73 @@
+{
+  "featureId": "newsletter-card-integration",
+  "reviewedAt": "2026-03-31T23:45:00.000Z",
+  "commitId": "cb9d761",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The newsletter-card-integration feature is well-implemented. The Newsletter card is correctly placed at index 1 in CARD_CONFIGS (after Basic Details, before Discount Entries), the NewsletterEditor is wired as card content, hasContent detection works correctly for status dots, the Newspaper icon is added to IconToolbar in the correct position, and the SanitizePasteExtension provides paste-time XSS protection. Auto-save dependencies include all three newsletter fields. All 713 tests pass, typecheck and lint are clean. The interactive verification confirmed correct rendering, status dot behavior, icon toolbar integration, and scroll-to-card functionality. A few non-blocking issues were found: stale docstring comments, a regex edge case in XSS sanitization, and an unvalidated URL in the link handler.",
+    "issues": [
+      {
+        "file": "src/pages/PromotionPage.tsx",
+        "line": 5,
+        "severity": "non_blocking",
+        "description": "File-level JSDoc comment still says 'all 8 cards in single scrollable column' — should be 9 after adding the Newsletter card.",
+        "suggestedFix": "Update the comment from 'all 8 cards' to 'all 9 cards'."
+      },
+      {
+        "file": "src/components/promotion/IconToolbar.tsx",
+        "line": 4,
+        "severity": "non_blocking",
+        "description": "File-level JSDoc comment still says 'Displays 8 icon buttons (one per card)' — should be 9 after adding the Newsletter icon.",
+        "suggestedFix": "Update the comment from '8 icon buttons' to '9 icon buttons'."
+      },
+      {
+        "file": "src/components/promotion/NewsletterEditor.tsx",
+        "line": 136,
+        "severity": "non_blocking",
+        "description": "The script-tag regex `/<script\\b[^<]*(?:(?!<\\/script>)[^<]*)*<\\/script>/gi` uses a reluctant pattern that can fail on nested angle brackets inside script content (e.g., `<script>if (a < b) {}</script>`). The `<` inside the script body would terminate the match prematurely, leaving the closing `</script>` unstripped. In practice, pasted script content with comparison operators is uncommon, and TipTap's own HTML parser provides a second layer of defense by not executing scripts. The risk is very low.",
+        "suggestedFix": "Consider a two-pass approach: first remove all content between `<script` and `</script>` using a more permissive regex like `/<script[\\s\\S]*?<\\/script>/gi`, then do a second pass for any remaining stray `</script>` tags. Alternatively, use DOMParser to strip script nodes programmatically."
+      },
+      {
+        "file": "src/components/promotion/NewsletterEditor.tsx",
+        "line": 205,
+        "severity": "non_blocking",
+        "description": "The handleLinkClick function accepts any URL from window.prompt() without validation, including `javascript:` URIs. While the SanitizePasteExtension strips javascript: from pasted HTML, the manual link insertion path via the toolbar button does not validate the URL. A user could manually enter `javascript:alert(1)` through the prompt dialog. Note: this was present in the pre-existing NewsletterEditor component (commit d17eb44), not introduced by this integration commit — this review scope covers the integration only.",
+        "suggestedFix": "Add URL validation in handleLinkClick: reject or sanitize URLs starting with 'javascript:', 'data:', or 'vbscript:' protocols. e.g., `if (!url.match(/^https?:\\/\\//i)) return;`"
+      },
+      {
+        "file": "src/pages/PromotionPage.tsx",
+        "line": 87,
+        "severity": "suggestion",
+        "description": "The getCardContent function uses a switch statement that could throw for unknown card IDs (it falls through to CardPlaceholderContent). This is defensive but fine. The default case is handled, so no issue here — just noting for completeness.",
+        "suggestedFix": "No action needed."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "The .factory/library/architecture.md states 'sanitizeHTML() applied to newsletter body before email injection' and describes the newsletter section rendering positions, but the actual generatePromotionEmailHTML() function in src/lib/promotion-email-html.ts does NOT render any newsletter section in the email HTML output. The newsletter data fields exist in the types and are passed through export/import, but the email template has no newsletter rendering code. This means VAL-EMAIL-001 through VAL-EMAIL-011 from the validation contract cannot pass as-is. This appears to be a gap from a prior feature (newsletter-editor-component) that was supposed to add email rendering but didn't include it in the final implementation.",
+      "evidence": "src/lib/promotion-email-html.ts — generatePromotionEmailHTML() function (line 362-540) contains no newsletter section rendering. The function template goes directly from HEADER to BRAND SECTIONS to HOW TO SHOP BOX. Compare with .factory/library/architecture.md which says 'Top position: Newsletter rendered between HEADER and BRAND SECTIONS' and 'Bottom position: Newsletter rendered between BRAND SECTIONS and HOW TO SHOP BOX'.",
+      "suggestedTarget": "library",
+      "suggestedContent": "Update .factory/library/architecture.md to accurately reflect that the newsletter email rendering is NOT yet implemented in generatePromotionEmailHTML(). The data fields and store integration exist, but the actual HTML template injection is pending."
+    },
+    {
+      "area": "knowledge",
+      "observation": "AGENTS.md states test count as 618 tests, but the handoff reports 713 tests passing. The test count has grown across recent features.",
+      "evidence": "AGENTS.md line 'Tests: 618 tests in tests/' vs handoff verification showing '713 tests passing (25 test files)'.",
+      "suggestedTarget": "AGENTS.md",
+      "suggestedContent": "Update the test count in AGENTS.md NOTES section from 618 to 713 (or the current count after this feature)."
+    },
+    {
+      "area": "knowledge",
+      "observation": "The NewsletterEditor component's handleLinkClick uses window.prompt() for URL input. This is a simple approach but may not work well in the Tauri desktop shell where window.prompt() behavior can vary. This is the existing pattern from the prior feature, not introduced by this integration.",
+      "evidence": "src/components/promotion/NewsletterEditor.tsx:203 — `const url = window.prompt('Enter URL:', 'https://');`",
+      "suggestedTarget": "library",
+      "suggestedContent": "Document that the NewsletterEditor uses window.prompt() for link URL input, and note that this may need a shadcn Dialog replacement for better UX in Tauri desktop mode."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "The newsletter-card-integration feature is correctly implemented and passes review. All expected behaviors from the feature description are met: the Newsletter card appears at index 1 in CARD_CONFIGS with cardId='newsletterCard', the status dot detection works correctly (empty by default, filled when body has content or heading differs from 'Newsletter'), the Newspaper icon is added to IconToolbar in the correct position with scroll-to-card behavior, and XSS sanitization strips script tags, event handlers, and javascript: URIs from pasted content. The card renders correctly in both desktop and mobile layouts. Five non-blocking issues were noted: two stale docstring comments (8→9 cards), a regex edge case in script tag stripping, an unvalidated URL in the manual link handler (pre-existing from prior feature), and a documentation accuracy gap in architecture.md regarding email rendering (pre-existing gap). Three shared state observations were recorded regarding the missing email rendering implementation, outdated test count in AGENTS.md, and the window.prompt() pattern for link input."
+}

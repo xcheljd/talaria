@@ -93,7 +93,7 @@ npm run tauri:build            # Build desktop app
 - **Tauri config**: Stored in app userData/downloads-config.json (JSON)
 - **IndexedDB**: Database name "PDFStorage", store "pdfs"
 - **Profile keys**: `userProfile`, `theme`, `lightPalette`, `darkPalette`
-- **Tests**: 618 tests in tests/ using Vitest + React Testing Library
+- **Tests**: 713 tests in tests/ using Vitest + React Testing Library
 
 ## DOCUMENTATION
 
