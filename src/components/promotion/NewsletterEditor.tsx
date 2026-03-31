@@ -9,7 +9,7 @@
  * - Syncs editor content to Zustand store on every change
  */
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -32,6 +32,7 @@ import {
   ArrowDownFromLine,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isSafeURL } from '@/lib/html-utils';
 import { Button } from '@/components/ui/button';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import {
@@ -175,7 +176,24 @@ export function NewsletterEditor() {
         html === '<p></p>' || html === '<p><br></p>' || html === '';
       store.setNewsletterBody(isEmpty ? '' : html);
     },
+    // Force toolbar active state to update on cursor movement / selection changes
+    onSelectionUpdate: () => {
+      // This triggers a re-render so toolbar buttons reflect current cursor position
+    },
   });
+
+  // Sync editor when store changes from external source (import, Start Over)
+  useEffect(() => {
+    if (!editor) return;
+
+    const currentEditorHTML = editor.getHTML();
+    const storeBody = store.newsletterBody || '<p></p>';
+
+    // Only update if content actually differs (avoid infinite loops)
+    if (currentEditorHTML !== storeBody) {
+      editor.commands.setContent(storeBody);
+    }
+  }, [store.newsletterBody, editor]);
 
   // ===== Heading Change =====
   const handleHeadingChange = useCallback(
@@ -204,6 +222,10 @@ export function NewsletterEditor() {
 
     const url = window.prompt('Enter URL:', 'https://');
     if (url) {
+      // Validate URL protocol to prevent javascript: URI vulnerability
+      if (!isSafeURL(url)) {
+        return;
+      }
       editor
         .chain()
         .focus()

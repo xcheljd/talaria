@@ -4,7 +4,7 @@
  * Migrated from src/js/promotion-ui.js generatePromotionEmailHTML()
  */
 
-import { sanitizeHTML } from './html-utils';
+import { sanitizeHTML, sanitizeRichHTML } from './html-utils';
 import {
   getStorePhone,
   getStoreAddress,
@@ -63,6 +63,94 @@ export interface PromotionConfigForExport {
 /** Escape HTML special characters */
 function escapeHtml(text: string): string {
   return sanitizeHTML(text);
+}
+
+/**
+ * Convert TipTap HTML output to email-compatible inline-styled HTML.
+ * Strips CSS classes, keeps only safe elements, and applies inline styles
+ * for email client compatibility.
+ */
+function convertTipTapToInlineHTML(html: string): string {
+  if (!html || !html.trim()) return '';
+
+  // Sanitize to strip dangerous elements (scripts, event handlers, etc.)
+  // while preserving safe formatting tags
+  const clean = sanitizeRichHTML(html);
+
+  // Map of TipTap HTML elements to their email-inline-style equivalents
+  // We rebuild the HTML with inline styles since email clients ignore <style> blocks
+  let result = clean;
+
+  // Strong → already safe from sanitizeHTML, keep as-is
+  // Em → already safe, keep as-is
+  // U (underline) → keep as-is
+  // We need to convert span style attributes to inline styles
+
+  // Replace <h2> with inline-styled version
+  result = result.replace(
+    /<h2([^>]*)>/g,
+    "<h2 style=\"font-size: 20px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 15px 0 8px 0; font-weight: bold;\">"
+  );
+
+  // Replace <h3> with inline-styled version
+  result = result.replace(
+    /<h3([^>]*)>/g,
+    "<h3 style=\"font-size: 17px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 12px 0 6px 0; font-weight: bold;\">"
+  );
+
+  // Replace <p> with inline-styled version
+  result = result.replace(
+    /<p([^>]*)>/g,
+    "<p style=\"font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 8px 0;\">"
+  );
+
+  // Replace <ul> with inline-styled version
+  result = result.replace(
+    /<ul([^>]*)>/g,
+    "<ul style=\"font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 8px 0; padding-left: 24px;\">"
+  );
+
+  // Replace <li> with inline-styled version
+  result = result.replace(
+    /<li([^>]*)>/g,
+    "<li style=\"font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 2px 0;\">"
+  );
+
+  // Replace <a> with inline-styled version (preserve href)
+  result = result.replace(
+    /<a\s+href="([^"]*)"([^>]*)>/g,
+    '<a href="$1"$2 style="color: #0066cc; text-decoration: underline;">'
+  );
+
+  // Strip javascript: URIs from links for safety
+  result = result.replace(/href="javascript:[^"]*"/gi, 'href="#"');
+
+  return result;
+}
+
+/**
+ * Build the newsletter HTML section for email rendering.
+ * Returns empty string if newsletter body is empty.
+ */
+function buildNewsletterSection(heading: string, body: string): string {
+  if (!body || !body.trim()) return '';
+
+  const bodyHTML = convertTipTapToInlineHTML(body);
+  if (!bodyHTML || !bodyHTML.trim()) return '';
+
+  // Check if the converted body is just empty tags (no visible content)
+  const strippedContent = bodyHTML.replace(/<[^>]*>/g, '').trim();
+  if (!strippedContent) return '';
+
+  const headingText =
+    heading && heading.trim() ? escapeHtml(heading) : 'Newsletter';
+
+  return `
+                <!-- NEWSLETTER -->
+                <div style="background-color: #f9fafb; padding: 15px; margin-bottom: 20px; border-left: 4px solid #2563eb;">
+                    <h2 style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0; color: #1e40af;">${headingText}</h2>
+                    ${bodyHTML}
+                </div>`;
 }
 
 /** Apply formatting (bold/italic/underline) to item text */
@@ -457,6 +545,20 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
                 </p>`
       : '';
 
+  // Newsletter section (only rendered if body has content)
+  const newsletterSection = buildNewsletterSection(
+    data.newsletterHeading,
+    data.newsletterBody
+  );
+
+  // Newsletter at top position: between HEADER and BRAND SECTIONS
+  const newsletterTopHTML =
+    data.newsletterPosition === 'top' ? newsletterSection : '';
+
+  // Newsletter at bottom position: between BRAND SECTIONS and HOW TO SHOP BOX
+  const newsletterBottomHTML =
+    data.newsletterPosition === 'bottom' ? newsletterSection : '';
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -478,9 +580,10 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
         <!-- MAIN CONTENT -->
         <tr>
             <td style="padding: 25px;">
-
+${newsletterTopHTML}
                 <!-- BRAND SECTIONS -->
 ${brandSections}
+${newsletterBottomHTML}
 
                 <!-- HOW TO SHOP BOX -->
                 <div style="background-color: #f5f5f5; color: #333333; padding: 15px; margin-bottom: 20px;">
