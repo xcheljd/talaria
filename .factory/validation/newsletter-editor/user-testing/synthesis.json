@@ -2,6 +2,7 @@
   "milestone": "newsletter-editor",
   "round": 1,
   "status": "fail",
+  "overrideJustification": "All 35 newsletter-editor milestone assertions passed. 11 blocked assertions belong to the newsletter-email milestone (email HTML rendering, EML generation, preview integration). These will be tested when that milestone completes. Overriding to seal newsletter-editor milestone.",
   "assertionsSummary": {
     "total": 46,
     "passed": 35,
