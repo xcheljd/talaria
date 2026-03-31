@@ -215,16 +215,21 @@ describe('PromotionPage Desktop Layout', () => {
     const panels = container.querySelector('[data-testid="resizable-panels"]');
     expect(panels).toBeInTheDocument();
 
-    // Check for separator (drag handle) — use getByRole for accurate matching
-    const separator = screen.getByRole('separator');
-    expect(separator).toBeInTheDocument();
-    expect(separator).toHaveAttribute('aria-orientation', 'vertical');
+    // Check for separator (drag handle) — multiple separators exist (desktop + mobile)
+    const separators = screen.getAllByRole('separator');
+    // At least the desktop ResizablePanels separator
+    expect(separators.length).toBeGreaterThanOrEqual(1);
+    // Desktop separator should have vertical orientation
+    const verticalSeparators = separators.filter(
+      (s) => s.getAttribute('aria-orientation') === 'vertical'
+    );
+    expect(verticalSeparators.length).toBeGreaterThanOrEqual(1);
 
-    // Check for first and second panels
-    const firstPanel = container.querySelector('[data-testid="panel-first"]');
-    const secondPanel = container.querySelector('[data-testid="panel-second"]');
-    expect(firstPanel).toBeInTheDocument();
-    expect(secondPanel).toBeInTheDocument();
+    // Check for first and second panels (desktop panels)
+    const firstPanels = container.querySelectorAll('[data-testid="panel-first"]');
+    const secondPanels = container.querySelectorAll('[data-testid="panel-second"]');
+    expect(firstPanels.length).toBeGreaterThanOrEqual(1);
+    expect(secondPanels.length).toBeGreaterThanOrEqual(1);
   });
 
   // Additional: Sidebar group separator exists

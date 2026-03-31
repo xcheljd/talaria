@@ -42,6 +42,7 @@ import {
   type SidebarCardInfo,
   type SidebarCardGroup,
 } from '@/components/promotion/SidebarBar';
+import { HorizontalStrip } from '@/components/promotion/HorizontalStrip';
 import { BasicDetailsEditor } from '@/components/promotion/BasicDetailsEditor';
 import { DiscountEntriesEditor } from '@/components/promotion/DiscountEntriesEditor';
 import { FormattableItemEditor } from '@/components/promotion/FormattableItemEditor';
@@ -830,6 +831,19 @@ export function PromotionPage() {
     [store]
   );
 
+  // Mobile strip card click handler
+  const handleMobileStripCardClick = useCallback((cardId: string) => {
+    setForceExpandedCardId(cardId);
+
+    // Wait for card to render, then scroll to it
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const cardEl = document.querySelector(`[data-card-id="${cardId}"]`);
+        cardEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }, []);
+
   // Profile redirect — if no profile, redirect to /start
   if (!hasProfile) {
     return <Navigate to="/start" replace state={{ from: '/promotion' }} />;
@@ -867,22 +881,41 @@ export function PromotionPage() {
         </ResizablePanels>
       </div>
 
-      {/* ===== Mobile Layout (<1024px): Single column, all stacked ===== */}
-      <div className="lg:hidden">
-        {/* Left Column Cards */}
-        <div className="border-b">
-          <ColumnCards column="left" />
-        </div>
+      {/* ===== Mobile Layout (<1024px): Horizontal strips + all cards + preview ===== */}
+      <div className="lg:hidden flex flex-col h-[calc(100vh-3.5rem)]">
+        {/* Horizontal navigation strips */}
+        <HorizontalStrip
+          label="Promo Body"
+          cards={leftSidebarCards}
+          onCardClick={handleMobileStripCardClick}
+        />
+        <HorizontalStrip
+          label="Email Tools"
+          cards={centerSidebarCards}
+          onCardClick={handleMobileStripCardClick}
+        />
 
-        {/* Center Column Cards */}
-        <div className="border-b">
-          <ColumnCards column="center" />
-        </div>
+        {/* Resizable split: cards on top, preview on bottom */}
+        <ResizablePanels
+          orientation="horizontal"
+          defaultSplit={60}
+          minPx={[200, 150]}
+        >
+          {/* All cards from both columns */}
+          <div className="overflow-y-auto h-full">
+            <ColumnCards
+              column="left"
+              forceExpandedCardId={forceExpandedCardId}
+            />
+            <ColumnCards
+              column="center"
+              forceExpandedCardId={forceExpandedCardId}
+            />
+          </div>
 
-        {/* Right Column: Preview */}
-        <div className="min-h-[500px]">
+          {/* Email preview */}
           <PreviewColumn />
-        </div>
+        </ResizablePanels>
       </div>
     </>
   );
