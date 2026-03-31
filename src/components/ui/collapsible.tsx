@@ -28,9 +28,9 @@ function CollapsibleContent({
     <CollapsiblePrimitive.CollapsibleContent
       data-slot="collapsible-content"
       className={cn(
-        'overflow-hidden grid transition-[grid-template-rows] duration-300 ease-out',
-        'data-[state=closed]:grid-rows-[0fr]',
-        'data-[state=open]:grid-rows-[1fr]',
+        'overflow-hidden grid transition-[grid-template-rows] ease-in-out',
+        'data-[state=closed]:grid-rows-[0fr] data-[state=closed]:duration-250',
+        'data-[state=open]:grid-rows-[1fr] data-[state=open]:duration-500',
         className
       )}
       {...props}
