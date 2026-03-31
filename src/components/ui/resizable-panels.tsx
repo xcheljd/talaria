@@ -286,6 +286,15 @@ export function ResizablePanels({
     [orientation, minSplit, maxSplit, clampPercent, clampedSplit]
   );
 
+  // ===== Double-click reset handler =====
+
+  const handleDoubleClick = React.useCallback(() => {
+    const resetValue = defaultSplit;
+    const clamped = clampPercent(resetValue);
+    setSplitPercent(clamped);
+    onSplitChangeRef.current?.(clamped);
+  }, [defaultSplit, clampPercent]);
+
   // ===== Cleanup on unmount =====
 
   React.useEffect(() => {
@@ -364,6 +373,8 @@ export function ResizablePanels({
         )}
         onKeyDown={handleKeyDown}
         onPointerDown={handlePointerDown}
+        onDoubleClick={handleDoubleClick}
+        title="Double-click to reset"
       />
 
       {/* Second panel */}

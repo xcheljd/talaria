@@ -515,6 +515,124 @@ describe('ResizablePanels', () => {
     });
   });
 
+  // --- Double-click reset ---
+
+  describe('double-click reset', () => {
+    it('resets split to default (50) on double-click', () => {
+      render(
+        <ResizablePanels orientation="vertical" defaultSplit={50} minSize={10} maxSize={90}>
+          <div>A</div>
+          <div>B</div>
+        </ResizablePanels>
+      );
+
+      const separator = screen.getByRole('separator');
+
+      // Move split away from default first
+      act(() => {
+        fireEvent.keyDown(separator, { key: 'ArrowRight' });
+      });
+      act(() => {
+        fireEvent.keyDown(separator, { key: 'ArrowRight' });
+      });
+      act(() => {
+        fireEvent.keyDown(separator, { key: 'ArrowRight' });
+      });
+      expect(separator).toHaveAttribute('aria-valuenow', '56');
+
+      // Double-click to reset
+      act(() => {
+        fireEvent.dblClick(separator);
+      });
+
+      expect(separator).toHaveAttribute('aria-valuenow', '50');
+    });
+
+    it('respects custom defaultSplit prop on double-click', () => {
+      render(
+        <ResizablePanels orientation="vertical" defaultSplit={60} minSize={10} maxSize={90}>
+          <div>A</div>
+          <div>B</div>
+        </ResizablePanels>
+      );
+
+      const separator = screen.getByRole('separator');
+      expect(separator).toHaveAttribute('aria-valuenow', '60');
+
+      // Move split away
+      act(() => {
+        fireEvent.keyDown(separator, { key: 'ArrowRight' });
+      });
+      expect(separator).toHaveAttribute('aria-valuenow', '62');
+
+      // Double-click to reset to custom default (60)
+      act(() => {
+        fireEvent.dblClick(separator);
+      });
+
+      expect(separator).toHaveAttribute('aria-valuenow', '60');
+    });
+
+    it('calls onSplitChange callback with default value on double-click', () => {
+      const onSplitChange = vi.fn();
+
+      render(
+        <ResizablePanels
+          orientation="vertical"
+          defaultSplit={50}
+          minSize={10}
+          maxSize={90}
+          onSplitChange={onSplitChange}
+        >
+          <div>A</div>
+          <div>B</div>
+        </ResizablePanels>
+      );
+
+      const separator = screen.getByRole('separator');
+
+      // Move away first (this will call onSplitChange for each key press)
+      onSplitChange.mockClear();
+
+      act(() => {
+        fireEvent.keyDown(separator, { key: 'ArrowRight' });
+      });
+      expect(onSplitChange).toHaveBeenCalledWith(52);
+      onSplitChange.mockClear();
+
+      // Double-click reset
+      act(() => {
+        fireEvent.dblClick(separator);
+      });
+
+      expect(onSplitChange).toHaveBeenCalledWith(50);
+    });
+
+    it('updates aria-valuenow to default value on double-click', () => {
+      render(
+        <ResizablePanels orientation="vertical" defaultSplit={40} minSize={10} maxSize={90}>
+          <div>A</div>
+          <div>B</div>
+        </ResizablePanels>
+      );
+
+      const separator = screen.getByRole('separator');
+
+      // Move to a different position
+      act(() => {
+        fireEvent.keyDown(separator, { key: 'End' });
+      });
+      expect(separator).toHaveAttribute('aria-valuenow', '90');
+
+      // Double-click resets to default
+      act(() => {
+        fireEvent.dblClick(separator);
+      });
+
+      expect(separator).toHaveAttribute('aria-valuenow', '40');
+    });
+  });
+
   // --- Generic component (VAL-CROSS-005) ---
 
   describe('generic component (VAL-CROSS-005)', () => {
