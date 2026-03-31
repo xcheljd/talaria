@@ -358,7 +358,6 @@ function downloadBlob(blob: Blob, filename: string) {
 
 function PreviewColumn() {
   const store = usePromotionStore();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [activeTab, setActiveTab] = useState('preview');
 
   // Generate email HTML from current store data
@@ -385,35 +384,6 @@ function PreviewColumn() {
     store.howToShopItems,
     store.importantNotesItems,
   ]);
-
-  // Update iframe when emailHTML changes
-  useEffect(() => {
-    if (!iframeRef.current) return;
-
-    if (!emailHTML) {
-      // Write empty state
-      const doc = iframeRef.current.contentDocument;
-      if (doc) {
-        doc.open();
-        doc.write(`
-          <html>
-            <body style="display:flex;align-items:center;justify-content:center;min-height:400px;font-family:system-ui,sans-serif;color:#888;">
-              <p style="text-align:center;">Enter promotion details to see preview</p>
-            </body>
-          </html>
-        `);
-        doc.close();
-      }
-      return;
-    }
-
-    const doc = iframeRef.current.contentDocument;
-    if (doc) {
-      doc.open();
-      doc.write(emailHTML);
-      doc.close();
-    }
-  }, [emailHTML]);
 
   // Download Email Draft (single EML)
   const handleDownloadDraft = useCallback(async () => {
@@ -664,7 +634,10 @@ function PreviewColumn() {
         <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
           {hasContent ? (
             <iframe
-              ref={iframeRef}
+              srcDoc={
+                emailHTML ||
+                `<html><body style="display:flex;align-items:center;justify-content:center;min-height:400px;font-family:system-ui,sans-serif;color:#888;"><p style="text-align:center;">Enter promotion details to see preview</p></body></html>`
+              }
               className="h-full w-full border-0"
               title="Email Preview"
               sandbox="allow-same-origin"
