@@ -273,6 +273,57 @@ describe('PromotionPage Desktop Layout', () => {
     );
     expect(leftIndicator).not.toBeInTheDocument();
   });
+
+  // Re-click bug fix: clicking the same sidebar card twice re-expands a collapsed card
+  it('re-expands a collapsed card when clicking the same sidebar card title twice', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPromotionPage();
+
+    // Click "How to Shop" sidebar card to force-expand it
+    const howToShopSidebarCard = container.querySelector('[data-testid="sidebar-card-howToShopCard"]');
+    expect(howToShopSidebarCard).toBeInTheDocument();
+
+    await user.click(howToShopSidebarCard!);
+
+    // Wait for state updates and rAF
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    // Card should be expanded — find the card's collapse button in the desktop layout
+    // "How to Shop" card has defaultCollapsed: true, but forceExpand should open it
+    // The chevron button aria-label changes based on isOpen
+    const howToShopCards = container.querySelectorAll('[data-card-id="howToShopCard"]');
+    // Find the one in desktop layout (first one)
+    const desktopCard = howToShopCards[0];
+    expect(desktopCard).toBeInTheDocument();
+
+    const collapseBtn = desktopCard.querySelector('button[aria-label="Collapse How to Shop"]');
+    expect(collapseBtn).toBeInTheDocument();
+
+    // Manually collapse the card by clicking the collapse button
+    await user.click(collapseBtn!);
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    // Card should now be collapsed
+    const expandBtn = desktopCard.querySelector('button[aria-label="Expand How to Shop"]');
+    expect(expandBtn).toBeInTheDocument();
+
+    // Click the same sidebar card again — this should re-expand it
+    await user.click(howToShopSidebarCard!);
+
+    // Need to flush the requestAnimationFrame that resets then re-sets forceExpandedCardId
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    // Card should be expanded again
+    const collapseBtnAfter = desktopCard.querySelector('button[aria-label="Collapse How to Shop"]');
+    expect(collapseBtnAfter).toBeInTheDocument();
+  });
 });
 
 // ===== SidebarBar Desktop Mode Unit Tests =====

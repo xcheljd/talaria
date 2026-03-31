@@ -467,4 +467,60 @@ describe('PromotionPage Mobile Layout', () => {
     const pdfDot = pdfBtn?.querySelector('[data-status]');
     expect(pdfDot).toHaveAttribute('data-status', 'filled');
   });
+
+  // Re-click bug fix: clicking the same strip card twice re-expands a collapsed card
+  it('re-expands a collapsed card when clicking the same strip card title twice', async () => {
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = vi.fn();
+
+    try {
+      const user = userEvent.setup();
+      const { container } = renderPromotionPage();
+
+      // Click "How to Shop" strip button to force-expand it
+      const howToShopStripBtn = container.querySelector(
+        '[data-testid="strip-card-howToShopCard"]'
+      );
+      expect(howToShopStripBtn).toBeInTheDocument();
+
+      await user.click(howToShopStripBtn!);
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+      });
+
+      // Card should be expanded in mobile layout
+      const howToShopCards = container.querySelectorAll('[data-card-id="howToShopCard"]');
+      const mobileCard = howToShopCards[0];
+      expect(mobileCard).toBeInTheDocument();
+
+      const collapseBtn = mobileCard.querySelector('button[aria-label="Collapse How to Shop"]');
+      expect(collapseBtn).toBeInTheDocument();
+
+      // Manually collapse the card
+      await user.click(collapseBtn!);
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+      });
+
+      // Card should now be collapsed
+      const expandBtn = mobileCard.querySelector('button[aria-label="Expand How to Shop"]');
+      expect(expandBtn).toBeInTheDocument();
+
+      // Click the same strip card again — should re-expand
+      await user.click(howToShopStripBtn!);
+
+      // Flush the requestAnimationFrame that resets then re-sets forceExpandedCardId
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+      });
+
+      // Card should be expanded again
+      const collapseBtnAfter = mobileCard.querySelector('button[aria-label="Collapse How to Shop"]');
+      expect(collapseBtnAfter).toBeInTheDocument();
+    } finally {
+      Element.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
 });

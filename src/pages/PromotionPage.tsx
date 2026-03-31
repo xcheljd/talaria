@@ -818,7 +818,15 @@ export function PromotionPage() {
     (columnKey: string, cardId: string) => {
       const targetColumn = columnKey as 'left' | 'center';
       store.setColumnState(targetColumn);
-      setForceExpandedCardId(cardId);
+
+      if (forceExpandedCardId === cardId) {
+        setForceExpandedCardId(undefined);
+        requestAnimationFrame(() => {
+          setForceExpandedCardId(cardId);
+        });
+      } else {
+        setForceExpandedCardId(cardId);
+      }
 
       // Wait for column to render, then scroll to card
       requestAnimationFrame(() => {
@@ -828,21 +836,31 @@ export function PromotionPage() {
         });
       });
     },
-    [store]
+    [store, forceExpandedCardId]
   );
 
   // Mobile strip card click handler
-  const handleMobileStripCardClick = useCallback((cardId: string) => {
-    setForceExpandedCardId(cardId);
+  const handleMobileStripCardClick = useCallback(
+    (cardId: string) => {
+      if (forceExpandedCardId === cardId) {
+        setForceExpandedCardId(undefined);
+        requestAnimationFrame(() => {
+          setForceExpandedCardId(cardId);
+        });
+      } else {
+        setForceExpandedCardId(cardId);
+      }
 
-    // Wait for card to render, then scroll to it
-    requestAnimationFrame(() => {
+      // Wait for card to render, then scroll to it
       requestAnimationFrame(() => {
-        const cardEl = document.querySelector(`[data-card-id="${cardId}"]`);
-        cardEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        requestAnimationFrame(() => {
+          const cardEl = document.querySelector(`[data-card-id="${cardId}"]`);
+          cardEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
       });
-    });
-  }, []);
+    },
+    [forceExpandedCardId]
+  );
 
   // Profile redirect — if no profile, redirect to /start
   if (!hasProfile) {
