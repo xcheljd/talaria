@@ -268,6 +268,14 @@ describe('VAL-CROSS-003: Profile data flows into promotion signature', () => {
       specialHours: [],
       howToShopItems: [],
       importantNotesItems: [],
+      newsletterVisible: true,
+      newsletterStyle: {
+        borderColor: '#2563eb',
+        backgroundColor: '#f9fafb',
+        headingColor: '#1e40af',
+        borderStyle: 'left',
+        headingAlign: 'left',
+      },
     };
 
     const html = generatePromotionEmailHTML(data);
@@ -422,6 +430,14 @@ describe('VAL-CROSS-006: XSS prevention in generated content', () => {
           underline: false,
         },
       ],
+      newsletterVisible: true,
+      newsletterStyle: {
+        borderColor: '#2563eb',
+        backgroundColor: '#f9fafb',
+        headingColor: '#1e40af',
+        borderStyle: 'left',
+        headingAlign: 'left',
+      },
     };
 
     const html = generatePromotionEmailHTML(data);
@@ -614,6 +630,14 @@ describe('VAL-CROSS-005: Full promotion workflow end-to-end', () => {
       specialHours: state.specialHours,
       howToShopItems: state.howToShopItems,
       importantNotesItems: state.importantNotesItems,
+      newsletterVisible: true,
+      newsletterStyle: {
+        borderColor: '#2563eb',
+        backgroundColor: '#f9fafb',
+        headingColor: '#1e40af',
+        borderStyle: 'left',
+        headingAlign: 'left',
+      },
     };
 
     const html = generatePromotionEmailHTML(data);

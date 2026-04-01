@@ -61,6 +61,31 @@ export type ColumnState = 'left' | 'center';
 /** Serialized state for IndexedDB persistence */
 export type NewsletterPosition = 'top' | 'bottom';
 
+export interface NewsletterStyle {
+  borderColor: string | null; // null = auto (use palette primary)
+  backgroundColor: string | null; // null = auto (use palette muted)
+  headingColor: string | null; // null = auto (use palette primary)
+  borderStyle: 'left' | 'full' | 'none' | 'top'; // default 'left'
+  headingAlign: 'left' | 'center'; // default 'left'
+}
+
+/** Resolved newsletter style with all colors filled in (no nulls) */
+export interface ResolvedNewsletterStyle {
+  borderColor: string;
+  backgroundColor: string;
+  headingColor: string;
+  borderStyle: 'left' | 'full' | 'none' | 'top';
+  headingAlign: 'left' | 'center';
+}
+
+export const DEFAULT_NEWSLETTER_STYLE: NewsletterStyle = {
+  borderColor: null,
+  backgroundColor: null,
+  headingColor: null,
+  borderStyle: 'left',
+  headingAlign: 'left',
+};
+
 export interface PromotionPersistedState {
   promoDateRange: string;
   promoYear: string;
@@ -75,6 +100,8 @@ export interface PromotionPersistedState {
   newsletterHeading: string;
   newsletterBody: string;
   newsletterPosition: NewsletterPosition;
+  newsletterStyle: NewsletterStyle;
+  newsletterVisible: boolean;
 }
 
 // ===== Store State & Actions =====
@@ -100,6 +127,8 @@ export interface PromotionState {
   newsletterHeading: string;
   newsletterBody: string;
   newsletterPosition: NewsletterPosition;
+  newsletterStyle: NewsletterStyle;
+  newsletterVisible: boolean;
 
   // Promotion entry actions
   addPromotionEntry: () => void;
@@ -172,6 +201,8 @@ export interface PromotionState {
   setNewsletterHeading: (value: string) => void;
   setNewsletterBody: (value: string) => void;
   setNewsletterPosition: (value: NewsletterPosition) => void;
+  setNewsletterStyle: (style: Partial<NewsletterStyle>) => void;
+  setNewsletterVisible: (visible: boolean) => void;
   clearNewsletter: () => void;
 
   // Initialization
@@ -246,6 +277,8 @@ function getEmptyState() {
     newsletterHeading: 'Newsletter' as string,
     newsletterBody: '' as string,
     newsletterPosition: 'top' as NewsletterPosition,
+    newsletterStyle: { ...DEFAULT_NEWSLETTER_STYLE } as NewsletterStyle,
+    newsletterVisible: false as boolean,
   };
 }
 
@@ -516,11 +549,18 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   setNewsletterBody: (value: string) => set({ newsletterBody: value }),
   setNewsletterPosition: (value: NewsletterPosition) =>
     set({ newsletterPosition: value }),
+  setNewsletterStyle: (style: Partial<NewsletterStyle>) =>
+    set((state) => ({
+      newsletterStyle: { ...state.newsletterStyle, ...style },
+    })),
+  setNewsletterVisible: (visible: boolean) =>
+    set({ newsletterVisible: visible }),
   clearNewsletter: () =>
     set({
       newsletterHeading: 'Newsletter',
       newsletterBody: '',
       newsletterPosition: 'top',
+      newsletterStyle: { ...DEFAULT_NEWSLETTER_STYLE },
     }),
 
   // ===== Initialization =====
@@ -656,6 +696,8 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       newsletterHeading: state.newsletterHeading,
       newsletterBody: state.newsletterBody,
       newsletterPosition: state.newsletterPosition,
+      newsletterStyle: state.newsletterStyle,
+      newsletterVisible: state.newsletterVisible,
     };
 
     try {
@@ -727,6 +769,19 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         }
       }
 
+      // Migration: if body doesn't start with an H2 but has a heading,
+      // prepend the heading as an H2 element in the body
+      let loadedBody = parsed.newsletterBody || '';
+      const loadedHeading = parsed.newsletterHeading || 'Newsletter';
+      if (
+        loadedBody &&
+        loadedHeading &&
+        loadedHeading !== 'Newsletter' &&
+        !loadedBody.match(/<h2[^>]*>/i)
+      ) {
+        loadedBody = `<h2>${loadedHeading}</h2>${loadedBody}`;
+      }
+
       set({
         promotionEntries: parsed.promotionEntries || [],
         specialHours: parsed.specialHours || [],
@@ -738,9 +793,13 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         promoDateRange: parsed.promoDateRange || '',
         promoYear: parsed.promoYear || '',
         promoTitle: parsed.promoTitle || '',
-        newsletterHeading: parsed.newsletterHeading || 'Newsletter',
-        newsletterBody: parsed.newsletterBody || '',
+        newsletterHeading: loadedHeading,
+        newsletterBody: loadedBody,
         newsletterPosition: parsed.newsletterPosition || 'top',
+        newsletterStyle: parsed.newsletterStyle || {
+          ...DEFAULT_NEWSLETTER_STYLE,
+        },
+        newsletterVisible: parsed.newsletterVisible ?? false,
         isInitializing: false,
       });
     } catch (error) {

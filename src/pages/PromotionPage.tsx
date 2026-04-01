@@ -54,6 +54,7 @@ import {
   validateImportConfig,
   type PromotionEmailData,
 } from '@/lib/promotion-email-html';
+import type { NewsletterStyle } from '@/stores/promotion-store';
 import { createEMLFile } from '@/lib/emailUtils';
 import { getEmployeeSignature } from '@/lib/signature';
 import { getStoreEmail, getEmployeeName } from '@/lib/profile';
@@ -206,9 +207,10 @@ function getCardHasContent(
       );
     case 'newsletterCard':
       return (
-        store.newsletterBody.trim() !== '' ||
-        (store.newsletterHeading.trim() !== '' &&
-          store.newsletterHeading.trim() !== 'Newsletter')
+        store.newsletterVisible &&
+        store.newsletterBody.trim() !== '' &&
+        store.newsletterBody.trim() !== '<p></p>' &&
+        store.newsletterBody.trim() !== '<p><br></p>'
       );
     case 'discountEntriesCard':
       return store.promotionEntries.some(
@@ -260,6 +262,7 @@ function PromotionCard({
       store.generatedSubjectLines,
       store.newsletterBody,
       store.newsletterHeading,
+      store.newsletterVisible,
     ]
   );
 
@@ -288,6 +291,29 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+// ===== Newsletter Color Resolution =====
+
+function resolveNewsletterColors(style: NewsletterStyle): {
+  borderColor: string;
+  backgroundColor: string;
+  headingColor: string;
+} {
+  const root = document.documentElement;
+  const computed = getComputedStyle(root);
+
+  return {
+    borderColor:
+      style.borderColor ??
+      (computed.getPropertyValue('--primary').trim() || '#2c3e50'),
+    backgroundColor:
+      style.backgroundColor ??
+      (computed.getPropertyValue('--muted').trim() || '#f5f5f5'),
+    headingColor:
+      style.headingColor ??
+      (computed.getPropertyValue('--primary').trim() || '#2c3e50'),
+  };
+}
+
 // ===== Preview Column Component =====
 
 function PreviewColumn() {
@@ -297,6 +323,8 @@ function PreviewColumn() {
   // Generate email HTML from current store data
   const emailHTML = useMemo(() => {
     if (!store.promoDateRange) return '';
+
+    const resolvedColors = resolveNewsletterColors(store.newsletterStyle);
 
     const data: PromotionEmailData = {
       promoDateRange: store.promoDateRange,
@@ -309,6 +337,12 @@ function PreviewColumn() {
       newsletterHeading: store.newsletterHeading,
       newsletterBody: store.newsletterBody,
       newsletterPosition: store.newsletterPosition,
+      newsletterVisible: store.newsletterVisible,
+      newsletterStyle: {
+        ...resolvedColors,
+        borderStyle: store.newsletterStyle.borderStyle,
+        headingAlign: store.newsletterStyle.headingAlign,
+      },
     };
 
     return generatePromotionEmailHTML(data);
@@ -323,6 +357,7 @@ function PreviewColumn() {
     store.newsletterHeading,
     store.newsletterBody,
     store.newsletterPosition,
+    store.newsletterStyle,
   ]);
 
   // Download Email Draft (single EML)
@@ -393,6 +428,7 @@ function PreviewColumn() {
   // Export Config
   const handleExportConfig = useCallback(() => {
     try {
+      const resolvedColors = resolveNewsletterColors(store.newsletterStyle);
       const data: PromotionEmailData = {
         promoDateRange: store.promoDateRange,
         promoYear: store.promoYear,
@@ -404,13 +440,20 @@ function PreviewColumn() {
         newsletterHeading: store.newsletterHeading,
         newsletterBody: store.newsletterBody,
         newsletterPosition: store.newsletterPosition,
+        newsletterVisible: store.newsletterVisible,
+        newsletterStyle: {
+          ...resolvedColors,
+          borderStyle: store.newsletterStyle.borderStyle,
+          headingAlign: store.newsletterStyle.headingAlign,
+        },
       };
 
       const config = buildExportConfig(
         data,
         store.attachedPDFs,
         store.generatedSubjectLines,
-        store.selectedSubjectLine
+        store.selectedSubjectLine,
+        store.newsletterStyle
       );
 
       const jsonStr = JSON.stringify(config, null, 2);
@@ -456,6 +499,18 @@ function PreviewColumn() {
           store.setPromoTitle(config.title);
 
           // Replace entries
+          // Migration: if imported body doesn't start with an H2 but has
+          // a heading, prepend the heading as an H2 element in the body
+          let importedBody = config.newsletterBody || '';
+          const importedHeading = config.newsletterHeading || '';
+          if (
+            importedBody &&
+            importedHeading &&
+            !importedBody.match(/<h2[^>]*>/i)
+          ) {
+            importedBody = `<h2>${importedHeading}</h2>${importedBody}`;
+          }
+
           usePromotionStore.setState({
             promotionEntries: config.promotionEntries,
             specialHours: config.specialHours,
@@ -463,9 +518,17 @@ function PreviewColumn() {
             importantNotesItems: config.importantNotesItems,
             generatedSubjectLines: config.generatedSubjectLines,
             selectedSubjectLine: config.selectedSubjectLine,
-            newsletterHeading: config.newsletterHeading,
-            newsletterBody: config.newsletterBody,
+            newsletterHeading: importedHeading,
+            newsletterBody: importedBody,
             newsletterPosition: config.newsletterPosition,
+            newsletterVisible: config.newsletterVisible ?? false,
+            newsletterStyle: config.newsletterStyle || {
+              borderColor: null,
+              backgroundColor: null,
+              headingColor: null,
+              borderStyle: 'left',
+              headingAlign: 'left',
+            },
           });
 
           toast.success('Config imported successfully');
@@ -682,6 +745,8 @@ function useAutoSave() {
     store.newsletterHeading,
     store.newsletterBody,
     store.newsletterPosition,
+    store.newsletterStyle,
+    store.newsletterVisible,
     store.saveToIndexedDB,
   ]);
 }

@@ -43,6 +43,33 @@ import {
 } from '@/lib/promotion-email-html';
 import { getEmployeeSignature } from '@/lib/signature';
 
+// ===== Color Resolution (mirrors PromotionPage helper) =====
+
+function resolveNewsletterColorsForBulk(style: {
+  borderColor: string | null;
+  backgroundColor: string | null;
+  headingColor: string | null;
+}): {
+  borderColor: string;
+  backgroundColor: string;
+  headingColor: string;
+} {
+  const root = document.documentElement;
+  const computed = getComputedStyle(root);
+
+  return {
+    borderColor:
+      style.borderColor ??
+      (computed.getPropertyValue('--primary').trim() || '#2c3e50'),
+    backgroundColor:
+      style.backgroundColor ??
+      (computed.getPropertyValue('--muted').trim() || '#f5f5f5'),
+    headingColor:
+      style.headingColor ??
+      (computed.getPropertyValue('--primary').trim() || '#2c3e50'),
+  };
+}
+
 import { Button } from '@/components/ui/button';
 import { ClearableTextarea } from '@/components/ui/clearable-textarea';
 import { Label } from '@/components/ui/label';
@@ -256,6 +283,9 @@ export function BulkEmailTools() {
 
     try {
       // Generate email HTML from current store data
+      const resolvedColors = resolveNewsletterColorsForBulk(
+        store.newsletterStyle
+      );
       const data: PromotionEmailData = {
         promoDateRange: store.promoDateRange,
         promoYear: store.promoYear,
@@ -267,6 +297,12 @@ export function BulkEmailTools() {
         newsletterHeading: store.newsletterHeading,
         newsletterBody: store.newsletterBody,
         newsletterPosition: store.newsletterPosition,
+        newsletterVisible: store.newsletterVisible,
+        newsletterStyle: {
+          ...resolvedColors,
+          borderStyle: store.newsletterStyle.borderStyle,
+          headingAlign: store.newsletterStyle.headingAlign,
+        },
       };
 
       let htmlContent = generatePromotionEmailHTML(data);
@@ -377,6 +413,7 @@ export function BulkEmailTools() {
     store.importantNotesItems,
     store.selectedSubjectLine,
     store.attachedPDFs,
+    store.newsletterVisible,
   ]);
 
   return (

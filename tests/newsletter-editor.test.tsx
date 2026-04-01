@@ -2,7 +2,7 @@
  * NewsletterEditor component tests.
  *
  * Tests the TipTap rich text editor component with toolbar,
- * heading input, and position toggle.
+ * heading (as first H2 in editor body), and position toggle.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -17,9 +17,19 @@ const mockStore = {
   newsletterHeading: 'Newsletter',
   newsletterBody: '',
   newsletterPosition: 'top' as const,
+  newsletterVisible: false,
+  newsletterStyle: {
+    borderColor: null as string | null,
+    backgroundColor: null as string | null,
+    headingColor: null as string | null,
+    borderStyle: 'left' as const,
+    headingAlign: 'left' as const,
+  },
   setNewsletterHeading: vi.fn(),
   setNewsletterBody: vi.fn(),
   setNewsletterPosition: vi.fn(),
+  setNewsletterStyle: vi.fn(),
+  setNewsletterVisible: vi.fn(),
 };
 
 vi.mock('@/stores/promotion-store', () => ({
@@ -32,6 +42,14 @@ describe('NewsletterEditor', () => {
     mockStore.newsletterHeading = 'Newsletter';
     mockStore.newsletterBody = '';
     mockStore.newsletterPosition = 'top';
+    mockStore.newsletterVisible = false;
+    mockStore.newsletterStyle = {
+      borderColor: null,
+      backgroundColor: null,
+      headingColor: null,
+      borderStyle: 'left',
+      headingAlign: 'left',
+    };
   });
 
   it('renders the TipTap editor with toolbar', () => {
@@ -57,44 +75,26 @@ describe('NewsletterEditor', () => {
     expect(screen.getByLabelText('Highlight')).toBeInTheDocument();
   });
 
-  it('renders heading input with default value from store', () => {
+  it('renders position toggle with default Above % and Below %', () => {
     render(<NewsletterEditor />);
-    const headingInput = screen.getByPlaceholderText('Newsletter heading');
-    expect(headingInput).toBeInTheDocument();
-    expect((headingInput as HTMLInputElement).value).toBe('Newsletter');
+    expect(screen.getByRole('button', { name: 'Position: Above %' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Position: Below %' })).toBeInTheDocument();
   });
 
-  it('renders position toggle with default Top and Bottom', () => {
+  it('shows Above % as active by default', () => {
     render(<NewsletterEditor />);
-    expect(screen.getByRole('button', { name: 'Position: Top' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Position: Bottom' })).toBeInTheDocument();
-  });
-
-  it('shows Top as active by default', () => {
-    render(<NewsletterEditor />);
-    const topButton = screen.getByRole('button', { name: 'Position: Top' });
+    const topButton = screen.getByRole('button', { name: 'Position: Above %' });
     expect(topButton).toHaveAttribute('data-active');
-    // Bottom should NOT have data-active
-    const bottomButton = screen.getByRole('button', { name: 'Position: Bottom' });
+    // Below % should NOT have data-active
+    const bottomButton = screen.getByRole('button', { name: 'Position: Below %' });
     expect(bottomButton).not.toHaveAttribute('data-active');
-  });
-
-  it('calls setNewsletterHeading when heading changes', async () => {
-    const user = userEvent.setup();
-    render(<NewsletterEditor />);
-
-    const headingInput = screen.getByPlaceholderText('Newsletter heading');
-    await user.clear(headingInput);
-    await user.type(headingInput, 'Store Updates');
-
-    expect(mockStore.setNewsletterHeading).toHaveBeenCalled();
   });
 
   it('calls setNewsletterPosition when toggle is clicked', async () => {
     const user = userEvent.setup();
     render(<NewsletterEditor />);
 
-    const bottomButton = screen.getByRole('button', { name: 'Position: Bottom' });
+    const bottomButton = screen.getByRole('button', { name: 'Position: Below %' });
     await user.click(bottomButton);
 
     expect(mockStore.setNewsletterPosition).toHaveBeenCalledWith('bottom');
@@ -150,16 +150,6 @@ describe('NewsletterEditor', () => {
     expect(highlightButton).toBeInTheDocument();
   });
 
-  it('clears heading when clear button is clicked', async () => {
-    const user = userEvent.setup();
-    render(<NewsletterEditor />);
-
-    // The ClearableInput shows an X button when value is non-empty
-    const clearButton = screen.getByLabelText('Clear field');
-    await user.click(clearButton);
-
-    expect(mockStore.setNewsletterHeading).toHaveBeenCalledWith('');
-  });
 });
 
 describe('NewsletterEditor - toolbar interactions', () => {
@@ -263,20 +253,20 @@ describe('NewsletterEditor - position toggle', () => {
     mockStore.newsletterPosition = 'top';
   });
 
-  it('shows Top as active when store position is top', () => {
+  it('shows Above % as active when store position is top', () => {
     mockStore.newsletterPosition = 'top';
     render(<NewsletterEditor />);
 
-    const topButton = screen.getByRole('button', { name: 'Position: Top' });
+    const topButton = screen.getByRole('button', { name: 'Position: Above %' });
     expect(topButton).toHaveAttribute('data-active');
   });
 
-  it('shows Bottom as active when store position is bottom', () => {
+  it('shows Below % as active when store position is bottom', () => {
     mockStore.newsletterPosition = 'bottom';
     render(<NewsletterEditor />);
 
     const bottomButton = screen.getByRole('button', {
-      name: 'Position: Bottom',
+      name: 'Position: Below %',
     });
     expect(bottomButton).toHaveAttribute('data-active');
   });
@@ -286,7 +276,7 @@ describe('NewsletterEditor - position toggle', () => {
     render(<NewsletterEditor />);
 
     const bottomButton = screen.getByRole('button', {
-      name: 'Position: Bottom',
+      name: 'Position: Below %',
     });
     await user.click(bottomButton);
 
@@ -298,9 +288,223 @@ describe('NewsletterEditor - position toggle', () => {
     const user = userEvent.setup();
     render(<NewsletterEditor />);
 
-    const topButton = screen.getByRole('button', { name: 'Position: Top' });
+    const topButton = screen.getByRole('button', { name: 'Position: Above %' });
     await user.click(topButton);
 
     expect(mockStore.setNewsletterPosition).toHaveBeenCalledWith('top');
+  });
+});
+
+describe('NewsletterEditor - customization UI', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockStore.newsletterHeading = 'Newsletter';
+    mockStore.newsletterBody = '';
+    mockStore.newsletterPosition = 'top';
+    mockStore.newsletterStyle = {
+      borderColor: null,
+      backgroundColor: null,
+      headingColor: null,
+      borderStyle: 'left',
+      headingAlign: 'left',
+    };
+  });
+
+  it('renders Customize Border & Background toggle', () => {
+    render(<NewsletterEditor />);
+    expect(
+      screen.getByTestId('newsletter-customize-toggle')
+    ).toBeInTheDocument();
+  });
+
+  it('customization section is collapsed by default', () => {
+    render(<NewsletterEditor />);
+    // Border style buttons should NOT be visible
+    expect(screen.queryByTestId('border-style-left')).not.toBeInTheDocument();
+  });
+
+  it('expands customization section on toggle click', async () => {
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    const toggle = screen.getByTestId('newsletter-customize-toggle');
+    await user.click(toggle);
+
+    // Now customization controls should be visible
+    expect(screen.getByTestId('border-style-left')).toBeInTheDocument();
+    expect(screen.getByTestId('border-style-full')).toBeInTheDocument();
+    expect(screen.getByTestId('border-style-none')).toBeInTheDocument();
+    expect(screen.getByTestId('border-style-top')).toBeInTheDocument();
+  });
+
+  it('renders heading alignment buttons in toolbar', () => {
+    render(<NewsletterEditor />);
+
+    expect(screen.getByLabelText('Align heading left')).toBeInTheDocument();
+    expect(screen.getByLabelText('Align heading center')).toBeInTheDocument();
+  });
+
+  it('renders color pickers for border and background in customize section', async () => {
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    await user.click(screen.getByTestId('newsletter-customize-toggle'));
+
+    expect(screen.getByTestId('picker-borderColor')).toBeInTheDocument();
+    expect(screen.getByTestId('picker-backgroundColor')).toBeInTheDocument();
+  });
+
+  it('renders heading color picker in customize section', async () => {
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    // Heading color picker is now in the Customize section
+    await user.click(screen.getByTestId('newsletter-customize-toggle'));
+
+    expect(screen.getByTestId('picker-headingColor')).toBeInTheDocument();
+  });
+
+  it('renders color swatches', async () => {
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    await user.click(screen.getByTestId('newsletter-customize-toggle'));
+
+    expect(screen.getByTestId('swatch-borderColor')).toBeInTheDocument();
+    expect(screen.getByTestId('swatch-backgroundColor')).toBeInTheDocument();
+  });
+
+  it('renders heading color swatch in customize section', async () => {
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    await user.click(screen.getByTestId('newsletter-customize-toggle'));
+
+    expect(screen.getByTestId('swatch-headingColor')).toBeInTheDocument();
+  });
+
+  it('renders Auto buttons for border and background colors', async () => {
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    await user.click(screen.getByTestId('newsletter-customize-toggle'));
+
+    expect(screen.getByTestId('auto-borderColor')).toBeInTheDocument();
+    expect(screen.getByTestId('auto-backgroundColor')).toBeInTheDocument();
+  });
+
+  it('renders reset button for heading color in customize section', async () => {
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    await user.click(screen.getByTestId('newsletter-customize-toggle'));
+
+    expect(screen.getByTestId('auto-headingColor')).toBeInTheDocument();
+  });
+
+  it('calls setNewsletterStyle when border style button is clicked', async () => {
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    await user.click(screen.getByTestId('newsletter-customize-toggle'));
+    await user.click(screen.getByTestId('border-style-full'));
+
+    expect(mockStore.setNewsletterStyle).toHaveBeenCalledWith({
+      borderStyle: 'full',
+    });
+  });
+
+  it('calls setNewsletterStyle when heading align button is clicked', async () => {
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    await user.click(screen.getByLabelText('Align heading center'));
+
+    expect(mockStore.setNewsletterStyle).toHaveBeenCalledWith({
+      headingAlign: 'center',
+    });
+  });
+
+  it('calls setNewsletterStyle when Auto button is clicked', async () => {
+    mockStore.newsletterStyle.borderColor = '#ff0000';
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    await user.click(screen.getByTestId('newsletter-customize-toggle'));
+    await user.click(screen.getByTestId('auto-borderColor'));
+
+    expect(mockStore.setNewsletterStyle).toHaveBeenCalledWith({
+      borderColor: null,
+    });
+  });
+
+  it('Auto button is disabled when color is already null', async () => {
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    await user.click(screen.getByTestId('newsletter-customize-toggle'));
+
+    const autoButton = screen.getByTestId('auto-borderColor');
+    expect(autoButton).toBeDisabled();
+  });
+
+  it('collapses customization section on second toggle click', async () => {
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    const toggle = screen.getByTestId('newsletter-customize-toggle');
+
+    // Open
+    await user.click(toggle);
+    expect(screen.getByTestId('border-style-left')).toBeInTheDocument();
+
+    // Close
+    await user.click(toggle);
+    expect(screen.queryByTestId('border-style-left')).not.toBeInTheDocument();
+  });
+});
+
+describe('NewsletterEditor - show in email toggle', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockStore.newsletterHeading = 'Newsletter';
+    mockStore.newsletterBody = '';
+    mockStore.newsletterPosition = 'top';
+    mockStore.newsletterVisible = false;
+    mockStore.newsletterStyle = {
+      borderColor: null,
+      backgroundColor: null,
+      headingColor: null,
+      borderStyle: 'left',
+      headingAlign: 'left',
+    };
+  });
+
+  it('renders Show in Email toggle', () => {
+    render(<NewsletterEditor />);
+    expect(screen.getByTestId('newsletter-visible-toggle')).toBeInTheDocument();
+  });
+
+  it('toggle is unchecked by default when newsletterVisible is false', () => {
+    render(<NewsletterEditor />);
+    const toggle = screen.getByTestId('newsletter-visible-toggle') as HTMLInputElement;
+    expect(toggle.checked).toBe(false);
+  });
+
+  it('toggle is checked when newsletterVisible is true', () => {
+    mockStore.newsletterVisible = true;
+    render(<NewsletterEditor />);
+    const toggle = screen.getByTestId('newsletter-visible-toggle') as HTMLInputElement;
+    expect(toggle.checked).toBe(true);
+  });
+
+  it('calls setNewsletterVisible when toggled', async () => {
+    const user = userEvent.setup();
+    render(<NewsletterEditor />);
+
+    const toggle = screen.getByTestId('newsletter-visible-toggle');
+    await user.click(toggle);
+
+    expect(mockStore.setNewsletterVisible).toHaveBeenCalledWith(true);
   });
 });

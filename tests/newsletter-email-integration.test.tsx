@@ -121,6 +121,14 @@ function makeEmailData(overrides: Partial<PromotionEmailData> = {}): PromotionEm
     newsletterHeading: 'Newsletter',
     newsletterBody: '',
     newsletterPosition: 'top',
+    newsletterVisible: true,
+    newsletterStyle: {
+      borderColor: '#2563eb',
+      backgroundColor: '#f9fafb',
+      headingColor: '#1e40af',
+      borderStyle: 'left',
+      headingAlign: 'left',
+    },
     ...overrides,
   };
 }
@@ -189,10 +197,9 @@ describe('newsletter email integration - HTML generation', () => {
   });
 
   describe('newsletter heading', () => {
-    it('renders heading as styled h2 in email HTML', () => {
+    it('renders heading from first H2 in body as styled h2 in email HTML', () => {
       const data = makeEmailData({
-        newsletterHeading: 'Store Updates',
-        newsletterBody: '<p>Content here</p>',
+        newsletterBody: '<h2>Store Updates</h2><p>Content here</p>',
       });
       const html = generatePromotionEmailHTML(data);
 
@@ -201,9 +208,8 @@ describe('newsletter email integration - HTML generation', () => {
       expect(html).toMatch(/<h2[^>]*style="[^"]*"[^>]*>Store Updates<\/h2>/);
     });
 
-    it('uses default "Newsletter" heading when heading is empty', () => {
+    it('uses default "Newsletter" heading when body has no H2', () => {
       const data = makeEmailData({
-        newsletterHeading: '',
         newsletterBody: '<p>Content here</p>',
       });
       const html = generatePromotionEmailHTML(data);
@@ -554,8 +560,7 @@ describe('newsletter EML export integration', () => {
 
   it('EML export includes newsletter at correct top position', () => {
     const data = makeEmailData({
-      newsletterHeading: 'Weekly Update',
-      newsletterBody: '<p>Big news this week!</p>',
+      newsletterBody: '<h2>Weekly Update</h2><p>Big news this week!</p>',
       newsletterPosition: 'top',
     });
     const html = generatePromotionEmailHTML(data);
@@ -574,8 +579,7 @@ describe('newsletter EML export integration', () => {
 
   it('EML export includes newsletter at correct bottom position', () => {
     const data = makeEmailData({
-      newsletterHeading: 'Store Closing',
-      newsletterBody: '<p>Early closure Friday</p>',
+      newsletterBody: '<h2>Store Closing</h2><p>Early closure Friday</p>',
       newsletterPosition: 'bottom',
     });
     const html = generatePromotionEmailHTML(data);
@@ -604,11 +608,11 @@ describe('newsletter preview updates', () => {
   it('preview updates when newsletter body changes in store', async () => {
     renderPromotionPage();
 
-    // Set newsletter data in store
+    // Set newsletter data in store - heading is derived from first H2 in body
     act(() => {
       usePromotionStore.getState().setPromoDateRange('Nov 28 - Dec 1');
-      usePromotionStore.getState().setNewsletterBody('<p>Newsletter content</p>');
-      usePromotionStore.getState().setNewsletterHeading('Test Heading');
+      usePromotionStore.getState().setNewsletterVisible(true);
+      usePromotionStore.getState().setNewsletterBody('<h2>Test Heading</h2><p>Newsletter content</p>');
     });
 
     // Preview should update (check iframe srcDoc) - desktop + mobile render 2 iframes
@@ -626,7 +630,8 @@ describe('newsletter preview updates', () => {
 
     act(() => {
       usePromotionStore.getState().setPromoDateRange('Nov 28 - Dec 1');
-      usePromotionStore.getState().setNewsletterBody('<p>Content</p>');
+      usePromotionStore.getState().setNewsletterVisible(true);
+      usePromotionStore.getState().setNewsletterBody('<h2>Content</h2><p>Body text</p>');
       usePromotionStore.getState().setNewsletterPosition('top');
     });
 
@@ -664,14 +669,12 @@ describe('newsletter preview updates', () => {
     act(() => {
       usePromotionStore.getState().setPromoDateRange('Nov 28 - Dec 1');
       usePromotionStore.getState().setNewsletterBody('');
-      usePromotionStore.getState().setNewsletterHeading('Empty Body');
     });
 
     await waitFor(() => {
       const iframes = screen.getAllByTitle('Email Preview');
       const srcDoc = iframes[0].getAttribute('srcDoc') || '';
       expect(srcDoc).not.toContain('<!-- NEWSLETTER -->');
-      expect(srcDoc).not.toContain('Empty Body');
     });
   });
 });

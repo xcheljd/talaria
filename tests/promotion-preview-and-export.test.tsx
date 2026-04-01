@@ -50,6 +50,14 @@ function makeEmailData(overrides: Partial<PromotionEmailData> = {}): PromotionEm
     newsletterHeading: 'Newsletter',
     newsletterBody: '',
     newsletterPosition: 'top',
+    newsletterVisible: true,
+    newsletterStyle: {
+      borderColor: '#2563eb',
+      backgroundColor: '#f9fafb',
+      headingColor: '#1e40af',
+      borderStyle: 'left',
+      headingAlign: 'left',
+    },
     ...overrides,
   };
 }
@@ -146,6 +154,14 @@ describe('generatePromotionEmailHTML', () => {
     newsletterHeading: 'Newsletter',
     newsletterBody: '',
     newsletterPosition: 'top',
+    newsletterVisible: true,
+    newsletterStyle: {
+      borderColor: '#2563eb',
+      backgroundColor: '#f9fafb',
+      headingColor: '#1e40af',
+      borderStyle: 'left',
+      headingAlign: 'left',
+    },
   };
 
   beforeEach(() => {

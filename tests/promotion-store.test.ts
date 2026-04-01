@@ -1404,7 +1404,10 @@ describe('promotion store', () => {
 
       const state = getFreshStore();
       expect(state.newsletterHeading).toBe('Loaded Heading');
-      expect(state.newsletterBody).toBe('<p>Loaded Body</p>');
+      // Migration prepends heading as H2 when body has no H2
+      expect(state.newsletterBody).toBe(
+        '<h2>Loaded Heading</h2><p>Loaded Body</p>'
+      );
       expect(state.newsletterPosition).toBe('bottom');
     });
 
@@ -1431,6 +1434,96 @@ describe('promotion store', () => {
       expect(state.newsletterHeading).toBe('Newsletter');
       expect(state.newsletterBody).toBe('');
       expect(state.newsletterPosition).toBe('top');
+    });
+
+    it('initializes with newsletterVisible false after reset', () => {
+      const state = usePromotionStore.getState();
+      expect(state.newsletterVisible).toBe(false);
+    });
+
+    it('sets newsletterVisible to true', () => {
+      const store = getFreshStore();
+      store.setNewsletterVisible(true);
+
+      expect(getFreshStore().newsletterVisible).toBe(true);
+    });
+
+    it('sets newsletterVisible back to false', () => {
+      const store = getFreshStore();
+      store.setNewsletterVisible(true);
+      store.setNewsletterVisible(false);
+
+      expect(getFreshStore().newsletterVisible).toBe(false);
+    });
+
+    it('clearNewsletter does not reset newsletterVisible', () => {
+      const store = getFreshStore();
+      store.setNewsletterVisible(true);
+      store.clearNewsletter();
+
+      expect(getFreshStore().newsletterVisible).toBe(true);
+    });
+
+    it('resetState resets newsletterVisible to false', () => {
+      const store = getFreshStore();
+      store.setNewsletterVisible(true);
+      store.resetState();
+
+      expect(getFreshStore().newsletterVisible).toBe(false);
+    });
+
+    it('saves newsletterVisible to localStorage', async () => {
+      const store = getFreshStore();
+      store.setNewsletterVisible(true);
+      await store.saveToIndexedDB();
+
+      const saved = JSON.parse(
+        localStorage.getItem('promotionBuilderState')!
+      );
+      expect(saved.newsletterVisible).toBe(true);
+    });
+
+    it('loads newsletterVisible from localStorage', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+        newsletterVisible: true,
+      };
+      localStorage.setItem(
+        'promotionBuilderState',
+        JSON.stringify(savedData)
+      );
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      expect(getFreshStore().newsletterVisible).toBe(true);
+    });
+
+    it('defaults newsletterVisible to false when not in localStorage', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem(
+        'promotionBuilderState',
+        JSON.stringify(savedData)
+      );
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      expect(getFreshStore().newsletterVisible).toBe(false);
     });
   });
 });

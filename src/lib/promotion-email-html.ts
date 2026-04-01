@@ -18,6 +18,7 @@ import type {
   HowToShopItem,
   ImportantNotesItem,
   NewsletterPosition,
+  NewsletterStyle,
 } from '@/stores/promotion-store';
 
 // ===== Types =====
@@ -33,6 +34,14 @@ export interface PromotionEmailData {
   newsletterHeading: string;
   newsletterBody: string;
   newsletterPosition: NewsletterPosition;
+  newsletterVisible: boolean;
+  newsletterStyle: {
+    borderColor: string;
+    backgroundColor: string;
+    headingColor: string;
+    borderStyle: 'left' | 'full' | 'none' | 'top';
+    headingAlign: 'left' | 'center';
+  };
 }
 
 export interface PromotionConfigForExport {
@@ -56,6 +65,8 @@ export interface PromotionConfigForExport {
   newsletterHeading: string;
   newsletterBody: string;
   newsletterPosition: NewsletterPosition;
+  newsletterStyle: NewsletterStyle;
+  newsletterVisible: boolean;
 }
 
 // ===== Helpers =====
@@ -176,25 +187,55 @@ function convertTipTapToInlineHTML(html: string): string {
 
 /**
  * Build the newsletter HTML section for email rendering.
- * Returns empty string if newsletter body is empty.
+ * Extracts the first H2 element from the body as the heading,
+ * then renders the remaining body content.
+ * Returns empty string if body is empty.
  */
-function buildNewsletterSection(heading: string, body: string): string {
+function buildNewsletterSection(
+  body: string,
+  style: PromotionEmailData['newsletterStyle']
+): string {
   if (!body || !body.trim()) return '';
 
-  const bodyHTML = convertTipTapToInlineHTML(body);
-  if (!bodyHTML || !bodyHTML.trim()) return '';
+  // Extract first H2 as heading
+  const h2Match = body.match(/<h2[^>]*>(.*?)<\/h2>/i);
+  const headingText = h2Match ? h2Match[1].replace(/<[^>]*>/g, '').trim() : '';
+  const restBody = h2Match ? body.replace(/<h2[^>]*>.*?<\/h2>/i, '') : body;
+
+  const bodyHTML = convertTipTapToInlineHTML(restBody);
+  if (!headingText && (!bodyHTML || !bodyHTML.trim())) return '';
 
   // Check if the converted body is just empty tags (no visible content)
-  const strippedContent = bodyHTML.replace(/<[^>]*>/g, '').trim();
-  if (!strippedContent) return '';
+  const strippedBody = bodyHTML ? bodyHTML.replace(/<[^>]*>/g, '').trim() : '';
+  if (!headingText && !strippedBody) return '';
 
-  const headingText =
-    heading && heading.trim() ? escapeHtml(heading) : 'Newsletter';
+  const headingDisplay =
+    headingText && headingText.trim() ? escapeHtml(headingText) : 'Newsletter';
+
+  // Build border style based on borderStyle option
+  let borderCSS = '';
+  switch (style.borderStyle) {
+    case 'left':
+      borderCSS = `border-left: 4px solid ${style.borderColor};`;
+      break;
+    case 'full':
+      borderCSS = `border: 1px solid ${style.borderColor};`;
+      break;
+    case 'top':
+      borderCSS = `border-top: 4px solid ${style.borderColor};`;
+      break;
+    case 'none':
+      borderCSS = '';
+      break;
+  }
+
+  // Build heading alignment
+  const headingAlign = `text-align: ${style.headingAlign};`;
 
   return `
                 <!-- NEWSLETTER -->
-                <div style="background-color: #f9fafb; padding: 15px; margin-bottom: 20px; border-left: 4px solid #2563eb;">
-                    <h2 style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0; color: #1e40af;">${headingText}</h2>
+                <div style="background-color: ${style.backgroundColor}; padding: 15px; margin-bottom: 20px; ${borderCSS}">
+                    <h2 style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0; color: ${style.headingColor}; ${headingAlign}">${headingDisplay}</h2>
                     ${bodyHTML}
                 </div>`;
 }
@@ -591,11 +632,20 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
                 </p>`
       : '';
 
-  // Newsletter section (only rendered if body has content)
-  const newsletterSection = buildNewsletterSection(
-    data.newsletterHeading,
-    data.newsletterBody
-  );
+  // Newsletter section (only rendered when visible and body has content)
+  const newsletterVisible = data.newsletterVisible ?? false;
+
+  const newsletterStyle = data.newsletterStyle || {
+    borderColor: '#2c3e50',
+    backgroundColor: '#f5f5f5',
+    headingColor: '#2c3e50',
+    borderStyle: 'left' as const,
+    headingAlign: 'left' as const,
+  };
+
+  const newsletterSection = newsletterVisible
+    ? buildNewsletterSection(data.newsletterBody, newsletterStyle)
+    : '';
 
   // Newsletter at top position: between HEADER and BRAND SECTIONS
   const newsletterTopHTML =
@@ -725,7 +775,8 @@ export function buildExportConfig(
   data: PromotionEmailData,
   attachedPDFs: Array<{ id: string; name: string; size: number; type: string }>,
   generatedSubjectLines: string[],
-  selectedSubjectLine: string | null
+  selectedSubjectLine: string | null,
+  newsletterStyle?: NewsletterStyle
 ): PromotionConfigForExport {
   return {
     templateType: 'promotion-email',
@@ -769,6 +820,14 @@ export function buildExportConfig(
     newsletterHeading: data.newsletterHeading,
     newsletterBody: data.newsletterBody,
     newsletterPosition: data.newsletterPosition,
+    newsletterStyle: newsletterStyle || {
+      borderColor: null,
+      backgroundColor: null,
+      headingColor: null,
+      borderStyle: 'left',
+      headingAlign: 'left',
+    },
+    newsletterVisible: data.newsletterVisible,
   };
 }
 
@@ -833,6 +892,14 @@ export function validateImportConfig(
       newsletterBody: (config.newsletterBody as string) || '',
       newsletterPosition:
         (config.newsletterPosition as NewsletterPosition) || 'top',
+      newsletterStyle: (config.newsletterStyle as NewsletterStyle) || {
+        borderColor: null,
+        backgroundColor: null,
+        headingColor: null,
+        borderStyle: 'left',
+        headingAlign: 'left',
+      },
+      newsletterVisible: (config.newsletterVisible as boolean) ?? false,
     },
   };
 }

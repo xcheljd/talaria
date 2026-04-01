@@ -3,13 +3,13 @@
  *
  * Provides:
  * - Formatting toolbar: Bold, Italic, Underline, Text Color, Highlight,
- *   H2, H3, Bullet List, Link, Undo, Redo
- * - Heading input (ClearableInput) above the editor
+ *   H2, H3, Bullet List, Link, Undo, Redo, Alignment
+ * - Heading is the first H2 element in the editor body (auto-synced to store)
  * - Position toggle (Top/Bottom) for email placement
  * - Syncs editor content to Zustand store on every change
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -30,15 +30,29 @@ import {
   Highlighter,
   ArrowUpFromLine,
   ArrowDownFromLine,
+  ChevronDown,
+  ChevronRight,
+  RotateCcw,
+  AlignLeft,
+  AlignCenter,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isSafeURL } from '@/lib/html-utils';
 import { Button } from '@/components/ui/button';
-import { ClearableInput } from '@/components/ui/clearable-input';
 import {
   usePromotionStore,
   type NewsletterPosition,
 } from '@/stores/promotion-store';
+
+// ===== Heading Extraction Helper =====
+
+/** Extract the text content of the first H2 element from HTML. */
+function extractHeadingFromHTML(html: string): string {
+  const match = html.match(/<h2[^>]*>(.*?)<\/h2>/i);
+  if (!match) return '';
+  // Strip any inner HTML tags to get plain text
+  return match[1].replace(/<[^>]*>/g, '').trim();
+}
 
 // ===== Toolbar Button =====
 
@@ -156,6 +170,7 @@ const SanitizePasteExtension = Extension.create({
 
 export function NewsletterEditor() {
   const store = usePromotionStore();
+  const [showCustomize, setShowCustomize] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -168,13 +183,20 @@ export function NewsletterEditor() {
       Color,
       Highlight.configure({ multicolor: true }),
     ],
-    content: store.newsletterBody || '<p></p>',
+    content: store.newsletterBody || '<h2>Newsletter</h2><p></p>',
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       // Don't update store with empty paragraph
       const isEmpty =
         html === '<p></p>' || html === '<p><br></p>' || html === '';
-      store.setNewsletterBody(isEmpty ? '' : html);
+      const body = isEmpty ? '' : html;
+      store.setNewsletterBody(body);
+
+      // Auto-derive heading from first H2 in editor body
+      const heading = body ? extractHeadingFromHTML(body) : '';
+      if (heading !== store.newsletterHeading) {
+        store.setNewsletterHeading(heading);
+      }
     },
     // Force toolbar active state to update on cursor movement / selection changes
     onSelectionUpdate: () => {
@@ -187,21 +209,13 @@ export function NewsletterEditor() {
     if (!editor) return;
 
     const currentEditorHTML = editor.getHTML();
-    const storeBody = store.newsletterBody || '<p></p>';
+    const storeBody = store.newsletterBody || '<h2>Newsletter</h2><p></p>';
 
     // Only update if content actually differs (avoid infinite loops)
     if (currentEditorHTML !== storeBody) {
       editor.commands.setContent(storeBody);
     }
   }, [store.newsletterBody, editor]);
-
-  // ===== Heading Change =====
-  const handleHeadingChange = useCallback(
-    (value: string) => {
-      store.setNewsletterHeading(value);
-    },
-    [store]
-  );
 
   // ===== Position Toggle =====
   const handlePositionChange = useCallback(
@@ -252,18 +266,22 @@ export function NewsletterEditor() {
 
   return (
     <div className="space-y-3">
-      {/* Heading Input */}
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">
-          Heading
-        </label>
-        <ClearableInput
-          value={store.newsletterHeading}
-          onChange={handleHeadingChange}
-          placeholder="Newsletter heading"
-          className="h-8 text-sm"
-          data-field="newsletterHeading"
+      {/* Show in Email Toggle */}
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="newsletter-visible-toggle"
+          checked={store.newsletterVisible}
+          onChange={(e) => store.setNewsletterVisible(e.target.checked)}
+          className="h-4 w-4 rounded border-border"
+          data-testid="newsletter-visible-toggle"
         />
+        <label
+          htmlFor="newsletter-visible-toggle"
+          className="text-sm font-medium cursor-pointer select-none"
+        >
+          Show in Email
+        </label>
       </div>
 
       {/* Position Toggle */}
@@ -278,10 +296,10 @@ export function NewsletterEditor() {
             className="gap-1.5 text-xs"
             onClick={() => handlePositionChange('top')}
             data-active={store.newsletterPosition === 'top' || undefined}
-            aria-label="Position: Top"
+            aria-label="Position: Above %"
           >
             <ArrowUpFromLine className="h-3 w-3" />
-            Top
+            Above %
           </Button>
           <Button
             variant={
@@ -291,12 +309,141 @@ export function NewsletterEditor() {
             className="gap-1.5 text-xs"
             onClick={() => handlePositionChange('bottom')}
             data-active={store.newsletterPosition === 'bottom' || undefined}
-            aria-label="Position: Bottom"
+            aria-label="Position: Below %"
           >
             <ArrowDownFromLine className="h-3 w-3" />
-            Bottom
+            Below %
           </Button>
         </div>
+      </div>
+
+      {/* Customize Section */}
+      <div className="rounded-md border">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
+          onClick={() => setShowCustomize(!showCustomize)}
+          data-testid="newsletter-customize-toggle"
+          aria-expanded={showCustomize}
+        >
+          <span>Customize Border & Background</span>
+          {showCustomize ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
+        </button>
+        {showCustomize && (
+          <div className="space-y-3 border-t px-3 py-3">
+            {/* Border Style Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Border Style
+              </label>
+              <div className="flex gap-1.5">
+                {(
+                  [
+                    { value: 'left', label: 'Left', preview: 'border-l-4' },
+                    { value: 'full', label: 'Full', preview: 'border' },
+                    { value: 'none', label: 'None', preview: '' },
+                    { value: 'top', label: 'Top', preview: 'border-t-4' },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`flex h-8 w-12 items-center justify-center rounded-md border text-[10px] transition-colors ${
+                      store.newsletterStyle.borderStyle === opt.value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-muted-foreground hover:bg-muted/50'
+                    }`}
+                    onClick={() =>
+                      store.setNewsletterStyle({ borderStyle: opt.value })
+                    }
+                    aria-label={`Border style: ${opt.label}`}
+                    data-testid={`border-style-${opt.value}`}
+                  >
+                    <div
+                      className={`h-5 w-8 bg-muted ${
+                        opt.value === 'left'
+                          ? 'border-l-[3px] border-l-primary'
+                          : opt.value === 'full'
+                            ? 'border border-primary'
+                            : opt.value === 'top'
+                              ? 'border-t-[3px] border-t-primary'
+                              : ''
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Color Pickers */}
+            {(
+              [
+                {
+                  key: 'borderColor' as const,
+                  label: 'Border Color',
+                },
+                {
+                  key: 'backgroundColor' as const,
+                  label: 'Background',
+                },
+                {
+                  key: 'headingColor' as const,
+                  label: 'Heading Color',
+                },
+              ] as const
+            ).map((picker) => {
+              const currentValue = store.newsletterStyle[picker.key];
+              return (
+                <div key={picker.key} className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground min-w-[90px]">
+                    {picker.label}
+                  </label>
+                  <div
+                    className="h-5 w-5 rounded border border-border shrink-0"
+                    style={{
+                      backgroundColor: currentValue ?? '#888',
+                      backgroundImage: currentValue
+                        ? undefined
+                        : 'repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%)',
+                      backgroundSize: currentValue ? undefined : '8px 8px',
+                    }}
+                    data-testid={`swatch-${picker.key}`}
+                  />
+                  <input
+                    type="color"
+                    value={currentValue ?? '#2563eb'}
+                    onChange={(e) =>
+                      store.setNewsletterStyle({
+                        [picker.key]: e.target.value,
+                      })
+                    }
+                    className="h-6 w-8 cursor-pointer rounded border-0 p-0"
+                    aria-label={`Pick ${picker.label}`}
+                    data-testid={`picker-${picker.key}`}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 gap-1 px-2 text-[10px] text-muted-foreground"
+                    onClick={() =>
+                      store.setNewsletterStyle({ [picker.key]: null })
+                    }
+                    disabled={currentValue === null}
+                    aria-label={`Reset ${picker.label} to auto`}
+                    data-testid={`auto-${picker.key}`}
+                  >
+                    <RotateCcw className="h-2.5 w-2.5" />
+                    Auto
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Formatting Toolbar */}
@@ -410,6 +557,24 @@ export function NewsletterEditor() {
           label="Add link"
         >
           <Link className="h-3.5 w-3.5" />
+        </ToolbarButton>
+
+        <ToolbarSeparator />
+
+        {/* Heading Alignment */}
+        <ToolbarButton
+          active={store.newsletterStyle.headingAlign === 'left'}
+          onClick={() => store.setNewsletterStyle({ headingAlign: 'left' })}
+          label="Align heading left"
+        >
+          <AlignLeft className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton
+          active={store.newsletterStyle.headingAlign === 'center'}
+          onClick={() => store.setNewsletterStyle({ headingAlign: 'center' })}
+          label="Align heading center"
+        >
+          <AlignCenter className="h-3.5 w-3.5" />
         </ToolbarButton>
       </div>
 
