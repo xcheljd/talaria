@@ -1,0 +1,84 @@
+{
+  "assertionId": "VAL-EMAIL-004",
+  "testedAt": "2026-03-31T12:00:00.000Z",
+  "isolation": {
+    "appUrl": "http://localhost:8080",
+    "browserSession": "5fd8f7d7d61c",
+    "profile": "Seeded via localStorage (Test User, Manager)"
+  },
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-EMAIL-004",
+      "title": "Newsletter body content with inline styles in email HTML",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "Seed profile via localStorage",
+          "expected": "Profile data stored in localStorage",
+          "observed": "Profile stored successfully, app navigates to /promotion without redirect"
+        },
+        {
+          "action": "Navigate to /promotion page",
+          "expected": "Promotion page loads with card list",
+          "observed": "Promotion page loaded with all cards visible"
+        },
+        {
+          "action": "Fill date range 'April 1 - April 7'",
+          "expected": "Date range field populated",
+          "observed": "Date range field populated, email HTML generation enabled"
+        },
+        {
+          "action": "Expand Newsletter card",
+          "expected": "Newsletter card expands showing TipTap editor",
+          "observed": "Newsletter card expanded with heading field, toolbar, and editor"
+        },
+        {
+          "action": "Set rich text content via TipTap API with bold, italic, underline, highlight, h2, h3, ul/li, and link",
+          "expected": "Editor displays formatted content",
+          "observed": "All formatting applied correctly in editor"
+        },
+        {
+          "action": "Switch to HTML Code tab",
+          "expected": "Email HTML displayed",
+          "observed": "HTML Code tab shows generated email HTML with newsletter section"
+        },
+        {
+          "action": "Inspect newsletter section for inline styles",
+          "expected": "All CSS converted to inline style attributes, no class references or style blocks",
+          "observed": "All visual properties use inline styles. No <strong>, <em>, <u>, <mark> tags remain. No <style> blocks or class references found."
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "evidence/newsletter-email/val-email-004/VAL-EMAIL-004-editor-content.png",
+          "evidence/newsletter-email/val-email-004/VAL-EMAIL-004-html-code-tab.png"
+        ],
+        "consoleErrors": "none",
+        "inlineStyleChecks": {
+          "noStrongTag": true,
+          "noEmTag": true,
+          "noUTag": true,
+          "noMarkTag": true,
+          "noStyleBlocks": true,
+          "noClassReferences": true,
+          "hasInlineFontWeightBold": true,
+          "hasInlineFontStyleItalic": true,
+          "hasInlineTextDecorationUnderline": true,
+          "hasInlineBackgroundColor": true,
+          "hasInlineH2Style": true,
+          "hasInlineH3Style": true,
+          "hasInlineUlStyle": true,
+          "hasInlineLiStyle": true,
+          "hasInlinePStyle": true,
+          "hasLinkTag": true
+        },
+        "newsletterHTMLSnippet": "<div style=\"background-color: #f9fafb; padding: 15px; margin-bottom: 20px; border-left: 4px solid #2563eb;\">\n  <h2 style=\"font-size: 18px; ...\">Newsletter</h2>\n  <p style=\"font-size: 14px; ...\">This is <span style=\"font-weight: bold;\">bold text</span>, <span style=\"font-style: italic;\">italic text</span>, <span style=\"text-decoration: underline;\">underlined text</span>, and <span style=\"background-color: yellow;\">highlighted text</span>.</p>\n  <h2 style=\"font-size: 20px; ...\">This is an H2 Heading</h2>\n  <h3 style=\"font-size: 17px; ...\">This is an H3 Heading</h3>\n  <ul style=\"...\"><li style=\"...\"><p style=\"...\">Bullet item one</p></li>...</ul>\n  <p style=\"...\">Here is a <a ...>link to example.com</a>.</p>\n</div>"
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": "VAL-EMAIL-004: PASS — All newsletter body formatting (bold, italic, underline, highlight, h2, h3, ul/li, links) is converted to inline styles in the email HTML. No <strong>, <em>, <u>, <mark> tags, <style> blocks, or class references found in the newsletter section."
+}

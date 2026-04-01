@@ -1,30 +1,19 @@
 {
   "milestone": "newsletter-email",
-  "round": 2,
-  "status": "fail",
+  "round": 3,
+  "status": "pass",
   "assertionsSummary": {
     "total": 1,
-    "passed": 0,
-    "failed": 1,
+    "passed": 1,
+    "failed": 0,
     "blocked": 0
   },
-  "passedAssertions": [],
-  "failedAssertions": [
-    {
-      "id": "VAL-EMAIL-004",
-      "reason": "Re-run confirmed: semantic formatting tags (<strong>, <em>, <u>, <mark>) in newsletter body are NOT converted to inline-styled <span> elements. The convertTipTapToInlineHTML() function in src/lib/promotion-email-html.ts only converts block-level elements (h2, h3, p, ul, li, a) but passes through inline formatting elements unchanged. The fix feature 'fix-semantic-tags-to-inline-styles' has not been implemented yet (status: pending)."
-    }
-  ],
+  "passedAssertions": ["VAL-EMAIL-004"],
+  "failedAssertions": [],
   "blockedAssertions": [],
   "flowReports": [
-    ".factory/validation/newsletter-email/user-testing/flows/val-email-004-rerun.json"
+    ".factory/validation/newsletter-email/user-testing/flows/val-email-004-rerun2.json"
   ],
-  "appliedUpdates": [
-    {
-      "target": "user-testing.md",
-      "description": "Documented that emailHTML only generates when store.promoDateRange is set — validators must fill Date Range before HTML Code tab shows content",
-      "source": "flow-report"
-    }
-  ],
-  "previousRound": null
+  "appliedUpdates": [],
+  "previousRound": ".factory/validation/newsletter-email/user-testing/synthesis.round2.json"
 }
