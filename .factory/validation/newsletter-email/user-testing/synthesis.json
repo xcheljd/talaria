@@ -1,37 +1,30 @@
 {
   "milestone": "newsletter-email",
-  "round": 1,
+  "round": 2,
   "status": "fail",
   "assertionsSummary": {
-    "total": 11,
-    "passed": 10,
+    "total": 1,
+    "passed": 0,
     "failed": 1,
     "blocked": 0
   },
-  "passedAssertions": [
-    "VAL-EMAIL-001",
-    "VAL-EMAIL-002",
-    "VAL-EMAIL-003",
-    "VAL-EMAIL-005",
-    "VAL-EMAIL-006",
-    "VAL-EMAIL-009",
-    "VAL-EMAIL-010",
-    "VAL-EMAIL-011",
-    "VAL-CROSS-001",
-    "VAL-CROSS-002"
-  ],
+  "passedAssertions": [],
   "failedAssertions": [
     {
       "id": "VAL-EMAIL-004",
-      "reason": "Newsletter body formatting uses semantic HTML tags (<strong>, <em>) instead of explicit inline CSS style attributes (style=\"font-weight: bold; font-style: italic;\") as required by the validation contract. The specification states 'every visual property is inline (font-weight: bold, font-style: italic, etc.)' but the implementation passes through TipTap's semantic HTML tags. While functionally equivalent for email clients, the implementation does not match the exact specification. Other elements (headings, containers, colored text) do have inline styles correctly."
+      "reason": "Re-run confirmed: semantic formatting tags (<strong>, <em>, <u>, <mark>) in newsletter body are NOT converted to inline-styled <span> elements. The convertTipTapToInlineHTML() function in src/lib/promotion-email-html.ts only converts block-level elements (h2, h3, p, ul, li, a) but passes through inline formatting elements unchanged. The fix feature 'fix-semantic-tags-to-inline-styles' has not been implemented yet (status: pending)."
     }
   ],
   "blockedAssertions": [],
   "flowReports": [
-    ".factory/validation/newsletter-email/user-testing/flows/email-position-rendering.json",
-    ".factory/validation/newsletter-email/user-testing/flows/live-preview-rich-text-xss.json",
-    ".factory/validation/newsletter-email/user-testing/flows/eml-cross-area.json"
+    ".factory/validation/newsletter-email/user-testing/flows/val-email-004-rerun.json"
   ],
-  "appliedUpdates": [],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Documented that emailHTML only generates when store.promoDateRange is set — validators must fill Date Range before HTML Code tab shows content",
+      "source": "flow-report"
+    }
+  ],
   "previousRound": null
 }

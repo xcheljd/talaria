@@ -51,6 +51,7 @@ localStorage.setItem("userProfile", JSON.stringify({firstName:"Test",lastName:"U
 - HTML Code tab content is only in DOM when the tab is selected
 - Switch to Preview tab makes the HTML panel invisible to querySelector
 - Always ensure HTML Code tab is selected before extracting HTML content
+- **Date Range required:** Email HTML is only generated when `store.promoDateRange` is set. Validators must fill in a date range (e.g., "April 1 - April 7") in the Basic Details card before the HTML Code tab will show any content
 
 ## Position Toggle Buttons
 
