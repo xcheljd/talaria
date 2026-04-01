@@ -41,7 +41,6 @@ import {
   generatePromotionEmailHTML,
   type PromotionEmailData,
 } from '@/lib/promotion-email-html';
-import { getEmployeeSignature } from '@/lib/signature';
 
 // ===== Color Resolution (mirrors PromotionPage helper) =====
 
@@ -306,13 +305,6 @@ export function BulkEmailTools() {
       };
 
       let htmlContent = generatePromotionEmailHTML(data);
-
-      // Include signature
-      const signature = getEmployeeSignature('html');
-      htmlContent = htmlContent.replace(
-        '</body>',
-        `<br><br>${signature}</body>`
-      );
 
       const subject = store.selectedSubjectLine || 'Weekly Promotion';
 

@@ -56,7 +56,6 @@ import {
 } from '@/lib/promotion-email-html';
 import type { NewsletterStyle } from '@/stores/promotion-store';
 import { createEMLFile } from '@/lib/emailUtils';
-import { getEmployeeSignature } from '@/lib/signature';
 import { getStoreEmail, getEmployeeName } from '@/lib/profile';
 
 import { Button } from '@/components/ui/button';
@@ -372,13 +371,6 @@ function PreviewColumn() {
       const fromEmail = getStoreEmail();
       const subject = store.selectedSubjectLine || 'Weekly Sale';
 
-      // Include signature in the email body
-      const signature = getEmployeeSignature('html');
-      const fullHTML = emailHTML.replace(
-        '</body>',
-        `<br><br>${signature}</body>`
-      );
-
       // Get PDF attachments
       const attachments = store.attachedPDFs
         .filter((pdf) => pdf.data)
@@ -390,7 +382,7 @@ function PreviewColumn() {
         '',
         '',
         subject,
-        fullHTML,
+        emailHTML,
         attachments
       );
 
