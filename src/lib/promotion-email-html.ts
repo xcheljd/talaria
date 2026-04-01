@@ -69,6 +69,16 @@ function escapeHtml(text: string): string {
  * Convert TipTap HTML output to email-compatible inline-styled HTML.
  * Strips CSS classes, keeps only safe elements, and applies inline styles
  * for email client compatibility.
+ *
+ * Semantic formatting tags are converted to inline-styled spans:
+ * - <strong> → <span style="font-weight: bold;">
+ * - <em>     → <span style="font-style: italic;">
+ * - <u>      → <span style="text-decoration: underline;">
+ * - <mark>   → <span style="background-color: yellow;">
+ *
+ * Structural tags (h2, h3, p, ul, li, a) receive inline styles with
+ * font-family, margins, and padding so no <style> block or CSS class
+ * is needed in the email output.
  */
 function convertTipTapToInlineHTML(html: string): string {
   if (!html || !html.trim()) return '';
@@ -77,14 +87,50 @@ function convertTipTapToInlineHTML(html: string): string {
   // while preserving safe formatting tags
   const clean = sanitizeRichHTML(html);
 
-  // Map of TipTap HTML elements to their email-inline-style equivalents
-  // We rebuild the HTML with inline styles since email clients ignore <style> blocks
   let result = clean;
 
-  // Strong → already safe from sanitizeHTML, keep as-is
-  // Em → already safe, keep as-is
-  // U (underline) → keep as-is
-  // We need to convert span style attributes to inline styles
+  // ===== Semantic formatting → inline-styled spans =====
+
+  // <strong> → <span style="font-weight: bold;">
+  result = result.replace(/<strong>/g, '<span style="font-weight: bold;">');
+  result = result.replace(/<\/strong>/g, '</span>');
+
+  // <b> → <span style="font-weight: bold;">
+  result = result.replace(/<b>/g, '<span style="font-weight: bold;">');
+  result = result.replace(/<\/b>/g, '</span>');
+
+  // <em> → <span style="font-style: italic;">
+  result = result.replace(/<em>/g, '<span style="font-style: italic;">');
+  result = result.replace(/<\/em>/g, '</span>');
+
+  // <i> → <span style="font-style: italic;">
+  result = result.replace(/<i>/g, '<span style="font-style: italic;">');
+  result = result.replace(/<\/i>/g, '</span>');
+
+  // <u> → <span style="text-decoration: underline;">
+  result = result.replace(/<u>/g, '<span style="text-decoration: underline;">');
+  result = result.replace(/<\/u>/g, '</span>');
+
+  // <s> → <span style="text-decoration: line-through;">
+  result = result.replace(
+    /<s>/g,
+    '<span style="text-decoration: line-through;">'
+  );
+  result = result.replace(/<\/s>/g, '</span>');
+
+  // <mark> → <span style="background-color: yellow;">
+  // Also handle marks with data-color attribute from TipTap highlight
+  result = result.replace(
+    /<mark data-color="([^"]*)">/g,
+    '<span style="background-color: $1;">'
+  );
+  result = result.replace(
+    /<mark>/g,
+    '<span style="background-color: yellow;">'
+  );
+  result = result.replace(/<\/mark>/g, '</span>');
+
+  // ===== Structural elements with inline styles =====
 
   // Replace <h2> with inline-styled version
   result = result.replace(

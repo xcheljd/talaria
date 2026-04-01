@@ -225,22 +225,83 @@ describe('newsletter email integration - HTML generation', () => {
       expect(html).toMatch(/<p style="[^"]*font-family[^"]*"[^>]*>Hello world<\/p>/);
     });
 
-    it('converts strong tags to inline-styled paragraphs', () => {
+    it('converts strong tags to inline-styled spans', () => {
       const data = makeEmailData({
         newsletterBody: '<p><strong>Bold text</strong></p>',
       });
       const html = generatePromotionEmailHTML(data);
 
-      expect(html).toContain('<strong>Bold text</strong>');
+      // <strong> should be replaced with <span style="font-weight: bold;">
+      expect(html).not.toContain('<strong>');
+      expect(html).toContain('<span style="font-weight: bold;">Bold text</span>');
     });
 
-    it('converts em tags for italic text', () => {
+    it('converts em tags to inline-styled spans for italic text', () => {
       const data = makeEmailData({
         newsletterBody: '<p><em>Italic text</em></p>',
       });
       const html = generatePromotionEmailHTML(data);
 
-      expect(html).toContain('<em>Italic text</em>');
+      // <em> should be replaced with <span style="font-style: italic;">
+      expect(html).not.toContain('<em>');
+      expect(html).toContain('<span style="font-style: italic;">Italic text</span>');
+    });
+
+    it('converts u tags to inline-styled spans for underline', () => {
+      const data = makeEmailData({
+        newsletterBody: '<p><u>Underlined text</u></p>',
+      });
+      const html = generatePromotionEmailHTML(data);
+
+      // <u> should be replaced with <span style="text-decoration: underline;">
+      expect(html).not.toContain('<u>');
+      expect(html).toContain('<span style="text-decoration: underline;">Underlined text</span>');
+    });
+
+    it('converts mark tags to inline-styled spans for highlight', () => {
+      const data = makeEmailData({
+        newsletterBody: '<p><mark>Highlighted text</mark></p>',
+      });
+      const html = generatePromotionEmailHTML(data);
+
+      // <mark> should be replaced with <span style="background-color: yellow;">
+      expect(html).not.toContain('<mark>');
+      expect(html).toContain('<span style="background-color: yellow;">Highlighted text</span>');
+    });
+
+    it('converts mark tags with data-color to inline-styled spans', () => {
+      const data = makeEmailData({
+        newsletterBody: '<p><mark data-color="#ff0000">Red highlight</mark></p>',
+      });
+      const html = generatePromotionEmailHTML(data);
+
+      expect(html).not.toContain('<mark');
+      expect(html).toContain('<span style="background-color: #ff0000;">Red highlight</span>');
+    });
+
+    it('handles nested formatting with all inline styles', () => {
+      const data = makeEmailData({
+        newsletterBody: '<p><strong><em><u>Bold italic underline</u></em></strong></p>',
+      });
+      const html = generatePromotionEmailHTML(data);
+
+      expect(html).not.toContain('<strong>');
+      expect(html).not.toContain('<em>');
+      expect(html).not.toContain('<u>');
+      expect(html).toContain('font-weight: bold');
+      expect(html).toContain('font-style: italic');
+      expect(html).toContain('text-decoration: underline');
+      expect(html).toContain('Bold italic underline');
+    });
+
+    it('preserves span style attributes for text color', () => {
+      const data = makeEmailData({
+        newsletterBody: '<p><span style="color: #ff0000;">Red text</span></p>',
+      });
+      const html = generatePromotionEmailHTML(data);
+
+      expect(html).toContain('color: #ff0000;');
+      expect(html).toContain('Red text');
     });
 
     it('converts ul/li for bullet lists', () => {
