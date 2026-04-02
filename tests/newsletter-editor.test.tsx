@@ -205,34 +205,28 @@ describe('NewsletterEditor - toolbar interactions', () => {
     expect(editorArea).toBeTruthy();
   });
 
-  it('clicking link button prompts for URL', async () => {
-    // Mock window.prompt
-    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue(null);
+  it('clicking link button opens link popover', async () => {
     const user = userEvent.setup();
     render(<NewsletterEditor />);
 
     const linkButton = screen.getByLabelText('Add link');
     await user.click(linkButton);
 
-    expect(promptSpy).toHaveBeenCalled();
-    promptSpy.mockRestore();
+    // Popover should appear with URL input
+    expect(screen.getByTestId('link-url-input')).toBeInTheDocument();
+    expect(screen.getByTestId('link-submit-btn')).toBeInTheDocument();
   });
 
-  it('clicking link button with URL sets link', async () => {
-    const promptSpy = vi
-      .spyOn(window, 'prompt')
-      .mockReturnValue('https://example.com');
+  it('clicking link button shows URL input field', async () => {
     const user = userEvent.setup();
     render(<NewsletterEditor />);
 
     const linkButton = screen.getByLabelText('Add link');
     await user.click(linkButton);
 
-    expect(promptSpy).toHaveBeenCalledWith(
-      'Enter URL:',
-      'https://'
-    );
-    promptSpy.mockRestore();
+    // URL input should be pre-filled with https://
+    const urlInput = screen.getByTestId('link-url-input') as HTMLInputElement;
+    expect(urlInput.value).toBe('https://');
   });
 
   it('editor instance exists and supports commands', async () => {

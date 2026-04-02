@@ -54,7 +54,7 @@ import {
   validateImportConfig,
   type PromotionEmailData,
 } from '@/lib/promotion-email-html';
-import type { NewsletterStyle } from '@/stores/promotion-store';
+import { resolveNewsletterColors } from '@/lib/newsletter-utils';
 import { createEMLFile } from '@/lib/emailUtils';
 import { getStoreEmail, getEmployeeName } from '@/lib/profile';
 
@@ -288,29 +288,6 @@ function downloadBlob(blob: Blob, filename: string) {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
-}
-
-// ===== Newsletter Color Resolution =====
-
-function resolveNewsletterColors(style: NewsletterStyle): {
-  borderColor: string;
-  backgroundColor: string;
-  headingColor: string;
-} {
-  const root = document.documentElement;
-  const computed = getComputedStyle(root);
-
-  return {
-    borderColor:
-      style.borderColor ??
-      (computed.getPropertyValue('--primary').trim() || '#2c3e50'),
-    backgroundColor:
-      style.backgroundColor ??
-      (computed.getPropertyValue('--muted').trim() || '#f5f5f5'),
-    headingColor:
-      style.headingColor ??
-      (computed.getPropertyValue('--primary').trim() || '#2c3e50'),
-  };
 }
 
 // ===== Preview Column Component =====

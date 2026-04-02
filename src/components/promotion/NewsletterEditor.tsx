@@ -9,21 +9,33 @@
  * - Syncs editor content to Zustand store on every change
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
+import Placeholder from '@tiptap/extension-placeholder';
+import Image from '@tiptap/extension-image';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import TextAlign from '@tiptap/extension-text-align';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { common, createLowlight } from 'lowlight';
 import {
   Bold,
   Italic,
-  Underline,
+  Underline as UnderlineIcon,
   Heading2,
   Heading3,
   List,
-  Link,
+  ListOrdered,
+  Link as LinkIcon,
+  Link2Off,
   Undo2,
   Redo2,
   Palette,
@@ -35,23 +47,46 @@ import {
   RotateCcw,
   AlignLeft,
   AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Minus,
+  Strikethrough,
+  Trash2,
+  ExternalLink,
+  ImageIcon,
+  Table as TableIcon,
+  TableProperties,
+  Plus,
+  TableCellsMerge,
+  TableCellsSplit,
+  Trash2Icon,
+  Code,
+  Quote,
+  Search,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isSafeURL } from '@/lib/html-utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   usePromotionStore,
   type NewsletterPosition,
 } from '@/stores/promotion-store';
-
 // ===== Heading Extraction Helper =====
 
-/** Extract the text content of the first H2 element from HTML. */
+/** Extract the text content of the first H2 element from HTML using DOMParser. */
 function extractHeadingFromHTML(html: string): string {
-  const match = html.match(/<h2[^>]*>(.*?)<\/h2>/i);
-  if (!match) return '';
-  // Strip any inner HTML tags to get plain text
-  return match[1].replace(/<[^>]*>/g, '').trim();
+  if (!html) return '';
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const h2 = doc.querySelector('h2');
+  return h2?.textContent?.trim() || '';
 }
 
 // ===== Toolbar Button =====
@@ -166,11 +201,69 @@ const SanitizePasteExtension = Extension.create({
   },
 });
 
+// ===== Lowlight instance for code block syntax highlighting =====
+const lowlight = createLowlight(common);
+
+// ===== Drag-and-Drop Image Extension (#7) =====
+const DropImageExtension = Extension.create({
+  name: 'dropImage',
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('dropImage'),
+        props: {
+          handleDrop(view, event: DragEvent) {
+            const files = event.dataTransfer?.files;
+            if (!files || files.length === 0) return false;
+
+            const imageFile = Array.from(files).find(
+              (f) => f.type.startsWith('image/')
+            );
+            if (!imageFile) return false;
+
+            event.preventDefault();
+
+            const reader = new FileReader();
+            reader.onload = () => {
+              const src = reader.result as string;
+              const pos = view.posAtCoords({
+                left: event.clientX,
+                top: event.clientY,
+              });
+              if (!pos) return;
+
+              const node = view.state.schema.nodes.image;
+              if (node) {
+                const imageNode = node.create({ src });
+                const tr = view.state.tr.insert(pos.pos, imageNode);
+                view.dispatch(tr);
+              }
+            };
+            reader.readAsDataURL(imageFile as Blob);
+            return true;
+          },
+        },
+      }),
+    ];
+  },
+});
+
 // ===== Main Component =====
 
 export function NewsletterEditor() {
   const store = usePromotionStore();
   const [showCustomize, setShowCustomize] = useState(false);
+
+  // Track last-used colors for color pickers (#11)
+  const [lastTextColor, setLastTextColor] = useState('#000000');
+  const [lastHighlightColor, setLastHighlightColor] = useState('#fef08a');
+
+  // Debounce timer for editor updates (#25)
+  const updateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Ref to skip store-triggered syncs when the editor itself caused the change (#23)
+  const isEditorUpdateRef = useRef(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -178,10 +271,29 @@ export function NewsletterEditor() {
       SanitizePasteExtension,
       StarterKit.configure({
         heading: { levels: [2, 3] },
+        link: {
+          openOnClick: false,
+          autolink: false,
+          HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
+        },
+        codeBlock: false,
       }),
       TextStyle,
       Color,
       Highlight.configure({ multicolor: true }),
+      Placeholder.configure({
+        placeholder: 'Start typing your newsletter content...',
+      }),
+      Image.configure({ inline: false, allowBase64: true }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableCell,
+      TableHeader,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      CodeBlockLowlight.configure({ lowlight }),
+      DropImageExtension,
     ],
     content: store.newsletterBody || '<h2>Newsletter</h2><p></p>',
     onUpdate: ({ editor }) => {
@@ -190,13 +302,28 @@ export function NewsletterEditor() {
       const isEmpty =
         html === '<p></p>' || html === '<p><br></p>' || html === '';
       const body = isEmpty ? '' : html;
-      store.setNewsletterBody(body);
 
-      // Auto-derive heading from first H2 in editor body
-      const heading = body ? extractHeadingFromHTML(body) : '';
-      if (heading !== store.newsletterHeading) {
-        store.setNewsletterHeading(heading);
+      // Mark that this update came from the editor (#23)
+      isEditorUpdateRef.current = true;
+
+      // Debounce store updates during rapid typing (#25)
+      if (updateTimerRef.current) {
+        clearTimeout(updateTimerRef.current);
       }
+      updateTimerRef.current = setTimeout(() => {
+        store.setNewsletterBody(body);
+
+        // Auto-derive heading from first H2 in editor body
+        const heading = body ? extractHeadingFromHTML(body) : '';
+        if (heading !== store.newsletterHeading) {
+          store.setNewsletterHeading(heading);
+        }
+
+        // Reset the editor-originated flag after the store update propagates
+        setTimeout(() => {
+          isEditorUpdateRef.current = false;
+        }, 50);
+      }, 150);
     },
     // Force toolbar active state to update on cursor movement / selection changes
     onSelectionUpdate: () => {
@@ -204,9 +331,21 @@ export function NewsletterEditor() {
     },
   });
 
-  // Sync editor when store changes from external source (import, Start Over)
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimerRef.current) {
+        clearTimeout(updateTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Sync editor when store changes from external source (import, Start Over) (#23)
   useEffect(() => {
     if (!editor) return;
+
+    // Skip sync if the editor itself caused the store update
+    if (isEditorUpdateRef.current) return;
 
     const currentEditorHTML = editor.getHTML();
     const storeBody = store.newsletterBody || '<h2>Newsletter</h2><p></p>';
@@ -225,7 +364,10 @@ export function NewsletterEditor() {
     [store]
   );
 
-  // ===== Link Handler =====
+  // ===== Link Handler (popover-based) =====
+  const [linkPopoverOpen, setLinkPopoverOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('https://');
+
   const handleLinkClick = useCallback(() => {
     if (!editor) return;
 
@@ -234,24 +376,32 @@ export function NewsletterEditor() {
       return;
     }
 
-    const url = window.prompt('Enter URL:', 'https://');
-    if (url) {
-      // Validate URL protocol to prevent javascript: URI vulnerability
-      if (!isSafeURL(url)) {
-        return;
-      }
+    // Pre-fill with existing link if any
+    const existingUrl = editor.getAttributes('link').href || 'https://';
+    setLinkUrl(existingUrl);
+    setLinkPopoverOpen(true);
+  }, [editor]);
+
+  const handleLinkSubmit = useCallback(() => {
+    if (!editor || !linkUrl) return;
+
+    if (isSafeURL(linkUrl)) {
       editor
         .chain()
         .focus()
         .extendMarkRange('link')
-        .setLink({ href: url })
+        .setLink({ href: linkUrl })
         .run();
     }
-  }, [editor]);
 
-  // ===== Color Handlers =====
+    setLinkPopoverOpen(false);
+    setLinkUrl('https://');
+  }, [editor, linkUrl]);
+
+  // ===== Color Handlers (#11 - remember last-used colors) =====
   const handleTextColor = useCallback(
     (color: string) => {
+      setLastTextColor(color);
       editor?.chain().focus().setColor(color).run();
     },
     [editor]
@@ -259,10 +409,147 @@ export function NewsletterEditor() {
 
   const handleHighlight = useCallback(
     (color: string) => {
+      setLastHighlightColor(color);
       editor?.chain().focus().toggleHighlight({ color }).run();
     },
     [editor]
   );
+
+  // ===== Image Insertion (#1) =====
+  const [imagePopoverOpen, setImagePopoverOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState('https://');
+  const imageFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageFromUrl = useCallback(() => {
+    if (!editor || !imageUrl) return;
+    if (isSafeURL(imageUrl)) {
+      editor.chain().focus().setImage({ src: imageUrl }).run();
+    }
+    setImagePopoverOpen(false);
+    setImageUrl('https://');
+  }, [editor, imageUrl]);
+
+  const handleImageUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !file.type.startsWith('image/')) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const src = reader.result as string;
+        editor?.chain().focus().setImage({ src }).run();
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    },
+    [editor]
+  );
+
+  // ===== Table Helpers (#2) =====
+  const insertTable = useCallback(() => {
+    editor
+      ?.chain()
+      .focus()
+      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+      .run();
+  }, [editor]);
+
+  // ===== Find & Replace (#6) =====
+  const [findReplaceOpen, setFindReplaceOpen] = useState(false);
+  const [findText, setFindText] = useState('');
+  const [replaceText, setReplaceText] = useState('');
+  const [findCount, setFindCount] = useState(0);
+  const findInputRef = useRef<HTMLInputElement>(null);
+
+  const performFind = useCallback(() => {
+    if (!editor || !findText) {
+      setFindCount(0);
+      return;
+    }
+
+    const { state } = editor;
+    const { doc } = state;
+    let count = 0;
+
+    doc.descendants((node) => {
+      if (node.isText && node.text) {
+        const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        const matches = node.text.match(regex);
+        if (matches) count += matches.length;
+      }
+    });
+
+    setFindCount(count);
+  }, [editor, findText]);
+
+  const performReplace = useCallback(() => {
+    if (!editor || !findText) return;
+
+    const { state } = editor;
+    const { tr } = state;
+    const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+
+    let found = false;
+    state.doc.descendants((node, pos) => {
+      if (found) return false;
+      if (node.isText && node.text) {
+        const match = node.text.match(regex);
+        if (match && match.index !== undefined) {
+          const from = pos + match.index;
+          const to = from + match[0].length;
+          tr.replaceWith(from, to, state.schema.text(match[0].replace(regex, replaceText)));
+          found = true;
+          return false;
+        }
+      }
+    });
+
+    if (found) {
+      editor.view.dispatch(tr);
+    }
+    performFind();
+  }, [editor, findText, replaceText, performFind]);
+
+  const performReplaceAll = useCallback(() => {
+    if (!editor || !findText) return;
+
+    const { state } = editor;
+    const { tr } = state;
+    const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+
+    let offset = 0;
+    state.doc.descendants((node, pos) => {
+      if (node.isText && node.text) {
+        let text = node.text;
+        const matches = [...text.matchAll(regex)];
+        if (matches.length > 0) {
+          const newText = text.replace(regex, replaceText);
+          const adjustedPos = pos + offset;
+          tr.replaceWith(adjustedPos, adjustedPos + node.nodeSize, state.schema.text(newText));
+          offset += newText.length - text.length;
+        }
+      }
+    });
+
+    editor.view.dispatch(tr);
+    performFind();
+  }, [editor, findText, replaceText, performFind]);
+
+  // ===== Word/Character Count (#2) =====
+  const editorText = editor?.getText() || '';
+  const wordCount = editorText
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 0).length;
+  const charCount = editorText.length;
+
+  // ===== Reset Newsletter (#9) =====
+  const handleResetNewsletter = useCallback(() => {
+    if (!editor) return;
+    editor.commands.setContent('<h2>Newsletter</h2><p></p>');
+    store.setNewsletterBody('');
+    store.setNewsletterHeading('Newsletter');
+  }, [editor, store]);
 
   return (
     <div className="space-y-3">
@@ -447,7 +734,7 @@ export function NewsletterEditor() {
       </div>
 
       {/* Formatting Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 rounded-md border bg-muted/30 p-1">
+      <div className="flex flex-wrap items-center gap-0.5 rounded-md border bg-muted/30 p-1 max-h-[72px] overflow-y-auto">
         {/* Undo / Redo */}
         <ToolbarButton
           active={false}
@@ -492,7 +779,16 @@ export function NewsletterEditor() {
           onClick={() => editor?.chain().focus().toggleUnderline().run()}
           label="Toggle underline"
         >
-          <Underline className="h-3.5 w-3.5" />
+          <UnderlineIcon className="h-3.5 w-3.5" />
+        </ToolbarButton>
+
+        {/* Strikethrough */}
+        <ToolbarButton
+          active={editor?.isActive('strike') || false}
+          onClick={() => editor?.chain().focus().toggleStrike().run()}
+          label="Toggle strikethrough"
+        >
+          <Strikethrough className="h-3.5 w-3.5" />
         </ToolbarButton>
 
         <ToolbarSeparator />
@@ -500,7 +796,7 @@ export function NewsletterEditor() {
         {/* Text Color */}
         <ColorInput
           label="Text color"
-          color="#000000"
+          color={lastTextColor}
           onChange={handleTextColor}
         >
           <Palette className="h-3.5 w-3.5" />
@@ -509,7 +805,7 @@ export function NewsletterEditor() {
         {/* Highlight */}
         <ColorInput
           label="Highlight"
-          color="#fef08a"
+          color={lastHighlightColor}
           onChange={handleHighlight}
         >
           <Highlighter className="h-3.5 w-3.5" />
@@ -550,18 +846,335 @@ export function NewsletterEditor() {
           <List className="h-3.5 w-3.5" />
         </ToolbarButton>
 
-        {/* Link */}
+        {/* Numbered List */}
         <ToolbarButton
-          active={editor?.isActive('link') || false}
-          onClick={handleLinkClick}
-          label="Add link"
+          active={editor?.isActive('orderedList') || false}
+          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+          label="Toggle numbered list"
         >
-          <Link className="h-3.5 w-3.5" />
+          <ListOrdered className="h-3.5 w-3.5" />
         </ToolbarButton>
 
         <ToolbarSeparator />
 
-        {/* Heading Alignment */}
+        {/* Text Alignment (#3) */}
+        <ToolbarButton
+          active={editor?.isActive({ textAlign: 'left' }) || false}
+          onClick={() => editor?.chain().focus().setTextAlign('left').run()}
+          label="Align left"
+        >
+          <AlignLeft className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton
+          active={editor?.isActive({ textAlign: 'center' }) || false}
+          onClick={() => editor?.chain().focus().setTextAlign('center').run()}
+          label="Align center"
+        >
+          <AlignCenter className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton
+          active={editor?.isActive({ textAlign: 'right' }) || false}
+          onClick={() => editor?.chain().focus().setTextAlign('right').run()}
+          label="Align right"
+        >
+          <AlignRight className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton
+          active={editor?.isActive({ textAlign: 'justify' }) || false}
+          onClick={() => editor?.chain().focus().setTextAlign('justify').run()}
+          label="Justify"
+        >
+          <AlignJustify className="h-3.5 w-3.5" />
+        </ToolbarButton>
+
+        <ToolbarSeparator />
+
+        {/* Blockquote (#5) */}
+        <ToolbarButton
+          active={editor?.isActive('blockquote') || false}
+          onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+          label="Toggle blockquote"
+        >
+          <Quote className="h-3.5 w-3.5" />
+        </ToolbarButton>
+
+        {/* Code Block (#4) */}
+        <ToolbarButton
+          active={editor?.isActive('codeBlock') || false}
+          onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+          label="Toggle code block"
+        >
+          <Code className="h-3.5 w-3.5" />
+        </ToolbarButton>
+
+        <ToolbarSeparator />
+
+        {/* Link (popover-based) */}
+        <Popover open={linkPopoverOpen} onOpenChange={setLinkPopoverOpen}>
+          <PopoverTrigger asChild>
+            <ToolbarButton
+              active={editor?.isActive('link') || false}
+              onClick={handleLinkClick}
+              label="Add link"
+            >
+              <LinkIcon className="h-3.5 w-3.5" />
+            </ToolbarButton>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-2" side="bottom" align="start">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                Link URL
+              </label>
+              <div className="flex gap-1.5">
+                <Input
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://"
+                  className="h-7 text-xs"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleLinkSubmit();
+                    }
+                  }}
+                  data-testid="link-url-input"
+                />
+                <Button
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={handleLinkSubmit}
+                  data-testid="link-submit-btn"
+                >
+                  Apply
+                </Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Remove Link */}
+        {editor?.isActive('link') && (
+          <ToolbarButton
+            active={false}
+            onClick={() => editor.chain().focus().unsetLink().run()}
+            label="Remove link"
+          >
+            <Link2Off className="h-3.5 w-3.5" />
+          </ToolbarButton>
+        )}
+
+        {/* Open Link in New Tab */}
+        {editor?.isActive('link') && (
+          <ToolbarButton
+            active={false}
+            onClick={() => {
+              const href = editor?.getAttributes('link').href;
+              if (href) window.open(href, '_blank', 'noopener,noreferrer');
+            }}
+            label="Open link"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </ToolbarButton>
+        )}
+
+        <ToolbarSeparator />
+
+        {/* Image (#1) — popover for URL + hidden file input for upload */}
+        <Popover open={imagePopoverOpen} onOpenChange={setImagePopoverOpen}>
+          <PopoverTrigger asChild>
+            <ToolbarButton
+              active={editor?.isActive('image') || false}
+              onClick={() => setImagePopoverOpen(true)}
+              label="Insert image"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+            </ToolbarButton>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-2" side="bottom" align="start">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                Image URL
+              </label>
+              <div className="flex gap-1.5">
+                <Input
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://"
+                  className="h-7 text-xs"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleImageFromUrl();
+                    }
+                  }}
+                  data-testid="image-url-input"
+                />
+                <Button
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={handleImageFromUrl}
+                  data-testid="image-submit-btn"
+                >
+                  Apply
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 pt-1 border-t">
+                <span className="text-xs text-muted-foreground">Or</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => imageFileInputRef.current?.click()}
+                  data-testid="image-upload-btn"
+                >
+                  Upload file
+                </Button>
+                <input
+                  ref={imageFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <ToolbarSeparator />
+
+        {/* Table (#2) */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <ToolbarButton
+              active={editor?.isActive('table') || false}
+              onClick={() => {}}
+              label="Table"
+            >
+              <TableIcon className="h-3.5 w-3.5" />
+            </ToolbarButton>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-1" side="bottom" align="start">
+            <div className="flex flex-col gap-0.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start h-7 text-xs"
+                onClick={insertTable}
+                data-testid="table-insert"
+              >
+                <TableProperties className="h-3 w-3 mr-1.5" />
+                Insert 3×3 table
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start h-7 text-xs"
+                onClick={() => editor?.chain().focus().addColumnBefore().run()}
+                disabled={!editor?.can().addColumnBefore()}
+              >
+                <Plus className="h-3 w-3 mr-1.5" />
+                Add column before
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start h-7 text-xs"
+                onClick={() => editor?.chain().focus().addColumnAfter().run()}
+                disabled={!editor?.can().addColumnAfter()}
+              >
+                <Plus className="h-3 w-3 mr-1.5" />
+                Add column after
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start h-7 text-xs"
+                onClick={() => editor?.chain().focus().deleteColumn().run()}
+                disabled={!editor?.can().deleteColumn()}
+              >
+                <Minus className="h-3 w-3 mr-1.5" />
+                Delete column
+              </Button>
+              <div className="h-px bg-border my-0.5" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start h-7 text-xs"
+                onClick={() => editor?.chain().focus().addRowBefore().run()}
+                disabled={!editor?.can().addRowBefore()}
+              >
+                <Plus className="h-3 w-3 mr-1.5" />
+                Add row before
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start h-7 text-xs"
+                onClick={() => editor?.chain().focus().addRowAfter().run()}
+                disabled={!editor?.can().addRowAfter()}
+              >
+                <Plus className="h-3 w-3 mr-1.5" />
+                Add row after
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start h-7 text-xs"
+                onClick={() => editor?.chain().focus().deleteRow().run()}
+                disabled={!editor?.can().deleteRow()}
+              >
+                <Minus className="h-3 w-3 mr-1.5" />
+                Delete row
+              </Button>
+              <div className="h-px bg-border my-0.5" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start h-7 text-xs"
+                onClick={() => editor?.chain().focus().mergeCells().run()}
+                disabled={!editor?.can().mergeCells()}
+              >
+                <TableCellsMerge className="h-3 w-3 mr-1.5" />
+                Merge cells
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start h-7 text-xs"
+                onClick={() => editor?.chain().focus().splitCell().run()}
+                disabled={!editor?.can().splitCell()}
+              >
+                <TableCellsSplit className="h-3 w-3 mr-1.5" />
+                Split cell
+              </Button>
+              <div className="h-px bg-border my-0.5" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start h-7 text-xs text-destructive hover:text-destructive"
+                onClick={() => editor?.chain().focus().deleteTable().run()}
+                disabled={!editor?.can().deleteTable()}
+              >
+                <Trash2Icon className="h-3 w-3 mr-1.5" />
+                Delete table
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <ToolbarSeparator />
+
+        {/* Horizontal Rule */}
+        <ToolbarButton
+          active={false}
+          onClick={() => editor?.chain().focus().setHorizontalRule().run()}
+          label="Insert horizontal rule"
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </ToolbarButton>
+
+        {/* Heading Alignment (store-level) */}
         <ToolbarButton
           active={store.newsletterStyle.headingAlign === 'left'}
           onClick={() => store.setNewsletterStyle({ headingAlign: 'left' })}
@@ -584,6 +1197,113 @@ export function NewsletterEditor() {
           editor={editor}
           className="newsletter-editor prose prose-sm max-w-none p-3 min-h-[200px] focus:outline-none"
         />
+      </div>
+
+      {/* Find & Replace Bar (#6) */}
+      {findReplaceOpen && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2" data-testid="find-replace-bar">
+          <div className="flex items-center gap-1 flex-1 min-w-[200px]">
+            <Input
+              ref={findInputRef}
+              value={findText}
+              onChange={(e) => {
+                setFindText(e.target.value);
+              }}
+              placeholder="Find..."
+              className="h-7 text-xs"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  performFind();
+                }
+              }}
+              data-testid="find-input"
+            />
+            {findCount > 0 && (
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {findCount} found
+              </span>
+            )}
+          </div>
+          <Input
+            value={replaceText}
+            onChange={(e) => setReplaceText(e.target.value)}
+            placeholder="Replace..."
+            className="h-7 text-xs w-32"
+            data-testid="replace-input"
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={performReplace}
+            disabled={!findText}
+            data-testid="replace-btn"
+          >
+            Replace
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={performReplaceAll}
+            disabled={!findText}
+            data-testid="replace-all-btn"
+          >
+            All
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => {
+              setFindReplaceOpen(false);
+              setFindText('');
+              setReplaceText('');
+              setFindCount(0);
+            }}
+            aria-label="Close find & replace"
+            data-testid="find-replace-close"
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+
+      {/* Word/Character Count, Find, & Reset */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+        <span data-testid="newsletter-word-count">
+          {wordCount} word{wordCount !== 1 ? 's' : ''} &middot; {charCount} character{charCount !== 1 ? 's' : ''}
+        </span>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 gap-1 px-2 text-xs text-muted-foreground"
+            onClick={() => {
+              setFindReplaceOpen(!findReplaceOpen);
+              if (!findReplaceOpen) {
+                setTimeout(() => findInputRef.current?.focus(), 50);
+              }
+            }}
+            aria-label="Find & replace"
+            data-testid="find-replace-toggle"
+          >
+            <Search className="h-3 w-3" />
+            Find
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-destructive"
+            onClick={handleResetNewsletter}
+            aria-label="Reset newsletter"
+            data-testid="newsletter-reset-btn"
+          >
+            <Trash2 className="h-3 w-3" />
+            Reset
+          </Button>
+        </div>
       </div>
     </div>
   );
