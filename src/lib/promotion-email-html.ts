@@ -21,6 +21,164 @@ import type {
   NewsletterStyle,
 } from '@/stores/promotion-store';
 
+// ===== Email Palette =====
+
+/**
+ * Canonical color palette for the promotion email template.
+ * All email HTML generation references this palette so newsletter
+ * "auto" colors and future theming derive from a single source of truth.
+ */
+export const EMAIL_PALETTE = {
+  /** Footer & header accent background (#2c3e50 dark blue-gray) */
+  footerBg: '#2c3e50',
+  /** "How to Shop" box and general section background */
+  sectionBg: '#f5f5f5',
+  /** Unsubscribe row background */
+  unsubscribeBg: '#f4f4f4',
+  /** Gold accent for store hours & special hours */
+  accent: '#ffd700',
+  /** Primary body text */
+  text: '#333333',
+  /** Link color & callout text */
+  link: '#0066cc',
+  /** Important notes box border */
+  noteBorder: '#ddd',
+  /** Header separator border */
+  headerBorder: 'gray',
+  /** Body / table background */
+  bodyBg: 'white',
+  /** Footer text color */
+  footerText: 'white',
+} as const;
+
+export type EmailPalette = {
+  [K in keyof typeof EMAIL_PALETTE]: string;
+};
+
+// ===== Dark Mode Palette Transform =====
+
+/** Parse a CSS color string to [r, g, b] (0-255). Handles hex, named colors. */
+function parseColor(color: string): [number, number, number] | null {
+  const c = color.trim().toLowerCase();
+
+  // Named colors
+  const named: Record<string, [number, number, number]> = {
+    white: [255, 255, 255], black: [0, 0, 0], gray: [128, 128, 128],
+    grey: [128, 128, 128], red: [255, 0, 0], green: [0, 128, 0],
+    blue: [0, 0, 255], yellow: [255, 255, 0], orange: [255, 165, 0],
+  };
+  if (named[c]) return named[c];
+
+  // Hex: #rgb, #rrggbb
+  const hex = c.replace('#', '');
+  if (/^[0-9a-f]{3}$/.test(hex)) {
+    return [
+      parseInt(hex[0] + hex[0], 16),
+      parseInt(hex[1] + hex[1], 16),
+      parseInt(hex[2] + hex[2], 16),
+    ];
+  }
+  if (/^[0-9a-f]{6}$/.test(hex)) {
+    return [
+      parseInt(hex.slice(0, 2), 16),
+      parseInt(hex.slice(2, 4), 16),
+      parseInt(hex.slice(4, 6), 16),
+    ];
+  }
+
+  return null;
+}
+
+function toHex(r: number, g: number, b: number): string {
+  return '#' + [r, g, b].map((v) => Math.round(Math.max(0, Math.min(255, v)))
+    .toString(16).padStart(2, '0')).join('');
+}
+
+/** Relative luminance (0 = black, 1 = white) per WCAG formula */
+function luminance(r: number, g: number, b: number): number {
+  const [rs, gs, bs] = [r, g, b].map((v) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+/** Darken a light background for dark mode. Returns a dark version. */
+function darkenBg(rgb: [number, number, number]): string {
+  const lum = luminance(...rgb);
+  if (lum > 0.7) {
+    // Very light (white-ish) → map to dark gray
+    return toHex(26, 26, 26);
+  }
+  if (lum > 0.3) {
+    // Medium-light → darken significantly, keep hue
+    return toHex(rgb[0] * 0.2, rgb[1] * 0.2, rgb[2] * 0.2);
+  }
+  // Already dark → keep as-is or slightly darken
+  return toHex(rgb[0] * 0.85, rgb[1] * 0.85, rgb[2] * 0.85);
+}
+
+/** Lighten dark text for readability on dark backgrounds. */
+function lightenText(rgb: [number, number, number]): string {
+  const lum = luminance(...rgb);
+  if (lum > 0.5) {
+    // Already light → keep
+    return toHex(...rgb);
+  }
+  if (lum < 0.1) {
+    // Very dark (black-ish) → light gray
+    return '#d4d4d4';
+  }
+  // Medium-dark → lighten by inverting toward white
+  return toHex(
+    255 - (255 - rgb[0]) * 0.3,
+    255 - (255 - rgb[1]) * 0.3,
+    255 - (255 - rgb[2]) * 0.3
+  );
+}
+
+/** Adjust link color for visibility on dark background. */
+function adjustLink(rgb: [number, number, number]): string {
+  const lum = luminance(...rgb);
+  if (lum > 0.3) return toHex(...rgb); // already bright enough
+  // Lighten
+  return toHex(
+    Math.min(255, rgb[0] + 100),
+    Math.min(255, rgb[1] + 100),
+    Math.min(255, rgb[2] + 100)
+  );
+}
+
+/**
+ * Transform an email palette to simulate dark mode rendering.
+ * Mimics how Gmail/Outlook invert colors: light bgs → dark, dark text → light.
+ */
+export function buildDarkModePalette(palette: EmailPalette): EmailPalette {
+  const transform = (color: string, fn: (rgb: [number, number, number]) => string): string => {
+    const rgb = parseColor(color);
+    return rgb ? fn(rgb) : color;
+  };
+
+  return {
+    bodyBg: transform(palette.bodyBg, darkenBg),
+    sectionBg: transform(palette.sectionBg, darkenBg),
+    unsubscribeBg: transform(palette.unsubscribeBg, darkenBg),
+    footerBg: transform(palette.footerBg, darkenBg),
+    text: transform(palette.text, lightenText),
+    footerText: transform(palette.footerText, lightenText),
+    accent: transform(palette.accent, lightenText),
+    link: transform(palette.link, adjustLink),
+    noteBorder: transform(palette.noteBorder, (rgb) => {
+      const lum = luminance(...rgb);
+      return lum > 0.5 ? toHex(rgb[0] * 0.3, rgb[1] * 0.3, rgb[2] * 0.3) : toHex(...rgb);
+    }),
+    headerBorder: transform(palette.headerBorder, (rgb) => {
+      const lum = luminance(...rgb);
+      return lum > 0.5 ? toHex(rgb[0] * 0.4, rgb[1] * 0.4, rgb[2] * 0.4) : toHex(...rgb);
+    }),
+  };
+}
+
 // ===== Types =====
 
 export interface PromotionEmailData {
@@ -42,6 +200,8 @@ export interface PromotionEmailData {
     borderStyle: 'left' | 'full' | 'none' | 'top';
     headingAlign: 'left' | 'center';
   };
+  /** Optional custom email palette; falls back to EMAIL_PALETTE defaults */
+  emailPalette?: EmailPalette;
 }
 
 export interface PromotionConfigForExport {
@@ -67,6 +227,7 @@ export interface PromotionConfigForExport {
   newsletterPosition: NewsletterPosition;
   newsletterStyle: NewsletterStyle;
   newsletterVisible: boolean;
+  emailPalette?: EmailPalette;
 }
 
 // ===== Helpers =====
@@ -91,7 +252,7 @@ function escapeHtml(text: string): string {
  * font-family, margins, and padding so no <style> block or CSS class
  * is needed in the email output.
  */
-function convertTipTapToInlineHTML(html: string): string {
+function convertTipTapToInlineHTML(html: string, palette: EmailPalette = EMAIL_PALETTE): string {
   if (!html || !html.trim()) return '';
 
   // Sanitize to strip dangerous elements (scripts, event handlers, etc.)
@@ -176,7 +337,7 @@ function convertTipTapToInlineHTML(html: string): string {
   // Replace <a> with inline-styled version (preserve href)
   result = result.replace(
     /<a\s+href="([^"]*)"([^>]*)>/g,
-    '<a href="$1"$2 style="color: #0066cc; text-decoration: underline;">'
+    `<a href="$1"$2 style="color: ${palette.link}; text-decoration: underline;">`
   );
 
   // Strip javascript: URIs from links for safety
@@ -193,7 +354,8 @@ function convertTipTapToInlineHTML(html: string): string {
  */
 function buildNewsletterSection(
   body: string,
-  style: PromotionEmailData['newsletterStyle']
+  style: PromotionEmailData['newsletterStyle'],
+  palette: EmailPalette = EMAIL_PALETTE
 ): string {
   if (!body || !body.trim()) return '';
 
@@ -202,7 +364,7 @@ function buildNewsletterSection(
   const headingText = h2Match ? h2Match[1].replace(/<[^>]*>/g, '').trim() : '';
   const restBody = h2Match ? body.replace(/<h2[^>]*>.*?<\/h2>/i, '') : body;
 
-  const bodyHTML = convertTipTapToInlineHTML(restBody);
+  const bodyHTML = convertTipTapToInlineHTML(restBody, palette);
   if (!headingText && (!bodyHTML || !bodyHTML.trim())) return '';
 
   // Check if the converted body is just empty tags (no visible content)
@@ -535,6 +697,11 @@ function getOccasionTitle(dateRange: string): string | null {
  * an HTML string suitable for email preview and EML export.
  */
 export function generatePromotionEmailHTML(data: PromotionEmailData): string {
+  // Merge custom palette with defaults
+  const pal: EmailPalette = data.emailPalette
+    ? { ...EMAIL_PALETTE, ...data.emailPalette }
+    : EMAIL_PALETTE;
+
   const dateRangeRaw = data.promoDateRange || '';
   const dateRange = escapeHtml(dateRangeRaw);
   const title =
@@ -567,7 +734,8 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
         brandSections += buildEntryHTML(
           _line,
           entry.collections,
-          entry.callout
+          entry.callout,
+          pal
         );
       }
       continue;
@@ -578,7 +746,8 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
     brandSections += buildEntryHTML(
       entry.line,
       entry.collections,
-      entry.callout
+      entry.callout,
+      pal
     );
   }
 
@@ -619,7 +788,7 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
   const specialHoursHTML =
     data.specialHours.length > 0
       ? `
-                <p style="color: #ffd700; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 13px; margin: 10px 0 0 0;">
+                <p style="color: ${pal.accent}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 13px; margin: 10px 0 0 0;">
                     <b>SPECIAL HOURS</b><br>
                     ${data.specialHours
                       .map((hour) =>
@@ -636,15 +805,15 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
   const newsletterVisible = data.newsletterVisible ?? false;
 
   const newsletterStyle = data.newsletterStyle || {
-    borderColor: '#2c3e50',
-    backgroundColor: '#f5f5f5',
-    headingColor: '#2c3e50',
+    borderColor: pal.footerBg,
+    backgroundColor: pal.sectionBg,
+    headingColor: pal.footerBg,
     borderStyle: 'left' as const,
     headingAlign: 'left' as const,
   };
 
   const newsletterSection = newsletterVisible
-    ? buildNewsletterSection(data.newsletterBody, newsletterStyle)
+    ? buildNewsletterSection(data.newsletterBody, newsletterStyle, pal)
     : '';
 
   // Newsletter at top position: between HEADER and BRAND SECTIONS
@@ -660,14 +829,14 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
 <head>
     <title>Weekly Sale</title>
 </head>
-<body style="font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #333333; background-color: white; margin: 0; padding: 0;">
+<body style="font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; color: ${pal.text}; background-color: ${pal.bodyBg}; margin: 0; padding: 0;">
 
     <center>
-    <table width="600" style="background-color: white; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif;">
+    <table width="600" style="background-color: ${pal.bodyBg}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif;">
 
         <!-- HEADER -->
         <tr>
-            <td style="padding: 20px; text-align: center; border-bottom: 2px solid gray;">
+            <td style="padding: 20px; text-align: center; border-bottom: 2px solid ${pal.headerBorder};">
                 <h1 style="font-size: 24px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">${title}</h1>
                 <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 10px 0 0 0;">${dateRange}, ${year} • While Supplies Last</p>
             </td>
@@ -682,14 +851,14 @@ ${brandSections}
 ${newsletterBottomHTML}
 
                 <!-- HOW TO SHOP BOX -->
-                <div style="background-color: #f5f5f5; color: #333333; padding: 15px; margin-bottom: 20px;">
+                <div style="background-color: ${pal.sectionBg}; color: ${pal.text}; padding: 15px; margin-bottom: 20px;">
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0;"><b>HOW TO SHOP</b></p>
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">
                     ${howToShopHTML}</p>
                 </div>
 
                 <!-- IMPORTANT NOTES BOX -->
-                <div style="border: 1px solid #ddd; color: #333333; padding: 15px;">
+                <div style="border: 1px solid ${pal.noteBorder}; color: ${pal.text}; padding: 15px;">
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0;"><b>IMPORTANT NOTES</b></p>
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">
                     ${importantNotesHTML}</p>
@@ -700,17 +869,17 @@ ${newsletterBottomHTML}
 
         <!-- FOOTER -->
         <tr>
-            <td style="background-color: #2c3e50; padding: 20px; text-align: center;">
-                <h3 style="color: white; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 18px; margin: 0 0 10px 0;">CITIZEN COMPANY STORE</h3>
-                <p style="color: white; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
-                    📍 <a href="${storeMapLink}" target="_blank" style="color: white;">
+            <td style="background-color: ${pal.footerBg}; padding: 20px; text-align: center;">
+                <h3 style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 18px; margin: 0 0 10px 0;">CITIZEN COMPANY STORE</h3>
+                <p style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
+                    📍 <a href="${storeMapLink}" target="_blank" style="color: ${pal.footerText};">
                     ${storeAddress}</a>
                 </p>
-                <p style="color: white; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
-                    📞 <a href="tel:+1${storePhoneRaw.replace(/\D/g, '')}" target="_blank" style="color: white;">${storePhone}</a> |
-                    📧 <a href="mailto:${storeEmailRaw}" target="_blank" style="color: white;">${storeEmail}</a>
+                <p style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
+                    📞 <a href="tel:+1${storePhoneRaw.replace(/\D/g, '')}" target="_blank" style="color: ${pal.footerText};">${storePhone}</a> |
+                    📧 <a href="mailto:${storeEmailRaw}" target="_blank" style="color: ${pal.footerText};">${storeEmail}</a>
                 </p>
-                <p style="color: #ffd700; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 13px; margin: 10px 0 0 0;">
+                <p style="color: ${pal.accent}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 13px; margin: 10px 0 0 0;">
                     <b>STORE HOURS</b><br>
                     ${storeHours}
                 </p>${specialHoursHTML}
@@ -719,8 +888,8 @@ ${newsletterBottomHTML}
 
         <!-- UNSUBSCRIBE -->
         <tr>
-            <td style="background-color: #f4f4f4; padding: 15px; text-align: center;">
-                <p style="font-size: 12px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; color: #333333; margin: 0;">
+            <td style="background-color: ${pal.unsubscribeBg}; padding: 15px; text-align: center;">
+                <p style="font-size: 12px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; color: ${pal.text}; margin: 0;">
                     No longer interested? Simply reply to this email with <b>"UNSUBSCRIBE"</b>
                 </p>
             </td>
@@ -738,7 +907,8 @@ ${newsletterBottomHTML}
 function buildEntryHTML(
   line: string,
   collections: string,
-  callout: string
+  callout: string,
+  palette: EmailPalette = EMAIL_PALETTE
 ): string {
   let html = `
                 <p style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-bottom: 8px;"><b>${escapeHtml(line)}</b></p>`;
@@ -758,7 +928,7 @@ function buildEntryHTML(
 
   if (callout && callout.trim()) {
     html += `
-                <p style="font-size: 13px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-left: 20px; margin-top: 0; margin-bottom: 20px; color: #0066cc; font-style: italic;">
+                <p style="font-size: 13px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-left: 20px; margin-top: 0; margin-bottom: 20px; color: ${palette.link}; font-style: italic;">
                     ${escapeHtml(callout)}
                 </p>`;
   }
@@ -776,7 +946,8 @@ export function buildExportConfig(
   attachedPDFs: Array<{ id: string; name: string; size: number; type: string }>,
   generatedSubjectLines: string[],
   selectedSubjectLine: string | null,
-  newsletterStyle?: NewsletterStyle
+  newsletterStyle?: NewsletterStyle,
+  emailPalette?: EmailPalette
 ): PromotionConfigForExport {
   return {
     templateType: 'promotion-email',
@@ -828,6 +999,7 @@ export function buildExportConfig(
       headingAlign: 'left',
     },
     newsletterVisible: data.newsletterVisible,
+    emailPalette: emailPalette || data.emailPalette,
   };
 }
 
@@ -900,6 +1072,7 @@ export function validateImportConfig(
         headingAlign: 'left',
       },
       newsletterVisible: (config.newsletterVisible as boolean) ?? false,
+      emailPalette: (config.emailPalette as EmailPalette) || undefined,
     },
   };
 }

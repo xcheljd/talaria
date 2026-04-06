@@ -25,6 +25,18 @@ const mockStore = {
     borderStyle: 'left' as const,
     headingAlign: 'left' as const,
   },
+  emailPalette: {
+    footerBg: '#2c3e50',
+    sectionBg: '#f5f5f5',
+    unsubscribeBg: '#f4f4f4',
+    accent: '#ffd700',
+    text: '#333333',
+    link: '#0066cc',
+    noteBorder: '#ddd',
+    headerBorder: 'gray',
+    bodyBg: 'white',
+    footerText: 'white',
+  },
   setNewsletterHeading: vi.fn(),
   setNewsletterBody: vi.fn(),
   setNewsletterPosition: vi.fn(),
@@ -56,12 +68,12 @@ describe('NewsletterEditor', () => {
     render(<NewsletterEditor />);
 
     // Toolbar buttons should be present
-    expect(screen.getByLabelText('Toggle bold')).toBeInTheDocument();
-    expect(screen.getByLabelText('Toggle italic')).toBeInTheDocument();
-    expect(screen.getByLabelText('Toggle underline')).toBeInTheDocument();
-    expect(screen.getByLabelText('Toggle H2')).toBeInTheDocument();
-    expect(screen.getByLabelText('Toggle H3')).toBeInTheDocument();
-    expect(screen.getByLabelText('Toggle bullet list')).toBeInTheDocument();
+    expect(screen.getByLabelText('Bold')).toBeInTheDocument();
+    expect(screen.getByLabelText('Italic')).toBeInTheDocument();
+    expect(screen.getByLabelText('Underline')).toBeInTheDocument();
+    expect(screen.getByLabelText('Heading 2')).toBeInTheDocument();
+    expect(screen.getByLabelText('Heading 3')).toBeInTheDocument();
+    expect(screen.getByLabelText('Bullet list')).toBeInTheDocument();
     expect(screen.getByLabelText('Add link')).toBeInTheDocument();
   });
 
@@ -120,8 +132,8 @@ describe('NewsletterEditor', () => {
   it('renders toolbar buttons with correct active state class', () => {
     render(<NewsletterEditor />);
 
-    const boldButton = screen.getByLabelText('Toggle bold');
-    const italicButton = screen.getByLabelText('Toggle italic');
+    const boldButton = screen.getByLabelText('Bold');
+    const italicButton = screen.getByLabelText('Italic');
 
     // Initially, no formatting is active
     expect(boldButton).toHaveAttribute('data-active', 'false');
@@ -164,7 +176,7 @@ describe('NewsletterEditor - toolbar interactions', () => {
     const user = userEvent.setup();
     render(<NewsletterEditor />);
 
-    const boldButton = screen.getByLabelText('Toggle bold');
+    const boldButton = screen.getByLabelText('Bold');
     await user.click(boldButton);
 
     // After clicking, the editor should exist
@@ -176,7 +188,7 @@ describe('NewsletterEditor - toolbar interactions', () => {
     const user = userEvent.setup();
     render(<NewsletterEditor />);
 
-    const italicButton = screen.getByLabelText('Toggle italic');
+    const italicButton = screen.getByLabelText('Italic');
     await user.click(italicButton);
 
     const editorArea = document.querySelector('.tiptap');
@@ -187,7 +199,7 @@ describe('NewsletterEditor - toolbar interactions', () => {
     const user = userEvent.setup();
     render(<NewsletterEditor />);
 
-    const h2Button = screen.getByLabelText('Toggle H2');
+    const h2Button = screen.getByLabelText('Heading 2');
     await user.click(h2Button);
 
     const editorArea = document.querySelector('.tiptap');
@@ -198,7 +210,7 @@ describe('NewsletterEditor - toolbar interactions', () => {
     const user = userEvent.setup();
     render(<NewsletterEditor />);
 
-    const listButton = screen.getByLabelText('Toggle bullet list');
+    const listButton = screen.getByLabelText('Bullet list');
     await user.click(listButton);
 
     const editorArea = document.querySelector('.tiptap');

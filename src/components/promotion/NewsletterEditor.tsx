@@ -55,7 +55,6 @@ import {
   ExternalLink,
   ImageIcon,
   Table as TableIcon,
-  TableProperties,
   Plus,
   TableCellsMerge,
   TableCellsSplit,
@@ -64,6 +63,10 @@ import {
   Quote,
   Search,
   X,
+  ALargeSmall,
+  SpellCheck,
+  Smile,
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isSafeURL } from '@/lib/html-utils';
@@ -89,6 +92,68 @@ function extractHeadingFromHTML(html: string): string {
   return h2?.textContent?.trim() || '';
 }
 
+// ===== Image Compression =====
+
+const MAX_IMAGE_WIDTH = 600;
+const MAX_IMAGE_SIZE_KB = 200;
+
+/**
+ * Compress an image data URL using canvas resize.
+ * Returns the compressed data URL and a warning if the image is still large.
+ */
+function compressImage(dataUrl: string): Promise<{ src: string; warning?: string }> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      // Only resize if wider than email width
+      if (img.width <= MAX_IMAGE_WIDTH && dataUrl.length < MAX_IMAGE_SIZE_KB * 1024) {
+        resolve({ src: dataUrl });
+        return;
+      }
+
+      const scale = Math.min(1, MAX_IMAGE_WIDTH / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve({ src: dataUrl }); return; }
+
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const compressed = canvas.toDataURL('image/jpeg', 0.8);
+
+      const sizeKB = Math.round(compressed.length / 1024);
+      const warning = sizeKB > MAX_IMAGE_SIZE_KB
+        ? `Image is ${sizeKB}KB (base64). Large images may not display in some email clients.`
+        : undefined;
+
+      resolve({ src: compressed, warning });
+    };
+    img.onerror = () => resolve({ src: dataUrl });
+    img.src = dataUrl;
+  });
+}
+
+// ===== Emoji List =====
+
+const EMOJI_LIST = [
+  // Smileys
+  '😀', '😃', '😄', '😁', '😊', '🥰', '😍', '🤩',
+  '😎', '🤗', '🤔', '😉', '👋', '👍', '👏', '🙌',
+  // Celebration
+  '🎉', '🎊', '🔥', '✨', '⭐', '🌟', '💫', '🏆',
+  '🎁', '🎈', '💯', '🥇', '🏅', '💎', '👑', '🎯',
+  // Shopping & Business
+  '🛍️', '🛒', '💰', '💵', '💲', '📦', '📬', '✉️',
+  '📣', '📢', '🏷️', '🔖', '💳', '🧾', '📋', '✅',
+  // Time & Calendar
+  '📅', '⏰', '🕐', '⏳', '📌', '🔔', '🆕', '🆓',
+  // Arrows & Symbols
+  '➡️', '⬇️', '✔️', '❌', '⚠️', '❗', '❓', '💡',
+  '🔗', '📎', '📞', '📧', '🌐', '📍', '🏠', '🏢',
+  // Hearts & Hands
+  '❤️', '💙', '💚', '💛', '🧡', '💜', '🖤', '🤍',
+];
+
 // ===== Toolbar Button =====
 
 interface ToolbarButtonProps {
@@ -97,6 +162,7 @@ interface ToolbarButtonProps {
   label: string;
   children: React.ReactNode;
   disabled?: boolean;
+  shortcut?: string;
 }
 
 function ToolbarButton({
@@ -105,6 +171,7 @@ function ToolbarButton({
   label,
   children,
   disabled,
+  shortcut,
 }: ToolbarButtonProps) {
   return (
     <Button
@@ -115,6 +182,7 @@ function ToolbarButton({
       aria-pressed={active}
       data-active={active}
       disabled={disabled}
+      title={shortcut ? `${label} (${shortcut})` : label}
       className={cn('h-7 w-7', active && 'bg-accent text-accent-foreground')}
     >
       {children}
@@ -225,8 +293,9 @@ const DropImageExtension = Extension.create({
             event.preventDefault();
 
             const reader = new FileReader();
-            reader.onload = () => {
-              const src = reader.result as string;
+            reader.onload = async () => {
+              const dataUrl = reader.result as string;
+              const { src } = await compressImage(dataUrl);
               const pos = view.posAtCoords({
                 left: event.clientX,
                 top: event.clientY,
@@ -435,9 +504,14 @@ export function NewsletterEditor() {
       if (!file || !file.type.startsWith('image/')) return;
 
       const reader = new FileReader();
-      reader.onload = () => {
-        const src = reader.result as string;
+      reader.onload = async () => {
+        const dataUrl = reader.result as string;
+        const { src, warning } = await compressImage(dataUrl);
         editor?.chain().focus().setImage({ src }).run();
+        if (warning) {
+          // Show a non-blocking console warning; could be upgraded to toast
+          console.warn('[Newsletter Image]', warning);
+        }
       };
       reader.readAsDataURL(file);
       e.target.value = '';
@@ -446,20 +520,37 @@ export function NewsletterEditor() {
   );
 
   // ===== Table Helpers (#2) =====
-  const insertTable = useCallback(() => {
-    editor
-      ?.chain()
-      .focus()
-      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-      .run();
-  }, [editor]);
+  const [tableGridHover, setTableGridHover] = useState({ rows: 0, cols: 0 });
+  const insertTable = useCallback(
+    (rows: number = 3, cols: number = 3) => {
+      editor
+        ?.chain()
+        .focus()
+        .insertTable({ rows, cols, withHeaderRow: true })
+        .run();
+    },
+    [editor]
+  );
 
   // ===== Find & Replace (#6) =====
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
   const [findText, setFindText] = useState('');
   const [replaceText, setReplaceText] = useState('');
   const [findCount, setFindCount] = useState(0);
+  const [findCaseSensitive, setFindCaseSensitive] = useState(false);
+  const [findWholeWord, setFindWholeWord] = useState(false);
   const findInputRef = useRef<HTMLInputElement>(null);
+
+  /** Build regex from current find options */
+  const buildFindRegex = useCallback(
+    (flags: string) => {
+      let pattern = findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (findWholeWord) pattern = `\\b${pattern}\\b`;
+      const regexFlags = findCaseSensitive ? flags.replace('i', '') : flags;
+      return new RegExp(pattern, regexFlags);
+    },
+    [findText, findCaseSensitive, findWholeWord]
+  );
 
   const performFind = useCallback(() => {
     if (!editor || !findText) {
@@ -470,24 +561,24 @@ export function NewsletterEditor() {
     const { state } = editor;
     const { doc } = state;
     let count = 0;
+    const regex = buildFindRegex('gi');
 
     doc.descendants((node) => {
       if (node.isText && node.text) {
-        const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
         const matches = node.text.match(regex);
         if (matches) count += matches.length;
       }
     });
 
     setFindCount(count);
-  }, [editor, findText]);
+  }, [editor, findText, buildFindRegex]);
 
   const performReplace = useCallback(() => {
     if (!editor || !findText) return;
 
     const { state } = editor;
     const { tr } = state;
-    const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const regex = buildFindRegex('i');
 
     let found = false;
     state.doc.descendants((node, pos) => {
@@ -508,19 +599,19 @@ export function NewsletterEditor() {
       editor.view.dispatch(tr);
     }
     performFind();
-  }, [editor, findText, replaceText, performFind]);
+  }, [editor, findText, replaceText, performFind, buildFindRegex]);
 
   const performReplaceAll = useCallback(() => {
     if (!editor || !findText) return;
 
     const { state } = editor;
     const { tr } = state;
-    const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const regex = buildFindRegex('gi');
 
     let offset = 0;
     state.doc.descendants((node, pos) => {
       if (node.isText && node.text) {
-        let text = node.text;
+        const text = node.text;
         const matches = [...text.matchAll(regex)];
         if (matches.length > 0) {
           const newText = text.replace(regex, replaceText);
@@ -533,15 +624,20 @@ export function NewsletterEditor() {
 
     editor.view.dispatch(tr);
     performFind();
-  }, [editor, findText, replaceText, performFind]);
+  }, [editor, findText, replaceText, performFind, buildFindRegex]);
 
-  // ===== Word/Character Count (#2) =====
+  // ===== Word/Character Count & Read Time =====
   const editorText = editor?.getText() || '';
   const wordCount = editorText
     .trim()
     .split(/\s+/)
     .filter((w) => w.length > 0).length;
   const charCount = editorText.length;
+  const readTimeMin = Math.max(1, Math.ceil(wordCount / 200));
+
+  // Newsletter content length thresholds for email best practices
+  const WORD_WARNING = 500;
+  const WORD_DANGER = 1000;
 
   // ===== Reset Newsletter (#9) =====
   const handleResetNewsletter = useCallback(() => {
@@ -570,6 +666,21 @@ export function NewsletterEditor() {
           Show in Email
         </label>
       </div>
+
+      {/* Heading guidance */}
+      <p className="text-[11px] text-muted-foreground leading-snug">
+        The first <strong>H2</strong> in the editor becomes the newsletter heading.
+        {store.newsletterBody && !extractHeadingFromHTML(store.newsletterBody) && (
+          <span className="text-orange-500 ml-1">
+            No H2 found — click the H2 button to add one.
+          </span>
+        )}
+        {store.newsletterBody && extractHeadingFromHTML(store.newsletterBody) && (
+          <span className="text-muted-foreground/70 ml-1">
+            Current: &ldquo;{extractHeadingFromHTML(store.newsletterBody)}&rdquo;
+          </span>
+        )}
+      </p>
 
       {/* Position Toggle */}
       <div className="space-y-1">
@@ -672,60 +783,109 @@ export function NewsletterEditor() {
                 {
                   key: 'borderColor' as const,
                   label: 'Border Color',
+                  autoHint: 'Footer',
+                  swatches: [
+                    { color: store.emailPalette.footerBg, label: 'Footer' },
+                    { color: store.emailPalette.link, label: 'Link' },
+                    { color: store.emailPalette.accent, label: 'Accent' },
+                    { color: store.emailPalette.text, label: 'Text' },
+                  ],
                 },
                 {
                   key: 'backgroundColor' as const,
                   label: 'Background',
+                  autoHint: 'Section',
+                  swatches: [
+                    { color: store.emailPalette.sectionBg, label: 'Section' },
+                    { color: store.emailPalette.unsubscribeBg, label: 'Subtle' },
+                    { color: store.emailPalette.footerBg, label: 'Footer' },
+                    { color: store.emailPalette.bodyBg, label: 'Body' },
+                  ],
                 },
                 {
                   key: 'headingColor' as const,
                   label: 'Heading Color',
+                  autoHint: 'Footer',
+                  swatches: [
+                    { color: store.emailPalette.footerBg, label: 'Footer' },
+                    { color: store.emailPalette.link, label: 'Link' },
+                    { color: store.emailPalette.accent, label: 'Accent' },
+                    { color: store.emailPalette.text, label: 'Text' },
+                  ],
                 },
               ] as const
             ).map((picker) => {
               const currentValue = store.newsletterStyle[picker.key];
               return (
-                <div key={picker.key} className="flex items-center gap-2">
-                  <label className="text-xs text-muted-foreground min-w-[90px]">
-                    {picker.label}
-                  </label>
-                  <div
-                    className="h-5 w-5 rounded border border-border shrink-0"
-                    style={{
-                      backgroundColor: currentValue ?? '#888',
-                      backgroundImage: currentValue
-                        ? undefined
-                        : 'repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%)',
-                      backgroundSize: currentValue ? undefined : '8px 8px',
-                    }}
-                    data-testid={`swatch-${picker.key}`}
-                  />
-                  <input
-                    type="color"
-                    value={currentValue ?? '#2563eb'}
-                    onChange={(e) =>
-                      store.setNewsletterStyle({
-                        [picker.key]: e.target.value,
-                      })
-                    }
-                    className="h-6 w-8 cursor-pointer rounded border-0 p-0"
-                    aria-label={`Pick ${picker.label}`}
-                    data-testid={`picker-${picker.key}`}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 gap-1 px-2 text-[10px] text-muted-foreground"
-                    onClick={() =>
-                      store.setNewsletterStyle({ [picker.key]: null })
-                    }
-                    disabled={currentValue === null}
-                    aria-label={`Reset ${picker.label} to auto`}
-                    data-testid={`auto-${picker.key}`}
-                  >
-                    <RotateCcw className="h-2.5 w-2.5" />
-                    Auto
-                  </Button>
+                <div key={picker.key} className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-muted-foreground min-w-[90px]">
+                      {picker.label}
+                    </label>
+                    <div
+                      className="h-5 w-5 rounded border border-border shrink-0"
+                      style={{
+                        backgroundColor: currentValue ?? '#888',
+                        backgroundImage: currentValue
+                          ? undefined
+                          : 'repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%)',
+                        backgroundSize: currentValue ? undefined : '8px 8px',
+                      }}
+                      data-testid={`swatch-${picker.key}`}
+                    />
+                    <input
+                      type="color"
+                      value={currentValue ?? '#2563eb'}
+                      onChange={(e) =>
+                        store.setNewsletterStyle({
+                          [picker.key]: e.target.value,
+                        })
+                      }
+                      className="h-6 w-8 cursor-pointer rounded border-0 p-0"
+                      aria-label={`Pick ${picker.label}`}
+                      data-testid={`picker-${picker.key}`}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 gap-1 px-2 text-[10px] text-muted-foreground"
+                      onClick={() =>
+                        store.setNewsletterStyle({ [picker.key]: null })
+                      }
+                      disabled={currentValue === null}
+                      aria-label={`Reset ${picker.label} to auto`}
+                      title={`Auto uses email ${picker.autoHint.toLowerCase()} color`}
+                      data-testid={`auto-${picker.key}`}
+                    >
+                      <RotateCcw className="h-2.5 w-2.5" />
+                      Auto
+                    </Button>
+                  </div>
+                  {/* Email palette swatches */}
+                  <div className="flex items-center gap-1 ml-[98px]">
+                    {picker.swatches.map((sw) => (
+                      <button
+                        key={sw.color}
+                        type="button"
+                        className={cn(
+                          'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
+                          currentValue === sw.color && 'ring-1 ring-primary ring-offset-1'
+                        )}
+                        style={{ backgroundColor: sw.color }}
+                        onClick={() =>
+                          store.setNewsletterStyle({
+                            [picker.key]: sw.color,
+                          })
+                        }
+                        title={`${sw.label} (${sw.color})`}
+                        aria-label={`Set ${picker.label} to ${sw.label} color`}
+                        data-testid={`palette-swatch-${picker.key}-${sw.label.toLowerCase()}`}
+                      />
+                    ))}
+                    <span className="text-[9px] text-muted-foreground ml-1">
+                      email colors
+                    </span>
+                  </div>
                 </div>
               );
             })}
@@ -740,6 +900,7 @@ export function NewsletterEditor() {
           active={false}
           onClick={() => editor?.chain().focus().undo().run()}
           label="Undo"
+          shortcut="Ctrl+Z"
           disabled={!editor?.can().undo()}
         >
           <Undo2 className="h-3.5 w-3.5" />
@@ -748,6 +909,7 @@ export function NewsletterEditor() {
           active={false}
           onClick={() => editor?.chain().focus().redo().run()}
           label="Redo"
+          shortcut="Ctrl+Shift+Z"
           disabled={!editor?.can().redo()}
         >
           <Redo2 className="h-3.5 w-3.5" />
@@ -759,7 +921,8 @@ export function NewsletterEditor() {
         <ToolbarButton
           active={editor?.isActive('bold') || false}
           onClick={() => editor?.chain().focus().toggleBold().run()}
-          label="Toggle bold"
+          label="Bold"
+          shortcut="Ctrl+B"
         >
           <Bold className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -768,7 +931,8 @@ export function NewsletterEditor() {
         <ToolbarButton
           active={editor?.isActive('italic') || false}
           onClick={() => editor?.chain().focus().toggleItalic().run()}
-          label="Toggle italic"
+          label="Italic"
+          shortcut="Ctrl+I"
         >
           <Italic className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -777,7 +941,8 @@ export function NewsletterEditor() {
         <ToolbarButton
           active={editor?.isActive('underline') || false}
           onClick={() => editor?.chain().focus().toggleUnderline().run()}
-          label="Toggle underline"
+          label="Underline"
+          shortcut="Ctrl+U"
         >
           <UnderlineIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -786,7 +951,8 @@ export function NewsletterEditor() {
         <ToolbarButton
           active={editor?.isActive('strike') || false}
           onClick={() => editor?.chain().focus().toggleStrike().run()}
-          label="Toggle strikethrough"
+          label="Strikethrough"
+          shortcut="Ctrl+Shift+S"
         >
           <Strikethrough className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -819,7 +985,8 @@ export function NewsletterEditor() {
           onClick={() =>
             editor?.chain().focus().toggleHeading({ level: 2 }).run()
           }
-          label="Toggle H2"
+          label="Heading 2"
+          shortcut="Ctrl+Alt+2"
         >
           <Heading2 className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -830,7 +997,8 @@ export function NewsletterEditor() {
           onClick={() =>
             editor?.chain().focus().toggleHeading({ level: 3 }).run()
           }
-          label="Toggle H3"
+          label="Heading 3"
+          shortcut="Ctrl+Alt+3"
         >
           <Heading3 className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -841,7 +1009,8 @@ export function NewsletterEditor() {
         <ToolbarButton
           active={editor?.isActive('bulletList') || false}
           onClick={() => editor?.chain().focus().toggleBulletList().run()}
-          label="Toggle bullet list"
+          label="Bullet list"
+          shortcut="Ctrl+Shift+8"
         >
           <List className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -850,7 +1019,8 @@ export function NewsletterEditor() {
         <ToolbarButton
           active={editor?.isActive('orderedList') || false}
           onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-          label="Toggle numbered list"
+          label="Numbered list"
+          shortcut="Ctrl+Shift+7"
         >
           <ListOrdered className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -862,6 +1032,7 @@ export function NewsletterEditor() {
           active={editor?.isActive({ textAlign: 'left' }) || false}
           onClick={() => editor?.chain().focus().setTextAlign('left').run()}
           label="Align left"
+          shortcut="Ctrl+Shift+L"
         >
           <AlignLeft className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -869,6 +1040,7 @@ export function NewsletterEditor() {
           active={editor?.isActive({ textAlign: 'center' }) || false}
           onClick={() => editor?.chain().focus().setTextAlign('center').run()}
           label="Align center"
+          shortcut="Ctrl+Shift+E"
         >
           <AlignCenter className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -876,6 +1048,7 @@ export function NewsletterEditor() {
           active={editor?.isActive({ textAlign: 'right' }) || false}
           onClick={() => editor?.chain().focus().setTextAlign('right').run()}
           label="Align right"
+          shortcut="Ctrl+Shift+R"
         >
           <AlignRight className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -883,6 +1056,7 @@ export function NewsletterEditor() {
           active={editor?.isActive({ textAlign: 'justify' }) || false}
           onClick={() => editor?.chain().focus().setTextAlign('justify').run()}
           label="Justify"
+          shortcut="Ctrl+Shift+J"
         >
           <AlignJustify className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -893,7 +1067,8 @@ export function NewsletterEditor() {
         <ToolbarButton
           active={editor?.isActive('blockquote') || false}
           onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-          label="Toggle blockquote"
+          label="Blockquote"
+          shortcut="Ctrl+Shift+B"
         >
           <Quote className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -902,7 +1077,8 @@ export function NewsletterEditor() {
         <ToolbarButton
           active={editor?.isActive('codeBlock') || false}
           onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
-          label="Toggle code block"
+          label="Code block"
+          shortcut="Ctrl+Alt+C"
         >
           <Code className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -916,6 +1092,7 @@ export function NewsletterEditor() {
               active={editor?.isActive('link') || false}
               onClick={handleLinkClick}
               label="Add link"
+              shortcut="Ctrl+K"
             >
               <LinkIcon className="h-3.5 w-3.5" />
             </ToolbarButton>
@@ -1056,16 +1233,49 @@ export function NewsletterEditor() {
           </PopoverTrigger>
           <PopoverContent className="w-56 p-1" side="bottom" align="start">
             <div className="flex flex-col gap-0.5">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="justify-start h-7 text-xs"
-                onClick={insertTable}
-                data-testid="table-insert"
-              >
-                <TableProperties className="h-3 w-3 mr-1.5" />
-                Insert 3×3 table
-              </Button>
+              {/* Grid Size Picker */}
+              <div className="px-2 py-1">
+                <p className="text-[10px] text-muted-foreground mb-1 text-center">
+                  {tableGridHover.rows > 0
+                    ? `${tableGridHover.rows} × ${tableGridHover.cols}`
+                    : 'Select table size'}
+                </p>
+                <div
+                  className="grid gap-0.5 mx-auto w-fit"
+                  style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}
+                  onMouseLeave={() => setTableGridHover({ rows: 0, cols: 0 })}
+                >
+                  {Array.from({ length: 6 }, (_, r) =>
+                    Array.from({ length: 6 }, (_, c) => {
+                      const row = r + 1;
+                      const col = c + 1;
+                      const isHighlighted =
+                        row <= tableGridHover.rows && col <= tableGridHover.cols;
+                      return (
+                        <button
+                          key={`${row}-${col}`}
+                          type="button"
+                          className={cn(
+                            'h-4 w-4 border rounded-[2px] transition-colors',
+                            isHighlighted
+                              ? 'bg-primary border-primary'
+                              : 'bg-muted border-border hover:border-primary/50'
+                          )}
+                          onMouseEnter={() =>
+                            setTableGridHover({ rows: row, cols: col })
+                          }
+                          onClick={() => {
+                            insertTable(row, col);
+                            setTableGridHover({ rows: 0, cols: 0 });
+                          }}
+                          aria-label={`Insert ${row}×${col} table`}
+                        />
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+              <div className="h-px bg-border my-0.5" />
               <Button
                 variant="ghost"
                 size="sm"
@@ -1165,14 +1375,101 @@ export function NewsletterEditor() {
 
         <ToolbarSeparator />
 
-        {/* Horizontal Rule */}
-        <ToolbarButton
-          active={false}
-          onClick={() => editor?.chain().focus().setHorizontalRule().run()}
-          label="Insert horizontal rule"
-        >
-          <Minus className="h-3.5 w-3.5" />
-        </ToolbarButton>
+        {/* Horizontal Rule / Dividers */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <ToolbarButton
+              active={false}
+              onClick={() => {}}
+              label="Insert divider"
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </ToolbarButton>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-1" side="bottom" align="start">
+            <div className="flex flex-col gap-0.5">
+              <button
+                type="button"
+                className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                onClick={() => editor?.chain().focus().setHorizontalRule().run()}
+              >
+                <hr className="flex-1 border-t border-foreground/40" />
+                <span className="text-muted-foreground shrink-0">Solid</span>
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                onClick={() => {
+                  editor?.chain().focus().insertContent('<hr style="border-style: dashed;" />').run();
+                }}
+              >
+                <hr className="flex-1 border-t border-dashed border-foreground/40" />
+                <span className="text-muted-foreground shrink-0">Dashed</span>
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                onClick={() => {
+                  editor?.chain().focus().insertContent('<hr style="border-style: dotted;" />').run();
+                }}
+              >
+                <hr className="flex-1 border-t border-dotted border-foreground/40" />
+                <span className="text-muted-foreground shrink-0">Dotted</span>
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                onClick={() => {
+                  editor?.chain().focus().insertContent('<hr style="border: none; border-top: 3px solid currentColor;" />').run();
+                }}
+              >
+                <hr className="flex-1 border-t-[3px] border-foreground/40" />
+                <span className="text-muted-foreground shrink-0">Thick</span>
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                onClick={() => {
+                  const color = store.emailPalette.accent;
+                  editor?.chain().focus().insertContent(`<hr style="border: none; border-top: 2px solid ${color};" />`).run();
+                }}
+              >
+                <hr className="flex-1 border-t-2 border-amber-400" />
+                <span className="text-muted-foreground shrink-0">Accent</span>
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Emoji Picker */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <ToolbarButton
+              active={false}
+              onClick={() => {}}
+              label="Insert emoji"
+            >
+              <Smile className="h-3.5 w-3.5" />
+            </ToolbarButton>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-2" side="bottom" align="start">
+            <div className="grid grid-cols-8 gap-0.5 max-h-[200px] overflow-y-auto">
+              {EMOJI_LIST.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent text-base cursor-pointer"
+                  onClick={() => {
+                    editor?.chain().focus().insertContent(emoji).run();
+                  }}
+                  title={emoji}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* Heading Alignment (store-level) */}
         <ToolbarButton
@@ -1219,6 +1516,30 @@ export function NewsletterEditor() {
               }}
               data-testid="find-input"
             />
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn('h-6 w-6 shrink-0', findCaseSensitive && 'bg-accent text-accent-foreground')}
+              onClick={() => setFindCaseSensitive(!findCaseSensitive)}
+              title="Match case"
+              aria-label="Match case"
+              aria-pressed={findCaseSensitive}
+              data-testid="find-case-sensitive"
+            >
+              <ALargeSmall className="h-3 w-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn('h-6 w-6 shrink-0', findWholeWord && 'bg-accent text-accent-foreground')}
+              onClick={() => setFindWholeWord(!findWholeWord)}
+              title="Whole word"
+              aria-label="Whole word"
+              aria-pressed={findWholeWord}
+              data-testid="find-whole-word"
+            >
+              <SpellCheck className="h-3 w-3" />
+            </Button>
             {findCount > 0 && (
               <span className="text-xs text-muted-foreground whitespace-nowrap">
                 {findCount} found
@@ -1270,10 +1591,33 @@ export function NewsletterEditor() {
         </div>
       )}
 
-      {/* Word/Character Count, Find, & Reset */}
+      {/* Word/Character Count, Read Time, & Reset */}
       <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-        <span data-testid="newsletter-word-count">
-          {wordCount} word{wordCount !== 1 ? 's' : ''} &middot; {charCount} character{charCount !== 1 ? 's' : ''}
+        <span data-testid="newsletter-word-count" className="flex items-center gap-1.5">
+          <span className={cn(
+            wordCount > WORD_DANGER ? 'text-destructive font-medium' :
+            wordCount > WORD_WARNING ? 'text-orange-500' : ''
+          )}>
+            {wordCount} word{wordCount !== 1 ? 's' : ''}
+          </span>
+          &middot; {charCount} char{charCount !== 1 ? 's' : ''}
+          {wordCount > 0 && (
+            <>
+              &middot;
+              <span className="inline-flex items-center gap-0.5">
+                <Clock className="h-3 w-3" />
+                {readTimeMin} min read
+              </span>
+            </>
+          )}
+          {wordCount > WORD_WARNING && (
+            <span className={cn(
+              'text-[10px] ml-1',
+              wordCount > WORD_DANGER ? 'text-destructive' : 'text-orange-500'
+            )}>
+              {wordCount > WORD_DANGER ? '(very long for email)' : '(getting long)'}
+            </span>
+          )}
         </span>
         <div className="flex items-center gap-1">
           <Button

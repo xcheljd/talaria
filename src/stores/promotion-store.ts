@@ -86,6 +86,33 @@ export const DEFAULT_NEWSLETTER_STYLE: NewsletterStyle = {
   headingAlign: 'left',
 };
 
+/** User-customizable email color palette */
+export interface EmailPaletteConfig {
+  footerBg: string;
+  sectionBg: string;
+  unsubscribeBg: string;
+  accent: string;
+  text: string;
+  link: string;
+  noteBorder: string;
+  headerBorder: string;
+  bodyBg: string;
+  footerText: string;
+}
+
+export const DEFAULT_EMAIL_PALETTE: EmailPaletteConfig = {
+  footerBg: '#2c3e50',
+  sectionBg: '#f5f5f5',
+  unsubscribeBg: '#f4f4f4',
+  accent: '#ffd700',
+  text: '#333333',
+  link: '#0066cc',
+  noteBorder: '#ddd',
+  headerBorder: 'gray',
+  bodyBg: 'white',
+  footerText: 'white',
+};
+
 export interface PromotionPersistedState {
   promoDateRange: string;
   promoYear: string;
@@ -102,6 +129,7 @@ export interface PromotionPersistedState {
   newsletterPosition: NewsletterPosition;
   newsletterStyle: NewsletterStyle;
   newsletterVisible: boolean;
+  emailPalette: EmailPaletteConfig;
 }
 
 // ===== Store State & Actions =====
@@ -129,6 +157,9 @@ export interface PromotionState {
   newsletterPosition: NewsletterPosition;
   newsletterStyle: NewsletterStyle;
   newsletterVisible: boolean;
+
+  // Email palette
+  emailPalette: EmailPaletteConfig;
 
   // Promotion entry actions
   addPromotionEntry: () => void;
@@ -196,7 +227,6 @@ export interface PromotionState {
   setPromoDateRange: (value: string) => void;
   setPromoYear: (value: string) => void;
   setPromoTitle: (value: string) => void;
-
   // Newsletter actions
   setNewsletterHeading: (value: string) => void;
   setNewsletterBody: (value: string) => void;
@@ -204,6 +234,10 @@ export interface PromotionState {
   setNewsletterStyle: (style: Partial<NewsletterStyle>) => void;
   setNewsletterVisible: (visible: boolean) => void;
   clearNewsletter: () => void;
+
+  // Email palette actions
+  setEmailPalette: (palette: Partial<EmailPaletteConfig>) => void;
+  resetEmailPalette: () => void;
 
   // Initialization
   setInitializing: (value: boolean) => void;
@@ -279,6 +313,7 @@ function getEmptyState() {
     newsletterPosition: 'top' as NewsletterPosition,
     newsletterStyle: { ...DEFAULT_NEWSLETTER_STYLE } as NewsletterStyle,
     newsletterVisible: false as boolean,
+    emailPalette: { ...DEFAULT_EMAIL_PALETTE } as EmailPaletteConfig,
   };
 }
 
@@ -542,7 +577,6 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   setPromoDateRange: (value: string) => set({ promoDateRange: value }),
   setPromoYear: (value: string) => set({ promoYear: value }),
   setPromoTitle: (value: string) => set({ promoTitle: value }),
-
   // ===== Newsletter Actions =====
 
   setNewsletterHeading: (value: string) => set({ newsletterHeading: value }),
@@ -562,6 +596,15 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       newsletterPosition: 'top',
       newsletterStyle: { ...DEFAULT_NEWSLETTER_STYLE },
     }),
+
+  // ===== Email Palette Actions =====
+
+  setEmailPalette: (palette: Partial<EmailPaletteConfig>) =>
+    set((state) => ({
+      emailPalette: { ...state.emailPalette, ...palette },
+    })),
+  resetEmailPalette: () =>
+    set({ emailPalette: { ...DEFAULT_EMAIL_PALETTE } }),
 
   // ===== Initialization =====
 
@@ -698,6 +741,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       newsletterPosition: state.newsletterPosition,
       newsletterStyle: state.newsletterStyle,
       newsletterVisible: state.newsletterVisible,
+      emailPalette: state.emailPalette,
     };
 
     try {
@@ -800,6 +844,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
           ...DEFAULT_NEWSLETTER_STYLE,
         },
         newsletterVisible: parsed.newsletterVisible ?? false,
+        emailPalette: parsed.emailPalette || { ...DEFAULT_EMAIL_PALETTE },
         isInitializing: false,
       });
     } catch (error) {

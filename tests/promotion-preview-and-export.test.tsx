@@ -732,38 +732,46 @@ describe('BasicDetailsEditor', () => {
     resetStore();
   });
 
-  it('renders date range, year, and title inputs', () => {
+  it('renders date range pickers and title input', () => {
     renderPromotionPage();
     // Page renders both desktop and mobile layouts, so inputs appear twice
-    const dateInputs = screen.getAllByTestId('promo-date-range');
-    const yearInputs = screen.getAllByTestId('promo-year');
+    const startDateInputs = screen.getAllByTestId('promo-start-date');
+    const endDateInputs = screen.getAllByTestId('promo-end-date');
     const titleInputs = screen.getAllByTestId('promo-title');
 
-    expect(dateInputs.length).toBeGreaterThanOrEqual(1);
-    expect(yearInputs.length).toBeGreaterThanOrEqual(1);
+    expect(startDateInputs.length).toBeGreaterThanOrEqual(1);
+    expect(endDateInputs.length).toBeGreaterThanOrEqual(1);
     expect(titleInputs.length).toBeGreaterThanOrEqual(1);
   });
 
   it('updates store when date range changes', async () => {
-    const user = userEvent.setup();
     renderPromotionPage();
 
-    const dateInput = screen.getAllByTestId('promo-date-range')[0];
-    await user.type(dateInput, 'Nov 28 - Dec 1');
+    const startInput = screen.getAllByTestId('promo-start-date')[0] as HTMLInputElement;
+    const endInput = screen.getAllByTestId('promo-end-date')[0] as HTMLInputElement;
+
+    // Use fireEvent for native date inputs (userEvent.type doesn't work well with date inputs)
+    const { fireEvent } = await import('@testing-library/react');
+    fireEvent.change(startInput, { target: { value: '2025-11-28' } });
+    fireEvent.change(endInput, { target: { value: '2025-12-01' } });
 
     const state = usePromotionStore.getState();
-    expect(state.promoDateRange).toBe('Nov 28 - Dec 1');
+    expect(state.promoDateRange).toBe('November 28 - December 1');
+    expect(state.promoYear).toBe('2025');
   });
 
-  it('updates store when year changes', async () => {
-    const user = userEvent.setup();
+  it('formats same-month date range correctly', async () => {
     renderPromotionPage();
 
-    const yearInput = screen.getAllByTestId('promo-year')[0];
-    await user.type(yearInput, '2025');
+    const startInput = screen.getAllByTestId('promo-start-date')[0] as HTMLInputElement;
+    const endInput = screen.getAllByTestId('promo-end-date')[0] as HTMLInputElement;
+
+    const { fireEvent } = await import('@testing-library/react');
+    fireEvent.change(startInput, { target: { value: '2025-03-04' } });
+    fireEvent.change(endInput, { target: { value: '2025-03-10' } });
 
     const state = usePromotionStore.getState();
-    expect(state.promoYear).toBe('2025');
+    expect(state.promoDateRange).toBe('March 4 - 10');
   });
 
   it('updates store when title changes', async () => {
@@ -777,9 +785,9 @@ describe('BasicDetailsEditor', () => {
     expect(state.promoTitle).toBe('Test Sale');
   });
 
-  it('populates inputs from store state', () => {
+  it('populates date pickers from store state', () => {
     usePromotionStore.setState({
-      promoDateRange: 'Dec 1 - Dec 7',
+      promoDateRange: 'December 1 - 7',
       promoYear: '2025',
       promoTitle: 'Holiday Sale',
       isInitializing: false,
@@ -796,24 +804,19 @@ describe('BasicDetailsEditor', () => {
       </ThemeProvider>
     );
 
-    const dateInput = screen.getAllByTestId('promo-date-range')[0] as HTMLInputElement;
-    const yearInput = screen.getAllByTestId('promo-year')[0] as HTMLInputElement;
+    const startInput = screen.getAllByTestId('promo-start-date')[0] as HTMLInputElement;
+    const endInput = screen.getAllByTestId('promo-end-date')[0] as HTMLInputElement;
     const titleInput = screen.getAllByTestId('promo-title')[0] as HTMLInputElement;
 
-    expect(dateInput.value).toBe('Dec 1 - Dec 7');
-    expect(yearInput.value).toBe('2025');
+    expect(startInput.value).toBe('2025-12-01');
+    expect(endInput.value).toBe('2025-12-07');
     expect(titleInput.value).toBe('Holiday Sale');
   });
 
-  it('shows placeholder text on inputs', () => {
+  it('shows title placeholder text', () => {
     renderPromotionPage();
 
-    const dateInputs = screen.getAllByPlaceholderText('Nov 28 - Dec 1');
-    const yearInputs = screen.getAllByPlaceholderText('Auto-uses current year');
     const titleInputs = screen.getAllByPlaceholderText('Leave blank for auto-generation');
-
-    expect(dateInputs.length).toBeGreaterThanOrEqual(1);
-    expect(yearInputs.length).toBeGreaterThanOrEqual(1);
     expect(titleInputs.length).toBeGreaterThanOrEqual(1);
   });
 });

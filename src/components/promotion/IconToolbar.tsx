@@ -19,6 +19,10 @@ import {
   MessageSquare,
   Mail,
   Newspaper,
+  Palette,
+  ScanEye,
+  History,
+  MonitorCheck,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -36,6 +40,11 @@ const CARD_ICONS: Record<string, CardIconConfig> = {
     icon: FileText,
     label: 'Details',
     tooltip: 'Basic Details',
+  },
+  emailThemeCard: {
+    icon: Palette,
+    label: 'Theme',
+    tooltip: 'Email Theme',
   },
   newsletterCard: {
     icon: Newspaper,
@@ -64,6 +73,21 @@ const CARD_ICONS: Record<string, CardIconConfig> = {
     label: 'Subjects',
     tooltip: 'Subject Lines',
   },
+  accessibilityCard: {
+    icon: ScanEye,
+    label: 'A11y',
+    tooltip: 'Accessibility Checker',
+  },
+  versionHistoryCard: {
+    icon: History,
+    label: 'Versions',
+    tooltip: 'Version History',
+  },
+  outlookCard: {
+    icon: MonitorCheck,
+    label: 'Outlook',
+    tooltip: 'Outlook Compatibility',
+  },
   bulkEmailCard: { icon: Mail, label: 'Email', tooltip: 'Bulk Email Tools' },
 };
 
@@ -75,9 +99,13 @@ const TOOLBAR_CARD_ORDER = [
   'howToShopCard',
   'importantNotesCard',
   'specialHoursCard',
-  'pdfCard',
   'subjectCard',
+  'pdfCard',
   'bulkEmailCard',
+  'emailThemeCard',
+  'accessibilityCard',
+  'versionHistoryCard',
+  'outlookCard',
 ];
 
 // ===== Props =====
@@ -105,8 +133,12 @@ export function IconToolbar({ activeCardId, onCardClick }: IconToolbarProps) {
 
         const Icon = config.icon;
         const isActive = activeCardId === cardId;
+        const showDivider = cardId === 'subjectCard' || cardId === 'emailThemeCard';
 
         return (
+          <>{showDivider && (
+            <div key={`div-${cardId}`} className="h-8 w-px bg-border mx-0.5" />
+          )}
           <button
             key={cardId}
             type="button"
@@ -127,6 +159,7 @@ export function IconToolbar({ activeCardId, onCardClick }: IconToolbarProps) {
               {config.label}
             </span>
           </button>
+          </>
         );
       })}
     </div>

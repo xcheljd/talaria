@@ -34,10 +34,14 @@ import {
   FileCode,
   Download,
   Upload,
+  Monitor,
+  Smartphone,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 import { useHasProfile } from '@/contexts/ProfileProvider';
-import { usePromotionStore } from '@/stores/promotion-store';
+import { usePromotionStore, DEFAULT_EMAIL_PALETTE } from '@/stores/promotion-store';
 import { CollapsibleCard } from '@/components/promotion/CollapsibleCard';
 import { IconToolbar } from '@/components/promotion/IconToolbar';
 import { BasicDetailsEditor } from '@/components/promotion/BasicDetailsEditor';
@@ -47,14 +51,27 @@ import { SpecialHoursEditor } from '@/components/promotion/SpecialHoursEditor';
 import { PDFAttachments } from '@/components/promotion/PDFAttachments';
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
 import { BulkEmailTools } from '@/components/promotion/BulkEmailTools';
+import { AccessibilityChecker } from '@/components/promotion/AccessibilityChecker';
+import {
+  VersionHistory,
+  loadSnapshots,
+  persistSnapshots,
+  buildSummary,
+  MAX_SNAPSHOTS,
+  STORAGE_KEY as VERSION_STORAGE_KEY,
+} from '@/components/promotion/VersionHistory';
+import { OutlookChecker } from '@/components/promotion/OutlookChecker';
 import { NewsletterEditor } from '@/components/promotion/NewsletterEditor';
+import { EmailThemeEditor } from '@/components/promotion/EmailThemeEditor';
 import {
   generatePromotionEmailHTML,
   buildExportConfig,
   validateImportConfig,
+  buildDarkModePalette,
   type PromotionEmailData,
 } from '@/lib/promotion-email-html';
 import { resolveNewsletterColors } from '@/lib/newsletter-utils';
+import { cn } from '@/lib/utils';
 import { createEMLFile } from '@/lib/emailUtils';
 import { getStoreEmail, getEmployeeName } from '@/lib/profile';
 
@@ -92,7 +109,7 @@ const CARD_CONFIGS: CardConfig[] = [
   {
     id: 'discountEntriesCard',
     title: 'Discount Entries',
-    defaultCollapsed: false,
+    defaultCollapsed: true,
   },
   { id: 'howToShopCard', title: 'How to Shop', defaultCollapsed: true },
   {
@@ -101,18 +118,24 @@ const CARD_CONFIGS: CardConfig[] = [
     defaultCollapsed: true,
   },
   { id: 'specialHoursCard', title: 'Special Hours', defaultCollapsed: true },
-  { id: 'pdfCard', title: 'PDF Attachments', defaultCollapsed: false },
-  { id: 'subjectCard', title: 'Subject Lines', defaultCollapsed: false },
-  { id: 'bulkEmailCard', title: 'Bulk Email Tools', defaultCollapsed: false },
+  { id: 'subjectCard', title: 'Subject Lines', defaultCollapsed: true },
+  { id: 'pdfCard', title: 'PDF Attachments', defaultCollapsed: true },
+  { id: 'bulkEmailCard', title: 'Bulk Email Tools', defaultCollapsed: true },
+  { id: 'emailThemeCard', title: 'Email Theme', defaultCollapsed: true },
+  { id: 'accessibilityCard', title: 'Accessibility Check', defaultCollapsed: true },
+  { id: 'versionHistoryCard', title: 'Version History', defaultCollapsed: true },
+  { id: 'outlookCard', title: 'Outlook Compatibility', defaultCollapsed: true },
 ];
 
 // ===== Card Content Components =====
 
 /** Get content component for a specific card */
-function getCardContent(cardId: string) {
+function getCardContent(cardId: string, extra?: { versionRefreshKey?: number }) {
   switch (cardId) {
     case 'basicDetailsCard':
       return <BasicDetailsEditor />;
+    case 'emailThemeCard':
+      return <EmailThemeEditor />;
     case 'newsletterCard':
       return <NewsletterEditor />;
     case 'discountEntriesCard':
@@ -127,6 +150,12 @@ function getCardContent(cardId: string) {
       return <PDFAttachments />;
     case 'subjectCard':
       return <SubjectLineGenerator />;
+    case 'accessibilityCard':
+      return <AccessibilityChecker />;
+    case 'versionHistoryCard':
+      return <VersionHistory refreshKey={extra?.versionRefreshKey} />;
+    case 'outlookCard':
+      return <OutlookChecker />;
     case 'bulkEmailCard':
       return <BulkEmailTools />;
     default:
@@ -227,6 +256,14 @@ function getCardHasContent(
       return !!(
         store.selectedSubjectLine || store.generatedSubjectLines.length > 0
       );
+    case 'emailThemeCard': {
+      const { emailPalette } = store;
+      return Object.keys(emailPalette).some(
+        (k) =>
+          emailPalette[k as keyof typeof emailPalette] !==
+          DEFAULT_EMAIL_PALETTE[k as keyof typeof DEFAULT_EMAIL_PALETTE]
+      );
+    }
     case 'bulkEmailCard':
       return false;
     default:
@@ -241,10 +278,12 @@ function PromotionCard({
   config,
   forceExpand,
   onToggle,
+  versionRefreshKey,
 }: {
   config: CardConfig;
   forceExpand?: boolean;
   onToggle?: (cardId: string, isOpen: boolean) => void;
+  versionRefreshKey?: number;
 }) {
   const store = usePromotionStore();
 
@@ -262,6 +301,7 @@ function PromotionCard({
       store.newsletterBody,
       store.newsletterHeading,
       store.newsletterVisible,
+      store.emailPalette,
     ]
   );
 
@@ -274,7 +314,7 @@ function PromotionCard({
       forceExpand={forceExpand}
       onToggle={onToggle}
     >
-      {getCardContent(config.id)}
+      {getCardContent(config.id, { versionRefreshKey })}
     </CollapsibleCard>
   );
 }
@@ -295,12 +335,14 @@ function downloadBlob(blob: Blob, filename: string) {
 function PreviewColumn() {
   const store = usePromotionStore();
   const [activeTab, setActiveTab] = useState('preview');
+  const [previewWidth, setPreviewWidth] = useState<'desktop' | 'mobile'>('desktop');
+  const [previewDark, setPreviewDark] = useState(false);
 
   // Generate email HTML from current store data
   const emailHTML = useMemo(() => {
     if (!store.promoDateRange) return '';
 
-    const resolvedColors = resolveNewsletterColors(store.newsletterStyle);
+    const resolvedColors = resolveNewsletterColors(store.newsletterStyle, store.emailPalette);
 
     const data: PromotionEmailData = {
       promoDateRange: store.promoDateRange,
@@ -319,6 +361,7 @@ function PreviewColumn() {
         borderStyle: store.newsletterStyle.borderStyle,
         headingAlign: store.newsletterStyle.headingAlign,
       },
+      emailPalette: store.emailPalette,
     };
 
     return generatePromotionEmailHTML(data);
@@ -334,7 +377,39 @@ function PreviewColumn() {
     store.newsletterBody,
     store.newsletterPosition,
     store.newsletterStyle,
+    store.emailPalette,
   ]);
+
+  // Generate dark mode email by re-rendering with transformed palette colors
+  // Mimics Gmail/Outlook: darken light backgrounds, lighten dark text
+  const darkModeHTML = useMemo(() => {
+    if (!emailHTML || !previewDark) return '';
+
+    const darkPalette = buildDarkModePalette(store.emailPalette);
+    const resolvedColors = resolveNewsletterColors(store.newsletterStyle, darkPalette);
+
+    const data: PromotionEmailData = {
+      promoDateRange: store.promoDateRange,
+      promoYear: store.promoYear,
+      promoTitle: store.promoTitle,
+      promotionEntries: store.promotionEntries,
+      specialHours: store.specialHours,
+      howToShopItems: store.howToShopItems,
+      importantNotesItems: store.importantNotesItems,
+      newsletterHeading: store.newsletterHeading,
+      newsletterBody: store.newsletterBody,
+      newsletterPosition: store.newsletterPosition,
+      newsletterVisible: store.newsletterVisible,
+      newsletterStyle: {
+        ...resolvedColors,
+        borderStyle: store.newsletterStyle.borderStyle,
+        headingAlign: store.newsletterStyle.headingAlign,
+      },
+      emailPalette: darkPalette,
+    };
+
+    return generatePromotionEmailHTML(data);
+  }, [emailHTML, previewDark, store]);
 
   // Download Email Draft (single EML)
   const handleDownloadDraft = useCallback(async () => {
@@ -397,7 +472,7 @@ function PreviewColumn() {
   // Export Config
   const handleExportConfig = useCallback(() => {
     try {
-      const resolvedColors = resolveNewsletterColors(store.newsletterStyle);
+      const resolvedColors = resolveNewsletterColors(store.newsletterStyle, store.emailPalette);
       const data: PromotionEmailData = {
         promoDateRange: store.promoDateRange,
         promoYear: store.promoYear,
@@ -415,6 +490,7 @@ function PreviewColumn() {
           borderStyle: store.newsletterStyle.borderStyle,
           headingAlign: store.newsletterStyle.headingAlign,
         },
+        emailPalette: store.emailPalette,
       };
 
       const config = buildExportConfig(
@@ -422,7 +498,8 @@ function PreviewColumn() {
         store.attachedPDFs,
         store.generatedSubjectLines,
         store.selectedSubjectLine,
-        store.newsletterStyle
+        store.newsletterStyle,
+        store.emailPalette
       );
 
       const jsonStr = JSON.stringify(config, null, 2);
@@ -498,6 +575,7 @@ function PreviewColumn() {
               borderStyle: 'left',
               headingAlign: 'left',
             },
+            ...(config.emailPalette ? { emailPalette: config.emailPalette } : {}),
           });
 
           toast.success('Config imported successfully');
@@ -607,19 +685,74 @@ function PreviewColumn() {
             <Code className="h-3.5 w-3.5" />
             HTML Code
           </TabsTrigger>
+          {/* Preview Width Toggle */}
+          <div className="ml-auto flex items-center gap-0.5 pr-2">
+            <button
+              type="button"
+              onClick={() => setPreviewWidth('desktop')}
+              className={cn(
+                'rounded p-1 transition-colors',
+                previewWidth === 'desktop'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              title="Desktop preview (600px)"
+              aria-label="Desktop preview"
+              aria-pressed={previewWidth === 'desktop'}
+            >
+              <Monitor className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewWidth('mobile')}
+              className={cn(
+                'rounded p-1 transition-colors',
+                previewWidth === 'mobile'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              title="Mobile preview (320px)"
+              aria-label="Mobile preview"
+              aria-pressed={previewWidth === 'mobile'}
+            >
+              <Smartphone className="h-3.5 w-3.5" />
+            </button>
+            <div className="mx-1 h-4 w-px bg-border" />
+            <button
+              type="button"
+              onClick={() => setPreviewDark((d) => !d)}
+              className={cn(
+                'rounded p-1 transition-colors',
+                previewDark
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              title={previewDark ? 'Light mode preview' : 'Dark mode preview'}
+              aria-label={previewDark ? 'Switch to light preview' : 'Switch to dark preview'}
+              aria-pressed={previewDark}
+            >
+              {previewDark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+            </button>
+          </div>
         </TabsList>
 
         <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
           {hasContent ? (
-            <iframe
-              srcDoc={
-                emailHTML ||
-                `<html><body style="display:flex;align-items:center;justify-content:center;min-height:400px;font-family:system-ui,sans-serif;color:#888;"><p style="text-align:center;">Enter promotion details to see preview</p></body></html>`
-              }
-              className="h-full w-full border-0"
-              title="Email Preview"
-              sandbox="allow-same-origin"
-            />
+            <div className={cn(
+              'h-full mx-auto transition-all duration-200',
+              previewWidth === 'mobile' ? 'max-w-[320px] border-x border-dashed' : 'w-full'
+            )}>
+              <iframe
+                srcDoc={
+                  emailHTML
+                    ? previewDark ? darkModeHTML : emailHTML
+                    : `<html><body style="display:flex;align-items:center;justify-content:center;min-height:400px;font-family:system-ui,sans-serif;color:#888;"><p style="text-align:center;">Enter promotion details to see preview</p></body></html>`
+                }
+                className="h-full w-full border-0"
+                title="Email Preview"
+                sandbox="allow-same-origin"
+              />
+            </div>
           ) : (
             <div className="flex h-full items-center justify-center p-4">
               <div className="flex min-h-[400px] w-full items-center justify-center rounded-lg border border-dashed">
@@ -757,6 +890,35 @@ export function PromotionPage() {
 
   // Auto-save with debounce
   useAutoSave();
+
+  // Version history: auto-save snapshot every 5 minutes
+  const [versionRefreshKey, setVersionRefreshKey] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const data = localStorage.getItem(VERSION_STORAGE_KEY);
+      if (!data || data === '{}') return;
+
+      // Skip if unchanged since last auto-save
+      const existing = loadSnapshots();
+      const lastAuto = existing.find((s) => s.auto);
+      if (lastAuto && lastAuto.data === data) return;
+
+      const snapshot = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: 'Auto-save',
+        timestamp: new Date().toISOString(),
+        auto: true,
+        data,
+        summary: buildSummary(data),
+      };
+      const updated = [snapshot, ...existing].slice(0, MAX_SNAPSHOTS);
+      persistSnapshots(updated);
+      setVersionRefreshKey((k) => k + 1);
+      toast.info('Auto-saved snapshot', { duration: 2000 });
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Desktop icon toolbar click handler
   const handleDesktopIconClick = useCallback(
@@ -939,14 +1101,20 @@ export function PromotionPage() {
               ref={desktopScrollContainerRef}
             >
               <div className="space-y-3 p-4">
-                {CARD_CONFIGS.map((config) => (
-                  <PromotionCard
-                    key={config.id}
-                    config={config}
-                    forceExpand={forceExpandedCardId === config.id}
-                    onToggle={handleCardToggle}
-                  />
-                ))}
+                {CARD_CONFIGS.map((config) => {
+                  const showDivider = config.id === 'subjectCard' || config.id === 'emailThemeCard';
+                  return (
+                    <div key={config.id}>
+                      {showDivider && <div className="h-px bg-border mb-3" />}
+                      <PromotionCard
+                        config={config}
+                        forceExpand={forceExpandedCardId === config.id}
+                        onToggle={handleCardToggle}
+                        versionRefreshKey={versionRefreshKey}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -973,14 +1141,19 @@ export function PromotionPage() {
           {/* All cards */}
           <div className="overflow-y-auto h-full" ref={mobileCardsContainerRef}>
             <div className="space-y-3 p-4">
-              {CARD_CONFIGS.map((config) => (
-                <PromotionCard
-                  key={config.id}
-                  config={config}
-                  forceExpand={forceExpandedCardId === config.id}
-                  onToggle={handleCardToggle}
-                />
-              ))}
+              {CARD_CONFIGS.map((config) => {
+                const showDivider = config.id === 'subjectCard' || config.id === 'emailThemeCard';
+                return (
+                  <div key={config.id}>
+                    {showDivider && <div className="h-px bg-border mb-3" />}
+                    <PromotionCard
+                      config={config}
+                      forceExpand={forceExpandedCardId === config.id}
+                      onToggle={handleCardToggle}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
 

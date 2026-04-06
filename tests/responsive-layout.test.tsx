@@ -369,7 +369,7 @@ describe('PromotionPage Mobile Layout', () => {
     const toolbarIcons = mobileContainer!.querySelectorAll(
       '[data-testid^="toolbar-icon-"]'
     );
-    expect(toolbarIcons.length).toBe(9);
+    expect(toolbarIcons.length).toBe(13);
 
     for (const btn of toolbarIcons) {
       expect(btn).toHaveAttribute('aria-label');
@@ -415,7 +415,7 @@ describe('PromotionPage Mobile Layout', () => {
     const toolbarIcons = mobileContainer!.querySelectorAll(
       '[data-testid^="toolbar-icon-"]'
     );
-    expect(toolbarIcons.length).toBe(9);
+    expect(toolbarIcons.length).toBe(13);
 
     for (const btn of toolbarIcons) {
       // Each button should have aria-pressed attribute

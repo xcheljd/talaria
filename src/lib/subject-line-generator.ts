@@ -327,8 +327,8 @@ interface SeasonOccasions {
   occasions: Array<{ name: string; type: string }>;
 }
 
-function getSeasonAndOccasions(): SeasonOccasions {
-  const now = new Date();
+function getSeasonAndOccasions(referenceDate?: Date): SeasonOccasions {
+  const now = referenceDate ?? new Date();
   const month = now.getMonth();
   const day = now.getDate();
 
@@ -448,7 +448,9 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
 
   const subjects: string[] = [];
 
-  const { season, occasions } = getSeasonAndOccasions();
+  // Use the promotion date range to determine season/occasion, not today's date
+  const parsedRange = promoDateRange ? parseDate(promoDateRange) : null;
+  const { season, occasions } = getSeasonAndOccasions(parsedRange?.start ?? undefined);
 
   // TIER 1: High-Impact Contextual
   if (occasions.length > 0) {

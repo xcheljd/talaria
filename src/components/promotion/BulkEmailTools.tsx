@@ -257,7 +257,8 @@ export function BulkEmailTools() {
     try {
       // Generate email HTML from current store data
       const resolvedColors = resolveNewsletterColors(
-        store.newsletterStyle
+        store.newsletterStyle,
+        store.emailPalette
       );
       const data: PromotionEmailData = {
         promoDateRange: store.promoDateRange,
@@ -276,6 +277,7 @@ export function BulkEmailTools() {
           borderStyle: store.newsletterStyle.borderStyle,
           headingAlign: store.newsletterStyle.headingAlign,
         },
+        emailPalette: store.emailPalette,
       };
 
       let htmlContent = generatePromotionEmailHTML(data);
