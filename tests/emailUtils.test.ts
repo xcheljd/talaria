@@ -266,12 +266,12 @@ describe('emailUtils', () => {
       // (pre-existing behavior from vanilla JS), so fallback date is used
       const text = 'January 15 - January 22, 2025 • While Supplies Last';
       const result = generateZipFilenameFromHTML(text);
-      expect(result).toMatch(/^Promo-email\.\d{4}-\d{2}-\d{2}\.zip$/);
+      expect(result).toMatch(/^promo-batch\.\d{4}-\d{2}-\d{2}\.zip$/);
     });
 
     it('generates filename with fallback date', () => {
       const result = generateZipFilenameFromHTML('no dates here');
-      expect(result).toMatch(/^Promo-email\.\d{4}-\d{2}-\d{2}\.zip$/);
+      expect(result).toMatch(/^promo-batch\.\d{4}-\d{2}-\d{2}\.zip$/);
     });
   });
 
@@ -300,7 +300,7 @@ describe('emailUtils', () => {
         'eml',
         1
       );
-      expect(result.filename).toBe('batch-email001.eml');
+      expect(result.filename).toBe('promo-batch-001.eml');
     });
 
     it('pads batch number with zeros', () => {
@@ -312,7 +312,7 @@ describe('emailUtils', () => {
         'eml',
         42
       );
-      expect(result.filename).toBe('batch-email042.eml');
+      expect(result.filename).toBe('promo-batch-042.eml');
     });
 
     it('includes unique Message-ID per batch', () => {

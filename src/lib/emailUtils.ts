@@ -314,12 +314,12 @@ export function generateZipFilenameFromHTML(htmlContent: string): string {
 
   if (dateRange) {
     const formattedRange = formatDateRangeForFilename(dateRange);
-    return `Promo-email.${formattedRange}.zip`;
+    return `promo-batch.${formattedRange}.zip`;
   } else {
     const today = new Date();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
-    return `Promo-email.${today.getFullYear()}-${month}-${day}.zip`;
+    return `promo-batch.${today.getFullYear()}-${month}-${day}.zip`;
   }
 }
 
@@ -450,6 +450,6 @@ export function createBCCBatchEML(
   return {
     format,
     data: new TextEncoder().encode(emlContent),
-    filename: `batch-email${paddedBatchNumber}.${format}`,
+    filename: `promo-batch-${paddedBatchNumber}.${format}`,
   };
 }

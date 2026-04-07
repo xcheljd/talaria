@@ -43,7 +43,10 @@ import {
 } from 'lucide-react';
 
 import { useHasProfile } from '@/contexts/ProfileProvider';
-import { usePromotionStore, DEFAULT_EMAIL_PALETTE } from '@/stores/promotion-store';
+import {
+  usePromotionStore,
+  DEFAULT_EMAIL_PALETTE,
+} from '@/stores/promotion-store';
 import { CollapsibleCard } from '@/components/promotion/CollapsibleCard';
 import { IconToolbar } from '@/components/promotion/IconToolbar';
 import { BasicDetailsEditor } from '@/components/promotion/BasicDetailsEditor';
@@ -52,7 +55,10 @@ import { FormattableItemEditor } from '@/components/promotion/FormattableItemEdi
 import { SpecialHoursEditor } from '@/components/promotion/SpecialHoursEditor';
 import { PDFAttachments } from '@/components/promotion/PDFAttachments';
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
-import { BulkEmailTools, type BulkEmailToolsHandle } from '@/components/promotion/BulkEmailTools';
+import {
+  BulkEmailTools,
+  type BulkEmailToolsHandle,
+} from '@/components/promotion/BulkEmailTools';
 import { AccessibilityChecker } from '@/components/promotion/AccessibilityChecker';
 import {
   VersionHistory,
@@ -74,7 +80,10 @@ import {
 } from '@/lib/promotion-email-html';
 import { resolveNewsletterColors } from '@/lib/newsletter-utils';
 import { cn } from '@/lib/utils';
-import { createEMLFile } from '@/lib/emailUtils';
+import {
+  createEMLFile,
+  formatDateRangeForFilename,
+} from '@/lib/emailUtils';
 import { getStoreEmail, getEmployeeName } from '@/lib/profile';
 
 import { Button } from '@/components/ui/button';
@@ -124,8 +133,16 @@ const CARD_CONFIGS: CardConfig[] = [
   { id: 'pdfCard', title: 'PDF Attachments', defaultCollapsed: true },
   { id: 'bulkEmailCard', title: 'Bulk Email Tools', defaultCollapsed: true },
   { id: 'emailThemeCard', title: 'Email Theme', defaultCollapsed: true },
-  { id: 'accessibilityCard', title: 'Accessibility Check', defaultCollapsed: true },
-  { id: 'versionHistoryCard', title: 'Version History', defaultCollapsed: true },
+  {
+    id: 'accessibilityCard',
+    title: 'Accessibility Check',
+    defaultCollapsed: true,
+  },
+  {
+    id: 'versionHistoryCard',
+    title: 'Version History',
+    defaultCollapsed: true,
+  },
   { id: 'outlookCard', title: 'Outlook Compatibility', defaultCollapsed: true },
 ];
 
@@ -135,7 +152,10 @@ const bulkEmailRef = { current: null as BulkEmailToolsHandle | null };
 // ===== Card Content Components =====
 
 /** Get content component for a specific card */
-function getCardContent(cardId: string, extra?: { versionRefreshKey?: number }) {
+function getCardContent(
+  cardId: string,
+  extra?: { versionRefreshKey?: number }
+) {
   switch (cardId) {
     case 'basicDetailsCard':
       return <BasicDetailsEditor />;
@@ -324,7 +344,18 @@ function PromotionCard({
   );
 }
 
-// ===== Download Helper =====
+// ===== Download Helpers =====
+
+function promoDraftDateSuffix(dateRange: string): string {
+  if (dateRange) {
+    const formatted = formatDateRangeForFilename(dateRange);
+    if (formatted) return formatted;
+  }
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -340,14 +371,19 @@ function downloadBlob(blob: Blob, filename: string) {
 function PreviewColumn() {
   const store = usePromotionStore();
   const [activeTab, setActiveTab] = useState('preview');
-  const [previewWidth, setPreviewWidth] = useState<'desktop' | 'mobile'>('desktop');
+  const [previewWidth, setPreviewWidth] = useState<'desktop' | 'mobile'>(
+    'desktop'
+  );
   const [previewDark, setPreviewDark] = useState(false);
 
   // Generate email HTML from current store data
   const emailHTML = useMemo(() => {
     if (!store.promoDateRange) return '';
 
-    const resolvedColors = resolveNewsletterColors(store.newsletterStyle, store.emailPalette);
+    const resolvedColors = resolveNewsletterColors(
+      store.newsletterStyle,
+      store.emailPalette
+    );
 
     const data: PromotionEmailData = {
       promoDateRange: store.promoDateRange,
@@ -391,7 +427,10 @@ function PreviewColumn() {
     if (!emailHTML || !previewDark) return '';
 
     const darkPalette = buildDarkModePalette(store.emailPalette);
-    const resolvedColors = resolveNewsletterColors(store.newsletterStyle, darkPalette);
+    const resolvedColors = resolveNewsletterColors(
+      store.newsletterStyle,
+      darkPalette
+    );
 
     const data: PromotionEmailData = {
       promoDateRange: store.promoDateRange,
@@ -462,7 +501,8 @@ function PreviewColumn() {
       const blob = new Blob([emlContent], {
         type: 'message/rfc822',
       });
-      downloadBlob(blob, `promotion-email-${Date.now()}.eml`);
+      const suffix = promoDraftDateSuffix(store.promoDateRange);
+      downloadBlob(blob, `promo-email-draft.${suffix}.eml`);
       toast.success('Email draft downloaded');
     } catch (error) {
       console.error('Download draft error:', error);
@@ -478,7 +518,8 @@ function PreviewColumn() {
     }
 
     const blob = new Blob([emailHTML], { type: 'text/html' });
-    downloadBlob(blob, `promotion-email-${Date.now()}.html`);
+    const suffix = promoDraftDateSuffix(store.promoDateRange);
+    downloadBlob(blob, `promo-email-draft.${suffix}.html`);
     toast.success('HTML file downloaded');
   }, [emailHTML]);
 
@@ -493,7 +534,10 @@ function PreviewColumn() {
   // Export Config
   const handleExportConfig = useCallback(() => {
     try {
-      const resolvedColors = resolveNewsletterColors(store.newsletterStyle, store.emailPalette);
+      const resolvedColors = resolveNewsletterColors(
+        store.newsletterStyle,
+        store.emailPalette
+      );
       const data: PromotionEmailData = {
         promoDateRange: store.promoDateRange,
         promoYear: store.promoYear,
@@ -596,7 +640,9 @@ function PreviewColumn() {
               borderStyle: 'left',
               headingAlign: 'left',
             },
-            ...(config.emailPalette ? { emailPalette: config.emailPalette } : {}),
+            ...(config.emailPalette
+              ? { emailPalette: config.emailPalette }
+              : {}),
           });
 
           toast.success('Config imported successfully');
@@ -624,15 +670,24 @@ function PreviewColumn() {
     iframe.style.height = '800px';
     document.body.appendChild(iframe);
     const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
-    if (!doc) { document.body.removeChild(iframe); return; }
+    if (!doc) {
+      document.body.removeChild(iframe);
+      return;
+    }
     doc.open();
     doc.write(emailHTML);
     doc.close();
-    const fallback = setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 5000);
-    iframe.contentWindow?.addEventListener('afterprint', () => {
-      clearTimeout(fallback);
+    const fallback = setTimeout(() => {
       if (document.body.contains(iframe)) document.body.removeChild(iframe);
-    }, { once: true });
+    }, 5000);
+    iframe.contentWindow?.addEventListener(
+      'afterprint',
+      () => {
+        clearTimeout(fallback);
+        if (document.body.contains(iframe)) document.body.removeChild(iframe);
+      },
+      { once: true }
+    );
     iframe.contentWindow?.focus();
     iframe.contentWindow?.print();
   }, [emailHTML]);
@@ -771,10 +826,18 @@ function PreviewColumn() {
                   : 'text-muted-foreground hover:text-foreground'
               )}
               title={previewDark ? 'Light mode preview' : 'Dark mode preview'}
-              aria-label={previewDark ? 'Switch to light preview' : 'Switch to dark preview'}
+              aria-label={
+                previewDark
+                  ? 'Switch to light preview'
+                  : 'Switch to dark preview'
+              }
               aria-pressed={previewDark}
             >
-              {previewDark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+              {previewDark ? (
+                <Sun className="h-3.5 w-3.5" />
+              ) : (
+                <Moon className="h-3.5 w-3.5" />
+              )}
             </button>
             <div className="mx-1 h-4 w-px bg-border" />
             <button
@@ -797,14 +860,20 @@ function PreviewColumn() {
 
         <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
           {hasContent ? (
-            <div className={cn(
-              'h-full mx-auto transition-all duration-200',
-              previewWidth === 'mobile' ? 'max-w-[320px] border-x border-dashed' : 'w-full'
-            )}>
+            <div
+              className={cn(
+                'h-full mx-auto transition-all duration-200',
+                previewWidth === 'mobile'
+                  ? 'max-w-[320px] border-x border-dashed'
+                  : 'w-full'
+              )}
+            >
               <iframe
                 srcDoc={
                   emailHTML
-                    ? previewDark ? darkModeHTML : emailHTML
+                    ? previewDark
+                      ? darkModeHTML
+                      : emailHTML
                     : `<html><body style="display:flex;align-items:center;justify-content:center;min-height:400px;font-family:system-ui,sans-serif;color:#888;"><p style="text-align:center;">Enter promotion details to see preview</p></body></html>`
                 }
                 className="h-full w-full border-0"
@@ -967,28 +1036,31 @@ export function PromotionPage() {
   // Version history: auto-save snapshot every 5 minutes
   const [versionRefreshKey, setVersionRefreshKey] = useState(0);
   useEffect(() => {
-    const interval = setInterval(() => {
-      const data = localStorage.getItem(VERSION_STORAGE_KEY);
-      if (!data || data === '{}') return;
+    const interval = setInterval(
+      () => {
+        const data = localStorage.getItem(VERSION_STORAGE_KEY);
+        if (!data || data === '{}') return;
 
-      // Skip if unchanged since last auto-save
-      const existing = loadSnapshots();
-      const lastAuto = existing.find((s) => s.auto);
-      if (lastAuto && lastAuto.data === data) return;
+        // Skip if unchanged since last auto-save
+        const existing = loadSnapshots();
+        const lastAuto = existing.find((s) => s.auto);
+        if (lastAuto && lastAuto.data === data) return;
 
-      const snapshot = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        name: 'Auto-save',
-        timestamp: new Date().toISOString(),
-        auto: true,
-        data,
-        summary: buildSummary(data),
-      };
-      const updated = [snapshot, ...existing].slice(0, MAX_SNAPSHOTS);
-      persistSnapshots(updated);
-      setVersionRefreshKey((k) => k + 1);
-      toast.info('Auto-saved snapshot', { duration: 2000 });
-    }, 5 * 60 * 1000);
+        const snapshot = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          name: 'Auto-save',
+          timestamp: new Date().toISOString(),
+          auto: true,
+          data,
+          summary: buildSummary(data),
+        };
+        const updated = [snapshot, ...existing].slice(0, MAX_SNAPSHOTS);
+        persistSnapshots(updated);
+        setVersionRefreshKey((k) => k + 1);
+        toast.info('Auto-saved snapshot', { duration: 2000 });
+      },
+      5 * 60 * 1000
+    );
 
     return () => clearInterval(interval);
   }, []);
@@ -1175,7 +1247,9 @@ export function PromotionPage() {
             >
               <div className="space-y-3 p-4">
                 {CARD_CONFIGS.map((config) => {
-                  const showDivider = config.id === 'subjectCard' || config.id === 'emailThemeCard';
+                  const showDivider =
+                    config.id === 'subjectCard' ||
+                    config.id === 'emailThemeCard';
                   return (
                     <div key={config.id}>
                       {showDivider && <div className="h-px bg-border mb-3" />}
@@ -1215,7 +1289,8 @@ export function PromotionPage() {
           <div className="overflow-y-auto h-full" ref={mobileCardsContainerRef}>
             <div className="space-y-3 p-4">
               {CARD_CONFIGS.map((config) => {
-                const showDivider = config.id === 'subjectCard' || config.id === 'emailThemeCard';
+                const showDivider =
+                  config.id === 'subjectCard' || config.id === 'emailThemeCard';
                 return (
                   <div key={config.id}>
                     {showDivider && <div className="h-px bg-border mb-3" />}

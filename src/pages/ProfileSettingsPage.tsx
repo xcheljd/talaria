@@ -192,7 +192,7 @@ export function ProfileSettingsPage() {
 
     const link = document.createElement('a');
     link.href = url;
-    link.download = `citizen-profile-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `profile-backup-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
