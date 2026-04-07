@@ -828,15 +828,32 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
 <html>
 <head>
     <title>Weekly Sale</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      @media only screen and (max-width: 480px) {
+        .email-container { width: 100% !important; }
+        .email-header { padding: 15px 12px !important; }
+        .email-header h1 { font-size: 20px !important; }
+        .email-body { padding: 15px 12px !important; }
+        .email-body p { font-size: 13px !important; }
+        .email-body .brand-line { font-size: 16px !important; }
+        .email-footer { padding: 15px 12px !important; }
+        .email-footer h3 { font-size: 16px !important; }
+        .email-footer p { font-size: 12px !important; }
+        .email-unsub { padding: 12px 10px !important; }
+        .email-unsub p { font-size: 11px !important; }
+        .section-box { padding: 12px !important; }
+      }
+    </style>
 </head>
 <body style="font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; color: ${pal.text}; background-color: ${pal.bodyBg}; margin: 0; padding: 0;">
 
     <center>
-    <table width="600" style="background-color: ${pal.bodyBg}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif;">
+    <table class="email-container" width="600" style="max-width: 600px; width: 100%; background-color: ${pal.bodyBg}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif;">
 
         <!-- HEADER -->
         <tr>
-            <td style="padding: 20px; text-align: center; border-bottom: 2px solid ${pal.headerBorder};">
+            <td class="email-header" style="padding: 20px; text-align: center; border-bottom: 2px solid ${pal.headerBorder};">
                 <h1 style="font-size: 24px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">${title}</h1>
                 <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 10px 0 0 0;">${dateRange}, ${year} • While Supplies Last</p>
             </td>
@@ -844,21 +861,21 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
 
         <!-- MAIN CONTENT -->
         <tr>
-            <td style="padding: 25px;">
+            <td class="email-body" style="padding: 25px;">
 ${newsletterTopHTML}
                 <!-- BRAND SECTIONS -->
 ${brandSections}
 ${newsletterBottomHTML}
 
                 <!-- HOW TO SHOP BOX -->
-                <div style="background-color: ${pal.sectionBg}; color: ${pal.text}; padding: 15px; margin-bottom: 20px;">
+                <div class="section-box" style="background-color: ${pal.sectionBg}; color: ${pal.text}; padding: 15px; margin-bottom: 20px;">
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0;"><b>HOW TO SHOP</b></p>
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">
                     ${howToShopHTML}</p>
                 </div>
 
                 <!-- IMPORTANT NOTES BOX -->
-                <div style="border: 1px solid ${pal.noteBorder}; color: ${pal.text}; padding: 15px;">
+                <div class="section-box" style="border: 1px solid ${pal.noteBorder}; color: ${pal.text}; padding: 15px;">
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0;"><b>IMPORTANT NOTES</b></p>
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">
                     ${importantNotesHTML}</p>
@@ -869,7 +886,7 @@ ${newsletterBottomHTML}
 
         <!-- FOOTER -->
         <tr>
-            <td style="background-color: ${pal.footerBg}; padding: 20px; text-align: center;">
+            <td class="email-footer" style="background-color: ${pal.footerBg}; padding: 20px; text-align: center;">
                 <h3 style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 18px; margin: 0 0 10px 0;">CITIZEN COMPANY STORE</h3>
                 <p style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
                     📍 <a href="${storeMapLink}" target="_blank" style="color: ${pal.footerText};">
@@ -888,7 +905,7 @@ ${newsletterBottomHTML}
 
         <!-- UNSUBSCRIBE -->
         <tr>
-            <td style="background-color: ${pal.unsubscribeBg}; padding: 15px; text-align: center;">
+            <td class="email-unsub" style="background-color: ${pal.unsubscribeBg}; padding: 15px; text-align: center;">
                 <p style="font-size: 12px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; color: ${pal.text}; margin: 0;">
                     No longer interested? Simply reply to this email with <b>"UNSUBSCRIBE"</b>
                 </p>
@@ -911,7 +928,7 @@ function buildEntryHTML(
   palette: EmailPalette = EMAIL_PALETTE
 ): string {
   let html = `
-                <p style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-bottom: 8px;"><b>${escapeHtml(line)}</b></p>`;
+                <p class="brand-line" style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-bottom: 8px;"><b>${escapeHtml(line)}</b></p>`;
 
   if (collections && collections.trim()) {
     const collectionItems = collections
