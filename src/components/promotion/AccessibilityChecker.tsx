@@ -65,7 +65,8 @@ function scanHTML(html: string): A11yIssue[] {
         id: String(++issueId),
         severity: 'info',
         category: 'Images',
-        message: 'Image has empty alt text (decorative). Ensure this is intentional.',
+        message:
+          'Image has empty alt text (decorative). Ensure this is intentional.',
         element: 'img',
       });
     } else if (alt.length > 125) {
@@ -131,7 +132,8 @@ function scanHTML(html: string): A11yIssue[] {
         id: String(++issueId),
         severity: 'info',
         category: 'Tables',
-        message: 'Data table has no header cells (<th>). Consider adding headers for screen readers.',
+        message:
+          'Data table has no header cells (<th>). Consider adding headers for screen readers.',
         element: 'table',
       });
     }
@@ -147,7 +149,8 @@ function scanHTML(html: string): A11yIssue[] {
         id: String(++issueId),
         severity: 'info',
         category: 'Readability',
-        message: 'Long block of ALL CAPS text detected. This can be harder to read and may be read letter-by-letter by screen readers.',
+        message:
+          'Long block of ALL CAPS text detected. This can be harder to read and may be read letter-by-letter by screen readers.',
       });
     }
   }
@@ -157,9 +160,16 @@ function scanHTML(html: string): A11yIssue[] {
 
 // ===== Severity Config =====
 
-const SEVERITY_CONFIG: Record<IssueSeverity, { icon: typeof AlertTriangle; className: string; label: string }> = {
+const SEVERITY_CONFIG: Record<
+  IssueSeverity,
+  { icon: typeof AlertTriangle; className: string; label: string }
+> = {
   error: { icon: AlertTriangle, className: 'text-destructive', label: 'Error' },
-  warning: { icon: AlertTriangle, className: 'text-amber-500', label: 'Warning' },
+  warning: {
+    icon: AlertTriangle,
+    className: 'text-amber-500',
+    label: 'Warning',
+  },
   info: { icon: Info, className: 'text-blue-500', label: 'Info' },
 };
 
@@ -179,7 +189,6 @@ export function AccessibilityChecker() {
   const issues = useMemo(() => {
     if (!hasScanned) return [];
     return scanHTML(store.newsletterBody);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasScanned, scanTrigger, store.newsletterBody]);
 
   const handleScan = () => {
@@ -233,7 +242,10 @@ export function AccessibilityChecker() {
                 </Badge>
               )}
               {warningCount > 0 && (
-                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                <Badge
+                  variant="secondary"
+                  className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                >
                   {warningCount} warning{warningCount !== 1 ? 's' : ''}
                 </Badge>
               )}
@@ -265,15 +277,25 @@ export function AccessibilityChecker() {
                     key={issue.id}
                     className={cn(
                       'flex items-start gap-2 rounded-md border px-2.5 py-2 text-xs',
-                      issue.severity === 'error' && 'border-destructive/30 bg-destructive/5',
-                      issue.severity === 'warning' && 'border-amber-300/50 bg-amber-50/50 dark:border-amber-700/30 dark:bg-amber-950/20',
-                      issue.severity === 'info' && 'border-blue-200/50 bg-blue-50/50 dark:border-blue-800/30 dark:bg-blue-950/20'
+                      issue.severity === 'error' &&
+                        'border-destructive/30 bg-destructive/5',
+                      issue.severity === 'warning' &&
+                        'border-amber-300/50 bg-amber-50/50 dark:border-amber-700/30 dark:bg-amber-950/20',
+                      issue.severity === 'info' &&
+                        'border-blue-200/50 bg-blue-50/50 dark:border-blue-800/30 dark:bg-blue-950/20'
                     )}
                   >
-                    <SeverityIcon className={cn('h-3.5 w-3.5 mt-0.5 shrink-0', severityCfg.className)} />
+                    <SeverityIcon
+                      className={cn(
+                        'h-3.5 w-3.5 mt-0.5 shrink-0',
+                        severityCfg.className
+                      )}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        {CategoryIcon && <CategoryIcon className="h-3 w-3 text-muted-foreground" />}
+                        {CategoryIcon && (
+                          <CategoryIcon className="h-3 w-3 text-muted-foreground" />
+                        )}
                         <span className="font-medium text-muted-foreground">
                           {issue.category}
                         </span>

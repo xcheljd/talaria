@@ -12,7 +12,15 @@
  * - Progress indicator during generation
  */
 
-import { useState, useCallback, useMemo, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
+import {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+  useImperativeHandle,
+  forwardRef,
+} from 'react';
 import { toast } from 'sonner';
 import {
   Trash2,
@@ -140,124 +148,13 @@ export interface BulkEmailToolsHandle {
   isGenerating: boolean;
 }
 
-export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(function BulkEmailTools(_props, ref) {
-  const store = usePromotionStore();
+export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
+  function BulkEmailTools(_props, ref) {
+    const store = usePromotionStore();
 
-  // Recipient text state
-  const [recipientText, setRecipientText] = useState('');
-  const [emailStats, setEmailStats] = useState<EmailStats>({
-    total: 0,
-    valid: 0,
-    invalid: 0,
-    duplicates: 0,
-    validEmails: [],
-    invalidEmails: [],
-  });
-  const [showInvalidEmails, setShowInvalidEmails] = useState(false);
-
-  // Batch controls
-  const [batchSize, setBatchSize] = useState(500);
-  const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>(
-    () =>
-      (localStorage.getItem('bulkEmail.downloadFormat') as DownloadFormat) ||
-      'individual'
-  );
-
-  // Generation state (shared via store so preview button can show progress)
-  const isGenerating = store.bulkEmailGenerating;
-  const generationProgress = store.bulkEmailProgress;
-  const setIsGenerating = (val: boolean) => store.setBulkEmailGenerating(val, val ? store.bulkEmailProgress : '');
-  const setGenerationProgress = (val: string) => store.setBulkEmailGenerating(store.bulkEmailGenerating, val);
-
-  // Debounced save timer ref
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Load persisted recipients from IndexedDB on mount
-  useEffect(() => {
-    let cancelled = false;
-    async function loadRecipients() {
-      try {
-        const saved = await getBulkEmailRecipientsFromIndexedDB();
-        if (!cancelled && saved) {
-          setRecipientText(saved);
-          setEmailStats(computeEmailStats(saved));
-        }
-      } catch (error) {
-        console.warn('Failed to restore recipients from IndexedDB:', error);
-      }
-    }
-    loadRecipients();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Restore saved batch size from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('bulkEmail.batchSize');
-    if (saved) {
-      const parsed = parseInt(saved, 10);
-      if (!isNaN(parsed)) {
-        setBatchSize(clampBatchSize(parsed));
-      }
-    }
-  }, []);
-
-  // Compute batch preview
-  const batchPreview = useMemo(() => {
-    if (emailStats.valid === 0) {
-      return null;
-    }
-    const numBatches = Math.ceil(emailStats.valid / batchSize);
-    const lastBatchSize = emailStats.valid % batchSize || batchSize;
-
-    return {
-      numBatches,
-      lastBatchSize,
-      totalRecipients: emailStats.valid,
-    };
-  }, [emailStats.valid, batchSize]);
-
-  // Handle recipient text changes
-  const handleRecipientChange = useCallback((newText: string) => {
-    setRecipientText(newText);
-    const stats = computeEmailStats(newText);
-    setEmailStats(stats);
-
-    // Debounced save to IndexedDB
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-    }
-    saveTimerRef.current = setTimeout(async () => {
-      try {
-        if (newText.trim()) {
-          await saveBulkEmailRecipientsToIndexedDB(newText);
-        }
-      } catch (error) {
-        console.warn('Failed to save recipients:', error);
-      }
-    }, 1000);
-  }, []);
-
-  // Handle paste with feedback
-  const handlePaste = useCallback(
-    (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-      // Let the paste happen, then analyze after a tick
-      setTimeout(() => {
-        const textarea = e.target as HTMLTextAreaElement;
-        const text = textarea.value;
-        const stats = computeEmailStats(text);
-        setRecipientText(text);
-        setEmailStats(stats);
-      }, 0);
-    },
-    []
-  );
-
-  // Clear recipients
-  const handleClearRecipients = useCallback(async () => {
-    setRecipientText('');
-    setEmailStats({
+    // Recipient text state
+    const [recipientText, setRecipientText] = useState('');
+    const [emailStats, setEmailStats] = useState<EmailStats>({
       total: 0,
       valid: 0,
       invalid: 0,
@@ -265,378 +162,501 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(function BulkEmai
       validEmails: [],
       invalidEmails: [],
     });
-    setShowInvalidEmails(false);
-    try {
-      await clearBulkEmailRecipientsFromIndexedDB();
-    } catch (error) {
-      console.warn('Failed to clear saved recipients:', error);
-    }
-  }, []);
+    const [showInvalidEmails, setShowInvalidEmails] = useState(false);
 
-  // Batch size controls
-  const handleBatchSizeChange = useCallback((newSize: number) => {
-    const clamped = clampBatchSize(newSize);
-    setBatchSize(clamped);
-    localStorage.setItem('bulkEmail.batchSize', String(clamped));
-  }, []);
+    // Batch controls
+    const [batchSize, setBatchSize] = useState(500);
+    const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>(
+      () =>
+        (localStorage.getItem('bulkEmail.downloadFormat') as DownloadFormat) ||
+        'individual'
+    );
 
-  const incrementBatchSize = useCallback(() => {
-    handleBatchSizeChange(batchSize + 50);
-  }, [batchSize, handleBatchSizeChange]);
+    // Generation state (shared via store so preview button can show progress)
+    const isGenerating = store.bulkEmailGenerating;
+    const generationProgress = store.bulkEmailProgress;
+    const setIsGenerating = (val: boolean) =>
+      store.setBulkEmailGenerating(val, val ? store.bulkEmailProgress : '');
+    const setGenerationProgress = (val: string) =>
+      store.setBulkEmailGenerating(store.bulkEmailGenerating, val);
 
-  const decrementBatchSize = useCallback(() => {
-    handleBatchSizeChange(batchSize - 50);
-  }, [batchSize, handleBatchSizeChange]);
+    // Debounced save timer ref
+    const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Download format change
-  const handleFormatChange = useCallback((format: DownloadFormat) => {
-    setDownloadFormat(format);
-    localStorage.setItem('bulkEmail.downloadFormat', format);
-  }, []);
-
-  // Generate email batches
-  const handleGenerateBatches = useCallback(async () => {
-    if (emailStats.valid === 0) {
-      toast.warning('Add recipient emails in the Bulk Email Tools card first');
-      return;
-    }
-
-    setIsGenerating(true);
-    setGenerationProgress('0/0');
-
-    try {
-      // Generate email HTML from current store data
-      const resolvedColors = resolveNewsletterColors(
-        store.newsletterStyle,
-        store.emailPalette
-      );
-      const data: PromotionEmailData = {
-        promoDateRange: store.promoDateRange,
-        promoYear: store.promoYear,
-        promoTitle: store.promoTitle,
-        promotionEntries: store.promotionEntries,
-        specialHours: store.specialHours,
-        howToShopItems: store.howToShopItems,
-        importantNotesItems: store.importantNotesItems,
-        newsletterHeading: store.newsletterHeading,
-        newsletterBody: store.newsletterBody,
-        newsletterPosition: store.newsletterPosition,
-        newsletterVisible: store.newsletterVisible,
-        newsletterStyle: {
-          ...resolvedColors,
-          borderStyle: store.newsletterStyle.borderStyle,
-          headingAlign: store.newsletterStyle.headingAlign,
-        },
-        emailPalette: store.emailPalette,
+    // Load persisted recipients from IndexedDB on mount
+    useEffect(() => {
+      let cancelled = false;
+      async function loadRecipients() {
+        try {
+          const saved = await getBulkEmailRecipientsFromIndexedDB();
+          if (!cancelled && saved) {
+            setRecipientText(saved);
+            setEmailStats(computeEmailStats(saved));
+          }
+        } catch (error) {
+          console.warn('Failed to restore recipients from IndexedDB:', error);
+        }
+      }
+      loadRecipients();
+      return () => {
+        cancelled = true;
       };
+    }, []);
 
-      let htmlContent = generatePromotionEmailHTML(data);
+    // Restore saved batch size from localStorage
+    useEffect(() => {
+      const saved = localStorage.getItem('bulkEmail.batchSize');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed)) {
+          setBatchSize(clampBatchSize(parsed));
+        }
+      }
+    }, []);
 
-      const subject = store.selectedSubjectLine || 'Weekly Promotion';
+    // Compute batch preview
+    const batchPreview = useMemo(() => {
+      if (emailStats.valid === 0) {
+        return null;
+      }
+      const numBatches = Math.ceil(emailStats.valid / batchSize);
+      const lastBatchSize = emailStats.valid % batchSize || batchSize;
 
-      // Get PDF attachments
-      const pdfAttachments: PDFAttachment[] = store.attachedPDFs
-        .filter((pdf) => pdf.data)
-        .map((pdf) => ({ name: pdf.name, data: pdf.data }));
+      return {
+        numBatches,
+        lastBatchSize,
+        totalRecipients: emailStats.valid,
+      };
+    }, [emailStats.valid, batchSize]);
 
-      // Split into batches
-      const validEmails = emailStats.validEmails;
-      const batches: string[][] = [];
-      for (let i = 0; i < validEmails.length; i += batchSize) {
-        batches.push(validEmails.slice(i, i + batchSize));
+    // Handle recipient text changes
+    const handleRecipientChange = useCallback((newText: string) => {
+      setRecipientText(newText);
+      const stats = computeEmailStats(newText);
+      setEmailStats(stats);
+
+      // Debounced save to IndexedDB
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+      saveTimerRef.current = setTimeout(async () => {
+        try {
+          if (newText.trim()) {
+            await saveBulkEmailRecipientsToIndexedDB(newText);
+          }
+        } catch (error) {
+          console.warn('Failed to save recipients:', error);
+        }
+      }, 1000);
+    }, []);
+
+    // Handle paste with feedback
+    const handlePaste = useCallback(
+      (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        // Let the paste happen, then analyze after a tick
+        setTimeout(() => {
+          const textarea = e.target as HTMLTextAreaElement;
+          const text = textarea.value;
+          const stats = computeEmailStats(text);
+          setRecipientText(text);
+          setEmailStats(stats);
+        }, 0);
+      },
+      []
+    );
+
+    // Clear recipients
+    const handleClearRecipients = useCallback(async () => {
+      setRecipientText('');
+      setEmailStats({
+        total: 0,
+        valid: 0,
+        invalid: 0,
+        duplicates: 0,
+        validEmails: [],
+        invalidEmails: [],
+      });
+      setShowInvalidEmails(false);
+      try {
+        await clearBulkEmailRecipientsFromIndexedDB();
+      } catch (error) {
+        console.warn('Failed to clear saved recipients:', error);
+      }
+    }, []);
+
+    // Batch size controls
+    const handleBatchSizeChange = useCallback((newSize: number) => {
+      const clamped = clampBatchSize(newSize);
+      setBatchSize(clamped);
+      localStorage.setItem('bulkEmail.batchSize', String(clamped));
+    }, []);
+
+    const incrementBatchSize = useCallback(() => {
+      handleBatchSizeChange(batchSize + 50);
+    }, [batchSize, handleBatchSizeChange]);
+
+    const decrementBatchSize = useCallback(() => {
+      handleBatchSizeChange(batchSize - 50);
+    }, [batchSize, handleBatchSizeChange]);
+
+    // Download format change
+    const handleFormatChange = useCallback((format: DownloadFormat) => {
+      setDownloadFormat(format);
+      localStorage.setItem('bulkEmail.downloadFormat', format);
+    }, []);
+
+    // Generate email batches
+    const handleGenerateBatches = useCallback(async () => {
+      if (emailStats.valid === 0) {
+        toast.warning(
+          'Add recipient emails in the Bulk Email Tools card first'
+        );
+        return;
       }
 
-      setGenerationProgress(`0/${batches.length}`);
+      setIsGenerating(true);
+      setGenerationProgress('0/0');
 
-      if (downloadFormat === 'zip') {
-        // Create ZIP file with all EML files
-        const JSZip = (await import('jszip')).default;
-        const zip = new JSZip();
+      try {
+        // Generate email HTML from current store data
+        const resolvedColors = resolveNewsletterColors(
+          store.newsletterStyle,
+          store.emailPalette
+        );
+        const data: PromotionEmailData = {
+          promoDateRange: store.promoDateRange,
+          promoYear: store.promoYear,
+          promoTitle: store.promoTitle,
+          promotionEntries: store.promotionEntries,
+          specialHours: store.specialHours,
+          howToShopItems: store.howToShopItems,
+          importantNotesItems: store.importantNotesItems,
+          newsletterHeading: store.newsletterHeading,
+          newsletterBody: store.newsletterBody,
+          newsletterPosition: store.newsletterPosition,
+          newsletterVisible: store.newsletterVisible,
+          newsletterStyle: {
+            ...resolvedColors,
+            borderStyle: store.newsletterStyle.borderStyle,
+            headingAlign: store.newsletterStyle.headingAlign,
+          },
+          emailPalette: store.emailPalette,
+        };
 
-        for (let i = 0; i < batches.length; i++) {
-          setGenerationProgress(`Creating ${i + 1}/${batches.length}`);
-          const batch = batches[i];
-          const emlContent = createBCCBatchEML(
-            subject,
-            htmlContent,
-            batch,
-            pdfAttachments,
-            'eml',
-            i + 1
-          );
-          zip.file(emlContent.filename, emlContent.data);
+        const htmlContent = generatePromotionEmailHTML(data);
+
+        const subject = store.selectedSubjectLine || 'Weekly Promotion';
+
+        // Get PDF attachments
+        const pdfAttachments: PDFAttachment[] = store.attachedPDFs
+          .filter((pdf) => pdf.data)
+          .map((pdf) => ({ name: pdf.name, data: pdf.data }));
+
+        // Split into batches
+        const validEmails = emailStats.validEmails;
+        const batches: string[][] = [];
+        for (let i = 0; i < validEmails.length; i += batchSize) {
+          batches.push(validEmails.slice(i, i + batchSize));
         }
 
-        setGenerationProgress('Zipping...');
-        const zipBlob = await zip.generateAsync({ type: 'blob' });
-        const url = URL.createObjectURL(zipBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download =
-          generateZipFilenameFromHTML(htmlContent) ||
-          'promotion-email-batches.zip';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } else {
-        // Download individual files
-        for (let i = 0; i < batches.length; i++) {
-          setGenerationProgress(`${i + 1}/${batches.length}`);
-          const batch = batches[i];
-          const emlContent = createBCCBatchEML(
-            subject,
-            htmlContent,
-            batch,
-            pdfAttachments,
-            'eml',
-            i + 1
-          );
+        setGenerationProgress(`0/${batches.length}`);
 
-          const blob = new Blob([emlContent.data as BlobPart], {
-            type: 'message/rfc822',
-          });
-          const url = URL.createObjectURL(blob);
+        if (downloadFormat === 'zip') {
+          // Create ZIP file with all EML files
+          const JSZip = (await import('jszip')).default;
+          const zip = new JSZip();
+
+          for (let i = 0; i < batches.length; i++) {
+            setGenerationProgress(`Creating ${i + 1}/${batches.length}`);
+            const batch = batches[i];
+            const emlContent = createBCCBatchEML(
+              subject,
+              htmlContent,
+              batch,
+              pdfAttachments,
+              'eml',
+              i + 1
+            );
+            zip.file(emlContent.filename, emlContent.data);
+          }
+
+          setGenerationProgress('Zipping...');
+          const zipBlob = await zip.generateAsync({ type: 'blob' });
+          const url = URL.createObjectURL(zipBlob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = emlContent.filename;
+          a.download =
+            generateZipFilenameFromHTML(htmlContent) ||
+            'promotion-email-batches.zip';
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
+        } else {
+          // Download individual files
+          for (let i = 0; i < batches.length; i++) {
+            setGenerationProgress(`${i + 1}/${batches.length}`);
+            const batch = batches[i];
+            const emlContent = createBCCBatchEML(
+              subject,
+              htmlContent,
+              batch,
+              pdfAttachments,
+              'eml',
+              i + 1
+            );
 
-          // Small delay between downloads to prevent browser issues
-          if (i < batches.length - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 300));
+            const blob = new Blob([emlContent.data as BlobPart], {
+              type: 'message/rfc822',
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = emlContent.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Small delay between downloads to prevent browser issues
+            if (i < batches.length - 1) {
+              await new Promise((resolve) => setTimeout(resolve, 300));
+            }
           }
         }
+      } catch (error) {
+        console.error('Error generating batches:', error);
+        toast.error('Failed to generate email batches');
+      } finally {
+        setIsGenerating(false);
+        setGenerationProgress('');
       }
-    } catch (error) {
-      console.error('Error generating batches:', error);
-      toast.error('Failed to generate email batches');
-    } finally {
-      setIsGenerating(false);
-      setGenerationProgress('');
-    }
-  }, [
-    emailStats.valid,
-    emailStats.validEmails,
-    batchSize,
-    downloadFormat,
-    store.promoDateRange,
-    store.promoYear,
-    store.promoTitle,
-    store.promotionEntries,
-    store.specialHours,
-    store.howToShopItems,
-    store.importantNotesItems,
-    store.selectedSubjectLine,
-    store.attachedPDFs,
-    store.newsletterVisible,
-    store.newsletterHeading,
-    store.newsletterBody,
-    store.newsletterPosition,
-    store.newsletterStyle,
-    store.emailPalette,
-  ]);
+    }, [
+      emailStats.valid,
+      emailStats.validEmails,
+      batchSize,
+      downloadFormat,
+      store.promoDateRange,
+      store.promoYear,
+      store.promoTitle,
+      store.promotionEntries,
+      store.specialHours,
+      store.howToShopItems,
+      store.importantNotesItems,
+      store.selectedSubjectLine,
+      store.attachedPDFs,
+      store.newsletterVisible,
+      store.newsletterHeading,
+      store.newsletterBody,
+      store.newsletterPosition,
+      store.newsletterStyle,
+      store.emailPalette,
+    ]);
 
-  useImperativeHandle(ref, () => ({
-    generate: handleGenerateBatches,
-    canGenerate: emailStats.valid > 0 && !isGenerating,
-    isGenerating,
-  }), [handleGenerateBatches, emailStats.valid, isGenerating]);
+    useImperativeHandle(
+      ref,
+      () => ({
+        generate: handleGenerateBatches,
+        canGenerate: emailStats.valid > 0 && !isGenerating,
+        isGenerating,
+      }),
+      [handleGenerateBatches, emailStats.valid, isGenerating]
+    );
 
-  return (
-    <div className="space-y-4">
-      {/* Format status */}
-      <FormatStatus />
+    return (
+      <div className="space-y-4">
+        {/* Format status */}
+        <FormatStatus />
 
-      {/* Recipient header with clear button */}
-      <div className="flex items-center justify-between">
-        <Label className="text-sm font-semibold">Recipient List</Label>
-        {recipientText.trim() && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
-            onClick={handleClearRecipients}
-          >
-            <Trash2 className="h-3 w-3" />
-            Clear All
-          </Button>
-        )}
-      </div>
-
-      {/* Recipient textarea */}
-      <ClearableTextarea
-        value={recipientText}
-        onChange={handleRecipientChange}
-        onPaste={handlePaste}
-        placeholder="Enter email addresses (one per line, comma-separated, or paste from spreadsheet)..."
-        className={cn(
-          'min-h-[120px] font-mono text-sm',
-          emailStats.invalid > 0 &&
-            'border-destructive/50 focus-visible:ring-destructive/30'
-        )}
-        data-testid="bulk-email-list"
-      />
-
-      {/* Recipient stats */}
-      {emailStats.total > 0 && (
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <Badge variant="default" className="gap-1 text-xs">
-            {emailStats.valid} valid
-          </Badge>
-          {emailStats.invalid > 0 && (
-            <Badge variant="destructive" className="gap-1 text-xs">
-              {emailStats.invalid} invalid
-            </Badge>
-          )}
-          <Badge variant="outline" className="text-xs">
-            Total: {emailStats.total}
-          </Badge>
-          {emailStats.duplicates > 0 && (
-            <Badge
-              variant="outline"
-              className="gap-1 border-yellow-500/50 text-yellow-600 dark:text-yellow-400"
+        {/* Recipient header with clear button */}
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-semibold">Recipient List</Label>
+          {recipientText.trim() && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
+              onClick={handleClearRecipients}
             >
-              <AlertTriangle className="h-3 w-3" />
-              {emailStats.duplicates} duplicate
-              {emailStats.duplicates > 1 ? 's' : ''} removed
-            </Badge>
+              <Trash2 className="h-3 w-3" />
+              Clear All
+            </Button>
           )}
         </div>
-      )}
 
-      {/* Invalid emails collapsible section */}
-      {emailStats.invalid > 0 && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/5">
-          <button
-            type="button"
-            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
-            onClick={() => setShowInvalidEmails(!showInvalidEmails)}
-            data-testid="toggle-invalid-emails"
-          >
-            {showInvalidEmails ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
+        {/* Recipient textarea */}
+        <ClearableTextarea
+          value={recipientText}
+          onChange={handleRecipientChange}
+          onPaste={handlePaste}
+          placeholder="Enter email addresses (one per line, comma-separated, or paste from spreadsheet)..."
+          className={cn(
+            'min-h-[120px] font-mono text-sm',
+            emailStats.invalid > 0 &&
+              'border-destructive/50 focus-visible:ring-destructive/30'
+          )}
+          data-testid="bulk-email-list"
+        />
+
+        {/* Recipient stats */}
+        {emailStats.total > 0 && (
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <Badge variant="default" className="gap-1 text-xs">
+              {emailStats.valid} valid
+            </Badge>
+            {emailStats.invalid > 0 && (
+              <Badge variant="destructive" className="gap-1 text-xs">
+                {emailStats.invalid} invalid
+              </Badge>
             )}
-            {emailStats.invalid} invalid email
-            {emailStats.invalid > 1 ? 's' : ''}
-          </button>
-          {showInvalidEmails && (
-            <div className="border-t border-destructive/20 px-3 py-2">
-              <div className="max-h-[100px] overflow-y-auto font-mono text-xs text-destructive">
-                {emailStats.invalidEmails.map((email, i) => (
-                  <div key={i}>{email}</div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+            <Badge variant="outline" className="text-xs">
+              Total: {emailStats.total}
+            </Badge>
+            {emailStats.duplicates > 0 && (
+              <Badge
+                variant="outline"
+                className="gap-1 border-yellow-500/50 text-yellow-600 dark:text-yellow-400"
+              >
+                <AlertTriangle className="h-3 w-3" />
+                {emailStats.duplicates} duplicate
+                {emailStats.duplicates > 1 ? 's' : ''} removed
+              </Badge>
+            )}
+          </div>
+        )}
 
-      {/* Batch controls */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <Label className="text-sm whitespace-nowrap">Batch Size:</Label>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-7 w-7"
-              onClick={decrementBatchSize}
-              disabled={batchSize <= 50}
-              aria-label="Decrease batch size"
-              data-testid="batch-size-decrease"
+        {/* Invalid emails collapsible section */}
+        {emailStats.invalid > 0 && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/5">
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
+              onClick={() => setShowInvalidEmails(!showInvalidEmails)}
+              data-testid="toggle-invalid-emails"
             >
-              <Minus className="h-3 w-3" />
-            </Button>
-            <input
-              type="number"
-              value={batchSize}
-              min={50}
-              max={1000}
-              step={50}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!isNaN(val)) {
-                  handleBatchSizeChange(val);
-                }
+              {showInvalidEmails ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              {emailStats.invalid} invalid email
+              {emailStats.invalid > 1 ? 's' : ''}
+            </button>
+            {showInvalidEmails && (
+              <div className="border-t border-destructive/20 px-3 py-2">
+                <div className="max-h-[100px] overflow-y-auto font-mono text-xs text-destructive">
+                  {emailStats.invalidEmails.map((email, i) => (
+                    <div key={i}>{email}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Batch controls */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Label className="text-sm whitespace-nowrap">Batch Size:</Label>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={decrementBatchSize}
+                disabled={batchSize <= 50}
+                aria-label="Decrease batch size"
+                data-testid="batch-size-decrease"
+              >
+                <Minus className="h-3 w-3" />
+              </Button>
+              <input
+                type="number"
+                value={batchSize}
+                min={50}
+                max={1000}
+                step={50}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  if (!isNaN(val)) {
+                    handleBatchSizeChange(val);
+                  }
+                }}
+                className="h-7 w-16 rounded-md border bg-background px-2 text-center text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                data-testid="batch-size-input"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={incrementBatchSize}
+                disabled={batchSize >= 1000}
+                aria-label="Increase batch size"
+                data-testid="batch-size-increase"
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Download format toggle */}
+          <div className="flex items-center gap-3">
+            <Label className="text-sm whitespace-nowrap">
+              Download Format:
+            </Label>
+            <ToggleGroup
+              type="single"
+              value={downloadFormat}
+              onValueChange={(value) => {
+                if (value) handleFormatChange(value as DownloadFormat);
               }}
-              className="h-7 w-16 rounded-md border bg-background px-2 text-center text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              data-testid="batch-size-input"
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-7 w-7"
-              onClick={incrementBatchSize}
-              disabled={batchSize >= 1000}
-              aria-label="Increase batch size"
-              data-testid="batch-size-increase"
+              className="gap-0 rounded-md border"
             >
-              <Plus className="h-3 w-3" />
-            </Button>
+              <ToggleGroupItem
+                value="individual"
+                className="rounded-none rounded-l-md text-xs px-3 h-7 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+                data-testid="format-individual"
+              >
+                Individual Files
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="zip"
+                className="rounded-none rounded-r-md text-xs px-3 h-7 border-l data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+                data-testid="format-zip"
+              >
+                ZIP Archive
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
         </div>
 
-        {/* Download format toggle */}
-        <div className="flex items-center gap-3">
-          <Label className="text-sm whitespace-nowrap">Download Format:</Label>
-          <ToggleGroup
-            type="single"
-            value={downloadFormat}
-            onValueChange={(value) => {
-              if (value) handleFormatChange(value as DownloadFormat);
-            }}
-            className="gap-0 rounded-md border"
-          >
-            <ToggleGroupItem
-              value="individual"
-              className="rounded-none rounded-l-md text-xs px-3 h-7 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
-              data-testid="format-individual"
-            >
-              Individual Files
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="zip"
-              className="rounded-none rounded-r-md text-xs px-3 h-7 border-l data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
-              data-testid="format-zip"
-            >
-              ZIP Archive
-            </ToggleGroupItem>
-          </ToggleGroup>
+        {/* Batch preview */}
+        <div className="rounded-md border bg-muted/30 px-3 py-2">
+          {batchPreview ? (
+            <p className="text-xs text-muted-foreground">
+              Will generate{' '}
+              <span className="font-medium text-foreground">
+                {batchPreview.numBatches}
+              </span>{' '}
+              batch{batchPreview.numBatches > 1 ? 'es' : ''}{' '}
+              {batchPreview.numBatches > 1 &&
+                `(last batch: ${batchPreview.lastBatchSize} recipients)`}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Enter recipient emails above to see batch preview
+            </p>
+          )}
         </div>
-      </div>
 
-      {/* Batch preview */}
-      <div className="rounded-md border bg-muted/30 px-3 py-2">
-        {batchPreview ? (
-          <p className="text-xs text-muted-foreground">
-            Will generate{' '}
-            <span className="font-medium text-foreground">
-              {batchPreview.numBatches}
-            </span>{' '}
-            batch{batchPreview.numBatches > 1 ? 'es' : ''}{' '}
-            {batchPreview.numBatches > 1 &&
-              `(last batch: ${batchPreview.lastBatchSize} recipients)`}
-          </p>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Enter recipient emails above to see batch preview
-          </p>
+        {/* Generation progress indicator */}
+        {isGenerating && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Generating... {generationProgress}
+          </div>
         )}
       </div>
-
-      {/* Generation progress indicator */}
-      {isGenerating && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Generating... {generationProgress}
-        </div>
-      )}
-    </div>
-  );
-});
+    );
+  }
+);

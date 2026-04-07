@@ -55,7 +55,8 @@ const OUTLOOK_RULES: Rule[] = [
       /float\s*:\s*(left|right)/i.test(html)
         ? 'CSS float detected. Outlook ignores float — use table-based layout instead.'
         : null,
-    recommendation: 'Replace float layouts with <table> cells for Outlook compatibility.',
+    recommendation:
+      'Replace float layouts with <table> cells for Outlook compatibility.',
   },
   {
     id: 'css-flexbox',
@@ -65,7 +66,8 @@ const OUTLOOK_RULES: Rule[] = [
       /display\s*:\s*flex/i.test(html)
         ? 'Flexbox detected. Outlook does not support display:flex.'
         : null,
-    recommendation: 'Use <table> layouts instead of flexbox for email structure.',
+    recommendation:
+      'Use <table> layouts instead of flexbox for email structure.',
   },
   {
     id: 'css-grid',
@@ -136,7 +138,9 @@ const OUTLOOK_RULES: Rule[] = [
     name: 'Padding on block elements',
     severity: 'warning',
     check: (_html, doc) => {
-      const divs = doc.querySelectorAll('div[style*="padding"], p[style*="padding"]');
+      const divs = doc.querySelectorAll(
+        'div[style*="padding"], p[style*="padding"]'
+      );
       return divs.length > 5
         ? `${divs.length} block elements with padding found. Outlook may inconsistently apply padding on <div> and <p>.`
         : null;
@@ -149,7 +153,9 @@ const OUTLOOK_RULES: Rule[] = [
     name: 'Large embedded images',
     severity: 'warning',
     check: (html) => {
-      const base64Matches = html.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]{50000,}/g);
+      const base64Matches = html.match(
+        /data:image\/[^;]+;base64,[A-Za-z0-9+/=]{50000,}/g
+      );
       if (base64Matches && base64Matches.length > 0) {
         const totalKB = Math.round(
           base64Matches.reduce((sum, m) => sum + m.length, 0) / 1024
@@ -166,7 +172,15 @@ const OUTLOOK_RULES: Rule[] = [
     name: 'Semantic HTML tags',
     severity: 'info',
     check: (_html, doc) => {
-      const semanticTags = ['article', 'section', 'nav', 'header', 'footer', 'main', 'aside'];
+      const semanticTags = [
+        'article',
+        'section',
+        'nav',
+        'header',
+        'footer',
+        'main',
+        'aside',
+      ];
       const found = semanticTags.filter(
         (tag) => doc.querySelectorAll(tag).length > 0
       );
@@ -192,12 +206,15 @@ const OUTLOOK_RULES: Rule[] = [
     name: 'Form elements',
     severity: 'error',
     check: (_html, doc) => {
-      const forms = doc.querySelectorAll('form, input, select, textarea, button');
+      const forms = doc.querySelectorAll(
+        'form, input, select, textarea, button'
+      );
       return forms.length > 0
         ? `${forms.length} form element(s) found. Outlook strips form elements from emails.`
         : null;
     },
-    recommendation: 'Remove form elements. Use links to external forms instead.',
+    recommendation:
+      'Remove form elements. Use links to external forms instead.',
   },
   {
     id: 'video-audio',
@@ -295,7 +312,6 @@ export function OutlookChecker() {
     }
 
     return found;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasScanned, scanTrigger, emailHTML]);
 
   const handleScan = () => {
@@ -313,8 +329,8 @@ export function OutlookChecker() {
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Scan your generated email for known Outlook rendering issues.
-        Outlook uses the Word engine which has limited CSS support.
+        Scan your generated email for known Outlook rendering issues. Outlook
+        uses the Word engine which has limited CSS support.
       </p>
 
       {!hasContent ? (

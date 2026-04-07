@@ -172,7 +172,7 @@ describe('db', () => {
       setDb(null);
       await expect(
         savePDFToIndexedDB({ id: 'test', name: 'test.pdf' })
-      ).rejects.toThrow('IndexedDB not initialized');
+      ).rejects.toThrow('IndexedDB not available');
     });
 
     it('getPDFFromIndexedDB returns null when db is not initialized', async () => {
@@ -219,7 +219,7 @@ describe('db', () => {
       setDb(null);
       await expect(
         saveBulkEmailRecipientsToIndexedDB('a@test.com')
-      ).rejects.toThrow('IndexedDB not initialized');
+      ).rejects.toThrow('IndexedDB not available');
     });
 
     it('getBulkEmailRecipientsFromIndexedDB returns empty string when db is not initialized', async () => {

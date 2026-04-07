@@ -20,6 +20,7 @@ import { getStorePhone, getStoreEmail, getDirections } from '@/lib/profile';
 
 // Mock the db module
 vi.mock('@/lib/db', () => ({
+  initIndexedDB: vi.fn().mockResolvedValue(true),
   savePDFToIndexedDB: vi.fn().mockResolvedValue('pdf-id'),
   getPDFFromIndexedDB: vi.fn().mockResolvedValue(null),
   deletePDFFromIndexedDB: vi.fn().mockResolvedValue(undefined),

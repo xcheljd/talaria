@@ -695,16 +695,11 @@ Best regards,`,
         );
       }
 
-      let orderStatus = '';
-
-      if (
+      const orderStatus =
         safe.needsManagerVerification &&
         (safe.needsManagerVerification as string).toLowerCase() === 'yes'
-      ) {
-        orderStatus = 'Ready for manager verification';
-      } else {
-        orderStatus = 'Credit card manager verified - Ready for processing';
-      }
+          ? 'Ready for manager verification'
+          : 'Credit card manager verified - Ready for processing';
 
       return {
         body: `Subject: Phone Order Form for ${safe.customerName}

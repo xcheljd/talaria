@@ -22,8 +22,18 @@ import { Button } from '@/components/ui/button';
 // ===== Date Formatting =====
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 function formatDateRange(startDate: string, endDate: string): string {
@@ -43,7 +53,10 @@ function formatDateRange(startDate: string, endDate: string): string {
   const startMonth = MONTHS[start.getMonth()];
   const endMonth = MONTHS[end.getMonth()];
 
-  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+  if (
+    start.getMonth() === end.getMonth() &&
+    start.getFullYear() === end.getFullYear()
+  ) {
     // Same month: "March 4 - 10"
     return `${startMonth} ${start.getDate()} - ${end.getDate()}`;
   }
@@ -70,9 +83,7 @@ function parseDateRange(
   if (!dateRange) return null;
 
   // Match "Month D - D" or "Month D - Month D"
-  const sameMonth = dateRange.match(
-    /^(\w+)\s+(\d{1,2})\s*-\s*(\d{1,2})$/
-  );
+  const sameMonth = dateRange.match(/^(\w+)\s+(\d{1,2})\s*-\s*(\d{1,2})$/);
   if (sameMonth) {
     const monthIdx = MONTHS.findIndex(
       (m) => m.toLowerCase() === sameMonth[1].toLowerCase()
@@ -177,7 +188,6 @@ export function BasicDetailsEditor() {
       if (endDate) setEndDate('');
     }
     // Only react to store changes, not local state
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.promoDateRange, store.promoYear]);
 
   const handleTitleChange = useCallback(
@@ -197,7 +207,10 @@ export function BasicDetailsEditor() {
         </label>
         <div className="flex items-center gap-2">
           <div className="flex-1 space-y-0.5">
-            <label htmlFor="promoStartDate" className="text-[11px] text-muted-foreground">
+            <label
+              htmlFor="promoStartDate"
+              className="text-[11px] text-muted-foreground"
+            >
               Start
             </label>
             <input
@@ -211,7 +224,10 @@ export function BasicDetailsEditor() {
           </div>
           <span className="text-xs text-muted-foreground pt-4">to</span>
           <div className="flex-1 space-y-0.5">
-            <label htmlFor="promoEndDate" className="text-[11px] text-muted-foreground">
+            <label
+              htmlFor="promoEndDate"
+              className="text-[11px] text-muted-foreground"
+            >
               End
             </label>
             <input
