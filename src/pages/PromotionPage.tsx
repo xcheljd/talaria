@@ -1084,7 +1084,7 @@ export function PromotionPage() {
   return (
     <>
       {/* ===== Desktop Layout (>=1024px): ResizablePanels 50/50 split ===== */}
-      <div className="hidden lg:flex h-[calc(100vh-3.5rem)] overflow-hidden">
+      <div className="hidden lg:flex h-full overflow-hidden">
         <ResizablePanels
           orientation="vertical"
           defaultSplit={50}
@@ -1125,7 +1125,7 @@ export function PromotionPage() {
       </div>
 
       {/* ===== Mobile Layout (<1024px): IconToolbar + all cards + preview ===== */}
-      <div className="lg:hidden flex flex-col h-[calc(100vh-3.5rem)]">
+      <div className="lg:hidden flex flex-col h-full">
         {/* Icon toolbar for mobile navigation */}
         <IconToolbar
           activeCardId={activeCardId}

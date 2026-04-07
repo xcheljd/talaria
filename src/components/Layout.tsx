@@ -12,7 +12,7 @@ export function Layout() {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-14 items-center px-4">
@@ -56,7 +56,7 @@ export function Layout() {
       </header>
 
       {/* Main content */}
-      <main>
+      <main className="flex-1 overflow-auto">
         <Outlet />
       </main>
     </div>
