@@ -67,12 +67,27 @@ async fn choose_download_dir(app: tauri::AppHandle) -> Result<String, String> {
     }
 }
 
+/// Read a local file and return its contents as a base64 data URL.
+#[tauri::command]
+fn read_file_as_data_url(path: String) -> Result<String, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+
+    let bytes = fs::read(&path).map_err(|e| format!("Failed to read {path}: {e}"))?;
+    let mime = if path.to_lowercase().ends_with(".pdf") {
+        "application/pdf"
+    } else {
+        "application/octet-stream"
+    };
+    let b64 = STANDARD.encode(&bytes);
+    Ok(format!("data:{mime};base64,{b64}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![get_download_dir, choose_download_dir])
+        .invoke_handler(tauri::generate_handler![get_download_dir, choose_download_dir, read_file_as_data_url])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

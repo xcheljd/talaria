@@ -7,6 +7,7 @@
 
 import { create } from 'zustand';
 import {
+  initIndexedDB,
   savePDFToIndexedDB,
   getPDFFromIndexedDB,
   type PDFRecord,
@@ -160,6 +161,11 @@ export interface PromotionState {
 
   // Email palette
   emailPalette: EmailPaletteConfig;
+
+  // Bulk email generation state (shared between card and preview button)
+  bulkEmailGenerating: boolean;
+  bulkEmailProgress: string;
+  setBulkEmailGenerating: (generating: boolean, progress?: string) => void;
 
   // Promotion entry actions
   addPromotionEntry: () => void;
@@ -326,6 +332,11 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   entryCollapsedStates: {},
   columnState: 'left' as ColumnState,
   isInitializing: true,
+  bulkEmailGenerating: false,
+  bulkEmailProgress: '',
+
+  setBulkEmailGenerating: (generating, progress = '') =>
+    set({ bulkEmailGenerating: generating, bulkEmailProgress: progress }),
 
   // ===== Promotion Entry Actions =====
 
@@ -769,6 +780,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
 
   loadFromIndexedDB: async () => {
     try {
+      await initIndexedDB();
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
         set({ isInitializing: false });

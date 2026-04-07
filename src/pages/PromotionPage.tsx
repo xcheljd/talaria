@@ -38,6 +38,8 @@ import {
   Smartphone,
   Sun,
   Moon,
+  Printer,
+  Loader2,
 } from 'lucide-react';
 
 import { useHasProfile } from '@/contexts/ProfileProvider';
@@ -50,7 +52,7 @@ import { FormattableItemEditor } from '@/components/promotion/FormattableItemEdi
 import { SpecialHoursEditor } from '@/components/promotion/SpecialHoursEditor';
 import { PDFAttachments } from '@/components/promotion/PDFAttachments';
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
-import { BulkEmailTools } from '@/components/promotion/BulkEmailTools';
+import { BulkEmailTools, type BulkEmailToolsHandle } from '@/components/promotion/BulkEmailTools';
 import { AccessibilityChecker } from '@/components/promotion/AccessibilityChecker';
 import {
   VersionHistory,
@@ -127,6 +129,9 @@ const CARD_CONFIGS: CardConfig[] = [
   { id: 'outlookCard', title: 'Outlook Compatibility', defaultCollapsed: true },
 ];
 
+// Module-level ref for BulkEmailTools imperative handle
+const bulkEmailRef = { current: null as BulkEmailToolsHandle | null };
+
 // ===== Card Content Components =====
 
 /** Get content component for a specific card */
@@ -157,7 +162,7 @@ function getCardContent(cardId: string, extra?: { versionRefreshKey?: number }) 
     case 'outlookCard':
       return <OutlookChecker />;
     case 'bulkEmailCard':
-      return <BulkEmailTools />;
+      return <BulkEmailTools ref={bulkEmailRef} />;
     default:
       return <CardPlaceholderContent cardId={cardId} />;
   }
@@ -409,7 +414,23 @@ function PreviewColumn() {
     };
 
     return generatePromotionEmailHTML(data);
-  }, [emailHTML, previewDark, store]);
+  }, [
+    emailHTML,
+    previewDark,
+    store.promoDateRange,
+    store.promoYear,
+    store.promoTitle,
+    store.promotionEntries,
+    store.specialHours,
+    store.howToShopItems,
+    store.importantNotesItems,
+    store.newsletterHeading,
+    store.newsletterBody,
+    store.newsletterPosition,
+    store.newsletterVisible,
+    store.newsletterStyle,
+    store.emailPalette,
+  ]);
 
   // Download Email Draft (single EML)
   const handleDownloadDraft = useCallback(async () => {
@@ -594,6 +615,28 @@ function PreviewColumn() {
 
   const hasContent = !!emailHTML;
 
+  const handlePrint = useCallback(() => {
+    if (!emailHTML) return;
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-9999px';
+    iframe.style.width = '600px';
+    iframe.style.height = '800px';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+    if (!doc) { document.body.removeChild(iframe); return; }
+    doc.open();
+    doc.write(emailHTML);
+    doc.close();
+    const fallback = setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 5000);
+    iframe.contentWindow?.addEventListener('afterprint', () => {
+      clearTimeout(fallback);
+      if (document.body.contains(iframe)) document.body.removeChild(iframe);
+    }, { once: true });
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+  }, [emailHTML]);
+
   return (
     <div className="flex h-full flex-col">
       {/* Hidden file input for import */}
@@ -733,6 +776,22 @@ function PreviewColumn() {
             >
               {previewDark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </button>
+            <div className="mx-1 h-4 w-px bg-border" />
+            <button
+              type="button"
+              onClick={handlePrint}
+              disabled={!hasContent}
+              className={cn(
+                'rounded p-1 transition-colors',
+                hasContent
+                  ? 'text-muted-foreground hover:text-foreground'
+                  : 'text-muted-foreground/40 cursor-not-allowed'
+              )}
+              title="Print email"
+              aria-label="Print email"
+            >
+              <Printer className="h-3.5 w-3.5" />
+            </button>
           </div>
         </TabsList>
 
@@ -778,9 +837,23 @@ function PreviewColumn() {
 
       {/* Preview Actions */}
       <div className="flex flex-wrap gap-2 border-t px-4 py-3">
-        <Button size="sm" className="gap-1.5" disabled>
-          <Mail className="h-3.5 w-3.5" />
-          Generate Email Batches
+        <Button
+          size="sm"
+          className="gap-1.5"
+          disabled={!hasContent || store.bulkEmailGenerating}
+          onClick={() => bulkEmailRef.current?.generate()}
+        >
+          {store.bulkEmailGenerating ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Generating... {store.bulkEmailProgress}
+            </>
+          ) : (
+            <>
+              <Mail className="h-3.5 w-3.5" />
+              Generate Email Batches
+            </>
+          )}
         </Button>
         <Button
           size="sm"

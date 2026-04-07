@@ -54,11 +54,11 @@ function InboxPreview({
         Inbox Preview
       </label>
       <div
-        className="rounded-lg border bg-white dark:bg-zinc-900 overflow-hidden"
+        className="rounded-lg border bg-background overflow-hidden"
         data-testid="inbox-preview"
       >
         {/* Mock inbox row */}
-        <div className="flex items-start gap-3 px-3 py-2.5 border-l-2 border-l-blue-500 bg-blue-50/40 dark:bg-blue-950/20">
+        <div className="flex items-start gap-3 px-3 py-2.5 border-l-2 border-l-blue-500 bg-accent/40">
           <div className="flex items-center gap-2 pt-0.5 shrink-0">
             <Star className="h-3.5 w-3.5 text-muted-foreground/40" />
             <div className="h-7 w-7 rounded-full bg-emerald-600 flex items-center justify-center">

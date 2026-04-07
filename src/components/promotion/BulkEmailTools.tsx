@@ -12,14 +12,14 @@
  * - Progress indicator during generation
  */
 
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
+import { toast } from 'sonner';
 import {
   Trash2,
   ChevronDown,
   ChevronRight,
   AlertTriangle,
   Loader2,
-  Mail,
   Plus,
   Minus,
 } from 'lucide-react';
@@ -47,6 +47,7 @@ import { Button } from '@/components/ui/button';
 import { ClearableTextarea } from '@/components/ui/clearable-textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 // ===== Types =====
 
@@ -91,9 +92,55 @@ function clampBatchSize(value: number): number {
   return Math.min(Math.max(clamped, 50), 1000);
 }
 
+// ===== Format Status Sub-component =====
+
+/** Displays the recommended email format based on OS detection */
+function FormatStatus() {
+  const [formatInfo, setFormatInfo] = useState({
+    formatName: 'EML',
+    extension: '.eml',
+    osName: 'Unknown',
+  });
+
+  useEffect(() => {
+    const platform = navigator.platform || '';
+    const userAgent = navigator.userAgent || '';
+
+    let os: 'windows' | 'mac' | 'other';
+    if (platform.includes('Win') || userAgent.includes('Windows')) {
+      os = 'windows';
+    } else if (platform.includes('Mac') || userAgent.includes('Mac')) {
+      os = 'mac';
+    } else {
+      os = 'other';
+    }
+
+    const formatName = os === 'mac' ? 'Template' : 'EML';
+    const extension = os === 'mac' ? '.emltpl' : '.eml';
+
+    const osName =
+      os === 'windows' ? 'Windows' : os === 'mac' ? 'macOS' : 'Other Platform';
+
+    setFormatInfo({ formatName, extension, osName });
+  }, []);
+
+  return (
+    <div className="text-xs text-muted-foreground">
+      <span className="font-medium">{formatInfo.formatName} Format:</span>{' '}
+      Optimized for {formatInfo.osName} ({formatInfo.extension} files)
+    </div>
+  );
+}
+
 // ===== Component =====
 
-export function BulkEmailTools() {
+export interface BulkEmailToolsHandle {
+  generate: () => void;
+  canGenerate: boolean;
+  isGenerating: boolean;
+}
+
+export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(function BulkEmailTools(_props, ref) {
   const store = usePromotionStore();
 
   // Recipient text state
@@ -116,9 +163,11 @@ export function BulkEmailTools() {
       'individual'
   );
 
-  // Generation state
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState('');
+  // Generation state (shared via store so preview button can show progress)
+  const isGenerating = store.bulkEmailGenerating;
+  const generationProgress = store.bulkEmailProgress;
+  const setIsGenerating = (val: boolean) => store.setBulkEmailGenerating(val, val ? store.bulkEmailProgress : '');
+  const setGenerationProgress = (val: string) => store.setBulkEmailGenerating(store.bulkEmailGenerating, val);
 
   // Debounced save timer ref
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -248,6 +297,7 @@ export function BulkEmailTools() {
   // Generate email batches
   const handleGenerateBatches = useCallback(async () => {
     if (emailStats.valid === 0) {
+      toast.warning('Add recipient emails in the Bulk Email Tools card first');
       return;
     }
 
@@ -363,6 +413,7 @@ export function BulkEmailTools() {
       }
     } catch (error) {
       console.error('Error generating batches:', error);
+      toast.error('Failed to generate email batches');
     } finally {
       setIsGenerating(false);
       setGenerationProgress('');
@@ -382,7 +433,18 @@ export function BulkEmailTools() {
     store.selectedSubjectLine,
     store.attachedPDFs,
     store.newsletterVisible,
+    store.newsletterHeading,
+    store.newsletterBody,
+    store.newsletterPosition,
+    store.newsletterStyle,
+    store.emailPalette,
   ]);
+
+  useImperativeHandle(ref, () => ({
+    generate: handleGenerateBatches,
+    canGenerate: emailStats.valid > 0 && !isGenerating,
+    isGenerating,
+  }), [handleGenerateBatches, emailStats.valid, isGenerating]);
 
   return (
     <div className="space-y-4">
@@ -520,33 +582,32 @@ export function BulkEmailTools() {
           </div>
         </div>
 
-        {/* Download format radio group */}
+        {/* Download format toggle */}
         <div className="flex items-center gap-3">
           <Label className="text-sm whitespace-nowrap">Download Format:</Label>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-1.5 text-sm">
-              <input
-                type="radio"
-                name="downloadFormat"
-                value="individual"
-                checked={downloadFormat === 'individual'}
-                onChange={() => handleFormatChange('individual')}
-                data-testid="format-individual"
-              />
+          <ToggleGroup
+            type="single"
+            value={downloadFormat}
+            onValueChange={(value) => {
+              if (value) handleFormatChange(value as DownloadFormat);
+            }}
+            className="gap-0 rounded-md border"
+          >
+            <ToggleGroupItem
+              value="individual"
+              className="rounded-none rounded-l-md text-xs px-3 h-7 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+              data-testid="format-individual"
+            >
               Individual Files
-            </label>
-            <label className="flex items-center gap-1.5 text-sm">
-              <input
-                type="radio"
-                name="downloadFormat"
-                value="zip"
-                checked={downloadFormat === 'zip'}
-                onChange={() => handleFormatChange('zip')}
-                data-testid="format-zip"
-              />
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="zip"
+              className="rounded-none rounded-r-md text-xs px-3 h-7 border-l data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+              data-testid="format-zip"
+            >
               ZIP Archive
-            </label>
-          </div>
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
       </div>
 
@@ -569,66 +630,13 @@ export function BulkEmailTools() {
         )}
       </div>
 
-      {/* Generate Email Batches button */}
-      <Button
-        className="w-full gap-2"
-        onClick={handleGenerateBatches}
-        disabled={emailStats.valid === 0 || isGenerating}
-        data-testid="generate-batches-btn"
-      >
-        {isGenerating ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Generating... {generationProgress}
-          </>
-        ) : (
-          <>
-            <Mail className="h-4 w-4" />
-            Generate Email Batches
-          </>
-        )}
-      </Button>
+      {/* Generation progress indicator */}
+      {isGenerating && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Generating... {generationProgress}
+        </div>
+      )}
     </div>
   );
-}
-
-// ===== Format Status Sub-component =====
-
-/** Displays the recommended email format based on OS detection */
-function FormatStatus() {
-  const [formatInfo, setFormatInfo] = useState({
-    formatName: 'EML',
-    extension: '.eml',
-    osName: 'Unknown',
-  });
-
-  useEffect(() => {
-    const platform = navigator.platform || '';
-    const userAgent = navigator.userAgent || '';
-
-    let os: 'windows' | 'mac' | 'other';
-    if (platform.includes('Win') || userAgent.includes('Windows')) {
-      os = 'windows';
-    } else if (platform.includes('Mac') || userAgent.includes('Mac')) {
-      os = 'mac';
-    } else {
-      os = 'other';
-    }
-
-    // Windows uses .eml, Mac/other uses .emltpl
-    const formatName = os === 'mac' ? 'Template' : 'EML';
-    const extension = os === 'mac' ? '.emltpl' : '.eml';
-
-    const osName =
-      os === 'windows' ? 'Windows' : os === 'mac' ? 'macOS' : 'Other Platform';
-
-    setFormatInfo({ formatName, extension, osName });
-  }, []);
-
-  return (
-    <div className="text-xs text-muted-foreground">
-      <span className="font-medium">{formatInfo.formatName} Format:</span>{' '}
-      Optimized for {formatInfo.osName} ({formatInfo.extension} files)
-    </div>
-  );
-}
+});

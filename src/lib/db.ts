@@ -24,6 +24,7 @@ export const STORE_NAME = 'promotionPDFs';
 export const BULK_EMAIL_STORE = 'bulkEmailRecipients';
 
 let db: IDBDatabase | null = null;
+let initPromise: Promise<boolean> | null = null;
 
 /** Get the current database instance (for testing/debugging) */
 export function getDb(): IDBDatabase | null {
@@ -33,14 +34,17 @@ export function getDb(): IDBDatabase | null {
 /** Set the database instance (for testing) */
 export function setDb(database: IDBDatabase | null): void {
   db = database;
+  initPromise = null;
 }
 
 /**
  * Initialize IndexedDB for PDF storage.
- * @returns true if initialization succeeded, false otherwise
+ * Returns cached promise if init is already in flight.
  */
 export function initIndexedDB(): Promise<boolean> {
-  return new Promise((resolve) => {
+  if (db) return Promise.resolve(true);
+  if (initPromise) return initPromise;
+  initPromise = new Promise((resolve) => {
     const indexedDB =
       window.indexedDB ||
       (window as unknown as { webkitIndexedDB?: IDBFactory }).webkitIndexedDB ||
@@ -50,6 +54,7 @@ export function initIndexedDB(): Promise<boolean> {
       console.warn(
         'IndexedDB not supported, PDFs will not persist across refresh'
       );
+      initPromise = null;
       resolve(false);
       return;
     }
@@ -58,6 +63,7 @@ export function initIndexedDB(): Promise<boolean> {
 
     request.onerror = () => {
       console.warn('IndexedDB initialization failed:', request.error);
+      initPromise = null;
       resolve(false);
     };
 
@@ -77,15 +83,17 @@ export function initIndexedDB(): Promise<boolean> {
       }
     };
   });
+  return initPromise;
 }
 
 /**
  * Save PDF to IndexedDB.
  */
-export function savePDFToIndexedDB(pdfData: PDFRecord): Promise<string> {
+export async function savePDFToIndexedDB(pdfData: PDFRecord): Promise<string> {
+  if (!db) await initIndexedDB();
   return new Promise((resolve, reject) => {
     if (!db) {
-      reject(new Error('IndexedDB not initialized'));
+      reject(new Error('IndexedDB not available'));
       return;
     }
 
@@ -101,7 +109,8 @@ export function savePDFToIndexedDB(pdfData: PDFRecord): Promise<string> {
 /**
  * Get specific PDF from IndexedDB.
  */
-export function getPDFFromIndexedDB(pdfId: string): Promise<PDFRecord | null> {
+export async function getPDFFromIndexedDB(pdfId: string): Promise<PDFRecord | null> {
+  if (!db) await initIndexedDB();
   return new Promise((resolve, reject) => {
     if (!db) {
       resolve(null);
@@ -120,7 +129,8 @@ export function getPDFFromIndexedDB(pdfId: string): Promise<PDFRecord | null> {
 /**
  * Delete PDF from IndexedDB.
  */
-export function deletePDFFromIndexedDB(pdfId: string): Promise<void> {
+export async function deletePDFFromIndexedDB(pdfId: string): Promise<void> {
+  if (!db) await initIndexedDB();
   return new Promise((resolve, reject) => {
     if (!db) {
       resolve();
@@ -139,7 +149,8 @@ export function deletePDFFromIndexedDB(pdfId: string): Promise<void> {
 /**
  * Clear all PDFs from IndexedDB.
  */
-export function clearAllPDFsFromIndexedDB(): Promise<void> {
+export async function clearAllPDFsFromIndexedDB(): Promise<void> {
+  if (!db) await initIndexedDB();
   return new Promise((resolve, reject) => {
     if (!db) {
       resolve();
@@ -158,12 +169,13 @@ export function clearAllPDFsFromIndexedDB(): Promise<void> {
 /**
  * Save bulk email recipients to IndexedDB.
  */
-export function saveBulkEmailRecipientsToIndexedDB(
+export async function saveBulkEmailRecipientsToIndexedDB(
   recipients: string
 ): Promise<void> {
+  if (!db) await initIndexedDB();
   return new Promise((resolve, reject) => {
     if (!db) {
-      reject(new Error('IndexedDB not initialized'));
+      reject(new Error('IndexedDB not available'));
       return;
     }
 
@@ -183,7 +195,8 @@ export function saveBulkEmailRecipientsToIndexedDB(
 /**
  * Get bulk email recipients from IndexedDB.
  */
-export function getBulkEmailRecipientsFromIndexedDB(): Promise<string> {
+export async function getBulkEmailRecipientsFromIndexedDB(): Promise<string> {
+  if (!db) await initIndexedDB();
   return new Promise((resolve, reject) => {
     if (!db) {
       resolve('');
@@ -205,7 +218,8 @@ export function getBulkEmailRecipientsFromIndexedDB(): Promise<string> {
 /**
  * Clear bulk email recipients from IndexedDB.
  */
-export function clearBulkEmailRecipientsFromIndexedDB(): Promise<void> {
+export async function clearBulkEmailRecipientsFromIndexedDB(): Promise<void> {
+  if (!db) await initIndexedDB();
   return new Promise((resolve, reject) => {
     if (!db) {
       resolve();

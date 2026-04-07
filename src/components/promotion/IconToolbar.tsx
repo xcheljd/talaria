@@ -9,6 +9,7 @@
  * - Click handler to scroll + expand target card
  */
 
+import { Fragment } from 'react';
 import {
   FileText,
   Percent,
@@ -136,30 +137,30 @@ export function IconToolbar({ activeCardId, onCardClick }: IconToolbarProps) {
         const showDivider = cardId === 'subjectCard' || cardId === 'emailThemeCard';
 
         return (
-          <>{showDivider && (
-            <div key={`div-${cardId}`} className="h-8 w-px bg-border mx-0.5" />
-          )}
-          <button
-            key={cardId}
-            type="button"
-            title={config.tooltip}
-            data-testid={`toolbar-icon-${cardId}`}
-            className={cn(
-              'flex flex-col items-center rounded-lg p-2 transition-colors',
-              isActive
-                ? 'bg-accent text-accent-foreground'
-                : 'text-muted-foreground hover:bg-accent/50'
+          <Fragment key={cardId}>
+            {showDivider && (
+              <div className="h-8 w-px bg-border mx-0.5" />
             )}
-            onClick={() => onCardClick(cardId)}
-            aria-label={`Jump to ${config.tooltip}`}
-            aria-pressed={isActive}
-          >
-            <Icon className="h-5 w-5" />
-            <span className="mt-0.5 text-[10px] leading-tight">
-              {config.label}
-            </span>
-          </button>
-          </>
+            <button
+              type="button"
+              title={config.tooltip}
+              data-testid={`toolbar-icon-${cardId}`}
+              className={cn(
+                'flex flex-col items-center rounded-lg p-2 transition-colors',
+                isActive
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent/50'
+              )}
+              onClick={() => onCardClick(cardId)}
+              aria-label={`Jump to ${config.tooltip}`}
+              aria-pressed={isActive}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="mt-0.5 text-[10px] leading-tight">
+                {config.label}
+              </span>
+            </button>
+          </Fragment>
         );
       })}
     </div>

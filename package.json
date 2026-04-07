@@ -61,6 +61,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
     "@tailwindcss/vite": "^4.2.0",
+    "@tauri-apps/api": "^2.10.1",
     "@tiptap/extension-blockquote": "^3.22.0",
     "@tiptap/extension-code-block-lowlight": "^3.22.0",
     "@tiptap/extension-color": "^3.22.0",

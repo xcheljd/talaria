@@ -14,6 +14,7 @@
 import { useState, useRef, useCallback, type DragEvent } from 'react';
 import { Upload, FileText, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { invoke } from '@tauri-apps/api/core';
 
 import { cn } from '@/lib/utils';
 import { usePromotionStore, type AttachedPDF } from '@/stores/promotion-store';
@@ -29,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -43,7 +45,18 @@ export function PDFAttachments() {
   const [previewPDF, setPreviewPDF] = useState<AttachedPDF | null>(null);
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
 
-  // Handle validated PDF files
+  const generatePdfId = () =>
+    `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+  const persistPDF = useCallback(async (pdf: AttachedPDF) => {
+    try {
+      await savePDFToIndexedDB({ id: pdf.id, name: pdf.name, data: pdf.data });
+    } catch {
+      toast.warning('PDF saved to memory but may not persist after refresh');
+    }
+    store.addPDF(pdf);
+  }, [store]);
+
   const processFiles = useCallback(
     async (files: File[]) => {
       let hasErrors = false;
@@ -56,7 +69,6 @@ export function PDFAttachments() {
           continue;
         }
 
-        // Check for duplicate names
         if (store.attachedPDFs.some((pdf) => pdf.name === file.name)) {
           toast.warning(`${file.name} is already attached`);
           continue;
@@ -64,28 +76,13 @@ export function PDFAttachments() {
 
         try {
           const data = await readPDFAsDataURL(file);
-          const pdf: AttachedPDF = {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          await persistPDF({
+            id: generatePdfId(),
             name: file.name,
             size: file.size,
             type: file.type,
             data,
-          };
-
-          // Save to IndexedDB for persistence
-          try {
-            await savePDFToIndexedDB({
-              id: pdf.id,
-              name: pdf.name,
-              data: pdf.data,
-            });
-          } catch {
-            toast.warning(
-              'PDF saved to memory but may not persist after refresh'
-            );
-          }
-
-          store.addPDF(pdf);
+          });
         } catch {
           toast.error(`Error reading ${file.name}`);
           hasErrors = true;
@@ -98,10 +95,10 @@ export function PDFAttachments() {
         toast.success(`${files.length} PDFs attached successfully`);
       }
     },
-    [store]
+    [store, persistPDF]
   );
 
-  // Drag-and-drop handlers
+
   const handleDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
@@ -116,19 +113,72 @@ export function PDFAttachments() {
     (e: DragEvent) => {
       e.preventDefault();
       setIsDragOver(false);
-      const pdfFiles = Array.from(e.dataTransfer.files).filter(
-        (f) => f.type === 'application/pdf'
+      const dt = e.dataTransfer;
+
+      // Direct file drop (works in browsers, some Tauri configs)
+      const directFiles = Array.from(dt.files).filter(
+        (f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
       );
-      if (pdfFiles.length > 0) {
-        processFiles(pdfFiles);
-      } else {
-        toast.error('Please drop only PDF files');
+      if (directFiles.length > 0) {
+        processFiles(directFiles);
+        return;
       }
+
+      // File managers may drop file:// URIs instead of File objects
+      // (common on Linux/WebKitGTK, possible fallback on macOS/Windows)
+      let fileUrls: string[] = [];
+      const uriData = dt.getData('text/uri-list');
+      if (uriData) {
+        fileUrls = uriData.split('\n').map(u => u.trim()).filter(u => u.startsWith('file://'));
+      }
+      if (fileUrls.length === 0) {
+        const htmlData = dt.getData('text/html');
+        if (htmlData) {
+          const matches = htmlData.match(/file:\/\/[^"<>\s]+/g);
+          if (matches) fileUrls = matches;
+        }
+      }
+      const pdfUrls = fileUrls.filter(u => u.toLowerCase().endsWith('.pdf'));
+      if (pdfUrls.length > 0) {
+        (async () => {
+          try {
+            for (const uri of pdfUrls) {
+              // Convert file:// URI to OS path
+              // Linux/macOS: file:///home/... → /home/...  |  Windows: file:///C:/... → C:/...
+              let filePath = decodeURIComponent(new URL(uri).pathname);
+              if (/^\/[A-Za-z]:/.test(filePath)) filePath = filePath.slice(1);
+              const name = filePath.split(/[/\\]/).pop() || 'file.pdf';
+
+              if (store.attachedPDFs.some((p) => p.name === name)) {
+                toast.warning(`${name} is already attached`);
+                continue;
+              }
+
+              const dataUrl = await invoke<string>('read_file_as_data_url', { path: filePath });
+              const b64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+              const size = Math.floor(b64.length * 0.75);
+
+              await persistPDF({
+                id: generatePdfId(),
+                name,
+                size,
+                type: 'application/pdf',
+                data: dataUrl,
+              });
+              toast.success(`${name} attached successfully`);
+            }
+          } catch (err) {
+            toast.error(`Failed to read dropped PDF: ${err}`);
+          }
+        })();
+        return;
+      }
+
+      toast.error('Please drop only PDF files');
     },
-    [processFiles]
+    [processFiles, persistPDF, store]
   );
 
-  // File picker handler
   const handleFileInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
@@ -143,7 +193,7 @@ export function PDFAttachments() {
     [processFiles]
   );
 
-  // Remove PDF handler
+
   const handleRemovePDF = useCallback(
     async (pdf: AttachedPDF) => {
       try {
@@ -157,7 +207,7 @@ export function PDFAttachments() {
     [store]
   );
 
-  // Preview handlers
+
   const openPreview = useCallback((pdf: AttachedPDF) => {
     if (!pdf.data) {
       toast.error('PDF data not available for preview');
@@ -296,6 +346,9 @@ export function PDFAttachments() {
             <DialogTitle className="truncate">
               {previewPDF?.name ?? 'PDF Preview'}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Preview of attached PDF file
+            </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-hidden rounded-md border">

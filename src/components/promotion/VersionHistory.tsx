@@ -151,11 +151,10 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
   };
 
   // Restore a snapshot
-  const handleRestore = (snapshot: Snapshot) => {
+  const handleRestore = async (snapshot: Snapshot) => {
     try {
       localStorage.setItem(STORAGE_KEY, snapshot.data);
-      // Reload from localStorage
-      store.loadFromIndexedDB();
+      await store.loadFromIndexedDB();
       setConfirmRestoreId(null);
     } catch (err) {
       console.warn('Restore failed:', err);
