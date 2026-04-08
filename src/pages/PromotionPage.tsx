@@ -401,8 +401,13 @@ function PreviewColumn() {
         ...resolvedColors,
         borderStyle: store.newsletterStyle.borderStyle,
         headingAlign: store.newsletterStyle.headingAlign,
+        tableBorderColor: resolvedColors.tableBorderColor,
+        tableBorderWidth: store.newsletterStyle.tableBorderWidth,
+        tableBorderStyle: store.newsletterStyle.tableBorderStyle,
+        tableHeaderBg: resolvedColors.tableHeaderBg,
       },
       emailPalette: store.emailPalette,
+      preheaderText: store.preheaderText,
     };
 
     return generatePromotionEmailHTML(data);
@@ -417,8 +422,10 @@ function PreviewColumn() {
     store.newsletterHeading,
     store.newsletterBody,
     store.newsletterPosition,
+    store.newsletterVisible,
     store.newsletterStyle,
     store.emailPalette,
+    store.preheaderText,
   ]);
 
   // Generate dark mode email by re-rendering with transformed palette colors
@@ -448,8 +455,13 @@ function PreviewColumn() {
         ...resolvedColors,
         borderStyle: store.newsletterStyle.borderStyle,
         headingAlign: store.newsletterStyle.headingAlign,
+        tableBorderColor: resolvedColors.tableBorderColor,
+        tableBorderWidth: store.newsletterStyle.tableBorderWidth,
+        tableBorderStyle: store.newsletterStyle.tableBorderStyle,
+        tableHeaderBg: resolvedColors.tableHeaderBg,
       },
       emailPalette: darkPalette,
+      preheaderText: store.preheaderText,
     };
 
     return generatePromotionEmailHTML(data);
@@ -468,6 +480,7 @@ function PreviewColumn() {
     store.newsletterPosition,
     store.newsletterVisible,
     store.newsletterStyle,
+    store.preheaderText,
     store.emailPalette,
   ]);
 
@@ -554,6 +567,10 @@ function PreviewColumn() {
           ...resolvedColors,
           borderStyle: store.newsletterStyle.borderStyle,
           headingAlign: store.newsletterStyle.headingAlign,
+          tableBorderColor: resolvedColors.tableBorderColor,
+          tableBorderWidth: store.newsletterStyle.tableBorderWidth,
+          tableBorderStyle: store.newsletterStyle.tableBorderStyle,
+          tableHeaderBg: resolvedColors.tableHeaderBg,
         },
         emailPalette: store.emailPalette,
       };
@@ -629,6 +646,7 @@ function PreviewColumn() {
             importantNotesItems: config.importantNotesItems,
             generatedSubjectLines: config.generatedSubjectLines,
             selectedSubjectLine: config.selectedSubjectLine,
+            preheaderText: config.preheaderText || '',
             newsletterHeading: importedHeading,
             newsletterBody: importedBody,
             newsletterPosition: config.newsletterPosition,

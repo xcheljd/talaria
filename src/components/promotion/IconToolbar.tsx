@@ -134,13 +134,12 @@ export function IconToolbar({ activeCardId, onCardClick }: IconToolbarProps) {
 
         const Icon = config.icon;
         const isActive = activeCardId === cardId;
-        const showDivider = cardId === 'subjectCard' || cardId === 'emailThemeCard';
+        const showDivider =
+          cardId === 'subjectCard' || cardId === 'emailThemeCard';
 
         return (
           <Fragment key={cardId}>
-            {showDivider && (
-              <div className="h-8 w-px bg-border mx-0.5" />
-            )}
+            {showDivider && <div className="h-8 w-px bg-border mx-0.5" />}
             <button
               type="button"
               title={config.tooltip}

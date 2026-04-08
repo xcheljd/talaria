@@ -378,11 +378,9 @@ describe('SubjectLineGenerator', () => {
 
     renderWithProviders(<SubjectLineGenerator />);
 
-    // The badge contains the character count (text may be split across children)
-    const badge = screen.getByText(/chars/);
+    // The badge contains the character count — match the subject line badge (not preheader's "/ 100 chars")
+    const badge = screen.getByText(/^\d+ chars/);
     expect(badge).toBeInTheDocument();
-    expect(badge.textContent).toContain('chars');
-    // Verify the actual character count is present
     expect(badge.textContent).toMatch(/\d+ chars/);
   });
 
@@ -398,7 +396,7 @@ describe('SubjectLineGenerator', () => {
     renderWithProviders(<SubjectLineGenerator />);
 
     // Should show ✓ for optimal length (<= 50 chars)
-    const badge = screen.getByText(/chars/);
+    const badge = screen.getByText(/^\d+ chars/);
     expect(badge.textContent).toContain('✓');
   });
 

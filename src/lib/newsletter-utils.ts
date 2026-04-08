@@ -21,10 +21,14 @@ export function resolveNewsletterColors(
   borderColor: string;
   backgroundColor: string;
   headingColor: string;
+  tableBorderColor: string;
+  tableHeaderBg: string;
 } {
   return {
     borderColor: style.borderColor ?? palette.footerBg,
     backgroundColor: style.backgroundColor ?? palette.sectionBg,
     headingColor: style.headingColor ?? palette.footerBg,
+    tableBorderColor: style.tableBorderColor ?? palette.text,
+    tableHeaderBg: style.tableHeaderBg ?? palette.sectionBg,
   };
 }

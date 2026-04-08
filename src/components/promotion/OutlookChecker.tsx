@@ -285,8 +285,13 @@ export function OutlookChecker() {
         ...resolvedColors,
         borderStyle: store.newsletterStyle.borderStyle,
         headingAlign: store.newsletterStyle.headingAlign,
+        tableBorderColor: resolvedColors.tableBorderColor,
+        tableBorderWidth: store.newsletterStyle.tableBorderWidth,
+        tableBorderStyle: store.newsletterStyle.tableBorderStyle,
+        tableHeaderBg: resolvedColors.tableHeaderBg,
       },
       emailPalette: store.emailPalette,
+      preheaderText: store.preheaderText,
     };
     return generatePromotionEmailHTML(data);
   }, [store]);

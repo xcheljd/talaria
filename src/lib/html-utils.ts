@@ -45,6 +45,14 @@ const ALLOWED_TAGS = new Set([
   'code',
   'sub',
   'sup',
+  'img',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'td',
+  'th',
+  'hr',
 ]);
 
 /**
@@ -65,8 +73,14 @@ const ALLOWED_ATTRS: Record<string, Set<string>> = {
   ul: new Set(['style']),
   ol: new Set(['style']),
   blockquote: new Set(['style']),
-  td: new Set(['style']),
-  th: new Set(['style']),
+  td: new Set(['style', 'colspan', 'rowspan']),
+  th: new Set(['style', 'colspan', 'rowspan']),
+  table: new Set(['style']),
+  tr: new Set(['style']),
+  img: new Set(['src', 'alt', 'width', 'height', 'style', 'align', 'href']),
+  hr: new Set(['style']),
+  pre: new Set(['style']),
+  code: new Set(['class', 'style']),
 };
 
 /**

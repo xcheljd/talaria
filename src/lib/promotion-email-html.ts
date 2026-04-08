@@ -12,13 +12,14 @@ import {
   getStoreHours,
   getStorePlusCode,
 } from './profile';
-import type {
-  PromotionEntry,
-  SpecialHour,
-  HowToShopItem,
-  ImportantNotesItem,
-  NewsletterPosition,
-  NewsletterStyle,
+import {
+  DEFAULT_NEWSLETTER_STYLE,
+  type PromotionEntry,
+  type SpecialHour,
+  type HowToShopItem,
+  type ImportantNotesItem,
+  type NewsletterPosition,
+  type NewsletterStyle,
 } from '@/stores/promotion-store';
 
 // ===== Email Palette =====
@@ -63,9 +64,15 @@ function parseColor(color: string): [number, number, number] | null {
 
   // Named colors
   const named: Record<string, [number, number, number]> = {
-    white: [255, 255, 255], black: [0, 0, 0], gray: [128, 128, 128],
-    grey: [128, 128, 128], red: [255, 0, 0], green: [0, 128, 0],
-    blue: [0, 0, 255], yellow: [255, 255, 0], orange: [255, 165, 0],
+    white: [255, 255, 255],
+    black: [0, 0, 0],
+    gray: [128, 128, 128],
+    grey: [128, 128, 128],
+    red: [255, 0, 0],
+    green: [0, 128, 0],
+    blue: [0, 0, 255],
+    yellow: [255, 255, 0],
+    orange: [255, 165, 0],
   };
   if (named[c]) return named[c];
 
@@ -90,8 +97,16 @@ function parseColor(color: string): [number, number, number] | null {
 }
 
 function toHex(r: number, g: number, b: number): string {
-  return '#' + [r, g, b].map((v) => Math.round(Math.max(0, Math.min(255, v)))
-    .toString(16).padStart(2, '0')).join('');
+  return (
+    '#' +
+    [r, g, b]
+      .map((v) =>
+        Math.round(Math.max(0, Math.min(255, v)))
+          .toString(16)
+          .padStart(2, '0')
+      )
+      .join('')
+  );
 }
 
 /** Relative luminance (0 = black, 1 = white) per WCAG formula */
@@ -154,7 +169,10 @@ function adjustLink(rgb: [number, number, number]): string {
  * Mimics how Gmail/Outlook invert colors: light bgs → dark, dark text → light.
  */
 export function buildDarkModePalette(palette: EmailPalette): EmailPalette {
-  const transform = (color: string, fn: (rgb: [number, number, number]) => string): string => {
+  const transform = (
+    color: string,
+    fn: (rgb: [number, number, number]) => string
+  ): string => {
     const rgb = parseColor(color);
     return rgb ? fn(rgb) : color;
   };
@@ -170,11 +188,15 @@ export function buildDarkModePalette(palette: EmailPalette): EmailPalette {
     link: transform(palette.link, adjustLink),
     noteBorder: transform(palette.noteBorder, (rgb) => {
       const lum = luminance(...rgb);
-      return lum > 0.5 ? toHex(rgb[0] * 0.3, rgb[1] * 0.3, rgb[2] * 0.3) : toHex(...rgb);
+      return lum > 0.5
+        ? toHex(rgb[0] * 0.3, rgb[1] * 0.3, rgb[2] * 0.3)
+        : toHex(...rgb);
     }),
     headerBorder: transform(palette.headerBorder, (rgb) => {
       const lum = luminance(...rgb);
-      return lum > 0.5 ? toHex(rgb[0] * 0.4, rgb[1] * 0.4, rgb[2] * 0.4) : toHex(...rgb);
+      return lum > 0.5
+        ? toHex(rgb[0] * 0.4, rgb[1] * 0.4, rgb[2] * 0.4)
+        : toHex(...rgb);
     }),
   };
 }
@@ -193,12 +215,17 @@ export interface PromotionEmailData {
   newsletterBody: string;
   newsletterPosition: NewsletterPosition;
   newsletterVisible: boolean;
+  preheaderText?: string;
   newsletterStyle: {
     borderColor: string;
     backgroundColor: string;
     headingColor: string;
     borderStyle: 'left' | 'full' | 'none' | 'top';
     headingAlign: 'left' | 'center';
+    tableBorderColor?: string;
+    tableBorderWidth?: 1 | 2 | 3;
+    tableBorderStyle?: 'solid' | 'dashed' | 'dotted' | 'none';
+    tableHeaderBg?: string;
   };
   /** Optional custom email palette; falls back to EMAIL_PALETTE defaults */
   emailPalette?: EmailPalette;
@@ -222,6 +249,7 @@ export interface PromotionConfigForExport {
   }>;
   generatedSubjectLines: string[];
   selectedSubjectLine: string | null;
+  preheaderText?: string;
   newsletterHeading: string;
   newsletterBody: string;
   newsletterPosition: NewsletterPosition;
@@ -252,7 +280,25 @@ function escapeHtml(text: string): string {
  * font-family, margins, and padding so no <style> block or CSS class
  * is needed in the email output.
  */
-function convertTipTapToInlineHTML(html: string, palette: EmailPalette = EMAIL_PALETTE): string {
+interface TableStyleOptions {
+  borderColor: string;
+  borderWidth: 1 | 2 | 3;
+  borderStyle: 'solid' | 'dashed' | 'dotted' | 'none';
+  headerBg: string;
+}
+
+const DEFAULT_TABLE_STYLE: TableStyleOptions = {
+  borderColor: EMAIL_PALETTE.text,
+  borderWidth: 1,
+  borderStyle: 'solid',
+  headerBg: EMAIL_PALETTE.sectionBg,
+};
+
+function convertTipTapToInlineHTML(
+  html: string,
+  palette: EmailPalette = EMAIL_PALETTE,
+  tableStyle: TableStyleOptions = DEFAULT_TABLE_STYLE
+): string {
   if (!html || !html.trim()) return '';
 
   // Sanitize to strip dangerous elements (scripts, event handlers, etc.)
@@ -302,24 +348,30 @@ function convertTipTapToInlineHTML(html: string, palette: EmailPalette = EMAIL_P
   );
   result = result.replace(/<\/mark>/g, '</span>');
 
+  // ===== Helper to extract text-align from existing style attr =====
+  const extractTextAlign = (attrs: string): string => {
+    const match = attrs.match(/style="[^"]*text-align:\s*(left|center|right|justify)/);
+    return match ? ` text-align: ${match[1]};` : '';
+  };
+
   // ===== Structural elements with inline styles =====
 
-  // Replace <h2> with inline-styled version
+  // Replace <h2> with inline-styled version (preserve text-align)
   result = result.replace(
     /<h2([^>]*)>/g,
-    "<h2 style=\"font-size: 20px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 15px 0 8px 0; font-weight: bold;\">"
+    (_match, attrs) => `<h2 style="font-size: 20px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 15px 0 8px 0; font-weight: bold;${extractTextAlign(attrs)}">`
   );
 
-  // Replace <h3> with inline-styled version
+  // Replace <h3> with inline-styled version (preserve text-align)
   result = result.replace(
     /<h3([^>]*)>/g,
-    "<h3 style=\"font-size: 17px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 12px 0 6px 0; font-weight: bold;\">"
+    (_match, attrs) => `<h3 style="font-size: 17px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 12px 0 6px 0; font-weight: bold;${extractTextAlign(attrs)}">`
   );
 
-  // Replace <p> with inline-styled version
+  // Replace <p> with inline-styled version (preserve text-align)
   result = result.replace(
     /<p([^>]*)>/g,
-    "<p style=\"font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 8px 0;\">"
+    (_match, attrs) => `<p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 8px 0;${extractTextAlign(attrs)}">`
   );
 
   // Replace <ul> with inline-styled version
@@ -328,10 +380,108 @@ function convertTipTapToInlineHTML(html: string, palette: EmailPalette = EMAIL_P
     "<ul style=\"font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 8px 0; padding-left: 24px;\">"
   );
 
+  // Replace <ol> with inline-styled version
+  result = result.replace(
+    /<ol([^>]*)>/g,
+    "<ol style=\"font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 8px 0; padding-left: 24px;\">"
+  );
+
   // Replace <li> with inline-styled version
   result = result.replace(
     /<li([^>]*)>/g,
     "<li style=\"font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 2px 0;\">"
+  );
+
+  // Replace <blockquote> with inline-styled version
+  result = result.replace(
+    /<blockquote([^>]*)>/g,
+    `<blockquote style="border-left: 4px solid ${palette.accent}; padding-left: 12px; margin: 8px 0; color: #555555; font-style: italic;">`
+  );
+
+  // Replace <pre><code> blocks with inline-styled version
+  result = result.replace(
+    /<pre([^>]*)>\s*<code[^>]*>/g,
+    `<pre style="background-color: ${palette.footerBg}; border-radius: 6px; padding: 12px 16px; margin: 8px 0; overflow-x: auto; border: 1px solid #dddddd;"><code style="font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.5; background: none;">`
+  );
+
+  // Replace <hr> with inline-styled version (preserve existing style for dashed/dotted/accent variants)
+  result = result.replace(
+    /<hr([^>]*)>/g,
+    (_match, attrs) => {
+      const styleMatch = attrs.match(/style="([^"]*)"/);
+      const existingStyle = styleMatch ? styleMatch[1] : `border: none; border-top: 1px solid ${tableStyle.borderColor};`;
+      return `<hr style="margin: 12px 0; ${existingStyle}" />`;
+    }
+  );
+
+  // Replace <table> with inline-styled version
+  const tBorder = tableStyle.borderStyle === 'none'
+    ? 'border: none;'
+    : `border: ${tableStyle.borderWidth}px ${tableStyle.borderStyle} ${tableStyle.borderColor};`;
+  result = result.replace(
+    /<table([^>]*)>/g,
+    `<table style="border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; ${tBorder}">`
+  );
+
+  // Replace <td> with inline-styled version (preserve colspan/rowspan)
+  const cellBorder = tableStyle.borderStyle === 'none'
+    ? 'border: none;'
+    : `border: ${tableStyle.borderWidth}px ${tableStyle.borderStyle} ${tableStyle.borderColor};`;
+  result = result.replace(
+    /<td([^>]*)>/g,
+    (_match, attrs) => {
+      const colspan = attrs.match(/colspan="([^"]*)"/);
+      const rowspan = attrs.match(/rowspan="([^"]*)"/);
+      let extra = '';
+      if (colspan) extra += ` colspan="${colspan[1]}"`;
+      if (rowspan) extra += ` rowspan="${rowspan[1]}"`;
+      return `<td${extra} style="${cellBorder} padding: 6px 8px; vertical-align: top;">`;
+    }
+  );
+
+  // Replace <th> with inline-styled version (preserve colspan/rowspan)
+  result = result.replace(
+    /<th([^>]*)>/g,
+    (_match, attrs) => {
+      const colspan = attrs.match(/colspan="([^"]*)"/);
+      const rowspan = attrs.match(/rowspan="([^"]*)"/);
+      let extra = '';
+      if (colspan) extra += ` colspan="${colspan[1]}"`;
+      if (rowspan) extra += ` rowspan="${rowspan[1]}"`;
+      return `<th${extra} style="${cellBorder} padding: 6px 8px; vertical-align: top; font-weight: bold; background-color: ${tableStyle.headerBg};">`;
+    }
+  );
+
+  // Replace <img> with inline-styled version (preserve src, alt, width, height, align, href)
+  result = result.replace(
+    /<img([^>]*)>/g,
+    (_match, attrs) => {
+      const src = attrs.match(/src="([^"]*)"/);
+      const alt = attrs.match(/alt="([^"]*)"/);
+      const width = attrs.match(/width="([^"]*)"/);
+      const height = attrs.match(/height="([^"]*)"/);
+      const alignMatch = attrs.match(/align="([^"]*)"/);
+      const hrefMatch = attrs.match(/href="([^"]*)"/);
+      if (!src) return '';
+
+      const align = alignMatch?.[1] || 'center';
+      let alignStyle = 'display: block; margin: 8px auto;';
+      if (align === 'left') alignStyle = 'display: block; margin: 8px auto 8px 0;';
+      if (align === 'right') alignStyle = 'display: block; margin: 8px 0 8px auto;';
+
+      let imgAttrs = `src="${src[1]}"`;
+      if (alt) imgAttrs += ` alt="${alt[1]}"`;
+      if (width) imgAttrs += ` width="${width[1]}"`;
+      if (height) imgAttrs += ` height="${height[1]}"`;
+      const widthStyle = width ? `width: ${width[1]}px; ` : '';
+
+      const imgTag = `<img ${imgAttrs} style="${widthStyle}max-width: 100%; height: auto; ${alignStyle}" />`;
+
+      if (hrefMatch?.[1]) {
+        return `<a href="${hrefMatch[1]}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">${imgTag}</a>`;
+      }
+      return imgTag;
+    }
   );
 
   // Replace <a> with inline-styled version (preserve href)
@@ -364,7 +514,13 @@ function buildNewsletterSection(
   const headingText = h2Match ? h2Match[1].replace(/<[^>]*>/g, '').trim() : '';
   const restBody = h2Match ? body.replace(/<h2[^>]*>.*?<\/h2>/i, '') : body;
 
-  const bodyHTML = convertTipTapToInlineHTML(restBody, palette);
+  const tableOpts: TableStyleOptions = {
+    borderColor: style.tableBorderColor ?? palette.accent,
+    borderWidth: style.tableBorderWidth ?? 1,
+    borderStyle: style.tableBorderStyle ?? 'solid',
+    headerBg: style.tableHeaderBg ?? palette.sectionBg,
+  };
+  const bodyHTML = convertTipTapToInlineHTML(restBody, palette, tableOpts);
   if (!headingText && (!bodyHTML || !bodyHTML.trim())) return '';
 
   // Check if the converted body is just empty tags (no visible content)
@@ -824,6 +980,11 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
   const newsletterBottomHTML =
     data.newsletterPosition === 'bottom' ? newsletterSection : '';
 
+  // Preheader text — hidden span that email clients show as preview text
+  const preheaderHTML = data.preheaderText?.trim()
+    ? `<span style="display:none;font-size:1px;color:${pal.bodyBg};line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${escapeHtml(data.preheaderText.trim())}</span>`
+    : '';
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -847,7 +1008,7 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
     </style>
 </head>
 <body style="font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; color: ${pal.text}; background-color: ${pal.bodyBg}; margin: 0; padding: 0;">
-
+${preheaderHTML}
     <center>
     <table class="email-container" width="600" style="max-width: 600px; width: 100%; background-color: ${pal.bodyBg}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif;">
 
@@ -1005,16 +1166,11 @@ export function buildExportConfig(
     })),
     generatedSubjectLines: [...generatedSubjectLines],
     selectedSubjectLine,
+    preheaderText: data.preheaderText,
     newsletterHeading: data.newsletterHeading,
     newsletterBody: data.newsletterBody,
     newsletterPosition: data.newsletterPosition,
-    newsletterStyle: newsletterStyle || {
-      borderColor: null,
-      backgroundColor: null,
-      headingColor: null,
-      borderStyle: 'left',
-      headingAlign: 'left',
-    },
+    newsletterStyle: newsletterStyle || { ...DEFAULT_NEWSLETTER_STYLE },
     newsletterVisible: data.newsletterVisible,
     emailPalette: emailPalette || data.emailPalette,
   };
@@ -1077,16 +1233,13 @@ export function validateImportConfig(
       generatedSubjectLines: (config.generatedSubjectLines as string[]) || [],
       selectedSubjectLine:
         (config.selectedSubjectLine as string | null) || null,
+      preheaderText: (config.preheaderText as string) || '',
       newsletterHeading: (config.newsletterHeading as string) || 'Newsletter',
       newsletterBody: (config.newsletterBody as string) || '',
       newsletterPosition:
         (config.newsletterPosition as NewsletterPosition) || 'top',
       newsletterStyle: (config.newsletterStyle as NewsletterStyle) || {
-        borderColor: null,
-        backgroundColor: null,
-        headingColor: null,
-        borderStyle: 'left',
-        headingAlign: 'left',
+        ...DEFAULT_NEWSLETTER_STYLE,
       },
       newsletterVisible: (config.newsletterVisible as boolean) ?? false,
       emailPalette: (config.emailPalette as EmailPalette) || undefined,

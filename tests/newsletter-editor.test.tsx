@@ -493,15 +493,15 @@ describe('NewsletterEditor - show in email toggle', () => {
 
   it('toggle is unchecked by default when newsletterVisible is false', () => {
     render(<NewsletterEditor />);
-    const toggle = screen.getByTestId('newsletter-visible-toggle') as HTMLInputElement;
-    expect(toggle.checked).toBe(false);
+    const toggle = screen.getByTestId('newsletter-visible-toggle');
+    expect(toggle.getAttribute('data-state')).toBe('unchecked');
   });
 
   it('toggle is checked when newsletterVisible is true', () => {
     mockStore.newsletterVisible = true;
     render(<NewsletterEditor />);
-    const toggle = screen.getByTestId('newsletter-visible-toggle') as HTMLInputElement;
-    expect(toggle.checked).toBe(true);
+    const toggle = screen.getByTestId('newsletter-visible-toggle');
+    expect(toggle.getAttribute('data-state')).toBe('checked');
   });
 
   it('calls setNewsletterVisible when toggled', async () => {

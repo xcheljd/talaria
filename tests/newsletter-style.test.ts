@@ -475,6 +475,10 @@ describe('newsletter style - export/import config', () => {
       headingColor: null,
       borderStyle: 'left',
       headingAlign: 'left',
+      tableBorderColor: null,
+      tableBorderWidth: 1,
+      tableBorderStyle: 'solid',
+      tableHeaderBg: null,
     });
   });
 
@@ -517,6 +521,10 @@ describe('newsletter style - export/import config', () => {
         headingColor: null,
         borderStyle: 'left',
         headingAlign: 'left',
+        tableBorderColor: null,
+        tableBorderWidth: 1,
+        tableBorderStyle: 'solid',
+        tableHeaderBg: null,
       });
     }
   });

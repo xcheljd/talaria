@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { RefreshCw, Mail, Star } from 'lucide-react';
+import { RefreshCw, Mail, Star, Sparkles } from 'lucide-react';
 
 import { usePromotionStore } from '@/stores/promotion-store';
 import { generateSubjectLines } from '@/lib/subject-line-generator';
@@ -40,9 +40,7 @@ function InboxPreview({
   const maxSubject = 60;
   const maxPreheader = 80;
   const truncatedSubject =
-    subject.length > maxSubject
-      ? subject.slice(0, maxSubject) + '…'
-      : subject;
+    subject.length > maxSubject ? subject.slice(0, maxSubject) + '…' : subject;
   const truncatedPreheader =
     preheader.length > maxPreheader
       ? preheader.slice(0, maxPreheader) + '…'
@@ -94,7 +92,9 @@ function InboxPreview({
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-sm truncate">No-Reply</span>
-              <span className="text-[11px] text-muted-foreground shrink-0">9:15 AM</span>
+              <span className="text-[11px] text-muted-foreground shrink-0">
+                9:15 AM
+              </span>
             </div>
             <p className="text-xs text-muted-foreground truncate">
               Your account settings have been updated
@@ -164,16 +164,38 @@ export function SubjectLineGenerator() {
   const charCount = store.selectedSubjectLine?.length ?? 0;
   const isOptimal = charCount > 0 && charCount <= OPTIMAL_LENGTH;
 
-  // Build preheader from promotion context
-  const preheader = useMemo(() => {
-    const parts: string[] = [];
-    if (store.promoDateRange) parts.push(store.promoDateRange);
-    // Use first couple promotion entry summaries
-    for (const entry of store.promotionEntries.slice(0, 2)) {
-      if (entry.line) parts.push(entry.line);
+  // Generate preheader suggestions from promotion content
+  const preheaderSuggestions = useMemo(() => {
+    const suggestions: string[] = [];
+    const entries = store.promotionEntries.filter((e) => e.line?.trim());
+    const dateRange = store.promoDateRange;
+
+    if (dateRange && entries.length > 0) {
+      suggestions.push(
+        `${dateRange} — ${entries.map((e) => e.line).join(', ')}`
+      );
     }
-    return parts.join(' — ') || 'Preview your promotion deals and savings inside.';
+    if (entries.length > 0) {
+      suggestions.push(
+        `Don't miss out: ${entries.slice(0, 2).map((e) => e.line).join(' + ')}`
+      );
+    }
+    if (dateRange) {
+      suggestions.push(
+        `Exclusive savings ${dateRange} — while supplies last`
+      );
+    }
+    if (entries.length > 0) {
+      suggestions.push(
+        `Shop ${entries.length} deal${entries.length > 1 ? 's' : ''} inside — limited availability`
+      );
+    }
+    suggestions.push('Preview your promotion deals and savings inside.');
+    return suggestions;
   }, [store.promoDateRange, store.promotionEntries]);
+
+  // Preheader for inbox preview — custom text or auto-generated fallback
+  const preheaderDisplay = store.preheaderText.trim() || preheaderSuggestions[0];
 
   // No generated lines yet — show generate prompt
   const hasLines = store.generatedSubjectLines.length > 0;
@@ -265,11 +287,67 @@ export function SubjectLineGenerator() {
             </div>
           )}
 
+          {/* Preheader Text */}
+          <div className="space-y-1.5">
+            <label
+              htmlFor="preheader-input"
+              className="text-sm font-medium"
+            >
+              Preheader Text (preview text):
+            </label>
+            <ClearableInput
+              id="preheader-input"
+              value={store.preheaderText}
+              onChange={(val) => store.setPreheaderText(val)}
+              placeholder="Text shown after subject in inbox..."
+              title="Preview text shown after the subject line in email client inbox views. Keep it under 100 characters."
+              className="w-full"
+            />
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={
+                  store.preheaderText.length > 0 &&
+                  store.preheaderText.length <= 100
+                    ? 'default'
+                    : 'secondary'
+                }
+                className="text-xs"
+              >
+                {store.preheaderText.length} / 100 chars
+              </Badge>
+            </div>
+
+            {/* Preheader suggestions */}
+            {!store.preheaderText.trim() && (
+              <div className="space-y-1">
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" />
+                  Suggestions (click to use):
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {preheaderSuggestions.slice(0, 4).map((suggestion, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className="text-left text-[11px] rounded border px-2 py-1 hover:bg-accent transition-colors truncate max-w-full"
+                      onClick={() => store.setPreheaderText(suggestion)}
+                      title={suggestion}
+                    >
+                      {suggestion.length > 60
+                        ? suggestion.slice(0, 60) + '…'
+                        : suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Inbox Preview */}
           {store.selectedSubjectLine && (
             <InboxPreview
               subject={store.selectedSubjectLine}
-              preheader={preheader}
+              preheader={preheaderDisplay}
             />
           )}
         </>

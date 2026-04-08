@@ -68,6 +68,10 @@ export interface NewsletterStyle {
   headingColor: string | null; // null = auto (use palette primary)
   borderStyle: 'left' | 'full' | 'none' | 'top'; // default 'left'
   headingAlign: 'left' | 'center'; // default 'left'
+  tableBorderColor: string | null; // null = auto (use palette accent)
+  tableBorderWidth: 1 | 2 | 3; // default 1
+  tableBorderStyle: 'solid' | 'dashed' | 'dotted' | 'none'; // default 'solid'
+  tableHeaderBg: string | null; // null = auto (use palette sectionBg)
 }
 
 /** Resolved newsletter style with all colors filled in (no nulls) */
@@ -77,6 +81,10 @@ export interface ResolvedNewsletterStyle {
   headingColor: string;
   borderStyle: 'left' | 'full' | 'none' | 'top';
   headingAlign: 'left' | 'center';
+  tableBorderColor: string;
+  tableBorderWidth: 1 | 2 | 3;
+  tableBorderStyle: 'solid' | 'dashed' | 'dotted' | 'none';
+  tableHeaderBg: string;
 }
 
 export const DEFAULT_NEWSLETTER_STYLE: NewsletterStyle = {
@@ -85,6 +93,10 @@ export const DEFAULT_NEWSLETTER_STYLE: NewsletterStyle = {
   headingColor: null,
   borderStyle: 'left',
   headingAlign: 'left',
+  tableBorderColor: null,
+  tableBorderWidth: 1,
+  tableBorderStyle: 'solid',
+  tableHeaderBg: null,
 };
 
 /** User-customizable email color palette */
@@ -125,6 +137,7 @@ export interface PromotionPersistedState {
   attachedPDFs: AttachedPDF[];
   generatedSubjectLines: string[];
   selectedSubjectLine: string | null;
+  preheaderText: string;
   newsletterHeading: string;
   newsletterBody: string;
   newsletterPosition: NewsletterPosition;
@@ -147,6 +160,7 @@ export interface PromotionState {
   attachedPDFs: AttachedPDF[];
   generatedSubjectLines: string[];
   selectedSubjectLine: string | null;
+  preheaderText: string;
   subjectLineManuallyEdited: boolean;
   entryCollapsedStates: Record<number, boolean>;
   columnState: ColumnState;
@@ -225,6 +239,7 @@ export interface PromotionState {
   setGeneratedSubjectLines: (lines: string[]) => void;
   setSelectedSubjectLine: (line: string | null) => void;
   setSubjectLineManuallyEdited: (edited: boolean) => void;
+  setPreheaderText: (text: string) => void;
 
   // Column state
   setColumnState: (state: ColumnState) => void;
@@ -314,6 +329,7 @@ function getEmptyState() {
     attachedPDFs: [] as AttachedPDF[],
     generatedSubjectLines: [] as string[],
     selectedSubjectLine: null as string | null,
+    preheaderText: '' as string,
     newsletterHeading: 'Newsletter' as string,
     newsletterBody: '' as string,
     newsletterPosition: 'top' as NewsletterPosition,
@@ -579,6 +595,8 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   setSubjectLineManuallyEdited: (edited: boolean) =>
     set({ subjectLineManuallyEdited: edited }),
 
+  setPreheaderText: (text: string) => set({ preheaderText: text }),
+
   // ===== Column State =====
 
   setColumnState: (columnState: ColumnState) => set({ columnState }),
@@ -614,8 +632,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
     set((state) => ({
       emailPalette: { ...state.emailPalette, ...palette },
     })),
-  resetEmailPalette: () =>
-    set({ emailPalette: { ...DEFAULT_EMAIL_PALETTE } }),
+  resetEmailPalette: () => set({ emailPalette: { ...DEFAULT_EMAIL_PALETTE } }),
 
   // ===== Initialization =====
 
@@ -747,6 +764,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       })),
       generatedSubjectLines: state.generatedSubjectLines,
       selectedSubjectLine: state.selectedSubjectLine,
+      preheaderText: state.preheaderText,
       newsletterHeading: state.newsletterHeading,
       newsletterBody: state.newsletterBody,
       newsletterPosition: state.newsletterPosition,
@@ -846,6 +864,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         attachedPDFs: restoredPDFs,
         generatedSubjectLines: parsed.generatedSubjectLines || [],
         selectedSubjectLine: parsed.selectedSubjectLine || null,
+        preheaderText: parsed.preheaderText || '',
         promoDateRange: parsed.promoDateRange || '',
         promoYear: parsed.promoYear || '',
         promoTitle: parsed.promoTitle || '',

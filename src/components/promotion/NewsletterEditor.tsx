@@ -9,16 +9,17 @@
  * - Syncs editor content to Zustand store on every change
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { NodeSelection, Plugin, PluginKey } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
 import Placeholder from '@tiptap/extension-placeholder';
-import Image from '@tiptap/extension-image';
+import { ResizableImage } from './ResizableImage';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
@@ -67,10 +68,12 @@ import {
   SpellCheck,
   Smile,
   Clock,
+  RemoveFormatting,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isSafeURL } from '@/lib/html-utils';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
   Popover,
@@ -81,6 +84,45 @@ import {
   usePromotionStore,
   type NewsletterPosition,
 } from '@/stores/promotion-store';
+
+// ===== Font Size Extension =====
+
+const FONT_SIZES = [12, 14, 16, 18, 20, 24] as const;
+
+const FontSize = Extension.create({
+  name: 'fontSize',
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['textStyle'],
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: (element) =>
+              element.style.fontSize?.replace(/['"]+/g, '') || null,
+            renderHTML: (attributes) => {
+              if (!attributes.fontSize) return {};
+              return { style: `font-size: ${attributes.fontSize}` };
+            },
+          },
+        },
+      },
+    ];
+  },
+  addCommands() {
+    return {
+      setFontSize:
+        (size: string) =>
+        ({ chain }: { chain: any }) =>
+          chain().setMark('textStyle', { fontSize: size }).run(),
+      unsetFontSize:
+        () =>
+        ({ chain }: { chain: any }) =>
+          chain().setMark('textStyle', { fontSize: null }).run(),
+    } as any;
+  },
+});
+
 // ===== Heading Extraction Helper =====
 
 /** Extract the text content of the first H2 element from HTML using DOMParser. */
@@ -101,12 +143,17 @@ const MAX_IMAGE_SIZE_KB = 200;
  * Compress an image data URL using canvas resize.
  * Returns the compressed data URL and a warning if the image is still large.
  */
-function compressImage(dataUrl: string): Promise<{ src: string; warning?: string }> {
+function compressImage(
+  dataUrl: string
+): Promise<{ src: string; warning?: string }> {
   return new Promise((resolve) => {
     const img = new window.Image();
     img.onload = () => {
       // Only resize if wider than email width
-      if (img.width <= MAX_IMAGE_WIDTH && dataUrl.length < MAX_IMAGE_SIZE_KB * 1024) {
+      if (
+        img.width <= MAX_IMAGE_WIDTH &&
+        dataUrl.length < MAX_IMAGE_SIZE_KB * 1024
+      ) {
         resolve({ src: dataUrl });
         return;
       }
@@ -116,15 +163,19 @@ function compressImage(dataUrl: string): Promise<{ src: string; warning?: string
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
       const ctx = canvas.getContext('2d');
-      if (!ctx) { resolve({ src: dataUrl }); return; }
+      if (!ctx) {
+        resolve({ src: dataUrl });
+        return;
+      }
 
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       const compressed = canvas.toDataURL('image/jpeg', 0.8);
 
       const sizeKB = Math.round(compressed.length / 1024);
-      const warning = sizeKB > MAX_IMAGE_SIZE_KB
-        ? `Image is ${sizeKB}KB (base64). Large images may not display in some email clients.`
-        : undefined;
+      const warning =
+        sizeKB > MAX_IMAGE_SIZE_KB
+          ? `Image is ${sizeKB}KB (base64). Large images may not display in some email clients.`
+          : undefined;
 
       resolve({ src: compressed, warning });
     };
@@ -137,53 +188,127 @@ function compressImage(dataUrl: string): Promise<{ src: string; warning?: string
 
 const EMOJI_LIST = [
   // Smileys
-  '😀', '😃', '😄', '😁', '😊', '🥰', '😍', '🤩',
-  '😎', '🤗', '🤔', '😉', '👋', '👍', '👏', '🙌',
+  '😀',
+  '😃',
+  '😄',
+  '😁',
+  '😊',
+  '🥰',
+  '😍',
+  '🤩',
+  '😎',
+  '🤗',
+  '🤔',
+  '😉',
+  '👋',
+  '👍',
+  '👏',
+  '🙌',
   // Celebration
-  '🎉', '🎊', '🔥', '✨', '⭐', '🌟', '💫', '🏆',
-  '🎁', '🎈', '💯', '🥇', '🏅', '💎', '👑', '🎯',
+  '🎉',
+  '🎊',
+  '🔥',
+  '✨',
+  '⭐',
+  '🌟',
+  '💫',
+  '🏆',
+  '🎁',
+  '🎈',
+  '💯',
+  '🥇',
+  '🏅',
+  '💎',
+  '👑',
+  '🎯',
   // Shopping & Business
-  '🛍️', '🛒', '💰', '💵', '💲', '📦', '📬', '✉️',
-  '📣', '📢', '🏷️', '🔖', '💳', '🧾', '📋', '✅',
+  '🛍️',
+  '🛒',
+  '💰',
+  '💵',
+  '💲',
+  '📦',
+  '📬',
+  '✉️',
+  '📣',
+  '📢',
+  '🏷️',
+  '🔖',
+  '💳',
+  '🧾',
+  '📋',
+  '✅',
   // Time & Calendar
-  '📅', '⏰', '🕐', '⏳', '📌', '🔔', '🆕', '🆓',
+  '📅',
+  '⏰',
+  '🕐',
+  '⏳',
+  '📌',
+  '🔔',
+  '🆕',
+  '🆓',
   // Arrows & Symbols
-  '➡️', '⬇️', '✔️', '❌', '⚠️', '❗', '❓', '💡',
-  '🔗', '📎', '📞', '📧', '🌐', '📍', '🏠', '🏢',
+  '➡️',
+  '⬇️',
+  '✔️',
+  '❌',
+  '⚠️',
+  '❗',
+  '❓',
+  '💡',
+  '🔗',
+  '📎',
+  '📞',
+  '📧',
+  '🌐',
+  '📍',
+  '🏠',
+  '🏢',
   // Hearts & Hands
-  '❤️', '💙', '💚', '💛', '🧡', '💜', '🖤', '🤍',
+  '❤️',
+  '💙',
+  '💚',
+  '💛',
+  '🧡',
+  '💜',
+  '🖤',
+  '🤍',
 ];
 
 // ===== Toolbar Button =====
 
-interface ToolbarButtonProps {
+interface ToolbarButtonProps
+  extends Omit<React.ComponentProps<typeof Button>, 'children'> {
   active: boolean;
-  onClick: () => void;
   label: string;
   children: React.ReactNode;
-  disabled?: boolean;
   shortcut?: string;
 }
 
 function ToolbarButton({
   active,
-  onClick,
   label,
   children,
-  disabled,
   shortcut,
+  className,
+  ref,
+  ...rest
 }: ToolbarButtonProps) {
   return (
     <Button
+      ref={ref}
       variant="ghost"
       size="icon"
-      onClick={onClick}
       aria-label={label}
       aria-pressed={active}
       data-active={active}
-      disabled={disabled}
       title={shortcut ? `${label} (${shortcut})` : label}
-      className={cn('h-7 w-7', active && 'bg-accent text-accent-foreground')}
+      className={cn(
+        'h-7 w-7',
+        active && 'bg-accent text-accent-foreground',
+        className
+      )}
+      {...rest}
     >
       {children}
     </Button>
@@ -273,6 +398,77 @@ const SanitizePasteExtension = Extension.create({
 const lowlight = createLowlight(common);
 
 // ===== Drag-and-Drop Image Extension (#7) =====
+// ===== Drag Handle Extension =====
+
+const DRAGGABLE_NODES = new Set([
+  'paragraph',
+  'heading',
+  'blockquote',
+  'codeBlock',
+  'bulletList',
+  'orderedList',
+  'table',
+  'horizontalRule',
+  'image',
+]);
+
+const dragHandlePluginKey = new PluginKey('dragHandle');
+
+const DragHandleExtension = Extension.create({
+  name: 'dragHandle',
+
+  addProseMirrorPlugins() {
+    let editorView: any = null;
+
+    return [
+      new Plugin({
+        key: dragHandlePluginKey,
+        view(view) {
+          editorView = view;
+          return {
+            update(v) { editorView = v; },
+            destroy() { editorView = null; },
+          };
+        },
+        props: {
+          decorations(state) {
+            const decorations: Decoration[] = [];
+            state.doc.forEach((node, pos) => {
+              if (DRAGGABLE_NODES.has(node.type.name)) {
+                const nodePos = pos;
+                const handle = document.createElement('div');
+                handle.className = 'drag-handle';
+                handle.contentEditable = 'false';
+                handle.draggable = true;
+                handle.innerHTML =
+                  '<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="3" cy="2" r="1"/><circle cx="7" cy="2" r="1"/><circle cx="3" cy="5" r="1"/><circle cx="7" cy="5" r="1"/><circle cx="3" cy="8" r="1"/><circle cx="7" cy="8" r="1"/></svg>';
+
+                handle.addEventListener('mousedown', (e) => {
+                  e.preventDefault();
+                  if (!editorView) return;
+
+                  const sel = NodeSelection.create(
+                    editorView.state.doc,
+                    nodePos
+                  );
+                  editorView.dispatch(
+                    editorView.state.tr.setSelection(sel)
+                  );
+                });
+
+                decorations.push(
+                  Decoration.widget(pos, handle, { side: -1 })
+                );
+              }
+            });
+            return DecorationSet.create(state.doc, decorations);
+          },
+        },
+      }),
+    ];
+  },
+});
+
 const DropImageExtension = Extension.create({
   name: 'dropImage',
 
@@ -285,8 +481,8 @@ const DropImageExtension = Extension.create({
             const files = event.dataTransfer?.files;
             if (!files || files.length === 0) return false;
 
-            const imageFile = Array.from(files).find(
-              (f) => f.type.startsWith('image/')
+            const imageFile = Array.from(files).find((f) =>
+              f.type.startsWith('image/')
             );
             if (!imageFile) return false;
 
@@ -323,6 +519,7 @@ const DropImageExtension = Extension.create({
 export function NewsletterEditor() {
   const store = usePromotionStore();
   const [showCustomize, setShowCustomize] = useState(false);
+  const [showTableStyle, setShowTableStyle] = useState(false);
 
   // Track last-used colors for color pickers (#11)
   const [lastTextColor, setLastTextColor] = useState('#000000');
@@ -348,12 +545,13 @@ export function NewsletterEditor() {
         codeBlock: false,
       }),
       TextStyle,
+      FontSize,
       Color,
       Highlight.configure({ multicolor: true }),
       Placeholder.configure({
         placeholder: 'Start typing your newsletter content...',
       }),
-      Image.configure({ inline: false, allowBase64: true }),
+      ResizableImage,
       Table.configure({ resizable: true }),
       TableRow,
       TableCell,
@@ -363,6 +561,7 @@ export function NewsletterEditor() {
       }),
       CodeBlockLowlight.configure({ lowlight }),
       DropImageExtension,
+      DragHandleExtension,
     ],
     content: store.newsletterBody || '<h2>Newsletter</h2><p></p>',
     onUpdate: ({ editor }) => {
@@ -492,7 +691,7 @@ export function NewsletterEditor() {
   const handleImageFromUrl = useCallback(() => {
     if (!editor || !imageUrl) return;
     if (isSafeURL(imageUrl)) {
-      editor.chain().focus().setImage({ src: imageUrl }).run();
+      (editor.chain().focus() as any).setImage({ src: imageUrl }).run();
     }
     setImagePopoverOpen(false);
     setImageUrl('https://');
@@ -507,7 +706,7 @@ export function NewsletterEditor() {
       reader.onload = async () => {
         const dataUrl = reader.result as string;
         const { src, warning } = await compressImage(dataUrl);
-        editor?.chain().focus().setImage({ src }).run();
+        (editor?.chain().focus() as any).setImage({ src }).run();
         if (warning) {
           // Show a non-blocking console warning; could be upgraded to toast
           console.warn('[Newsletter Image]', warning);
@@ -588,7 +787,11 @@ export function NewsletterEditor() {
         if (match && match.index !== undefined) {
           const from = pos + match.index;
           const to = from + match[0].length;
-          tr.replaceWith(from, to, state.schema.text(match[0].replace(regex, replaceText)));
+          tr.replaceWith(
+            from,
+            to,
+            state.schema.text(match[0].replace(regex, replaceText))
+          );
           found = true;
           return false;
         }
@@ -616,7 +819,11 @@ export function NewsletterEditor() {
         if (matches.length > 0) {
           const newText = text.replace(regex, replaceText);
           const adjustedPos = pos + offset;
-          tr.replaceWith(adjustedPos, adjustedPos + node.nodeSize, state.schema.text(newText));
+          tr.replaceWith(
+            adjustedPos,
+            adjustedPos + node.nodeSize,
+            state.schema.text(newText)
+          );
           offset += newText.length - text.length;
         }
       }
@@ -651,12 +858,12 @@ export function NewsletterEditor() {
     <div className="space-y-3">
       {/* Show in Email Toggle */}
       <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
+        <Checkbox
           id="newsletter-visible-toggle"
           checked={store.newsletterVisible}
-          onChange={(e) => store.setNewsletterVisible(e.target.checked)}
-          className="h-4 w-4 rounded border-border"
+          onCheckedChange={(checked) =>
+            store.setNewsletterVisible(checked === true)
+          }
           data-testid="newsletter-visible-toggle"
         />
         <label
@@ -669,17 +876,21 @@ export function NewsletterEditor() {
 
       {/* Heading guidance */}
       <p className="text-[11px] text-muted-foreground leading-snug">
-        The first <strong>H2</strong> in the editor becomes the newsletter heading.
-        {store.newsletterBody && !extractHeadingFromHTML(store.newsletterBody) && (
-          <span className="text-orange-500 ml-1">
-            No H2 found — click the H2 button to add one.
-          </span>
-        )}
-        {store.newsletterBody && extractHeadingFromHTML(store.newsletterBody) && (
-          <span className="text-muted-foreground/70 ml-1">
-            Current: &ldquo;{extractHeadingFromHTML(store.newsletterBody)}&rdquo;
-          </span>
-        )}
+        The first <strong>H2</strong> in the editor becomes the newsletter
+        heading.
+        {store.newsletterBody &&
+          !extractHeadingFromHTML(store.newsletterBody) && (
+            <span className="text-orange-500 ml-1">
+              No H2 found — click the H2 button to add one.
+            </span>
+          )}
+        {store.newsletterBody &&
+          extractHeadingFromHTML(store.newsletterBody) && (
+            <span className="text-muted-foreground/70 ml-1">
+              Current: &ldquo;{extractHeadingFromHTML(store.newsletterBody)}
+              &rdquo;
+            </span>
+          )}
       </p>
 
       {/* Position Toggle */}
@@ -797,7 +1008,10 @@ export function NewsletterEditor() {
                   autoHint: 'Section',
                   swatches: [
                     { color: store.emailPalette.sectionBg, label: 'Section' },
-                    { color: store.emailPalette.unsubscribeBg, label: 'Subtle' },
+                    {
+                      color: store.emailPalette.unsubscribeBg,
+                      label: 'Subtle',
+                    },
                     { color: store.emailPalette.footerBg, label: 'Footer' },
                     { color: store.emailPalette.bodyBg, label: 'Body' },
                   ],
@@ -869,7 +1083,8 @@ export function NewsletterEditor() {
                         type="button"
                         className={cn(
                           'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
-                          currentValue === sw.color && 'ring-1 ring-primary ring-offset-1'
+                          currentValue === sw.color &&
+                            'ring-1 ring-primary ring-offset-1'
                         )}
                         style={{ backgroundColor: sw.color }}
                         onClick={() =>
@@ -889,6 +1104,237 @@ export function NewsletterEditor() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      {/* Customize Table Style */}
+      <div className="rounded-md border">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
+          onClick={() => setShowTableStyle(!showTableStyle)}
+          data-testid="newsletter-table-style-toggle"
+          aria-expanded={showTableStyle}
+        >
+          <span>Customize Table Style</span>
+          {showTableStyle ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
+        </button>
+        {showTableStyle && (
+          <div className="space-y-3 border-t px-3 py-3">
+            {/* Border Style */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Border Style
+              </label>
+              <div className="flex gap-1.5">
+                {(
+                  [
+                    { value: 'solid', label: 'Solid' },
+                    { value: 'dashed', label: 'Dashed' },
+                    { value: 'dotted', label: 'Dotted' },
+                    { value: 'none', label: 'None' },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`flex h-8 items-center justify-center rounded-md border px-3 text-[10px] transition-colors ${
+                      store.newsletterStyle.tableBorderStyle === opt.value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-muted-foreground hover:bg-muted/50'
+                    }`}
+                    onClick={() =>
+                      store.setNewsletterStyle({ tableBorderStyle: opt.value })
+                    }
+                    aria-label={`Table border style: ${opt.label}`}
+                    data-testid={`table-border-style-${opt.value}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Border Width */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Border Width
+              </label>
+              <div className="flex gap-1.5">
+                {([1, 2, 3] as const).map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    className={`flex h-8 w-10 items-center justify-center rounded-md border text-[10px] transition-colors ${
+                      store.newsletterStyle.tableBorderWidth === w
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-muted-foreground hover:bg-muted/50'
+                    }`}
+                    onClick={() =>
+                      store.setNewsletterStyle({ tableBorderWidth: w })
+                    }
+                    aria-label={`Table border width: ${w}px`}
+                    data-testid={`table-border-width-${w}`}
+                  >
+                    {w}px
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Border Color */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground min-w-[90px]">
+                  Border Color
+                </label>
+                <div
+                  className="h-5 w-5 rounded border border-border shrink-0"
+                  style={{
+                    backgroundColor:
+                      store.newsletterStyle.tableBorderColor ??
+                      store.emailPalette.text,
+                  }}
+                />
+                <input
+                  type="color"
+                  value={
+                    store.newsletterStyle.tableBorderColor ??
+                    store.emailPalette.text
+                  }
+                  onChange={(e) =>
+                    store.setNewsletterStyle({
+                      tableBorderColor: e.target.value,
+                    })
+                  }
+                  className="h-6 w-8 cursor-pointer rounded border-0 p-0"
+                  aria-label="Pick table border color"
+                  data-testid="picker-tableBorderColor"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 gap-1 px-2 text-[10px] text-muted-foreground"
+                  onClick={() =>
+                    store.setNewsletterStyle({ tableBorderColor: null })
+                  }
+                  disabled={store.newsletterStyle.tableBorderColor === null}
+                  aria-label="Reset table border color to auto"
+                  title="Auto uses email text color"
+                >
+                  <RotateCcw className="h-2.5 w-2.5" />
+                  Auto
+                </Button>
+              </div>
+              <div className="flex items-center gap-1 ml-[98px]">
+                {[
+                  { color: store.emailPalette.text, label: 'Text' },
+                  { color: store.emailPalette.accent, label: 'Accent' },
+                  { color: store.emailPalette.footerBg, label: 'Footer' },
+                  { color: store.emailPalette.link, label: 'Link' },
+                ].map((sw) => (
+                  <button
+                    key={sw.color}
+                    type="button"
+                    className={cn(
+                      'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
+                      store.newsletterStyle.tableBorderColor === sw.color &&
+                        'ring-1 ring-primary ring-offset-1'
+                    )}
+                    style={{ backgroundColor: sw.color }}
+                    onClick={() =>
+                      store.setNewsletterStyle({
+                        tableBorderColor: sw.color,
+                      })
+                    }
+                    title={`${sw.label} (${sw.color})`}
+                    aria-label={`Set table border color to ${sw.label}`}
+                  />
+                ))}
+                <span className="text-[9px] text-muted-foreground ml-1">
+                  email colors
+                </span>
+              </div>
+            </div>
+
+            {/* Header Background */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground min-w-[90px]">
+                  Header Bg
+                </label>
+                <div
+                  className="h-5 w-5 rounded border border-border shrink-0"
+                  style={{
+                    backgroundColor:
+                      store.newsletterStyle.tableHeaderBg ??
+                      store.emailPalette.sectionBg,
+                  }}
+                />
+                <input
+                  type="color"
+                  value={
+                    store.newsletterStyle.tableHeaderBg ??
+                    store.emailPalette.sectionBg
+                  }
+                  onChange={(e) =>
+                    store.setNewsletterStyle({ tableHeaderBg: e.target.value })
+                  }
+                  className="h-6 w-8 cursor-pointer rounded border-0 p-0"
+                  aria-label="Pick table header background"
+                  data-testid="picker-tableHeaderBg"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 gap-1 px-2 text-[10px] text-muted-foreground"
+                  onClick={() =>
+                    store.setNewsletterStyle({ tableHeaderBg: null })
+                  }
+                  disabled={store.newsletterStyle.tableHeaderBg === null}
+                  aria-label="Reset table header background to auto"
+                  title="Auto uses email section background"
+                >
+                  <RotateCcw className="h-2.5 w-2.5" />
+                  Auto
+                </Button>
+              </div>
+              <div className="flex items-center gap-1 ml-[98px]">
+                {[
+                  { color: store.emailPalette.sectionBg, label: 'Section' },
+                  { color: store.emailPalette.footerBg, label: 'Footer' },
+                  {
+                    color: store.emailPalette.unsubscribeBg,
+                    label: 'Subtle',
+                  },
+                  { color: store.emailPalette.bodyBg, label: 'Body' },
+                ].map((sw) => (
+                  <button
+                    key={sw.color}
+                    type="button"
+                    className={cn(
+                      'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
+                      store.newsletterStyle.tableHeaderBg === sw.color &&
+                        'ring-1 ring-primary ring-offset-1'
+                    )}
+                    style={{ backgroundColor: sw.color }}
+                    onClick={() =>
+                      store.setNewsletterStyle({ tableHeaderBg: sw.color })
+                    }
+                    title={`${sw.label} (${sw.color})`}
+                    aria-label={`Set table header bg to ${sw.label}`}
+                  />
+                ))}
+                <span className="text-[9px] text-muted-foreground ml-1">
+                  email colors
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -955,6 +1401,64 @@ export function NewsletterEditor() {
           shortcut="Ctrl+Shift+S"
         >
           <Strikethrough className="h-3.5 w-3.5" />
+        </ToolbarButton>
+
+        {/* Font Size */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <ToolbarButton
+              active={false}
+              onClick={() => {}}
+              label="Font size"
+            >
+              <span className="text-[10px] font-semibold leading-none">
+                {editor?.getAttributes('textStyle')?.fontSize
+                  ? parseInt(editor.getAttributes('textStyle').fontSize)
+                  : 14}
+              </span>
+            </ToolbarButton>
+          </PopoverTrigger>
+          <PopoverContent className="w-24 p-1" side="bottom" align="start">
+            <div className="flex flex-col gap-0.5">
+              {FONT_SIZES.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  className={cn(
+                    'rounded px-2 py-1 text-xs text-left hover:bg-accent transition-colors',
+                    editor?.getAttributes('textStyle')?.fontSize ===
+                      `${size}px` && 'bg-accent font-medium'
+                  )}
+                  onClick={() =>
+                    (editor as any)?.chain().focus().setFontSize(`${size}px`).run()
+                  }
+                >
+                  {size}px
+                </button>
+              ))}
+              <hr className="my-0.5 border-border" />
+              <button
+                type="button"
+                className="rounded px-2 py-1 text-xs text-left text-muted-foreground hover:bg-accent transition-colors"
+                onClick={() =>
+                  (editor as any)?.chain().focus().unsetFontSize().run()
+                }
+              >
+                Default
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Clear Formatting */}
+        <ToolbarButton
+          active={false}
+          onClick={() =>
+            editor?.chain().focus().unsetAllMarks().clearNodes().run()
+          }
+          label="Clear formatting"
+        >
+          <RemoveFormatting className="h-3.5 w-3.5" />
         </ToolbarButton>
 
         <ToolbarSeparator />
@@ -1250,7 +1754,8 @@ export function NewsletterEditor() {
                       const row = r + 1;
                       const col = c + 1;
                       const isHighlighted =
-                        row <= tableGridHover.rows && col <= tableGridHover.cols;
+                        row <= tableGridHover.rows &&
+                        col <= tableGridHover.cols;
                       return (
                         <button
                           key={`${row}-${col}`}
@@ -1387,57 +1892,99 @@ export function NewsletterEditor() {
             </ToolbarButton>
           </PopoverTrigger>
           <PopoverContent className="w-48 p-1" side="bottom" align="start">
-            <div className="flex flex-col gap-0.5">
-              <button
-                type="button"
-                className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
-                onClick={() => editor?.chain().focus().setHorizontalRule().run()}
-              >
-                <hr className="flex-1 border-t border-foreground/40" />
-                <span className="text-muted-foreground shrink-0">Solid</span>
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
-                onClick={() => {
-                  editor?.chain().focus().insertContent('<hr style="border-style: dashed;" />').run();
-                }}
-              >
-                <hr className="flex-1 border-t border-dashed border-foreground/40" />
-                <span className="text-muted-foreground shrink-0">Dashed</span>
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
-                onClick={() => {
-                  editor?.chain().focus().insertContent('<hr style="border-style: dotted;" />').run();
-                }}
-              >
-                <hr className="flex-1 border-t border-dotted border-foreground/40" />
-                <span className="text-muted-foreground shrink-0">Dotted</span>
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
-                onClick={() => {
-                  editor?.chain().focus().insertContent('<hr style="border: none; border-top: 3px solid currentColor;" />').run();
-                }}
-              >
-                <hr className="flex-1 border-t-[3px] border-foreground/40" />
-                <span className="text-muted-foreground shrink-0">Thick</span>
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
-                onClick={() => {
-                  const color = store.emailPalette.accent;
-                  editor?.chain().focus().insertContent(`<hr style="border: none; border-top: 2px solid ${color};" />`).run();
-                }}
-              >
-                <hr className="flex-1 border-t-2 border-amber-400" />
-                <span className="text-muted-foreground shrink-0">Accent</span>
-              </button>
-            </div>
+            {(() => {
+              const dividerColor =
+                store.newsletterStyle.tableBorderColor ??
+                store.emailPalette.text;
+              return (
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                    onClick={() => {
+                      editor
+                        ?.chain()
+                        .focus()
+                        .insertContent(
+                          `<hr style="border: none; border-top: 1px solid ${dividerColor};" />`
+                        )
+                        .run();
+                    }}
+                  >
+                    <hr
+                      className="flex-1 border-t"
+                      style={{ borderColor: dividerColor }}
+                    />
+                    <span className="text-muted-foreground shrink-0">
+                      Solid
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                    onClick={() => {
+                      editor
+                        ?.chain()
+                        .focus()
+                        .insertContent(
+                          `<hr style="border: none; border-top: 1px dashed ${dividerColor};" />`
+                        )
+                        .run();
+                    }}
+                  >
+                    <hr
+                      className="flex-1 border-t border-dashed"
+                      style={{ borderColor: dividerColor }}
+                    />
+                    <span className="text-muted-foreground shrink-0">
+                      Dashed
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                    onClick={() => {
+                      editor
+                        ?.chain()
+                        .focus()
+                        .insertContent(
+                          `<hr style="border: none; border-top: 1px dotted ${dividerColor};" />`
+                        )
+                        .run();
+                    }}
+                  >
+                    <hr
+                      className="flex-1 border-t border-dotted"
+                      style={{ borderColor: dividerColor }}
+                    />
+                    <span className="text-muted-foreground shrink-0">
+                      Dotted
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                    onClick={() => {
+                      editor
+                        ?.chain()
+                        .focus()
+                        .insertContent(
+                          `<hr style="border: none; border-top: 3px solid ${dividerColor};" />`
+                        )
+                        .run();
+                    }}
+                  >
+                    <hr
+                      className="flex-1 border-t-[3px]"
+                      style={{ borderColor: dividerColor }}
+                    />
+                    <span className="text-muted-foreground shrink-0">
+                      Thick
+                    </span>
+                  </button>
+                </div>
+              );
+            })()}
           </PopoverContent>
         </Popover>
 
@@ -1489,16 +2036,24 @@ export function NewsletterEditor() {
       </div>
 
       {/* Editor Content Area */}
-      <div className="rounded-md border min-h-[200px] overflow-hidden">
+      <div className="rounded-md border bg-transparent dark:bg-input/30 min-h-[200px] overflow-hidden">
         <EditorContent
           editor={editor}
-          className="newsletter-editor prose prose-sm max-w-none p-3 min-h-[200px] focus:outline-none"
+          className={cn(
+            'newsletter-editor prose prose-sm max-w-none px-3 py-2 min-h-[200px] focus:outline-none [&>.tiptap]:min-h-[200px] [&>.tiptap]:outline-none',
+            store.newsletterStyle.headingAlign === 'center'
+              ? '[&_h2]:text-center'
+              : '[&_h2]:text-left'
+          )}
         />
       </div>
 
       {/* Find & Replace Bar (#6) */}
       {findReplaceOpen && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2" data-testid="find-replace-bar">
+        <div
+          className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2"
+          data-testid="find-replace-bar"
+        >
           <div className="flex items-center gap-1 flex-1 min-w-[200px]">
             <Input
               ref={findInputRef}
@@ -1519,7 +2074,10 @@ export function NewsletterEditor() {
             <Button
               variant="ghost"
               size="icon"
-              className={cn('h-6 w-6 shrink-0', findCaseSensitive && 'bg-accent text-accent-foreground')}
+              className={cn(
+                'h-6 w-6 shrink-0',
+                findCaseSensitive && 'bg-accent text-accent-foreground'
+              )}
               onClick={() => setFindCaseSensitive(!findCaseSensitive)}
               title="Match case"
               aria-label="Match case"
@@ -1531,7 +2089,10 @@ export function NewsletterEditor() {
             <Button
               variant="ghost"
               size="icon"
-              className={cn('h-6 w-6 shrink-0', findWholeWord && 'bg-accent text-accent-foreground')}
+              className={cn(
+                'h-6 w-6 shrink-0',
+                findWholeWord && 'bg-accent text-accent-foreground'
+              )}
               onClick={() => setFindWholeWord(!findWholeWord)}
               title="Whole word"
               aria-label="Whole word"
@@ -1593,11 +2154,19 @@ export function NewsletterEditor() {
 
       {/* Word/Character Count, Read Time, & Reset */}
       <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-        <span data-testid="newsletter-word-count" className="flex items-center gap-1.5">
-          <span className={cn(
-            wordCount > WORD_DANGER ? 'text-destructive font-medium' :
-            wordCount > WORD_WARNING ? 'text-orange-500' : ''
-          )}>
+        <span
+          data-testid="newsletter-word-count"
+          className="flex items-center gap-1.5"
+        >
+          <span
+            className={cn(
+              wordCount > WORD_DANGER
+                ? 'text-destructive font-medium'
+                : wordCount > WORD_WARNING
+                  ? 'text-orange-500'
+                  : ''
+            )}
+          >
             {wordCount} word{wordCount !== 1 ? 's' : ''}
           </span>
           &middot; {charCount} char{charCount !== 1 ? 's' : ''}
@@ -1611,11 +2180,15 @@ export function NewsletterEditor() {
             </>
           )}
           {wordCount > WORD_WARNING && (
-            <span className={cn(
-              'text-[10px] ml-1',
-              wordCount > WORD_DANGER ? 'text-destructive' : 'text-orange-500'
-            )}>
-              {wordCount > WORD_DANGER ? '(very long for email)' : '(getting long)'}
+            <span
+              className={cn(
+                'text-[10px] ml-1',
+                wordCount > WORD_DANGER ? 'text-destructive' : 'text-orange-500'
+              )}
+            >
+              {wordCount > WORD_DANGER
+                ? '(very long for email)'
+                : '(getting long)'}
             </span>
           )}
         </span>

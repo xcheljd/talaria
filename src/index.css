@@ -508,8 +508,8 @@ body {
 .newsletter-editor td,
 .newsletter-editor th {
   min-width: 1em;
-  border: 2px solid var(--border);
-  padding: 3px 5px;
+  border: 1px solid var(--border);
+  padding: 6px 8px;
   vertical-align: top;
   box-sizing: border-box;
   position: relative;
@@ -573,6 +573,46 @@ body {
 .newsletter-editor pre .hljs-number,
 .newsletter-editor pre .hljs-literal {
   color: #005cc5;
+}
+
+/* ===== TipTap Drag Handle ===== */
+.newsletter-editor .ProseMirror {
+  position: relative;
+}
+
+.newsletter-editor .drag-handle {
+  position: absolute;
+  left: -20px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.15s;
+  color: var(--muted-foreground);
+  border-radius: 3px;
+  user-select: none;
+  z-index: 10;
+}
+
+.newsletter-editor .drag-handle:hover {
+  opacity: 1;
+  background-color: var(--muted);
+}
+
+.newsletter-editor .drag-handle:active {
+  cursor: grabbing;
+}
+
+.newsletter-editor .ProseMirror > *:hover > .drag-handle,
+.newsletter-editor .ProseMirror:has(.drag-handle:hover) .drag-handle:hover {
+  opacity: 0.5;
+}
+
+.newsletter-editor .ProseMirror > *:hover > .drag-handle:hover {
+  opacity: 1;
 }
 
 /* ===== TipTap Blockquote Styles ===== */

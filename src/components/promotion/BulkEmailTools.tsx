@@ -339,8 +339,13 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
             ...resolvedColors,
             borderStyle: store.newsletterStyle.borderStyle,
             headingAlign: store.newsletterStyle.headingAlign,
+            tableBorderColor: resolvedColors.tableBorderColor,
+            tableBorderWidth: store.newsletterStyle.tableBorderWidth,
+            tableBorderStyle: store.newsletterStyle.tableBorderStyle,
+            tableHeaderBg: resolvedColors.tableHeaderBg,
           },
           emailPalette: store.emailPalette,
+          preheaderText: store.preheaderText,
         };
 
         const htmlContent = generatePromotionEmailHTML(data);
