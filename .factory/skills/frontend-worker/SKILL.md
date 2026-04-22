@@ -1,6 +1,6 @@
 ---
 name: frontend-worker
-description: React + shadcn/ui + TipTap frontend worker for newsletter card feature
+description: React frontend worker for error boundary implementation
 ---
 
 # Frontend Worker
@@ -9,7 +9,7 @@ NOTE: Startup and cleanup are handled by `worker-base`. This skill defines the W
 
 ## When to Use This Skill
 
-All features in the Newsletter Card mission: TipTap editor integration, Zustand store updates, email HTML generation, import/export, and UI polish.
+Features involving React component creation, route wiring, and unit test authoring for the error boundaries mission.
 
 ## Required Skills
 
@@ -18,104 +18,118 @@ None. All work is done with file editing tools, shell commands (npm, npx, vitest
 ## Work Procedure
 
 ### 1. Read Mission Context
+
 Read these files before starting any work:
-- `/home/x/.factory/missions/d82c42ae-e9e1-4f92-82da-21d692cf42e2/mission.md` -- mission proposal and goals
-- `/home/x/.factory/missions/d82c42ae-e9e1-4f92-82da-21d692cf42e2/AGENTS.md` -- boundaries, conventions, TipTap setup, store fields
-- `/home/x/.factory/missions/d82c42ae-e9e1-4f92-82da-21d692cf42e2/features.json` -- your assigned feature (first pending)
-- `.factory/library/architecture.md` -- system architecture
-- `.factory/library/user-testing.md` -- testing surface info
-- `.factory/services.yaml` -- available commands and services
-- `.factory/research/tiptap-research.md` -- TipTap integration research
+- Mission dir AGENTS.md — boundaries, conventions, allowed files
+- Mission dir features.json — your assigned feature (first pending)
+- `.factory/library/architecture.md` — system architecture
+- `.factory/services.yaml` — available commands and services
+- Root `AGENTS.md` — project-wide conventions
 
 ### 2. Run Init
-Run `.factory/init.sh` to install dependencies (includes TipTap packages). Kill any existing dev server before starting work.
+
+Run `.factory/init.sh` to install dependencies. Kill any existing dev server before starting work.
 
 ### 3. Run Baseline Tests
+
 ```bash
 npx vitest run 2>&1
 npx tsc --noEmit 2>&1
 ```
-If tests fail, note the failures but continue.
 
-### 4. Study Existing Patterns Before Implementing
+Note the test count and any failures. If tests fail for reasons unrelated to your feature, note them but continue.
 
-Before writing new code, read these files to understand existing patterns:
-- `src/stores/promotion-store.ts` -- Zustand store patterns (state, actions, persistence)
-- `src/lib/promotion-email-html.ts` -- email HTML generation (section ordering, inline styles)
-- `src/components/promotion/FormattableItemEditor.tsx` -- reusable editor pattern
-- `src/components/promotion/CollapsibleCard.tsx` -- card component API (hasContent, forceExpand, onToggle)
-- `src/pages/PromotionPage.tsx` -- card rendering, CARD_CONFIGS array, PreviewColumn, data flow
-- `.factory/research/tiptap-research.md` -- TipTap setup and code snippets
+### 4. Study Existing Patterns
 
-**CRITICAL**: Follow existing patterns. Don't invent new approaches when the codebase already has established ones.
+Before writing code, read these files:
+- `src/main.tsx` — current entry point structure
+- `src/App.tsx` — current route structure
+- `src/components/Layout.tsx` — layout renders nav + Outlet (stays outside boundary)
+- `tests/promotion-page.test.tsx` — test patterns (MemoryRouter, ThemeProvider, ProfileProvider wrapping, ResizeObserver mocks)
+- `tests/setup.js` — test setup (localStorage mock)
+
+**CRITICAL**: Follow existing patterns exactly. Don't invent new approaches.
 
 ### 5. Implement Feature (TDD)
+
 For each feature:
 
 a) **Write tests first** (red phase):
-   - Store tests: test new actions and state
-   - Component tests: test NewsletterCard rendering, TipTap editor, toolbar, heading, position toggle
-   - Integration tests: test email generation with newsletter data at both positions
-   - Tests must fail before you write implementation
+   - Create `tests/error-boundary.test.tsx` with comprehensive tests
+   - Test error catching, fallback rendering (app vs route level), reset behavior, navigation, custom fallback, non-Error throws
+   - Use `MemoryRouter` for navigation tests
+   - Mock `console.error` with `vi.spyOn` for logging assertions
+   - Mock `window.location.reload` for app-level tests
+   - Tests must FAIL before you write implementation
 
 b) **Implement** (green phase):
-   - TypeScript strict mode
-   - shadcn/ui components from `src/components/ui/`
-   - Tailwind CSS v4 utility classes (no custom CSS files)
-   - TipTap editor with headless styling (no default CSS)
-   - Pure business logic in `src/lib/` (no React imports)
-   - React components in `src/components/promotion/`
-   - Store updates in `src/stores/promotion-store.ts`
-   - Email generation updates in `src/lib/promotion-email-html.ts`
+   - `src/components/ErrorBoundary.tsx` — class component with getDerivedStateFromError + componentDidCatch
+   - TypeScript strict mode, no `any` types
+   - Tailwind utility classes for fallback UI (use CSS variables: `bg-background`, `text-foreground`, etc.)
+   - Two default fallback styles: app-level (full-screen + reload) and route-level (inline + retry + go home)
+   - Support custom fallback via prop (ReactNode or render function)
+   - For "Go to home" in route-level fallback: use a regular `<a>` tag with `href="/"` (simpler than importing router Link, and works outside router context if needed)
 
-c) **Verify**:
+c) **Wire into app**:
+   - Edit `src/main.tsx`: wrap `<App />` with `<ErrorBoundary level="app">` OUTSIDE StrictMode
+   - Edit `src/App.tsx`: wrap each route element with `<ErrorBoundary level="route">`
+   - Import from `@/components/ErrorBoundary`
+
+d) **Verify**:
    ```bash
    npx tsc --noEmit
    npx vitest run
    npx eslint src/
    ```
 
-### 6. Manual Verification
-Start the dev server and verify key functionality:
+### 6. Manual Verification (if dev server is available)
+
+Start the dev server and verify:
 ```bash
 npm run dev &
 sleep 3
 ```
-Use agent-browser to verify:
-- Newsletter card renders in correct position (after Basic Details, before Discount Entries)
-- TipTap editor works with formatting
-- Email preview updates with newsletter content
-- Position toggle changes newsletter placement
+
+Use agent-browser to spot-check:
+- All 4 routes render normally (no regressions)
+- Error boundary fallback renders when a component throws
 
 ### 7. Clean Up
-- Kill any running dev server processes
+
+- Kill any running dev server processes (`lsof -ti :8080 | xargs kill 2>/dev/null || true`)
 - Ensure no watch processes are running
 
 ## Example Handoff
 
 ```json
 {
-  "salientSummary": "Added Newsletter card with TipTap rich text editor. Card renders after Basic Details with heading field, formatting toolbar (bold/italic/underline/color/highlight/heading/list/link), position toggle, and store persistence. 18 new tests passing.",
-  "whatWasImplemented": "Created src/components/promotion/NewsletterEditor.tsx with TipTap editor and toolbar. Added newsletterHeading, newsletterBody, newsletterPosition to Zustand store. Updated PromotionEmailData interface and generatePromotionEmailHTML(). Card added to CARD_CONFIGS at index 1.",
+  "salientSummary": "Created ErrorBoundary component with app-level and route-level fallbacks. Wired into main.tsx (outside StrictMode) and App.tsx (per-route). 15 new unit tests passing, all 713 existing tests still green.",
+  "whatWasImplemented": "Created src/components/ErrorBoundary.tsx (class component with getDerivedStateFromError, componentDidCatch, resetErrorBoundary). App-level fallback: full-screen centered card with 'Reload app' button. Route-level fallback: inline card with 'Try again' + 'Go to home'. Custom fallback prop support (ReactNode or render function). Updated src/main.tsx to wrap App with app-level boundary outside StrictMode. Updated src/App.tsx to wrap all 4 route elements with route-level boundary.",
   "whatWasLeftUndone": "",
   "verification": {
     "commandsRun": [
       { "command": "npx tsc --noEmit", "exitCode": 0, "observation": "No TypeScript errors" },
-      { "command": "npx vitest run", "exitCode": 0, "observation": "690 tests passing (18 new)" },
+      { "command": "npx vitest run", "exitCode": 0, "observation": "728 tests passing (15 new + 713 existing)" },
       { "command": "npx eslint src/", "exitCode": 0, "observation": "No lint errors" }
     ],
     "interactiveChecks": [
-      { "action": "Type in TipTap editor", "observed": "Text appears, store updates" },
-      { "action": "Click Bold button", "observed": "Selected text becomes bold, button shows active state" },
-      { "action": "Toggle position to Bottom", "observed": "Email preview shows newsletter below discount entries" }
+      { "action": "Navigated to all 4 routes", "observed": "All pages render normally, no regressions" },
+      { "action": "Verified ErrorBoundary wraps App in main.tsx outside StrictMode", "observed": "Boundary is outside StrictMode as required" },
+      { "action": "Verified all 4 routes wrapped in App.tsx", "observed": "All route elements have ErrorBoundary wrapper" }
     ]
   },
   "tests": {
     "added": [
-      { "file": "tests/newsletter-editor.test.tsx", "cases": [
-        { "name": "renders TipTap editor with toolbar", "verifies": "VAL-NEWS-007" },
-        { "name": "heading field defaults to Newsletter", "verifies": "VAL-NEWS-004" },
-        { "name": "position toggle switches top/bottom", "verifies": "VAL-NEWS-019" }
+      { "file": "tests/error-boundary.test.tsx", "cases": [
+        { "name": "catches render errors and shows fallback", "verifies": "VAL-COMP-001" },
+        { "name": "renders app-level fallback with reload button", "verifies": "VAL-COMP-005" },
+        { "name": "renders route-level fallback with try again and go home", "verifies": "VAL-COMP-006" },
+        { "name": "resetErrorBoundary clears error state", "verifies": "VAL-COMP-003" },
+        { "name": "custom fallback prop overrides default", "verifies": "VAL-COMP-007" },
+        { "name": "renders children normally when no error", "verifies": "VAL-COMP-008" },
+        { "name": "handles non-Error thrown values", "verifies": "VAL-COMP-009" },
+        { "name": "logs error to console.error with component stack", "verifies": "VAL-COMP-004" },
+        { "name": "props API accepts level and fallback", "verifies": "VAL-COMP-002" }
       ]}
     ]
   },
@@ -125,7 +139,7 @@ Use agent-browser to verify:
 
 ## When to Return to Orchestrator
 
-- TipTap packages fail to install or have incompatible peer dependencies
-- Feature depends on a precondition that hasn't been completed yet
 - TypeScript compilation produces errors that seem unrelated to your changes
+- Existing tests fail for reasons unrelated to your feature
 - You discover existing code patterns that conflict with the feature requirements
+- You cannot complete the feature within the allowed file changes listed in AGENTS.md
