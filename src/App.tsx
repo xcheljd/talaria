@@ -8,6 +8,7 @@ import { Toaster } from './components/ui/sonner';
 import { TooltipProvider } from './components/ui/tooltip';
 import { ThemeProvider } from './contexts/ThemeProvider';
 import { ProfileProvider } from './contexts/ProfileProvider';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
   return (
@@ -17,10 +18,38 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route element={<Layout />}>
-                <Route path="/" element={<TemplatesPage />} />
-                <Route path="/start" element={<ProfilePage />} />
-                <Route path="/promotion" element={<PromotionPage />} />
-                <Route path="/components" element={<ComponentsShowcase />} />
+                <Route
+                  path="/"
+                  element={
+                    <ErrorBoundary level="route">
+                      <TemplatesPage />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/start"
+                  element={
+                    <ErrorBoundary level="route">
+                      <ProfilePage />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/promotion"
+                  element={
+                    <ErrorBoundary level="route">
+                      <PromotionPage />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/components"
+                  element={
+                    <ErrorBoundary level="route">
+                      <ComponentsShowcase />
+                    </ErrorBoundary>
+                  }
+                />
               </Route>
             </Routes>
           </BrowserRouter>
