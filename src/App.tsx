@@ -21,7 +21,7 @@ function App() {
                 <Route
                   path="/"
                   element={
-                    <ErrorBoundary level="route">
+                    <ErrorBoundary level="route" key="route-/">
                       <TemplatesPage />
                     </ErrorBoundary>
                   }
@@ -29,7 +29,7 @@ function App() {
                 <Route
                   path="/start"
                   element={
-                    <ErrorBoundary level="route">
+                    <ErrorBoundary level="route" key="route-/start">
                       <ProfilePage />
                     </ErrorBoundary>
                   }
@@ -37,7 +37,7 @@ function App() {
                 <Route
                   path="/promotion"
                   element={
-                    <ErrorBoundary level="route">
+                    <ErrorBoundary level="route" key="route-/promotion">
                       <PromotionPage />
                     </ErrorBoundary>
                   }
@@ -45,7 +45,7 @@ function App() {
                 <Route
                   path="/components"
                   element={
-                    <ErrorBoundary level="route">
+                    <ErrorBoundary level="route" key="route-/components">
                       <ComponentsShowcase />
                     </ErrorBoundary>
                   }
