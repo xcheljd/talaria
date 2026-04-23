@@ -257,7 +257,92 @@ describe('PDFAttachments', () => {
   it('does not show PDF list when no PDFs are attached', () => {
     renderWithProviders(<PDFAttachments />);
     // Should not show any remove buttons
-    expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /remove/i })
+    ).not.toBeInTheDocument();
+  });
+
+  // ===== Save Status Indicator Tests =====
+
+  it('shows save warning indicator when saveStatus is warning', () => {
+    usePromotionStore.setState({ saveStatus: 'warning' });
+
+    renderWithProviders(<PDFAttachments />);
+
+    expect(screen.getByText('Save issue')).toBeInTheDocument();
+    expect(
+      screen.getByTitle('Last save may not have completed')
+    ).toBeInTheDocument();
+  });
+
+  it('does not show save warning indicator when saveStatus is ok', () => {
+    usePromotionStore.setState({ saveStatus: 'ok' });
+
+    renderWithProviders(<PDFAttachments />);
+
+    expect(screen.queryByText('Save issue')).not.toBeInTheDocument();
+  });
+
+  it('save warning indicator does not disable remove buttons', () => {
+    usePromotionStore.setState({
+      saveStatus: 'warning',
+      attachedPDFs: [
+        {
+          id: 'pdf-1',
+          name: 'catalog.pdf',
+          size: 1024,
+          type: 'application/pdf',
+          data: 'data:application/pdf;base64,SGVsbG8=',
+        },
+      ],
+    });
+
+    renderWithProviders(<PDFAttachments />);
+
+    // Warning indicator is visible
+    expect(screen.getByText('Save issue')).toBeInTheDocument();
+
+    // Remove button is still present and not disabled
+    const removeButton = screen.getByRole('button', {
+      name: /remove catalog\.pdf/i,
+    });
+    expect(removeButton).toBeInTheDocument();
+    expect(removeButton).not.toBeDisabled();
+  });
+
+  it('save warning indicator does not disable the upload zone', () => {
+    usePromotionStore.setState({ saveStatus: 'warning' });
+
+    renderWithProviders(<PDFAttachments />);
+
+    // Upload zone is still clickable
+    expect(
+      screen.getByText('Click to upload or drag and drop PDF files')
+    ).toBeInTheDocument();
+
+    // File input is still present
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    expect(input).toBeInTheDocument();
+    expect(input).not.toBeDisabled();
+  });
+
+  it('save warning indicator disappears when saveStatus resets to ok', async () => {
+    usePromotionStore.setState({ saveStatus: 'warning' });
+
+    renderWithProviders(<PDFAttachments />);
+
+    // Initially visible
+    expect(screen.getByText('Save issue')).toBeInTheDocument();
+
+    // Reset to ok — triggers re-render via Zustand subscription
+    usePromotionStore.setState({ saveStatus: 'ok' });
+
+    // Should disappear after React re-render
+    await waitFor(() => {
+      expect(screen.queryByText('Save issue')).not.toBeInTheDocument();
+    });
   });
 });
 
@@ -270,9 +355,7 @@ describe('SubjectLineGenerator', () => {
 
   it('renders prompt to add discount entries when store is empty', () => {
     renderWithProviders(<SubjectLineGenerator />);
-    expect(
-      screen.getByText(/add discount entries first/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/add discount entries first/i)).toBeInTheDocument();
   });
 
   it('renders generate button when entries exist but no subject lines', () => {
@@ -335,10 +418,7 @@ describe('SubjectLineGenerator', () => {
       promotionEntries: [
         { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
       ],
-      generatedSubjectLines: [
-        'Citizen: Up to 20% OFF',
-        'Elevate Your Style',
-      ],
+      generatedSubjectLines: ['Citizen: Up to 20% OFF', 'Elevate Your Style'],
       selectedSubjectLine: 'Citizen: Up to 20% OFF',
     });
 
