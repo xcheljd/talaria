@@ -175,10 +175,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
     // Generation state (shared via store so preview button can show progress)
     const isGenerating = store.bulkEmailGenerating;
     const generationProgress = store.bulkEmailProgress;
-    const setIsGenerating = (val: boolean) =>
-      store.setBulkEmailGenerating(val, val ? store.bulkEmailProgress : '');
-    const setGenerationProgress = (val: string) =>
-      store.setBulkEmailGenerating(store.bulkEmailGenerating, val);
+    const setBulkState = store.setBulkEmailGenerating;
 
     // Debounced save timer ref
     const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -250,21 +247,6 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
       }, 1000);
     }, []);
 
-    // Handle paste with feedback
-    const handlePaste = useCallback(
-      (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-        // Let the paste happen, then analyze after a tick
-        setTimeout(() => {
-          const textarea = e.target as HTMLTextAreaElement;
-          const text = textarea.value;
-          const stats = computeEmailStats(text);
-          setRecipientText(text);
-          setEmailStats(stats);
-        }, 0);
-      },
-      []
-    );
-
     // Clear recipients
     const handleClearRecipients = useCallback(async () => {
       setRecipientText('');
@@ -314,8 +296,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
         return;
       }
 
-      setIsGenerating(true);
-      setGenerationProgress('0/0');
+      setBulkState(true, '0/0');
 
       try {
         // Generate email HTML from current store data
@@ -331,6 +312,8 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
           specialHours: store.specialHours,
           howToShopItems: store.howToShopItems,
           importantNotesItems: store.importantNotesItems,
+          howToShopStyle: store.howToShopStyle,
+          importantNotesStyle: store.importantNotesStyle,
           newsletterHeading: store.newsletterHeading,
           newsletterBody: store.newsletterBody,
           newsletterPosition: store.newsletterPosition,
@@ -364,7 +347,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
           batches.push(validEmails.slice(i, i + batchSize));
         }
 
-        setGenerationProgress(`0/${batches.length}`);
+        setBulkState(true, `0/${batches.length}`);
 
         if (downloadFormat === 'zip') {
           // Create ZIP file with all EML files
@@ -372,7 +355,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
           const zip = new JSZip();
 
           for (let i = 0; i < batches.length; i++) {
-            setGenerationProgress(`Creating ${i + 1}/${batches.length}`);
+            setBulkState(true, `Creating ${i + 1}/${batches.length}`);
             const batch = batches[i];
             const emlContent = createBCCBatchEML(
               subject,
@@ -385,7 +368,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
             zip.file(emlContent.filename, emlContent.data);
           }
 
-          setGenerationProgress('Zipping...');
+          setBulkState(true, 'Zipping...');
           const zipBlob = await zip.generateAsync({ type: 'blob' });
           const url = URL.createObjectURL(zipBlob);
           const a = document.createElement('a');
@@ -400,7 +383,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
         } else {
           // Download individual files
           for (let i = 0; i < batches.length; i++) {
-            setGenerationProgress(`${i + 1}/${batches.length}`);
+            setBulkState(true, `${i + 1}/${batches.length}`);
             const batch = batches[i];
             const emlContent = createBCCBatchEML(
               subject,
@@ -433,10 +416,10 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
         console.error('Error generating batches:', error);
         toast.error('Failed to generate email batches');
       } finally {
-        setIsGenerating(false);
-        setGenerationProgress('');
+        setBulkState(false, '');
       }
     }, [
+      setBulkState,
       emailStats.valid,
       emailStats.validEmails,
       batchSize,
@@ -493,7 +476,6 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
         <ClearableTextarea
           value={recipientText}
           onChange={handleRecipientChange}
-          onPaste={handlePaste}
           placeholder="Enter email addresses (one per line, comma-separated, or paste from spreadsheet)..."
           className={cn(
             'min-h-[120px] font-mono text-sm',

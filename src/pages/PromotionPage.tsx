@@ -40,15 +40,12 @@ import {
   Moon,
   Printer,
   Loader2,
-  Save,
-  Trash2,
 } from 'lucide-react';
 
 import { useHasProfile } from '@/contexts/ProfileProvider';
 import {
   usePromotionStore,
   DEFAULT_EMAIL_PALETTE,
-  type SectionBoxStyle,
 } from '@/stores/promotion-store';
 import { CollapsibleCard } from '@/components/promotion/CollapsibleCard';
 import { IconToolbar } from '@/components/promotion/IconToolbar';
@@ -83,10 +80,7 @@ import {
 } from '@/lib/promotion-email-html';
 import { resolveNewsletterColors } from '@/lib/newsletter-utils';
 import { cn } from '@/lib/utils';
-import {
-  createEMLFile,
-  formatDateRangeForFilename,
-} from '@/lib/emailUtils';
+import { createEMLFile, formatDateRangeForFilename } from '@/lib/emailUtils';
 import { getStoreEmail, getEmployeeName } from '@/lib/profile';
 
 import { Button } from '@/components/ui/button';
@@ -258,136 +252,6 @@ function SectionColorPicker({
   );
 }
 
-// ===== Section Box Style Presets (localStorage) =====
-
-const SECTION_STYLE_PRESETS_KEY = 'sectionBoxStylePresets';
-
-interface SavedSectionStyle {
-  name: string;
-  style: SectionBoxStyle;
-}
-
-function loadSectionStylePresets(): SavedSectionStyle[] {
-  try {
-    const raw = localStorage.getItem(SECTION_STYLE_PRESETS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistSectionStylePresets(presets: SavedSectionStyle[]) {
-  localStorage.setItem(SECTION_STYLE_PRESETS_KEY, JSON.stringify(presets));
-}
-
-/** Save/load presets for a section box style */
-function SectionStylePresets({
-  currentStyle,
-  onApply,
-}: {
-  currentStyle: SectionBoxStyle;
-  onApply: (style: SectionBoxStyle) => void;
-}) {
-  const [presets, setPresets] = useState<SavedSectionStyle[]>(
-    loadSectionStylePresets
-  );
-  const [saveName, setSaveName] = useState('');
-
-  const hasCustom =
-    currentStyle.borderColor !== null ||
-    currentStyle.backgroundColor !== null;
-
-  const handleSave = () => {
-    const name = saveName.trim();
-    if (!name) return;
-    const updated = [
-      ...presets.filter((p) => p.name !== name),
-      { name, style: { ...currentStyle } },
-    ];
-    setPresets(updated);
-    persistSectionStylePresets(updated);
-    setSaveName('');
-  };
-
-  const handleDelete = (name: string) => {
-    const updated = presets.filter((p) => p.name !== name);
-    setPresets(updated);
-    persistSectionStylePresets(updated);
-  };
-
-  return (
-    <div className="space-y-1.5">
-      {/* Saved presets */}
-      {presets.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {presets.map((preset) => (
-            <div key={preset.name} className="flex items-center gap-0.5">
-              <button
-                type="button"
-                className="flex items-center gap-1 rounded border border-dashed px-1.5 py-0.5 text-[10px] hover:bg-accent/50 transition-colors"
-                onClick={() => onApply(preset.style)}
-                title={`Apply "${preset.name}"`}
-              >
-                <div className="flex gap-0.5">
-                  {preset.style.backgroundColor && (
-                    <div
-                      className="h-2.5 w-2.5 rounded-sm border border-border"
-                      style={{ backgroundColor: preset.style.backgroundColor }}
-                    />
-                  )}
-                  {preset.style.borderColor && (
-                    <div
-                      className="h-2.5 w-2.5 rounded-sm"
-                      style={{
-                        border: `2px solid ${preset.style.borderColor}`,
-                      }}
-                    />
-                  )}
-                </div>
-                {preset.name}
-              </button>
-              <button
-                type="button"
-                className="p-0.5 text-muted-foreground hover:text-destructive"
-                onClick={() => handleDelete(preset.name)}
-                title={`Delete "${preset.name}"`}
-                aria-label={`Delete preset ${preset.name}`}
-              >
-                <Trash2 className="h-2.5 w-2.5" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Save current */}
-      {hasCustom && (
-        <div className="flex gap-1">
-          <input
-            value={saveName}
-            onChange={(e) => setSaveName(e.target.value)}
-            placeholder="Preset name..."
-            className="h-6 flex-1 rounded border px-1.5 text-[10px] bg-background"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSave();
-            }}
-          />
-          <button
-            type="button"
-            className="flex items-center gap-0.5 h-6 rounded border px-1.5 text-[10px] hover:bg-accent/50 transition-colors disabled:opacity-40"
-            onClick={handleSave}
-            disabled={!saveName.trim()}
-            title="Save current style as preset"
-          >
-            <Save className="h-2.5 w-2.5" />
-            Save
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** How to Shop editor connected to store */
 function HowToShopEditor() {
   const store = usePromotionStore();
@@ -459,9 +323,7 @@ function ImportantNotesEditor() {
         <SectionColorPicker
           label="Background"
           value={store.importantNotesStyle.backgroundColor}
-          onChange={(c) =>
-            store.setImportantNotesStyle({ backgroundColor: c })
-          }
+          onChange={(c) => store.setImportantNotesStyle({ backgroundColor: c })}
         />
       </div>
     </div>
@@ -894,8 +756,14 @@ function PreviewColumn({
             specialHours: config.specialHours,
             howToShopItems: config.howToShopItems,
             importantNotesItems: config.importantNotesItems,
-            howToShopStyle: config.howToShopStyle || { borderColor: null, backgroundColor: null },
-            importantNotesStyle: config.importantNotesStyle || { borderColor: null, backgroundColor: null },
+            howToShopStyle: config.howToShopStyle || {
+              borderColor: null,
+              backgroundColor: null,
+            },
+            importantNotesStyle: config.importantNotesStyle || {
+              borderColor: null,
+              backgroundColor: null,
+            },
             generatedSubjectLines: config.generatedSubjectLines,
             selectedSubjectLine: config.selectedSubjectLine,
             preheaderText: config.preheaderText || '',

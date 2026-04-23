@@ -177,13 +177,14 @@ export function SubjectLineGenerator() {
     }
     if (entries.length > 0) {
       suggestions.push(
-        `Don't miss out: ${entries.slice(0, 2).map((e) => e.line).join(' + ')}`
+        `Don't miss out: ${entries
+          .slice(0, 2)
+          .map((e) => e.line)
+          .join(' + ')}`
       );
     }
     if (dateRange) {
-      suggestions.push(
-        `Exclusive savings ${dateRange} — while supplies last`
-      );
+      suggestions.push(`Exclusive savings ${dateRange} — while supplies last`);
     }
     if (entries.length > 0) {
       suggestions.push(
@@ -195,7 +196,8 @@ export function SubjectLineGenerator() {
   }, [store.promoDateRange, store.promotionEntries]);
 
   // Preheader for inbox preview — custom text or auto-generated fallback
-  const preheaderDisplay = store.preheaderText.trim() || preheaderSuggestions[0];
+  const preheaderDisplay =
+    store.preheaderText.trim() || preheaderSuggestions[0];
 
   // No generated lines yet — show generate prompt
   const hasLines = store.generatedSubjectLines.length > 0;
@@ -289,10 +291,7 @@ export function SubjectLineGenerator() {
 
           {/* Preheader Text */}
           <div className="space-y-1.5">
-            <label
-              htmlFor="preheader-input"
-              className="text-sm font-medium"
-            >
+            <label htmlFor="preheader-input" className="text-sm font-medium">
               Preheader Text (preview text):
             </label>
             <ClearableInput

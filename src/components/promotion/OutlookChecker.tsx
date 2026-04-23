@@ -277,6 +277,8 @@ export function OutlookChecker() {
       specialHours: store.specialHours,
       howToShopItems: store.howToShopItems,
       importantNotesItems: store.importantNotesItems,
+      howToShopStyle: store.howToShopStyle,
+      importantNotesStyle: store.importantNotesStyle,
       newsletterHeading: store.newsletterHeading,
       newsletterBody: store.newsletterBody,
       newsletterPosition: store.newsletterPosition,

@@ -152,11 +152,26 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
 
   // Restore a snapshot
   const handleRestore = async (snapshot: Snapshot) => {
+    // Validate snapshot JSON BEFORE overwriting localStorage so a corrupt
+    // snapshot can't leave persisted and in-memory state desynced.
+    try {
+      JSON.parse(snapshot.data);
+    } catch {
+      console.warn('Cannot restore: snapshot data is corrupted');
+      return;
+    }
+    const previous = localStorage.getItem(STORAGE_KEY);
     try {
       localStorage.setItem(STORAGE_KEY, snapshot.data);
       await store.loadFromIndexedDB();
       setConfirmRestoreId(null);
     } catch (err) {
+      // Roll back localStorage so it stays in sync with the in-memory state.
+      if (previous !== null) {
+        localStorage.setItem(STORAGE_KEY, previous);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
       console.warn('Restore failed:', err);
     }
   };
@@ -251,9 +266,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                 key={snapshot.id}
                 className={cn(
                   'rounded-md border text-xs transition-colors',
-                  snapshot.auto
-                    ? 'border-dashed'
-                    : 'border-solid',
+                  snapshot.auto ? 'border-dashed' : 'border-solid',
                   isExpanded && 'bg-accent/30'
                 )}
               >
@@ -261,9 +274,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                 <button
                   type="button"
                   className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left hover:bg-accent/20 transition-colors"
-                  onClick={() =>
-                    setExpandedId(isExpanded ? null : snapshot.id)
-                  }
+                  onClick={() => setExpandedId(isExpanded ? null : snapshot.id)}
                 >
                   {isExpanded ? (
                     <ChevronUp className="h-3 w-3 shrink-0 text-muted-foreground" />
@@ -291,7 +302,8 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                       {isConfirming ? (
                         <>
                           <span className="text-[10px] text-amber-600 dark:text-amber-400 self-center">
-                            Restore this snapshot? Current state will be overwritten.
+                            Restore this snapshot? Current state will be
+                            overwritten.
                           </span>
                           <Button
                             variant="destructive"

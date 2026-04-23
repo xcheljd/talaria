@@ -277,8 +277,10 @@ const EMOJI_LIST = [
 
 // ===== Toolbar Button =====
 
-interface ToolbarButtonProps
-  extends Omit<React.ComponentProps<typeof Button>, 'children'> {
+interface ToolbarButtonProps extends Omit<
+  React.ComponentProps<typeof Button>,
+  'children'
+> {
   active: boolean;
   label: string;
   children: React.ReactNode;
@@ -426,8 +428,12 @@ const DragHandleExtension = Extension.create({
         view(view) {
           editorView = view;
           return {
-            update(v) { editorView = v; },
-            destroy() { editorView = null; },
+            update(v) {
+              editorView = v;
+            },
+            destroy() {
+              editorView = null;
+            },
           };
         },
         props: {
@@ -451,14 +457,10 @@ const DragHandleExtension = Extension.create({
                     editorView.state.doc,
                     nodePos
                   );
-                  editorView.dispatch(
-                    editorView.state.tr.setSelection(sel)
-                  );
+                  editorView.dispatch(editorView.state.tr.setSelection(sel));
                 });
 
-                decorations.push(
-                  Decoration.widget(pos, handle, { side: -1 })
-                );
+                decorations.push(Decoration.widget(pos, handle, { side: -1 }));
               }
             });
             return DecorationSet.create(state.doc, decorations);
@@ -1406,11 +1408,7 @@ export function NewsletterEditor() {
         {/* Font Size */}
         <Popover>
           <PopoverTrigger asChild>
-            <ToolbarButton
-              active={false}
-              onClick={() => {}}
-              label="Font size"
-            >
+            <ToolbarButton active={false} onClick={() => {}} label="Font size">
               <span className="text-[10px] font-semibold leading-none">
                 {editor?.getAttributes('textStyle')?.fontSize
                   ? parseInt(editor.getAttributes('textStyle').fontSize)
@@ -1430,7 +1428,11 @@ export function NewsletterEditor() {
                       `${size}px` && 'bg-accent font-medium'
                   )}
                   onClick={() =>
-                    (editor as any)?.chain().focus().setFontSize(`${size}px`).run()
+                    (editor as any)
+                      ?.chain()
+                      .focus()
+                      .setFontSize(`${size}px`)
+                      .run()
                   }
                 >
                   {size}px

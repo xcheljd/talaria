@@ -126,6 +126,22 @@ export const DEFAULT_EMAIL_PALETTE: EmailPaletteConfig = {
   footerText: 'white',
 };
 
+/** Style overrides for How to Shop / Important Notes boxes */
+export interface SectionBoxStyle {
+  borderColor: string | null; // null = use palette default
+  backgroundColor: string | null; // null = use palette default
+}
+
+export const DEFAULT_HOW_TO_SHOP_STYLE: SectionBoxStyle = {
+  borderColor: null, // no border by default
+  backgroundColor: null, // uses palette sectionBg
+};
+
+export const DEFAULT_IMPORTANT_NOTES_STYLE: SectionBoxStyle = {
+  borderColor: null, // uses palette noteBorder
+  backgroundColor: null, // no background by default
+};
+
 export interface PromotionPersistedState {
   promoDateRange: string;
   promoYear: string;
@@ -134,6 +150,8 @@ export interface PromotionPersistedState {
   specialHours: SpecialHour[];
   howToShopItems: HowToShopItem[];
   importantNotesItems: ImportantNotesItem[];
+  howToShopStyle: SectionBoxStyle;
+  importantNotesStyle: SectionBoxStyle;
   attachedPDFs: AttachedPDF[];
   generatedSubjectLines: string[];
   selectedSubjectLine: string | null;
@@ -157,6 +175,8 @@ export interface PromotionState {
   specialHours: SpecialHour[];
   howToShopItems: HowToShopItem[];
   importantNotesItems: ImportantNotesItem[];
+  howToShopStyle: SectionBoxStyle;
+  importantNotesStyle: SectionBoxStyle;
   attachedPDFs: AttachedPDF[];
   generatedSubjectLines: string[];
   selectedSubjectLine: string | null;
@@ -229,6 +249,10 @@ export interface PromotionState {
     id: number,
     format: 'bold' | 'italic' | 'underline'
   ) => void;
+
+  // Section box style actions
+  setHowToShopStyle: (style: Partial<SectionBoxStyle>) => void;
+  setImportantNotesStyle: (style: Partial<SectionBoxStyle>) => void;
 
   // PDF actions
   addPDF: (pdf: AttachedPDF) => void;
@@ -326,6 +350,10 @@ function getEmptyState() {
     specialHours: [] as SpecialHour[],
     howToShopItems: [] as HowToShopItem[],
     importantNotesItems: [] as ImportantNotesItem[],
+    howToShopStyle: { ...DEFAULT_HOW_TO_SHOP_STYLE } as SectionBoxStyle,
+    importantNotesStyle: {
+      ...DEFAULT_IMPORTANT_NOTES_STYLE,
+    } as SectionBoxStyle,
     attachedPDFs: [] as AttachedPDF[],
     generatedSubjectLines: [] as string[],
     selectedSubjectLine: null as string | null,
@@ -567,6 +595,18 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       ),
     })),
 
+  // ===== Section Box Style Actions =====
+
+  setHowToShopStyle: (style: Partial<SectionBoxStyle>) =>
+    set((state) => ({
+      howToShopStyle: { ...state.howToShopStyle, ...style },
+    })),
+
+  setImportantNotesStyle: (style: Partial<SectionBoxStyle>) =>
+    set((state) => ({
+      importantNotesStyle: { ...state.importantNotesStyle, ...style },
+    })),
+
   // ===== PDF Actions =====
 
   addPDF: (pdf: AttachedPDF) =>
@@ -754,6 +794,8 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       specialHours: state.specialHours,
       howToShopItems: state.howToShopItems,
       importantNotesItems: state.importantNotesItems,
+      howToShopStyle: state.howToShopStyle,
+      importantNotesStyle: state.importantNotesStyle,
       attachedPDFs: state.attachedPDFs.map((pdf) => ({
         id: pdf.id,
         name: pdf.name,
@@ -861,6 +903,12 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         specialHours: parsed.specialHours || [],
         howToShopItems: parsed.howToShopItems || [],
         importantNotesItems: parsed.importantNotesItems || [],
+        howToShopStyle: parsed.howToShopStyle || {
+          ...DEFAULT_HOW_TO_SHOP_STYLE,
+        },
+        importantNotesStyle: parsed.importantNotesStyle || {
+          ...DEFAULT_IMPORTANT_NOTES_STYLE,
+        },
         attachedPDFs: restoredPDFs,
         generatedSubjectLines: parsed.generatedSubjectLines || [],
         selectedSubjectLine: parsed.selectedSubjectLine || null,

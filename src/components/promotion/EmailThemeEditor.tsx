@@ -23,16 +23,44 @@ interface PaletteField {
 }
 
 const PALETTE_FIELDS: PaletteField[] = [
-  { key: 'footerBg', label: 'Footer', description: 'Footer & header accent background' },
-  { key: 'sectionBg', label: 'Section Bg', description: 'How to Shop box background' },
-  { key: 'unsubscribeBg', label: 'Unsubscribe Bg', description: 'Unsubscribe row background' },
-  { key: 'accent', label: 'Accent', description: 'Store hours & special hours text' },
+  {
+    key: 'footerBg',
+    label: 'Footer',
+    description: 'Footer & header accent background',
+  },
+  {
+    key: 'sectionBg',
+    label: 'Section Bg',
+    description: 'How to Shop box background',
+  },
+  {
+    key: 'unsubscribeBg',
+    label: 'Unsubscribe Bg',
+    description: 'Unsubscribe row background',
+  },
+  {
+    key: 'accent',
+    label: 'Accent',
+    description: 'Store hours & special hours text',
+  },
   { key: 'text', label: 'Text', description: 'Primary body text color' },
   { key: 'link', label: 'Link', description: 'Link & callout text color' },
-  { key: 'noteBorder', label: 'Note Border', description: 'Important notes box border' },
-  { key: 'headerBorder', label: 'Header Border', description: 'Header separator line' },
+  {
+    key: 'noteBorder',
+    label: 'Note Border',
+    description: 'Important notes box border',
+  },
+  {
+    key: 'headerBorder',
+    label: 'Header Border',
+    description: 'Header separator line',
+  },
   { key: 'bodyBg', label: 'Body Bg', description: 'Email body background' },
-  { key: 'footerText', label: 'Footer Text', description: 'Footer text & link color' },
+  {
+    key: 'footerText',
+    label: 'Footer Text',
+    description: 'Footer text & link color',
+  },
 ];
 
 // Built-in palette presets
@@ -100,7 +128,7 @@ const PRESET_GROUPS: PresetGroup[] = [
     label: 'Seasonal',
     presets: [
       {
-        name: 'Valentine\'s',
+        name: "Valentine's",
         palette: {
           footerBg: '#9b1b30',
           sectionBg: '#fff0f3',
@@ -201,7 +229,8 @@ function persistSavedPalettes(palettes: SavedPalette[]) {
 export function EmailThemeEditor() {
   const store = usePromotionStore();
   const palette = store.emailPalette;
-  const [savedPalettes, setSavedPalettes] = useState<SavedPalette[]>(loadSavedPalettes);
+  const [savedPalettes, setSavedPalettes] =
+    useState<SavedPalette[]>(loadSavedPalettes);
   const [saveName, setSaveName] = useState('');
 
   const isDefault = PALETTE_FIELDS.every(
@@ -211,7 +240,10 @@ export function EmailThemeEditor() {
   const handleSavePalette = () => {
     const name = saveName.trim();
     if (!name) return;
-    const updated = [...savedPalettes.filter((p) => p.name !== name), { name, palette: { ...palette } }];
+    const updated = [
+      ...savedPalettes.filter((p) => p.name !== name),
+      { name, palette: { ...palette } },
+    ];
     setSavedPalettes(updated);
     persistSavedPalettes(updated);
     setSaveName('');
@@ -230,7 +262,8 @@ export function EmailThemeEditor() {
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Customize the email color scheme. Newsletter auto-colors follow this palette.
+        Customize the email color scheme. Newsletter auto-colors follow this
+        palette.
       </p>
 
       {/* Preset Palettes — Grouped */}
@@ -249,15 +282,18 @@ export function EmailThemeEditor() {
                 title={preset.name}
               >
                 <div className="flex gap-0.5">
-                  {[preset.palette.footerBg, preset.palette.accent, preset.palette.link, preset.palette.sectionBg].map(
-                    (c, i) => (
-                      <div
-                        key={i}
-                        className="h-3 w-3 rounded-sm border border-border"
-                        style={{ backgroundColor: c }}
-                      />
-                    )
-                  )}
+                  {[
+                    preset.palette.footerBg,
+                    preset.palette.accent,
+                    preset.palette.link,
+                    preset.palette.sectionBg,
+                  ].map((c, i) => (
+                    <div
+                      key={i}
+                      className="h-3 w-3 rounded-sm border border-border"
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
                 </div>
                 <span>{preset.name}</span>
               </button>
@@ -282,15 +318,18 @@ export function EmailThemeEditor() {
                   title={saved.name}
                 >
                   <div className="flex gap-0.5">
-                    {[saved.palette.footerBg, saved.palette.accent, saved.palette.link, saved.palette.sectionBg].map(
-                      (c, i) => (
-                        <div
-                          key={i}
-                          className="h-3 w-3 rounded-sm border border-border"
-                          style={{ backgroundColor: c }}
-                        />
-                      )
-                    )}
+                    {[
+                      saved.palette.footerBg,
+                      saved.palette.accent,
+                      saved.palette.link,
+                      saved.palette.sectionBg,
+                    ].map((c, i) => (
+                      <div
+                        key={i}
+                        className="h-3 w-3 rounded-sm border border-border"
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
                   </div>
                   <span>{saved.name}</span>
                 </button>

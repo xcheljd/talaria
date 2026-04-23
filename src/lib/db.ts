@@ -69,6 +69,18 @@ export function initIndexedDB(): Promise<boolean> {
 
     request.onsuccess = () => {
       db = request.result;
+      // If another tab upgrades the schema, the browser fires `versionchange`
+      // on open connections. Close and forget so the next call re-initializes.
+      db.onversionchange = () => {
+        db?.close();
+        db = null;
+        initPromise = null;
+      };
+      // Mirrors `onversionchange` for abnormal closes (tab quota, etc.).
+      db.onclose = () => {
+        db = null;
+        initPromise = null;
+      };
       console.log('IndexedDB initialized successfully');
       resolve(true);
     };
@@ -109,7 +121,9 @@ export async function savePDFToIndexedDB(pdfData: PDFRecord): Promise<string> {
 /**
  * Get specific PDF from IndexedDB.
  */
-export async function getPDFFromIndexedDB(pdfId: string): Promise<PDFRecord | null> {
+export async function getPDFFromIndexedDB(
+  pdfId: string
+): Promise<PDFRecord | null> {
   if (!db) await initIndexedDB();
   return new Promise((resolve, reject) => {
     if (!db) {

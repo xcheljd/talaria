@@ -48,14 +48,21 @@ export function PDFAttachments() {
   const generatePdfId = () =>
     `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-  const persistPDF = useCallback(async (pdf: AttachedPDF) => {
-    try {
-      await savePDFToIndexedDB({ id: pdf.id, name: pdf.name, data: pdf.data });
-    } catch {
-      toast.warning('PDF saved to memory but may not persist after refresh');
-    }
-    store.addPDF(pdf);
-  }, [store]);
+  const persistPDF = useCallback(
+    async (pdf: AttachedPDF) => {
+      try {
+        await savePDFToIndexedDB({
+          id: pdf.id,
+          name: pdf.name,
+          data: pdf.data,
+        });
+      } catch {
+        toast.warning('PDF kept in memory but will not persist after refresh');
+      }
+      store.addPDF(pdf);
+    },
+    [store]
+  );
 
   const processFiles = useCallback(
     async (files: File[]) => {
@@ -98,7 +105,6 @@ export function PDFAttachments() {
     [store, persistPDF]
   );
 
-
   const handleDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
@@ -117,7 +123,8 @@ export function PDFAttachments() {
 
       // Direct file drop (works in browsers, some Tauri configs)
       const directFiles = Array.from(dt.files).filter(
-        (f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+        (f) =>
+          f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
       );
       if (directFiles.length > 0) {
         processFiles(directFiles);
@@ -129,7 +136,10 @@ export function PDFAttachments() {
       let fileUrls: string[] = [];
       const uriData = dt.getData('text/uri-list');
       if (uriData) {
-        fileUrls = uriData.split('\n').map(u => u.trim()).filter(u => u.startsWith('file://'));
+        fileUrls = uriData
+          .split('\n')
+          .map((u) => u.trim())
+          .filter((u) => u.startsWith('file://'));
       }
       if (fileUrls.length === 0) {
         const htmlData = dt.getData('text/html');
@@ -138,7 +148,7 @@ export function PDFAttachments() {
           if (matches) fileUrls = matches;
         }
       }
-      const pdfUrls = fileUrls.filter(u => u.toLowerCase().endsWith('.pdf'));
+      const pdfUrls = fileUrls.filter((u) => u.toLowerCase().endsWith('.pdf'));
       if (pdfUrls.length > 0) {
         (async () => {
           try {
@@ -154,7 +164,9 @@ export function PDFAttachments() {
                 continue;
               }
 
-              const dataUrl = await invoke<string>('read_file_as_data_url', { path: filePath });
+              const dataUrl = await invoke<string>('read_file_as_data_url', {
+                path: filePath,
+              });
               const b64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
               const size = Math.floor(b64.length * 0.75);
 
@@ -193,7 +205,6 @@ export function PDFAttachments() {
     [processFiles]
   );
 
-
   const handleRemovePDF = useCallback(
     async (pdf: AttachedPDF) => {
       try {
@@ -206,7 +217,6 @@ export function PDFAttachments() {
     },
     [store]
   );
-
 
   const openPreview = useCallback((pdf: AttachedPDF) => {
     if (!pdf.data) {

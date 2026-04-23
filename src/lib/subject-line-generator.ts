@@ -439,18 +439,16 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
   const hasFinalSale = callouts.some((c) => c.includes('final'));
 
   // Build discount phrase
-  const getDiscountPhrase = (discount: number): string => {
-    if (discount >= 50) return `Up to ${discount}% OFF`;
-    if (discount >= 30) return `Up to ${discount}% OFF`;
-    if (discount > 0) return `Up to ${discount}% OFF`;
-    return 'Special Savings';
-  };
+  const getDiscountPhrase = (discount: number): string =>
+    discount > 0 ? `Up to ${discount}% OFF` : 'Special Savings';
 
   const subjects: string[] = [];
 
   // Use the promotion date range to determine season/occasion, not today's date
   const parsedRange = promoDateRange ? parseDate(promoDateRange) : null;
-  const { season, occasions } = getSeasonAndOccasions(parsedRange?.start ?? undefined);
+  const { season, occasions } = getSeasonAndOccasions(
+    parsedRange?.start ?? undefined
+  );
 
   // TIER 1: High-Impact Contextual
   if (occasions.length > 0) {

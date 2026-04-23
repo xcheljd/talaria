@@ -211,6 +211,14 @@ export interface PromotionEmailData {
   specialHours: SpecialHour[];
   howToShopItems: HowToShopItem[];
   importantNotesItems: ImportantNotesItem[];
+  howToShopStyle?: {
+    borderColor: string | null;
+    backgroundColor: string | null;
+  };
+  importantNotesStyle?: {
+    borderColor: string | null;
+    backgroundColor: string | null;
+  };
   newsletterHeading: string;
   newsletterBody: string;
   newsletterPosition: NewsletterPosition;
@@ -241,6 +249,14 @@ export interface PromotionConfigForExport {
   specialHours: SpecialHour[];
   howToShopItems: HowToShopItem[];
   importantNotesItems: ImportantNotesItem[];
+  howToShopStyle?: {
+    borderColor: string | null;
+    backgroundColor: string | null;
+  };
+  importantNotesStyle?: {
+    borderColor: string | null;
+    backgroundColor: string | null;
+  };
   attachedPDFs: Array<{
     id: string;
     name: string;
@@ -337,20 +353,23 @@ function convertTipTapToInlineHTML(
   result = result.replace(/<\/s>/g, '</span>');
 
   // <mark> → <span style="background-color: yellow;">
-  // Also handle marks with data-color attribute from TipTap highlight
+  // Also handle marks with data-color attribute from TipTap highlight,
+  // regardless of attribute order or additional attributes.
   result = result.replace(
-    /<mark data-color="([^"]*)">/g,
+    /<mark\b[^>]*\bdata-color="([^"]*)"[^>]*>/g,
     '<span style="background-color: $1;">'
   );
   result = result.replace(
-    /<mark>/g,
+    /<mark\b[^>]*>/g,
     '<span style="background-color: yellow;">'
   );
   result = result.replace(/<\/mark>/g, '</span>');
 
   // ===== Helper to extract text-align from existing style attr =====
   const extractTextAlign = (attrs: string): string => {
-    const match = attrs.match(/style="[^"]*text-align:\s*(left|center|right|justify)/);
+    const match = attrs.match(
+      /style="[^"]*text-align:\s*(left|center|right|justify)/
+    );
     return match ? ` text-align: ${match[1]};` : '';
   };
 
@@ -359,19 +378,22 @@ function convertTipTapToInlineHTML(
   // Replace <h2> with inline-styled version (preserve text-align)
   result = result.replace(
     /<h2([^>]*)>/g,
-    (_match, attrs) => `<h2 style="font-size: 20px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 15px 0 8px 0; font-weight: bold;${extractTextAlign(attrs)}">`
+    (_match, attrs) =>
+      `<h2 style="font-size: 20px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 15px 0 8px 0; font-weight: bold;${extractTextAlign(attrs)}">`
   );
 
   // Replace <h3> with inline-styled version (preserve text-align)
   result = result.replace(
     /<h3([^>]*)>/g,
-    (_match, attrs) => `<h3 style="font-size: 17px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 12px 0 6px 0; font-weight: bold;${extractTextAlign(attrs)}">`
+    (_match, attrs) =>
+      `<h3 style="font-size: 17px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 12px 0 6px 0; font-weight: bold;${extractTextAlign(attrs)}">`
   );
 
   // Replace <p> with inline-styled version (preserve text-align)
   result = result.replace(
     /<p([^>]*)>/g,
-    (_match, attrs) => `<p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 8px 0;${extractTextAlign(attrs)}">`
+    (_match, attrs) =>
+      `<p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 8px 0;${extractTextAlign(attrs)}">`
   );
 
   // Replace <ul> with inline-styled version
@@ -405,89 +427,94 @@ function convertTipTapToInlineHTML(
   );
 
   // Replace <hr> with inline-styled version (preserve existing style for dashed/dotted/accent variants)
-  result = result.replace(
-    /<hr([^>]*)>/g,
-    (_match, attrs) => {
-      const styleMatch = attrs.match(/style="([^"]*)"/);
-      const existingStyle = styleMatch ? styleMatch[1] : `border: none; border-top: 1px solid ${tableStyle.borderColor};`;
-      return `<hr style="margin: 12px 0; ${existingStyle}" />`;
-    }
-  );
+  result = result.replace(/<hr([^>]*)>/g, (_match, attrs) => {
+    const styleMatch = attrs.match(/style="([^"]*)"/);
+    const existingStyle = styleMatch
+      ? styleMatch[1]
+      : `border: none; border-top: 1px solid ${tableStyle.borderColor};`;
+    return `<hr style="margin: 12px 0; ${existingStyle}" />`;
+  });
 
   // Replace <table> with inline-styled version
-  const tBorder = tableStyle.borderStyle === 'none'
-    ? 'border: none;'
-    : `border: ${tableStyle.borderWidth}px ${tableStyle.borderStyle} ${tableStyle.borderColor};`;
+  const tBorder =
+    tableStyle.borderStyle === 'none'
+      ? 'border: none;'
+      : `border: ${tableStyle.borderWidth}px ${tableStyle.borderStyle} ${tableStyle.borderColor};`;
   result = result.replace(
     /<table([^>]*)>/g,
     `<table style="border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; ${tBorder}">`
   );
 
   // Replace <td> with inline-styled version (preserve colspan/rowspan)
-  const cellBorder = tableStyle.borderStyle === 'none'
-    ? 'border: none;'
-    : `border: ${tableStyle.borderWidth}px ${tableStyle.borderStyle} ${tableStyle.borderColor};`;
-  result = result.replace(
-    /<td([^>]*)>/g,
-    (_match, attrs) => {
-      const colspan = attrs.match(/colspan="([^"]*)"/);
-      const rowspan = attrs.match(/rowspan="([^"]*)"/);
-      let extra = '';
-      if (colspan) extra += ` colspan="${colspan[1]}"`;
-      if (rowspan) extra += ` rowspan="${rowspan[1]}"`;
-      return `<td${extra} style="${cellBorder} padding: 6px 8px; vertical-align: top;">`;
-    }
-  );
+  const cellBorder =
+    tableStyle.borderStyle === 'none'
+      ? 'border: none;'
+      : `border: ${tableStyle.borderWidth}px ${tableStyle.borderStyle} ${tableStyle.borderColor};`;
+  result = result.replace(/<td([^>]*)>/g, (_match, attrs) => {
+    const colspan = attrs.match(/colspan="([^"]*)"/);
+    const rowspan = attrs.match(/rowspan="([^"]*)"/);
+    let extra = '';
+    if (colspan) extra += ` colspan="${colspan[1]}"`;
+    if (rowspan) extra += ` rowspan="${rowspan[1]}"`;
+    return `<td${extra} style="${cellBorder} padding: 6px 8px; vertical-align: top;">`;
+  });
 
   // Replace <th> with inline-styled version (preserve colspan/rowspan)
-  result = result.replace(
-    /<th([^>]*)>/g,
-    (_match, attrs) => {
-      const colspan = attrs.match(/colspan="([^"]*)"/);
-      const rowspan = attrs.match(/rowspan="([^"]*)"/);
-      let extra = '';
-      if (colspan) extra += ` colspan="${colspan[1]}"`;
-      if (rowspan) extra += ` rowspan="${rowspan[1]}"`;
-      return `<th${extra} style="${cellBorder} padding: 6px 8px; vertical-align: top; font-weight: bold; background-color: ${tableStyle.headerBg};">`;
-    }
-  );
+  result = result.replace(/<th([^>]*)>/g, (_match, attrs) => {
+    const colspan = attrs.match(/colspan="([^"]*)"/);
+    const rowspan = attrs.match(/rowspan="([^"]*)"/);
+    let extra = '';
+    if (colspan) extra += ` colspan="${colspan[1]}"`;
+    if (rowspan) extra += ` rowspan="${rowspan[1]}"`;
+    return `<th${extra} style="${cellBorder} padding: 6px 8px; vertical-align: top; font-weight: bold; background-color: ${tableStyle.headerBg};">`;
+  });
 
   // Replace <img> with inline-styled version (preserve src, alt, width, height, align, href)
-  result = result.replace(
-    /<img([^>]*)>/g,
-    (_match, attrs) => {
-      const src = attrs.match(/src="([^"]*)"/);
-      const alt = attrs.match(/alt="([^"]*)"/);
-      const width = attrs.match(/width="([^"]*)"/);
-      const height = attrs.match(/height="([^"]*)"/);
-      const alignMatch = attrs.match(/align="([^"]*)"/);
-      const hrefMatch = attrs.match(/href="([^"]*)"/);
-      if (!src) return '';
+  result = result.replace(/<img([^>]*)>/g, (_match, attrs) => {
+    const src = attrs.match(/src="([^"]*)"/);
+    const alt = attrs.match(/alt="([^"]*)"/);
+    const width = attrs.match(/width="([^"]*)"/);
+    const height = attrs.match(/height="([^"]*)"/);
+    const alignMatch = attrs.match(/align="([^"]*)"/);
+    const hrefMatch = attrs.match(/href="([^"]*)"/);
+    if (!src) return '';
 
-      const align = alignMatch?.[1] || 'center';
-      let alignStyle = 'display: block; margin: 8px auto;';
-      if (align === 'left') alignStyle = 'display: block; margin: 8px auto 8px 0;';
-      if (align === 'right') alignStyle = 'display: block; margin: 8px 0 8px auto;';
+    const align = alignMatch?.[1] || 'center';
+    let alignStyle = 'display: block; margin: 8px auto;';
+    if (align === 'left')
+      alignStyle = 'display: block; margin: 8px auto 8px 0;';
+    if (align === 'right')
+      alignStyle = 'display: block; margin: 8px 0 8px auto;';
 
-      let imgAttrs = `src="${src[1]}"`;
-      if (alt) imgAttrs += ` alt="${alt[1]}"`;
-      if (width) imgAttrs += ` width="${width[1]}"`;
-      if (height) imgAttrs += ` height="${height[1]}"`;
-      const widthStyle = width ? `width: ${width[1]}px; ` : '';
+    let imgAttrs = `src="${src[1]}"`;
+    if (alt) imgAttrs += ` alt="${alt[1]}"`;
+    if (width) imgAttrs += ` width="${width[1]}"`;
+    if (height) imgAttrs += ` height="${height[1]}"`;
+    const widthStyle = width ? `width: ${width[1]}px; ` : '';
 
-      const imgTag = `<img ${imgAttrs} style="${widthStyle}max-width: 100%; height: auto; ${alignStyle}" />`;
+    const imgTag = `<img ${imgAttrs} style="${widthStyle}max-width: 100%; height: auto; ${alignStyle}" />`;
 
-      if (hrefMatch?.[1]) {
-        return `<a href="${hrefMatch[1]}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">${imgTag}</a>`;
-      }
-      return imgTag;
+    if (hrefMatch?.[1]) {
+      return `<a href="${hrefMatch[1]}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">${imgTag}</a>`;
     }
-  );
+    return imgTag;
+  });
 
-  // Replace <a> with inline-styled version (preserve href)
+  // Replace <a> with inline-styled version (preserve href and merge any
+  // existing style attribute so we don't emit a duplicate `style=` on the tag).
   result = result.replace(
     /<a\s+href="([^"]*)"([^>]*)>/g,
-    `<a href="$1"$2 style="color: ${palette.link}; text-decoration: underline;">`
+    (_match, href, rest) => {
+      const styleMatch = rest.match(/\s*style="([^"]*)"/);
+      const linkStyle = `color: ${palette.link}; text-decoration: underline;`;
+      if (styleMatch) {
+        const restWithoutStyle = rest.replace(styleMatch[0], '');
+        const existing = styleMatch[1].trim().replace(/;\s*$/, '');
+        const merged = existing ? `${existing}; ${linkStyle}` : linkStyle;
+        return `<a href="${href}"${restWithoutStyle} style="${merged}">`;
+      }
+      return `<a href="${href}"${rest} style="${linkStyle}">`;
+    }
   );
 
   // Strip javascript: URIs from links for safety
@@ -980,6 +1007,33 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
   const newsletterBottomHTML =
     data.newsletterPosition === 'bottom' ? newsletterSection : '';
 
+  // Resolve How to Shop box styles
+  const htsStyle = data.howToShopStyle;
+  const htsBg = htsStyle?.backgroundColor ?? pal.sectionBg;
+  const htsBorder = htsStyle?.borderColor;
+  const htsStyleAttr = [
+    `background-color: ${htsBg}`,
+    htsBorder ? `border: 1px solid ${htsBorder}` : '',
+    `color: ${pal.text}`,
+    'padding: 15px',
+    'margin-bottom: 20px',
+  ]
+    .filter(Boolean)
+    .join('; ');
+
+  // Resolve Important Notes box styles
+  const inStyle = data.importantNotesStyle;
+  const inBorder = inStyle?.borderColor ?? pal.noteBorder;
+  const inBg = inStyle?.backgroundColor;
+  const inStyleAttr = [
+    `border: 1px solid ${inBorder}`,
+    inBg ? `background-color: ${inBg}` : '',
+    `color: ${pal.text}`,
+    'padding: 15px',
+  ]
+    .filter(Boolean)
+    .join('; ');
+
   // Preheader text — hidden span that email clients show as preview text
   const preheaderHTML = data.preheaderText?.trim()
     ? `<span style="display:none;font-size:1px;color:${pal.bodyBg};line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${escapeHtml(data.preheaderText.trim())}</span>`
@@ -1029,14 +1083,14 @@ ${brandSections}
 ${newsletterBottomHTML}
 
                 <!-- HOW TO SHOP BOX -->
-                <div class="section-box" style="background-color: ${pal.sectionBg}; color: ${pal.text}; padding: 15px; margin-bottom: 20px;">
+                <div class="section-box" style="${htsStyleAttr}">
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0;"><b>HOW TO SHOP</b></p>
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">
                     ${howToShopHTML}</p>
                 </div>
 
                 <!-- IMPORTANT NOTES BOX -->
-                <div class="section-box" style="border: 1px solid ${pal.noteBorder}; color: ${pal.text}; padding: 15px;">
+                <div class="section-box" style="${inStyleAttr}">
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 10px 0;"><b>IMPORTANT NOTES</b></p>
                     <p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0;">
                     ${importantNotesHTML}</p>
@@ -1158,6 +1212,8 @@ export function buildExportConfig(
       italic: i.italic,
       underline: i.underline,
     })),
+    howToShopStyle: data.howToShopStyle,
+    importantNotesStyle: data.importantNotesStyle,
     attachedPDFs: attachedPDFs.map((p) => ({
       id: p.id,
       name: p.name,
@@ -1228,6 +1284,12 @@ export function validateImportConfig(
       howToShopItems: (config.howToShopItems as HowToShopItem[]) || [],
       importantNotesItems:
         (config.importantNotesItems as ImportantNotesItem[]) || [],
+      howToShopStyle:
+        (config.howToShopStyle as PromotionConfigForExport['howToShopStyle']) ||
+        undefined,
+      importantNotesStyle:
+        (config.importantNotesStyle as PromotionConfigForExport['importantNotesStyle']) ||
+        undefined,
       attachedPDFs:
         (config.attachedPDFs as PromotionConfigForExport['attachedPDFs']) || [],
       generatedSubjectLines: (config.generatedSubjectLines as string[]) || [],

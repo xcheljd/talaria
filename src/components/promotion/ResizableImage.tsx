@@ -229,7 +229,10 @@ function ImageNodeView({
 
               const handleMouseMove = (moveEvent: MouseEvent) => {
                 const delta = moveEvent.clientX - startX;
-                const newWidth = Math.max(50, Math.min(600, startWidth + delta));
+                const newWidth = Math.max(
+                  50,
+                  Math.min(600, startWidth + delta)
+                );
                 updateAttributes({ width: newWidth });
               };
 
