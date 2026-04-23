@@ -48,3 +48,8 @@ pnpm-debug.log*
 
 # Local Warp agent rules file (not committed)
 WARP.md
+
+# Playwright test artifacts
+playwright-report/
+test-results/
+.playwright-mcp/
