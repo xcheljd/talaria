@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -109,12 +110,12 @@ export class ErrorBoundary extends Component<
             >
               Try again
             </button>
-            <a
-              href="/"
+            <Link
+              to="/"
               className="inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
             >
               Go to home
-            </a>
+            </Link>
           </div>
         </div>
       </div>

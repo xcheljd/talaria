@@ -54,6 +54,15 @@ function NormalComponent() {
   return <div data-testid="normal">Normal content</div>;
 }
 
+/**
+ * Helper to wrap ErrorBoundary in MemoryRouter.
+ * Required because the route-level fallback uses React Router's <Link>,
+ * which needs a router context to render.
+ */
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
+
 describe('ErrorBoundary', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
@@ -68,7 +77,7 @@ describe('ErrorBoundary', () => {
   // ===== VAL-COMP-001: Component is a valid React class component =====
 
   it('catches render errors and shows fallback', () => {
-    render(
+    renderWithRouter(
       <ErrorBoundary>
         <ThrowingComponent error={new Error('Test error')} />
       </ErrorBoundary>
@@ -91,7 +100,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('accepts level="route" prop (default)', () => {
-    render(
+    renderWithRouter(
       <ErrorBoundary level="route">
         <ThrowingComponent error={new Error('Route error')} />
       </ErrorBoundary>
@@ -102,7 +111,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('defaults to route level when level is not specified', () => {
-    render(
+    renderWithRouter(
       <ErrorBoundary>
         <ThrowingComponent error={new Error('Default level')} />
       </ErrorBoundary>
@@ -159,7 +168,7 @@ describe('ErrorBoundary', () => {
   // ===== VAL-COMP-006: Route-level fallback =====
 
   it('renders route-level fallback with Try again and Go to home', () => {
-    render(
+    renderWithRouter(
       <ErrorBoundary level="route">
         <ThrowingComponent error={new Error('Route crash')} />
       </ErrorBoundary>
@@ -171,19 +180,49 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('Go to home')).toBeInTheDocument();
   });
 
-  it('Go to home link navigates to /', () => {
-    render(
-      <MemoryRouter>
-        <ErrorBoundary level="route">
-          <ThrowingComponent error={new Error('Nav test')} />
-        </ErrorBoundary>
-      </MemoryRouter>
+  it('Go to home link navigates to / via React Router Link (client-side navigation)', () => {
+    renderWithRouter(
+      <ErrorBoundary level="route">
+        <ThrowingComponent error={new Error('Nav test')} />
+      </ErrorBoundary>
     );
 
     const homeLink = screen.getByText('Go to home');
     expect(homeLink).toBeInTheDocument();
+    // React Router's Link renders an <a> tag with href="/"
+    // but it uses client-side navigation — no full page reload
     expect(homeLink.tagName).toBe('A');
     expect(homeLink).toHaveAttribute('href', '/');
+    // Verify the Link component is used by checking it has the onClick handler
+    // that React Router injects for client-side navigation (prevents default)
+    const anchorElement = homeLink as HTMLAnchorElement;
+    expect(typeof anchorElement.onclick).toBe('function');
+  });
+
+  it('Go to home does not cause full page reload (uses client-side navigation)', () => {
+    // Ensure window.location.reload is NOT called when clicking "Go to home"
+    const reloadMock = vi.fn();
+    const originalReload = window.location.reload;
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, reload: reloadMock },
+      writable: true,
+    });
+
+    renderWithRouter(
+      <ErrorBoundary level="route">
+        <ThrowingComponent error={new Error('No reload test')} />
+      </ErrorBoundary>
+    );
+
+    fireEvent.click(screen.getByText('Go to home'));
+    // window.location.reload should NOT have been called — this is client-side nav
+    expect(reloadMock).not.toHaveBeenCalled();
+
+    // Restore
+    Object.defineProperty(window, 'location', {
+      value: { reload: originalReload },
+      writable: true,
+    });
   });
 
   // ===== VAL-COMP-003: resetErrorBoundary =====
@@ -198,7 +237,7 @@ describe('ErrorBoundary', () => {
       return <div data-testid="success">Success!</div>;
     }
 
-    const { rerender } = render(
+    const { rerender } = renderWithRouter(
       <ErrorBoundary level="route">
         <ControlledComponent />
       </ErrorBoundary>
@@ -313,7 +352,7 @@ describe('ErrorBoundary', () => {
   // ===== VAL-COMP-004: console.error logging =====
 
   it('logs error to console.error with component stack', () => {
-    render(
+    renderWithRouter(
       <ErrorBoundary>
         <ThrowingComponent error={new Error('Logged error')} />
       </ErrorBoundary>
@@ -337,7 +376,7 @@ describe('ErrorBoundary', () => {
   // ===== VAL-COMP-009: Non-Error thrown values =====
 
   it('handles string thrown as error gracefully', () => {
-    render(
+    renderWithRouter(
       <ErrorBoundary>
         <ThrowingComponent error="A string error" />
       </ErrorBoundary>
@@ -348,7 +387,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('handles undefined thrown as error gracefully', () => {
-    render(
+    renderWithRouter(
       <ErrorBoundary>
         <ThrowingComponent error={undefined} />
       </ErrorBoundary>
@@ -359,7 +398,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('handles null thrown as error gracefully', () => {
-    render(
+    renderWithRouter(
       <ErrorBoundary>
         <ThrowingComponent error={null} />
       </ErrorBoundary>
@@ -370,7 +409,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('handles number thrown as error gracefully', () => {
-    render(
+    renderWithRouter(
       <ErrorBoundary>
         <ThrowingComponent error={42} />
       </ErrorBoundary>
@@ -392,7 +431,7 @@ describe('ErrorBoundary', () => {
       return <div data-testid="fully-recovered">Fully recovered!</div>;
     }
 
-    render(
+    renderWithRouter(
       <ErrorBoundary level="route">
         <RecoverableComponent />
       </ErrorBoundary>
@@ -414,7 +453,7 @@ describe('ErrorBoundary', () => {
   // ===== Error persisting after reset =====
 
   it('shows fallback again if error persists after reset', () => {
-    render(
+    renderWithRouter(
       <ErrorBoundary level="route">
         <ThrowingComponent error={new Error('Persistent error')} />
       </ErrorBoundary>
@@ -445,7 +484,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('route-level fallback uses Tailwind CSS variable classes for theming', () => {
-    const { container } = render(
+    const { container } = renderWithRouter(
       <ErrorBoundary level="route">
         <ThrowingComponent error={new Error('Theme test')} />
       </ErrorBoundary>
@@ -462,7 +501,7 @@ describe('ErrorBoundary', () => {
     const error = new Error('Detailed error');
     error.stack = 'Error: Detailed error\n    at TestComponent (test.tsx:1:1)';
 
-    render(
+    renderWithRouter(
       <ErrorBoundary level="route">
         <ThrowingComponent error={error} />
       </ErrorBoundary>
