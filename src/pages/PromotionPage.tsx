@@ -40,12 +40,15 @@ import {
   Moon,
   Printer,
   Loader2,
+  Save,
+  Trash2,
 } from 'lucide-react';
 
 import { useHasProfile } from '@/contexts/ProfileProvider';
 import {
   usePromotionStore,
   DEFAULT_EMAIL_PALETTE,
+  type SectionBoxStyle,
 } from '@/stores/promotion-store';
 import { CollapsibleCard } from '@/components/promotion/CollapsibleCard';
 import { IconToolbar } from '@/components/promotion/IconToolbar';
@@ -101,6 +104,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ResizablePanels } from '@/components/ui/resizable-panels';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // ===== Card Configuration =====
 
@@ -146,15 +150,15 @@ const CARD_CONFIGS: CardConfig[] = [
   { id: 'outlookCard', title: 'Outlook Compatibility', defaultCollapsed: true },
 ];
 
-// Module-level ref for BulkEmailTools imperative handle
-const bulkEmailRef = { current: null as BulkEmailToolsHandle | null };
-
 // ===== Card Content Components =====
 
 /** Get content component for a specific card */
 function getCardContent(
   cardId: string,
-  extra?: { versionRefreshKey?: number }
+  extra?: {
+    versionRefreshKey?: number;
+    bulkEmailRef?: React.Ref<BulkEmailToolsHandle>;
+  }
 ) {
   switch (cardId) {
     case 'basicDetailsCard':
@@ -162,7 +166,11 @@ function getCardContent(
     case 'emailThemeCard':
       return <EmailThemeEditor />;
     case 'newsletterCard':
-      return <NewsletterEditor />;
+      return (
+        <ErrorBoundary level="component">
+          <NewsletterEditor />
+        </ErrorBoundary>
+      );
     case 'discountEntriesCard':
       return <DiscountEntriesEditor />;
     case 'howToShopCard':
@@ -172,7 +180,11 @@ function getCardContent(
     case 'specialHoursCard':
       return <SpecialHoursEditor />;
     case 'pdfCard':
-      return <PDFAttachments />;
+      return (
+        <ErrorBoundary level="component">
+          <PDFAttachments />
+        </ErrorBoundary>
+      );
     case 'subjectCard':
       return <SubjectLineGenerator />;
     case 'accessibilityCard':
@@ -180,35 +192,238 @@ function getCardContent(
     case 'versionHistoryCard':
       return <VersionHistory refreshKey={extra?.versionRefreshKey} />;
     case 'outlookCard':
-      return <OutlookChecker />;
+      return (
+        <ErrorBoundary level="component">
+          <OutlookChecker />
+        </ErrorBoundary>
+      );
     case 'bulkEmailCard':
-      return <BulkEmailTools ref={bulkEmailRef} />;
+      return (
+        <ErrorBoundary level="component">
+          <BulkEmailTools ref={extra?.bulkEmailRef} />
+        </ErrorBoundary>
+      );
     default:
       return <CardPlaceholderContent cardId={cardId} />;
   }
+}
+
+/** Color picker row for section box border/background */
+function SectionColorPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  onChange: (color: string | null) => void;
+}) {
+  const isActive = value !== null;
+  return (
+    <div className="flex items-center gap-2">
+      <label className="text-xs text-muted-foreground w-20 shrink-0">
+        {label}
+      </label>
+      {isActive ? (
+        <>
+          <div
+            className="h-5 w-5 rounded border border-border shrink-0"
+            style={{ backgroundColor: value }}
+          />
+          <input
+            type="color"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="h-6 w-8 cursor-pointer rounded border-0 p-0"
+            aria-label={`Pick ${label} color`}
+          />
+          <button
+            type="button"
+            className="text-[10px] text-muted-foreground hover:text-foreground"
+            onClick={() => onChange(null)}
+          >
+            reset
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          className="text-[10px] rounded border px-2 py-0.5 hover:bg-accent/50 transition-colors text-muted-foreground"
+          onClick={() => onChange('#cccccc')}
+        >
+          Set custom color
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ===== Section Box Style Presets (localStorage) =====
+
+const SECTION_STYLE_PRESETS_KEY = 'sectionBoxStylePresets';
+
+interface SavedSectionStyle {
+  name: string;
+  style: SectionBoxStyle;
+}
+
+function loadSectionStylePresets(): SavedSectionStyle[] {
+  try {
+    const raw = localStorage.getItem(SECTION_STYLE_PRESETS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistSectionStylePresets(presets: SavedSectionStyle[]) {
+  localStorage.setItem(SECTION_STYLE_PRESETS_KEY, JSON.stringify(presets));
+}
+
+/** Save/load presets for a section box style */
+function SectionStylePresets({
+  currentStyle,
+  onApply,
+}: {
+  currentStyle: SectionBoxStyle;
+  onApply: (style: SectionBoxStyle) => void;
+}) {
+  const [presets, setPresets] = useState<SavedSectionStyle[]>(
+    loadSectionStylePresets
+  );
+  const [saveName, setSaveName] = useState('');
+
+  const hasCustom =
+    currentStyle.borderColor !== null ||
+    currentStyle.backgroundColor !== null;
+
+  const handleSave = () => {
+    const name = saveName.trim();
+    if (!name) return;
+    const updated = [
+      ...presets.filter((p) => p.name !== name),
+      { name, style: { ...currentStyle } },
+    ];
+    setPresets(updated);
+    persistSectionStylePresets(updated);
+    setSaveName('');
+  };
+
+  const handleDelete = (name: string) => {
+    const updated = presets.filter((p) => p.name !== name);
+    setPresets(updated);
+    persistSectionStylePresets(updated);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      {/* Saved presets */}
+      {presets.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {presets.map((preset) => (
+            <div key={preset.name} className="flex items-center gap-0.5">
+              <button
+                type="button"
+                className="flex items-center gap-1 rounded border border-dashed px-1.5 py-0.5 text-[10px] hover:bg-accent/50 transition-colors"
+                onClick={() => onApply(preset.style)}
+                title={`Apply "${preset.name}"`}
+              >
+                <div className="flex gap-0.5">
+                  {preset.style.backgroundColor && (
+                    <div
+                      className="h-2.5 w-2.5 rounded-sm border border-border"
+                      style={{ backgroundColor: preset.style.backgroundColor }}
+                    />
+                  )}
+                  {preset.style.borderColor && (
+                    <div
+                      className="h-2.5 w-2.5 rounded-sm"
+                      style={{
+                        border: `2px solid ${preset.style.borderColor}`,
+                      }}
+                    />
+                  )}
+                </div>
+                {preset.name}
+              </button>
+              <button
+                type="button"
+                className="p-0.5 text-muted-foreground hover:text-destructive"
+                onClick={() => handleDelete(preset.name)}
+                title={`Delete "${preset.name}"`}
+                aria-label={`Delete preset ${preset.name}`}
+              >
+                <Trash2 className="h-2.5 w-2.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Save current */}
+      {hasCustom && (
+        <div className="flex gap-1">
+          <input
+            value={saveName}
+            onChange={(e) => setSaveName(e.target.value)}
+            placeholder="Preset name..."
+            className="h-6 flex-1 rounded border px-1.5 text-[10px] bg-background"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSave();
+            }}
+          />
+          <button
+            type="button"
+            className="flex items-center gap-0.5 h-6 rounded border px-1.5 text-[10px] hover:bg-accent/50 transition-colors disabled:opacity-40"
+            onClick={handleSave}
+            disabled={!saveName.trim()}
+            title="Save current style as preset"
+          >
+            <Save className="h-2.5 w-2.5" />
+            Save
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** How to Shop editor connected to store */
 function HowToShopEditor() {
   const store = usePromotionStore();
   return (
-    <FormattableItemEditor
-      items={store.howToShopItems}
-      actions={{
-        addItem: store.addHowToShopItem,
-        removeItem: store.removeHowToShopItem,
-        updateItem: store.updateHowToShopItem,
-        moveItemUp: store.moveHowToShopItemUp,
-        moveItemDown: store.moveHowToShopItemDown,
-        toggleFormat: store.toggleHowToShopFormat,
-        reorderItems: store.reorderHowToShopItems,
-      }}
-      placeholder="e.g., Visit us in-store for outlet-exclusive deals"
-      itemLabel="Item"
-      emptyMessage={
-        'No shopping instructions yet. Click "Add Item" to get started.'
-      }
-    />
+    <div className="space-y-3">
+      <FormattableItemEditor
+        items={store.howToShopItems}
+        actions={{
+          addItem: store.addHowToShopItem,
+          removeItem: store.removeHowToShopItem,
+          updateItem: store.updateHowToShopItem,
+          moveItemUp: store.moveHowToShopItemUp,
+          moveItemDown: store.moveHowToShopItemDown,
+          toggleFormat: store.toggleHowToShopFormat,
+          reorderItems: store.reorderHowToShopItems,
+        }}
+        placeholder="e.g., Visit us in-store for outlet-exclusive deals"
+        itemLabel="Item"
+        emptyMessage={
+          'No shopping instructions yet. Click "Add Item" to get started.'
+        }
+      />
+      <div className="border-t pt-3 space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Box Style</p>
+        <SectionColorPicker
+          label="Background"
+          value={store.howToShopStyle.backgroundColor}
+          onChange={(c) => store.setHowToShopStyle({ backgroundColor: c })}
+        />
+        <SectionColorPicker
+          label="Border"
+          value={store.howToShopStyle.borderColor}
+          onChange={(c) => store.setHowToShopStyle({ borderColor: c })}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -216,21 +431,40 @@ function HowToShopEditor() {
 function ImportantNotesEditor() {
   const store = usePromotionStore();
   return (
-    <FormattableItemEditor
-      items={store.importantNotesItems}
-      actions={{
-        addItem: store.addImportantNotesItem,
-        removeItem: store.removeImportantNotesItem,
-        updateItem: store.updateImportantNotesItem,
-        moveItemUp: store.moveImportantNotesItemUp,
-        moveItemDown: store.moveImportantNotesItemDown,
-        toggleFormat: store.toggleImportantNotesFormat,
-        reorderItems: store.reorderImportantNotesItems,
-      }}
-      placeholder="e.g., Important safety information or key details"
-      itemLabel="Note"
-      emptyMessage={'No important notes yet. Click "Add Note" to get started.'}
-    />
+    <div className="space-y-3">
+      <FormattableItemEditor
+        items={store.importantNotesItems}
+        actions={{
+          addItem: store.addImportantNotesItem,
+          removeItem: store.removeImportantNotesItem,
+          updateItem: store.updateImportantNotesItem,
+          moveItemUp: store.moveImportantNotesItemUp,
+          moveItemDown: store.moveImportantNotesItemDown,
+          toggleFormat: store.toggleImportantNotesFormat,
+          reorderItems: store.reorderImportantNotesItems,
+        }}
+        placeholder="e.g., Important safety information or key details"
+        itemLabel="Note"
+        emptyMessage={
+          'No important notes yet. Click "Add Note" to get started.'
+        }
+      />
+      <div className="border-t pt-3 space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Box Style</p>
+        <SectionColorPicker
+          label="Border"
+          value={store.importantNotesStyle.borderColor}
+          onChange={(c) => store.setImportantNotesStyle({ borderColor: c })}
+        />
+        <SectionColorPicker
+          label="Background"
+          value={store.importantNotesStyle.backgroundColor}
+          onChange={(c) =>
+            store.setImportantNotesStyle({ backgroundColor: c })
+          }
+        />
+      </div>
+    </div>
   );
 }
 
@@ -304,11 +538,13 @@ function PromotionCard({
   forceExpand,
   onToggle,
   versionRefreshKey,
+  bulkEmailRef,
 }: {
   config: CardConfig;
   forceExpand?: boolean;
   onToggle?: (cardId: string, isOpen: boolean) => void;
   versionRefreshKey?: number;
+  bulkEmailRef?: React.Ref<BulkEmailToolsHandle>;
 }) {
   const store = usePromotionStore();
 
@@ -339,7 +575,7 @@ function PromotionCard({
       forceExpand={forceExpand}
       onToggle={onToggle}
     >
-      {getCardContent(config.id, { versionRefreshKey })}
+      {getCardContent(config.id, { versionRefreshKey, bulkEmailRef })}
     </CollapsibleCard>
   );
 }
@@ -368,7 +604,11 @@ function downloadBlob(blob: Blob, filename: string) {
 
 // ===== Preview Column Component =====
 
-function PreviewColumn() {
+function PreviewColumn({
+  bulkEmailRef,
+}: {
+  bulkEmailRef?: React.RefObject<BulkEmailToolsHandle | null>;
+}) {
   const store = usePromotionStore();
   const [activeTab, setActiveTab] = useState('preview');
   const [previewWidth, setPreviewWidth] = useState<'desktop' | 'mobile'>(
@@ -393,6 +633,8 @@ function PreviewColumn() {
       specialHours: store.specialHours,
       howToShopItems: store.howToShopItems,
       importantNotesItems: store.importantNotesItems,
+      howToShopStyle: store.howToShopStyle,
+      importantNotesStyle: store.importantNotesStyle,
       newsletterHeading: store.newsletterHeading,
       newsletterBody: store.newsletterBody,
       newsletterPosition: store.newsletterPosition,
@@ -419,6 +661,8 @@ function PreviewColumn() {
     store.specialHours,
     store.howToShopItems,
     store.importantNotesItems,
+    store.howToShopStyle,
+    store.importantNotesStyle,
     store.newsletterHeading,
     store.newsletterBody,
     store.newsletterPosition,
@@ -447,6 +691,8 @@ function PreviewColumn() {
       specialHours: store.specialHours,
       howToShopItems: store.howToShopItems,
       importantNotesItems: store.importantNotesItems,
+      howToShopStyle: store.howToShopStyle,
+      importantNotesStyle: store.importantNotesStyle,
       newsletterHeading: store.newsletterHeading,
       newsletterBody: store.newsletterBody,
       newsletterPosition: store.newsletterPosition,
@@ -475,6 +721,8 @@ function PreviewColumn() {
     store.specialHours,
     store.howToShopItems,
     store.importantNotesItems,
+    store.howToShopStyle,
+    store.importantNotesStyle,
     store.newsletterHeading,
     store.newsletterBody,
     store.newsletterPosition,
@@ -559,6 +807,8 @@ function PreviewColumn() {
         specialHours: store.specialHours,
         howToShopItems: store.howToShopItems,
         importantNotesItems: store.importantNotesItems,
+        howToShopStyle: store.howToShopStyle,
+        importantNotesStyle: store.importantNotesStyle,
         newsletterHeading: store.newsletterHeading,
         newsletterBody: store.newsletterBody,
         newsletterPosition: store.newsletterPosition,
@@ -644,6 +894,8 @@ function PreviewColumn() {
             specialHours: config.specialHours,
             howToShopItems: config.howToShopItems,
             importantNotesItems: config.importantNotesItems,
+            howToShopStyle: config.howToShopStyle || { borderColor: null, backgroundColor: null },
+            importantNotesStyle: config.importantNotesStyle || { borderColor: null, backgroundColor: null },
             generatedSubjectLines: config.generatedSubjectLines,
             selectedSubjectLine: config.selectedSubjectLine,
             preheaderText: config.preheaderText || '',
@@ -928,7 +1180,7 @@ function PreviewColumn() {
           size="sm"
           className="gap-1.5"
           disabled={!hasContent || store.bulkEmailGenerating}
-          onClick={() => bulkEmailRef.current?.generate()}
+          onClick={() => bulkEmailRef?.current?.generate()}
         >
           {store.bulkEmailGenerating ? (
             <>
@@ -1001,6 +1253,8 @@ function useAutoSave() {
     store.specialHours,
     store.howToShopItems,
     store.importantNotesItems,
+    store.howToShopStyle,
+    store.importantNotesStyle,
     store.attachedPDFs,
     store.generatedSubjectLines,
     store.selectedSubjectLine,
@@ -1037,6 +1291,10 @@ export function PromotionPage() {
 
   // Ref to the mobile scrollable card container
   const mobileCardsContainerRef = useRef<HTMLDivElement>(null);
+
+  // Ref to BulkEmailTools imperative handle — created here so it's scoped to
+  // the page instance (not shared across HMR/test re-mounts).
+  const bulkEmailRef = useRef<BulkEmailToolsHandle | null>(null);
 
   // Load persisted state on mount
   useEffect(() => {
@@ -1276,6 +1534,7 @@ export function PromotionPage() {
                         forceExpand={forceExpandedCardId === config.id}
                         onToggle={handleCardToggle}
                         versionRefreshKey={versionRefreshKey}
+                        bulkEmailRef={bulkEmailRef}
                       />
                     </div>
                   );
@@ -1285,7 +1544,7 @@ export function PromotionPage() {
           </div>
 
           {/* Right panel: Email Preview */}
-          <PreviewColumn />
+          <PreviewColumn bulkEmailRef={bulkEmailRef} />
         </ResizablePanels>
       </div>
 
@@ -1316,6 +1575,7 @@ export function PromotionPage() {
                       config={config}
                       forceExpand={forceExpandedCardId === config.id}
                       onToggle={handleCardToggle}
+                      bulkEmailRef={bulkEmailRef}
                     />
                   </div>
                 );
@@ -1324,7 +1584,7 @@ export function PromotionPage() {
           </div>
 
           {/* Email preview */}
-          <PreviewColumn />
+          <PreviewColumn bulkEmailRef={bulkEmailRef} />
         </ResizablePanels>
       </div>
     </>

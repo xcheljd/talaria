@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
-  level?: 'app' | 'route';
+  level?: 'app' | 'route' | 'component';
   fallback?:
     | ReactNode
     | ((error: Error, resetErrorBoundary: () => void) => ReactNode);
@@ -62,6 +62,9 @@ export class ErrorBoundary extends Component<
       if (level === 'app') {
         return this.renderAppFallback(this.state.error);
       }
+      if (level === 'component') {
+        return this.renderComponentFallback(this.state.error);
+      }
       return this.renderRouteFallback(this.state.error);
     }
 
@@ -118,6 +121,20 @@ export class ErrorBoundary extends Component<
             </Link>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  private renderComponentFallback(error: Error): ReactNode {
+    return (
+      <div className="flex items-center gap-2 py-1">
+        <p className="text-sm text-muted-foreground">{error.message}</p>
+        <button
+          onClick={this.resetErrorBoundary}
+          className="shrink-0 rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Try again
+        </button>
       </div>
     );
   }

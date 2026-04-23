@@ -509,4 +509,305 @@ describe('ErrorBoundary', () => {
 
     expect(screen.getByText('Error details')).toBeInTheDocument();
   });
+
+  // ========================================
+  // Component-level boundary tests (Tier 3)
+  // ========================================
+
+  describe('level="component"', () => {
+    // ===== VAL-COMP-T3-001: level prop accepts "component" value =====
+
+    it('accepts level="component" prop and renders a distinct fallback', () => {
+      renderWithRouter(
+        <ErrorBoundary level="component">
+          <ThrowingComponent error={new Error('Component error')} />
+        </ErrorBoundary>
+      );
+
+      // Should render the compact component-level fallback
+      expect(screen.getByText('Component error')).toBeInTheDocument();
+      // Should NOT show the route-level or app-level fallback
+      expect(screen.queryByText('Go to home')).not.toBeInTheDocument();
+      expect(screen.queryByText('Reload app')).not.toBeInTheDocument();
+    });
+
+    // ===== VAL-COMP-T3-002: Compact inline error with Try again button =====
+
+    it('renders compact fallback with error message and Try again button', () => {
+      renderWithRouter(
+        <ErrorBoundary level="component">
+          <ThrowingComponent error={new Error('Card crashed')} />
+        </ErrorBoundary>
+      );
+
+      // Error message is displayed
+      expect(screen.getByText('Card crashed')).toBeInTheDocument();
+      // Try again button exists
+      expect(screen.getByText('Try again')).toBeInTheDocument();
+    });
+
+    it('does not render navigation links or full-screen layouts', () => {
+      const { container } = renderWithRouter(
+        <ErrorBoundary level="component">
+          <ThrowingComponent error={new Error('No nav test')} />
+        </ErrorBoundary>
+      );
+
+      // No "Go to home" link
+      expect(screen.queryByText('Go to home')).not.toBeInTheDocument();
+      // No "Reload app" button
+      expect(screen.queryByText('Reload app')).not.toBeInTheDocument();
+      // No viewport-sized layouts
+      expect(container.querySelector('.min-h-screen')).not.toBeInTheDocument();
+      // No centered card wrapper (max-w-md is for route/app level)
+      expect(container.querySelector('.max-w-md')).not.toBeInTheDocument();
+      // No error details/stack
+      expect(screen.queryByText('Error details')).not.toBeInTheDocument();
+    });
+
+    // ===== VAL-COMP-T3-003: Try again resets boundary =====
+
+    it('Try again resets the boundary state and re-renders children', () => {
+      let shouldThrow = true;
+
+      function RecoverableCard() {
+        if (shouldThrow) throw new Error('Transient card error');
+        return <div data-testid="card-recovered">Card content</div>;
+      }
+
+      renderWithRouter(
+        <ErrorBoundary level="component">
+          <RecoverableCard />
+        </ErrorBoundary>
+      );
+
+      // Fallback shown
+      expect(screen.getByText('Transient card error')).toBeInTheDocument();
+      expect(screen.queryByTestId('card-recovered')).not.toBeInTheDocument();
+
+      // Fix the error
+      shouldThrow = false;
+
+      // Click Try again
+      fireEvent.click(screen.getByText('Try again'));
+
+      // Children re-render
+      expect(screen.getByTestId('card-recovered')).toBeInTheDocument();
+      expect(screen.queryByText('Transient card error')).not.toBeInTheDocument();
+    });
+
+    it('shows fallback again if error persists after Try again', () => {
+      renderWithRouter(
+        <ErrorBoundary level="component">
+          <ThrowingComponent error={new Error('Persistent card error')} />
+        </ErrorBoundary>
+      );
+
+      expect(screen.getByText('Persistent card error')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Try again'));
+
+      // Still shows fallback because ThrowingComponent always throws
+      expect(screen.getByText('Persistent card error')).toBeInTheDocument();
+    });
+
+    // ===== VAL-COMP-T3-004: CSS variable classes for theme compatibility =====
+
+    it('uses CSS variable-based Tailwind classes for theming', () => {
+      const { container } = renderWithRouter(
+        <ErrorBoundary level="component">
+          <ThrowingComponent error={new Error('Theme check')} />
+        </ErrorBoundary>
+      );
+
+      // The outer wrapper should use theme-compatible classes
+      const wrapper = container.firstElementChild;
+      expect(wrapper).toBeInTheDocument();
+      // Check for CSS variable classes (not hardcoded colors)
+      const allElements = container.querySelectorAll('*');
+      const classList = Array.from(allElements)
+        .flatMap((el) => Array.from(el.classList))
+        .join(' ');
+
+      // Should use CSS variable-based text colors
+      expect(classList).toContain('text-muted-foreground');
+      // Should use CSS variable-based button styling
+      expect(classList).toContain('bg-primary');
+      expect(classList).toContain('text-primary-foreground');
+      // Should NOT use hardcoded colors
+      expect(classList).not.toContain('text-red-500');
+      expect(classList).not.toContain('bg-white');
+      expect(classList).not.toContain('bg-gray-100');
+    });
+
+    it('fallback has no inline styles with hardcoded colors', () => {
+      const { container } = renderWithRouter(
+        <ErrorBoundary level="component">
+          <ThrowingComponent error={new Error('Inline style check')} />
+        </ErrorBoundary>
+      );
+
+      const allElements = container.querySelectorAll('[style]');
+      Array.from(allElements).forEach((el) => {
+        const style = el.getAttribute('style') || '';
+        // No hardcoded colors in inline styles
+        expect(style).not.toMatch(/#[0-9a-fA-F]{3,6}/);
+        expect(style).not.toMatch(/rgb\(/);
+      });
+    });
+
+    // ===== VAL-COMP-T3-006: Custom fallback overrides component default =====
+
+    it('custom fallback ReactNode overrides component-level default', () => {
+      render(
+        <ErrorBoundary
+          level="component"
+          fallback={<div data-testid="custom-component-fallback">Custom card error</div>}
+        >
+          <ThrowingComponent error={new Error('Override test')} />
+        </ErrorBoundary>
+      );
+
+      expect(screen.getByTestId('custom-component-fallback')).toBeInTheDocument();
+      expect(screen.getByText('Custom card error')).toBeInTheDocument();
+      expect(screen.queryByText('Override test')).not.toBeInTheDocument();
+    });
+
+    it('custom fallback function overrides component-level default', () => {
+      render(
+        <ErrorBoundary
+          level="component"
+          fallback={(error, reset) => (
+            <div data-testid="custom-fn">
+              <span>{error.message}</span>
+              <button data-testid="custom-reset" onClick={reset}>Custom Reset</button>
+            </div>
+          )}
+        >
+          <ThrowingComponent error={new Error('Fn override')} />
+        </ErrorBoundary>
+      );
+
+      expect(screen.getByTestId('custom-fn')).toBeInTheDocument();
+      expect(screen.getByText('Fn override')).toBeInTheDocument();
+      expect(screen.getByTestId('custom-reset')).toBeInTheDocument();
+    });
+
+    // ===== VAL-CROSS-T3-005: Logs to console.error =====
+
+    it('logs error to console.error with component stack', () => {
+      renderWithRouter(
+        <ErrorBoundary level="component">
+          <ThrowingComponent error={new Error('Component log test')} />
+        </ErrorBoundary>
+      );
+
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const componentDidCatchCall = consoleErrorSpy.mock.calls.find(
+        (call) => call.length >= 2 && call[0] === 'ErrorBoundary caught an error:'
+      );
+      expect(componentDidCatchCall).toBeDefined();
+      expect(componentDidCatchCall![1]).toBeInstanceOf(Error);
+      expect((componentDidCatchCall![1] as Error).message).toBe('Component log test');
+      expect(typeof componentDidCatchCall![2]).toBe('string');
+      expect(componentDidCatchCall![2]).toContain('ThrowingComponent');
+    });
+
+    // ===== VAL-CROSS-T3-006: Non-Error thrown values =====
+
+    it('handles string thrown as error gracefully', () => {
+      renderWithRouter(
+        <ErrorBoundary level="component">
+          <ThrowingComponent error="string card error" />
+        </ErrorBoundary>
+      );
+
+      expect(screen.getByText('string card error')).toBeInTheDocument();
+    });
+
+    it('handles undefined thrown as error gracefully', () => {
+      renderWithRouter(
+        <ErrorBoundary level="component">
+          <ThrowingComponent error={undefined} />
+        </ErrorBoundary>
+      );
+
+      expect(screen.getByText('An unknown error occurred')).toBeInTheDocument();
+    });
+
+    // ===== VAL-CONTAIN-005: Multiple boundaries are independent =====
+
+    it('multiple component boundaries are independent', () => {
+      renderWithRouter(
+        <div>
+          <ErrorBoundary level="component">
+            <ThrowingComponent error={new Error('Error A')} />
+          </ErrorBoundary>
+          <ErrorBoundary level="component">
+            <NormalComponent />
+          </ErrorBoundary>
+        </div>
+      );
+
+      // First boundary shows error
+      expect(screen.getByText('Error A')).toBeInTheDocument();
+      // Second boundary renders normally
+      expect(screen.getByTestId('normal')).toBeInTheDocument();
+    });
+
+    it('resetting one component boundary does not affect another', () => {
+      let shouldThrowA = true;
+
+      function CardA() {
+        if (shouldThrowA) throw new Error('Card A error');
+        return <div data-testid="card-a-ok">Card A OK</div>;
+      }
+
+      renderWithRouter(
+        <div>
+          <ErrorBoundary level="component">
+            <CardA />
+          </ErrorBoundary>
+          <ErrorBoundary level="component">
+            <ThrowingComponent error={new Error('Card B error')} />
+          </ErrorBoundary>
+        </div>
+      );
+
+      // Both show errors
+      expect(screen.getByText('Card A error')).toBeInTheDocument();
+      expect(screen.getByText('Card B error')).toBeInTheDocument();
+
+      // Fix Card A
+      shouldThrowA = false;
+
+      // Click Try again on Card A (first one)
+      const tryAgainButtons = screen.getAllByText('Try again');
+      fireEvent.click(tryAgainButtons[0]);
+
+      // Card A recovers, Card B still shows error
+      expect(screen.getByTestId('card-a-ok')).toBeInTheDocument();
+      expect(screen.getByText('Card B error')).toBeInTheDocument();
+    });
+
+    // ===== Compact layout verification =====
+
+    it('fallback is compact — no large headings or padding', () => {
+      const { container } = renderWithRouter(
+        <ErrorBoundary level="component">
+          <ThrowingComponent error={new Error('Compact test')} />
+        </ErrorBoundary>
+      );
+
+      // No heading elements (h1, h2)
+      expect(container.querySelector('h1')).not.toBeInTheDocument();
+      expect(container.querySelector('h2')).not.toBeInTheDocument();
+      // No fixed/absolute positioning
+      const allElements = container.querySelectorAll('*');
+      Array.from(allElements).forEach((el) => {
+        expect(el.className).not.toContain('fixed');
+        expect(el.className).not.toContain('absolute');
+      });
+    });
+  });
 });
