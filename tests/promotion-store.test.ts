@@ -5,10 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  usePromotionStore,
-  _resetIdCounter,
-} from '@/stores/promotion-store';
+import { usePromotionStore, _resetIdCounter } from '@/stores/promotion-store';
 import type {
   PromotionEntry,
   SpecialHour,
@@ -16,6 +13,13 @@ import type {
   ImportantNotesItem,
   AttachedPDF,
 } from '@/stores/promotion-store';
+import {
+  savePDFToIndexedDB,
+  deletePDFFromIndexedDB,
+  clearAllPDFsFromIndexedDB,
+  getAllPDFKeysFromIndexedDB,
+  getPDFFromIndexedDB,
+} from '@/lib/db';
 import { getStorePhone, getStoreEmail, getDirections } from '@/lib/profile';
 
 // Mock the db module
@@ -25,6 +29,7 @@ vi.mock('@/lib/db', () => ({
   getPDFFromIndexedDB: vi.fn().mockResolvedValue(null),
   deletePDFFromIndexedDB: vi.fn().mockResolvedValue(undefined),
   clearAllPDFsFromIndexedDB: vi.fn().mockResolvedValue(undefined),
+  getAllPDFKeysFromIndexedDB: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock the profile module (used by initializeDefaultItems)
@@ -615,16 +620,16 @@ describe('promotion store', () => {
       expect(getFreshStore().attachedPDFs).toHaveLength(2);
     });
 
-    it('removes a PDF', () => {
+    it('removes a PDF', async () => {
       const store = getFreshStore();
       store.addPDF(samplePDF);
 
-      store.removePDF('pdf-123');
+      await store.removePDF('pdf-123');
 
       expect(getFreshStore().attachedPDFs).toHaveLength(0);
     });
 
-    it('removes only the targeted PDF', () => {
+    it('removes only the targeted PDF', async () => {
       const store = getFreshStore();
       store.addPDF(samplePDF);
       store.addPDF({
@@ -633,14 +638,14 @@ describe('promotion store', () => {
         name: 'another.pdf',
       });
 
-      store.removePDF('pdf-123');
+      await store.removePDF('pdf-123');
 
       const state = getFreshStore();
       expect(state.attachedPDFs).toHaveLength(1);
       expect(state.attachedPDFs[0].id).toBe('pdf-456');
     });
 
-    it('clears all PDFs', () => {
+    it('clears all PDFs', async () => {
       const store = getFreshStore();
       store.addPDF(samplePDF);
       store.addPDF({
@@ -649,7 +654,7 @@ describe('promotion store', () => {
         name: 'another.pdf',
       });
 
-      store.clearAllPDFs();
+      await store.clearAllPDFs();
 
       expect(getFreshStore().attachedPDFs).toHaveLength(0);
     });
@@ -699,7 +704,11 @@ describe('promotion store', () => {
     it('replaces generated subject lines', () => {
       const store = getFreshStore();
       store.setGeneratedSubjectLines(['Line 1', 'Line 2']);
-      store.setGeneratedSubjectLines(['New Line 1', 'New Line 2', 'New Line 3']);
+      store.setGeneratedSubjectLines([
+        'New Line 1',
+        'New Line 2',
+        'New Line 3',
+      ]);
 
       expect(getFreshStore().generatedSubjectLines).toEqual([
         'New Line 1',
@@ -787,14 +796,12 @@ describe('promotion store', () => {
 
       await store.saveToIndexedDB();
 
-      const saved = JSON.parse(
-        localStorage.getItem('promotionBuilderState')!
-      );
+      const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.generatedSubjectLines).toEqual(['Line 1', 'Line 2']);
       expect(saved.selectedSubjectLine).toBe('Line 1');
     });
 
-    it('saves PDF metadata', async () => {
+    it('saves PDF metadata without data field in localStorage', async () => {
       const store = getFreshStore();
       store.addPDF({
         id: 'pdf-123',
@@ -806,12 +813,14 @@ describe('promotion store', () => {
 
       await store.saveToIndexedDB();
 
-      const saved = JSON.parse(
-        localStorage.getItem('promotionBuilderState')!
-      );
+      const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.attachedPDFs).toHaveLength(1);
       expect(saved.attachedPDFs[0].id).toBe('pdf-123');
-      expect(saved.attachedPDFs[0].data).toBe('data:application/pdf;base64,abc');
+      expect(saved.attachedPDFs[0].name).toBe('test.pdf');
+      expect(saved.attachedPDFs[0].size).toBe(1024);
+      expect(saved.attachedPDFs[0].type).toBe('application/pdf');
+      // data field must NOT be in localStorage
+      expect(saved.attachedPDFs[0]).not.toHaveProperty('data');
     });
   });
 
@@ -826,19 +835,28 @@ describe('promotion store', () => {
         ],
         specialHours: [{ id: 2001, day: 'Friday', hours: '9AM-9PM' }],
         howToShopItems: [
-          { id: 3001, text: 'Shop online', bold: false, italic: false, underline: false },
+          {
+            id: 3001,
+            text: 'Shop online',
+            bold: false,
+            italic: false,
+            underline: false,
+          },
         ],
         importantNotesItems: [
-          { id: 4001, text: 'Note 1', bold: true, italic: false, underline: false },
+          {
+            id: 4001,
+            text: 'Note 1',
+            bold: true,
+            italic: false,
+            underline: false,
+          },
         ],
         attachedPDFs: [],
         generatedSubjectLines: ['Sale!', 'Big Savings'],
         selectedSubjectLine: 'Sale!',
       };
-      localStorage.setItem(
-        'promotionBuilderState',
-        JSON.stringify(savedData)
-      );
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       await store.loadFromIndexedDB();
 
@@ -875,7 +893,7 @@ describe('promotion store', () => {
       expect(state.isInitializing).toBe(false);
     });
 
-    it('restores PDFs with data from localStorage', async () => {
+    it('restores PDFs from IndexedDB on load', async () => {
       const savedData = {
         promotionEntries: [],
         specialHours: [],
@@ -887,16 +905,24 @@ describe('promotion store', () => {
             name: 'flyer.pdf',
             size: 2048,
             type: 'application/pdf',
-            data: 'data:application/pdf;base64,abc123',
           },
         ],
         generatedSubjectLines: [],
         selectedSubjectLine: null,
       };
-      localStorage.setItem(
-        'promotionBuilderState',
-        JSON.stringify(savedData)
-      );
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      // Mock IndexedDB to return PDF data
+      vi.mocked(getPDFFromIndexedDB).mockImplementation(async (id) => {
+        if (id === 'pdf-1') {
+          return {
+            id: 'pdf-1',
+            name: 'flyer.pdf',
+            data: 'data:application/pdf;base64,abc123',
+          };
+        }
+        return null;
+      });
 
       const store = getFreshStore();
       await store.loadFromIndexedDB();
@@ -904,7 +930,9 @@ describe('promotion store', () => {
       const state = getFreshStore();
       expect(state.attachedPDFs).toHaveLength(1);
       expect(state.attachedPDFs[0].name).toBe('flyer.pdf');
-      expect(state.attachedPDFs[0].data).toBe('data:application/pdf;base64,abc123');
+      expect(state.attachedPDFs[0].data).toBe(
+        'data:application/pdf;base64,abc123'
+      );
     });
   });
 
@@ -1235,10 +1263,7 @@ describe('promotion store', () => {
         generatedSubjectLines: [],
         selectedSubjectLine: null,
       };
-      localStorage.setItem(
-        'promotionBuilderState',
-        JSON.stringify(savedData)
-      );
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
       await store.loadFromIndexedDB();
@@ -1374,9 +1399,7 @@ describe('promotion store', () => {
 
       await store.saveToIndexedDB();
 
-      const saved = JSON.parse(
-        localStorage.getItem('promotionBuilderState')!
-      );
+      const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.newsletterHeading).toBe('My Heading');
       expect(saved.newsletterBody).toBe('<p>Body</p>');
       expect(saved.newsletterPosition).toBe('bottom');
@@ -1395,10 +1418,7 @@ describe('promotion store', () => {
         newsletterBody: '<p>Loaded Body</p>',
         newsletterPosition: 'bottom',
       };
-      localStorage.setItem(
-        'promotionBuilderState',
-        JSON.stringify(savedData)
-      );
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
       await store.loadFromIndexedDB();
@@ -1423,10 +1443,7 @@ describe('promotion store', () => {
         selectedSubjectLine: null,
         // No newsletter fields
       };
-      localStorage.setItem(
-        'promotionBuilderState',
-        JSON.stringify(savedData)
-      );
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
       await store.loadFromIndexedDB();
@@ -1478,9 +1495,7 @@ describe('promotion store', () => {
       store.setNewsletterVisible(true);
       await store.saveToIndexedDB();
 
-      const saved = JSON.parse(
-        localStorage.getItem('promotionBuilderState')!
-      );
+      const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.newsletterVisible).toBe(true);
     });
 
@@ -1495,10 +1510,7 @@ describe('promotion store', () => {
         selectedSubjectLine: null,
         newsletterVisible: true,
       };
-      localStorage.setItem(
-        'promotionBuilderState',
-        JSON.stringify(savedData)
-      );
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
       await store.loadFromIndexedDB();
@@ -1516,15 +1528,532 @@ describe('promotion store', () => {
         generatedSubjectLines: [],
         selectedSubjectLine: null,
       };
-      localStorage.setItem(
-        'promotionBuilderState',
-        JSON.stringify(savedData)
-      );
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
       await store.loadFromIndexedDB();
 
       expect(getFreshStore().newsletterVisible).toBe(false);
+    });
+  });
+
+  // ===== PDF Persistence Fix: Save Path =====
+
+  describe('PDF persistence: save path', () => {
+    it('IndexedDB saves execute before localStorage write', async () => {
+      const store = getFreshStore();
+      store.addPDF({
+        id: 'pdf-1',
+        name: 'test.pdf',
+        size: 1024,
+        type: 'application/pdf',
+        data: 'data:application/pdf;base64,abc',
+      });
+
+      const callOrder: string[] = [];
+      vi.mocked(savePDFToIndexedDB).mockImplementation(async () => {
+        callOrder.push('indexeddb');
+        return 'pdf-1';
+      });
+      const originalSetItem = localStorage.setItem.bind(localStorage);
+      const setItemSpy = vi.spyOn(localStorage, 'setItem');
+      setItemSpy.mockImplementation((key: string, value: string) => {
+        callOrder.push('localstorage');
+        originalSetItem(key, value);
+      });
+
+      await store.saveToIndexedDB();
+
+      expect(callOrder).toEqual(['indexeddb', 'localstorage']);
+      setItemSpy.mockRestore();
+    });
+
+    it('localStorage payload excludes PDF data field', async () => {
+      const store = getFreshStore();
+      store.addPDF({
+        id: 'pdf-1',
+        name: 'big.pdf',
+        size: 5242880,
+        type: 'application/pdf',
+        data: 'data:application/pdf;base64,' + 'x'.repeat(5 * 1024 * 1024),
+      });
+
+      await store.saveToIndexedDB();
+
+      const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
+      expect(saved.attachedPDFs).toHaveLength(1);
+      expect(saved.attachedPDFs[0]).not.toHaveProperty('data');
+      expect(saved.attachedPDFs[0]).toEqual({
+        id: 'pdf-1',
+        name: 'big.pdf',
+        size: 5242880,
+        type: 'application/pdf',
+      });
+    });
+
+    it('large PDF does not cause localStorage quota error', async () => {
+      const store = getFreshStore();
+      store.addPDF({
+        id: 'pdf-huge',
+        name: 'huge.pdf',
+        size: 10 * 1024 * 1024,
+        type: 'application/pdf',
+        data: 'data:application/pdf;base64,' + 'A'.repeat(6 * 1024 * 1024),
+      });
+
+      // Should not throw — data is stripped from localStorage
+      await expect(store.saveToIndexedDB()).resolves.toBeUndefined();
+
+      const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
+      expect(saved.attachedPDFs[0]).not.toHaveProperty('data');
+    });
+
+    it('saving 3 PDFs results in 3 IndexedDB writes and 3 metadata entries', async () => {
+      const store = getFreshStore();
+      store.addPDF({
+        id: 'pdf-1',
+        name: 'a.pdf',
+        size: 100,
+        type: 'application/pdf',
+        data: 'data:1',
+      });
+      store.addPDF({
+        id: 'pdf-2',
+        name: 'b.pdf',
+        size: 200,
+        type: 'application/pdf',
+        data: 'data:2',
+      });
+      store.addPDF({
+        id: 'pdf-3',
+        name: 'c.pdf',
+        size: 300,
+        type: 'application/pdf',
+        data: 'data:3',
+      });
+
+      await store.saveToIndexedDB();
+
+      expect(savePDFToIndexedDB).toHaveBeenCalledTimes(3);
+      const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
+      expect(saved.attachedPDFs).toHaveLength(3);
+      expect(saved.attachedPDFs.map((p: { id: string }) => p.id)).toEqual([
+        'pdf-1',
+        'pdf-2',
+        'pdf-3',
+      ]);
+    });
+
+    it('saving with empty attachedPDFs makes no IndexedDB writes', async () => {
+      const store = getFreshStore();
+      // No PDFs added
+
+      await store.saveToIndexedDB();
+
+      expect(savePDFToIndexedDB).not.toHaveBeenCalled();
+      const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
+      expect(saved.attachedPDFs).toEqual([]);
+    });
+
+    it('saveStatus transitions to warning when localStorage throws', async () => {
+      const store = getFreshStore();
+      store.addPDF({
+        id: 'pdf-1',
+        name: 'a.pdf',
+        size: 100,
+        type: 'application/pdf',
+        data: 'data:1',
+      });
+
+      const setItemSpy = vi.spyOn(localStorage, 'setItem');
+      setItemSpy.mockImplementation(() => {
+        throw new DOMException('QuotaExceededError', 'QuotaExceededError');
+      });
+
+      await store.saveToIndexedDB();
+
+      setItemSpy.mockRestore();
+      expect(getFreshStore().saveStatus).toBe('warning');
+    });
+
+    it('saveStatus resets to ok on next successful save', async () => {
+      const store = getFreshStore();
+      store.addPDF({
+        id: 'pdf-1',
+        name: 'a.pdf',
+        size: 100,
+        type: 'application/pdf',
+        data: 'data:1',
+      });
+
+      // First save fails
+      const setItemSpy = vi.spyOn(localStorage, 'setItem');
+      setItemSpy.mockImplementationOnce(() => {
+        throw new DOMException('QuotaExceededError', 'QuotaExceededError');
+      });
+      await store.saveToIndexedDB();
+      expect(getFreshStore().saveStatus).toBe('warning');
+
+      // Second save succeeds (mockImplementationOnce used above, so this call goes to real localStorage)
+      await store.saveToIndexedDB();
+      setItemSpy.mockRestore();
+      expect(getFreshStore().saveStatus).toBe('ok');
+    });
+  });
+
+  // ===== PDF Persistence Fix: Load Path =====
+
+  describe('PDF persistence: load path', () => {
+    it('save-then-load round-trip preserves all PDF data', async () => {
+      const store = getFreshStore();
+      const pdfs: AttachedPDF[] = [
+        {
+          id: 'pdf-1',
+          name: 'small.pdf',
+          size: 100,
+          type: 'application/pdf',
+          data: 'data:application/pdf;base64,aaa',
+        },
+        {
+          id: 'pdf-2',
+          name: 'medium.pdf',
+          size: 2048,
+          type: 'application/pdf',
+          data: 'data:application/pdf;base64,bbb',
+        },
+        {
+          id: 'pdf-3',
+          name: 'large.pdf',
+          size: 1048576,
+          type: 'application/pdf',
+          data: 'data:application/pdf;base64,ccc',
+        },
+      ];
+      for (const pdf of pdfs) {
+        store.addPDF(pdf);
+      }
+
+      // Save
+      await store.saveToIndexedDB();
+
+      // Mock IndexedDB to return data for each PDF
+      vi.mocked(getPDFFromIndexedDB).mockImplementation(async (id) => {
+        const found = pdfs.find((p) => p.id === id);
+        return found
+          ? { id: found.id, name: found.name, data: found.data }
+          : null;
+      });
+
+      // Reset and load
+      store.resetState();
+      await getFreshStore().loadFromIndexedDB();
+
+      const state = getFreshStore();
+      expect(state.attachedPDFs).toHaveLength(3);
+      for (const original of pdfs) {
+        const loaded = state.attachedPDFs.find((p) => p.id === original.id);
+        expect(loaded).toBeDefined();
+        expect(loaded!.name).toBe(original.name);
+        expect(loaded!.size).toBe(original.size);
+        expect(loaded!.type).toBe(original.type);
+        expect(loaded!.data).toBe(original.data);
+      }
+    });
+
+    it('load with empty attachedPDFs makes no IndexedDB reads', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      expect(getPDFFromIndexedDB).not.toHaveBeenCalled();
+    });
+
+    it('legacy localStorage data with data fields loads via IndexedDB', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [
+          {
+            id: 'pdf-legacy',
+            name: 'old.pdf',
+            size: 500,
+            type: 'application/pdf',
+            data: 'data:application/pdf;base64,legacy',
+          },
+        ],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      // IndexedDB has the data
+      vi.mocked(getPDFFromIndexedDB).mockResolvedValue({
+        id: 'pdf-legacy',
+        name: 'old.pdf',
+        data: 'data:application/pdf;base64,fromidb',
+      });
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      const state = getFreshStore();
+      expect(state.attachedPDFs).toHaveLength(1);
+      // IndexedDB data preferred over legacy localStorage data
+      expect(state.attachedPDFs[0].data).toBe(
+        'data:application/pdf;base64,fromidb'
+      );
+    });
+
+    it('missing IndexedDB entry causes PDF to be omitted', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [
+          { id: 'pdf-1', name: 'a.pdf', size: 100, type: 'application/pdf' },
+          {
+            id: 'pdf-missing',
+            name: 'missing.pdf',
+            size: 200,
+            type: 'application/pdf',
+          },
+        ],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      // Only pdf-1 has data in IndexedDB
+      vi.mocked(getPDFFromIndexedDB).mockImplementation(async (id) => {
+        if (id === 'pdf-1') return { id, name: 'a.pdf', data: 'data:1' };
+        return null;
+      });
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      const state = getFreshStore();
+      expect(state.attachedPDFs).toHaveLength(1);
+      expect(state.attachedPDFs[0].id).toBe('pdf-1');
+    });
+
+    it('saveStatus is ok after load', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      expect(getFreshStore().saveStatus).toBe('ok');
+    });
+
+    it('saveStatus is ok after load even with corrupted localStorage', async () => {
+      localStorage.setItem('promotionBuilderState', 'not-valid-json');
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      expect(getFreshStore().saveStatus).toBe('ok');
+    });
+  });
+
+  // ===== PDF Persistence Fix: Cleanup =====
+
+  describe('PDF persistence: cleanup', () => {
+    it('removePDF calls deletePDFFromIndexedDB with correct id', async () => {
+      const store = getFreshStore();
+      store.addPDF({
+        id: 'pdf-1',
+        name: 'a.pdf',
+        size: 100,
+        type: 'application/pdf',
+        data: 'data:1',
+      });
+      store.addPDF({
+        id: 'pdf-2',
+        name: 'b.pdf',
+        size: 200,
+        type: 'application/pdf',
+        data: 'data:2',
+      });
+
+      await store.removePDF('pdf-1');
+
+      expect(deletePDFFromIndexedDB).toHaveBeenCalledWith('pdf-1');
+      expect(getFreshStore().attachedPDFs).toHaveLength(1);
+      expect(getFreshStore().attachedPDFs[0].id).toBe('pdf-2');
+    });
+
+    it('clearAllPDFs calls clearAllPDFsFromIndexedDB', async () => {
+      const store = getFreshStore();
+      store.addPDF({
+        id: 'pdf-1',
+        name: 'a.pdf',
+        size: 100,
+        type: 'application/pdf',
+        data: 'data:1',
+      });
+      store.addPDF({
+        id: 'pdf-2',
+        name: 'b.pdf',
+        size: 200,
+        type: 'application/pdf',
+        data: 'data:2',
+      });
+
+      await store.clearAllPDFs();
+
+      expect(clearAllPDFsFromIndexedDB).toHaveBeenCalled();
+      expect(getFreshStore().attachedPDFs).toHaveLength(0);
+    });
+
+    it('orphan cleanup deletes stale IndexedDB entries on save', async () => {
+      const store = getFreshStore();
+      store.addPDF({
+        id: 'pdf-1',
+        name: 'a.pdf',
+        size: 100,
+        type: 'application/pdf',
+        data: 'data:1',
+      });
+
+      // IndexedDB has an orphan entry
+      vi.mocked(getAllPDFKeysFromIndexedDB).mockResolvedValue([
+        'pdf-1',
+        'pdf-orphan',
+      ]);
+
+      await store.saveToIndexedDB();
+
+      expect(deletePDFFromIndexedDB).toHaveBeenCalledWith('pdf-orphan');
+    });
+
+    it('removePDF still updates state when IndexedDB throws', async () => {
+      const store = getFreshStore();
+      store.addPDF({
+        id: 'pdf-1',
+        name: 'a.pdf',
+        size: 100,
+        type: 'application/pdf',
+        data: 'data:1',
+      });
+
+      vi.mocked(deletePDFFromIndexedDB).mockRejectedValue(
+        new Error('IndexedDB unavailable')
+      );
+
+      await store.removePDF('pdf-1');
+
+      // State update still proceeds
+      expect(getFreshStore().attachedPDFs).toHaveLength(0);
+    });
+
+    it('clearAllPDFs still updates state when IndexedDB throws', async () => {
+      const store = getFreshStore();
+      store.addPDF({
+        id: 'pdf-1',
+        name: 'a.pdf',
+        size: 100,
+        type: 'application/pdf',
+        data: 'data:1',
+      });
+
+      vi.mocked(clearAllPDFsFromIndexedDB).mockRejectedValue(
+        new Error('IndexedDB unavailable')
+      );
+
+      await store.clearAllPDFs();
+
+      // State update still proceeds
+      expect(getFreshStore().attachedPDFs).toHaveLength(0);
+    });
+  });
+
+  // ===== PDF Persistence Fix: Cross-Area =====
+
+  describe('PDF persistence: cross-area', () => {
+    it('failed save does not corrupt previously persisted state', async () => {
+      const store = getFreshStore();
+
+      // First save succeeds (State A)
+      store.setPromoTitle('State A');
+      await store.saveToIndexedDB();
+      expect(getFreshStore().saveStatus).toBe('ok');
+
+      // Verify State A is in localStorage
+      const savedA = JSON.parse(localStorage.getItem('promotionBuilderState')!);
+      expect(savedA.promoTitle).toBe('State A');
+
+      // Modify to state B, then fail the second save
+      store.setPromoTitle('State B');
+      const setItemSpy = vi.spyOn(localStorage, 'setItem');
+      setItemSpy.mockImplementation(() => {
+        throw new DOMException('QuotaExceededError', 'QuotaExceededError');
+      });
+      await store.saveToIndexedDB();
+      setItemSpy.mockRestore();
+      expect(getFreshStore().saveStatus).toBe('warning');
+
+      // localStorage should still have State A
+      const savedAfter = JSON.parse(
+        localStorage.getItem('promotionBuilderState')!
+      );
+      expect(savedAfter.promoTitle).toBe('State A');
+
+      // Reload — should get state A
+      store.resetState();
+      await getFreshStore().loadFromIndexedDB();
+
+      expect(getFreshStore().promoTitle).toBe('State A');
+    });
+
+    it('rapid sequential saves converge to correct final state', async () => {
+      const store = getFreshStore();
+
+      store.setPromoTitle('State 1');
+      const save1 = store.saveToIndexedDB();
+      store.setPromoTitle('State 2');
+      const save2 = store.saveToIndexedDB();
+      store.setPromoTitle('State 3');
+      const save3 = store.saveToIndexedDB();
+
+      await Promise.all([save1, save2, save3]);
+
+      // Reload
+      store.resetState();
+      await getFreshStore().loadFromIndexedDB();
+
+      const title = getFreshStore().promoTitle;
+      expect(['State 1', 'State 2', 'State 3']).toContain(title);
+
+      // localStorage should be valid JSON
+      const raw = localStorage.getItem('promotionBuilderState');
+      expect(() => JSON.parse(raw!)).not.toThrow();
+    });
+
+    it('initial saveStatus is ok', () => {
+      const state = getFreshStore();
+      expect(state.saveStatus).toBe('ok');
     });
   });
 });

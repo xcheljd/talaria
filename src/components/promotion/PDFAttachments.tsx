@@ -24,7 +24,8 @@ import {
   dataURLtoBlob,
   formatFileSize,
 } from '@/lib/subject-line-generator';
-import { deletePDFFromIndexedDB, savePDFToIndexedDB } from '@/lib/db';
+import { savePDFToIndexedDB } from '@/lib/db';
+import { AlertTriangle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -207,12 +208,7 @@ export function PDFAttachments() {
 
   const handleRemovePDF = useCallback(
     async (pdf: AttachedPDF) => {
-      try {
-        await deletePDFFromIndexedDB(pdf.id);
-      } catch {
-        // Non-blocking
-      }
-      store.removePDF(pdf.id);
+      await store.removePDF(pdf.id);
       toast.success(`${pdf.name} removed`);
     },
     [store]
@@ -248,9 +244,21 @@ export function PDFAttachments() {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
-        Upload PDF files to attach to your promotional email (max 10MB per file)
-      </p>
+      <div className="flex items-center gap-2">
+        <p className="text-xs text-muted-foreground">
+          Upload PDF files to attach to your promotional email (max 10MB per
+          file)
+        </p>
+        {store.saveStatus === 'warning' && (
+          <span
+            className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+            title="Last save may not have completed"
+          >
+            <AlertTriangle className="h-3 w-3" />
+            Save issue
+          </span>
+        )}
+      </div>
 
       {/* Drop Zone */}
       <div

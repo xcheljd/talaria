@@ -181,6 +181,30 @@ export async function clearAllPDFsFromIndexedDB(): Promise<void> {
 }
 
 /**
+ * Get all PDF keys from IndexedDB.
+ * Used for orphan cleanup.
+ */
+export async function getAllPDFKeysFromIndexedDB(): Promise<string[]> {
+  if (!db) await initIndexedDB();
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      resolve([]);
+      return;
+    }
+
+    const transaction = db.transaction([STORE_NAME], 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.getAllKeys();
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const keys = request.result as IDBValidKey[];
+      resolve(keys.map(String));
+    };
+  });
+}
+
+/**
  * Save bulk email recipients to IndexedDB.
  */
 export async function saveBulkEmailRecipientsToIndexedDB(

@@ -10,6 +10,9 @@ import {
   initIndexedDB,
   savePDFToIndexedDB,
   getPDFFromIndexedDB,
+  deletePDFFromIndexedDB,
+  clearAllPDFsFromIndexedDB,
+  getAllPDFKeysFromIndexedDB,
   type PDFRecord,
 } from '@/lib/db';
 import { getStorePhone, getStoreEmail, getDirections } from '@/lib/profile';
@@ -51,6 +54,14 @@ export interface AttachedPDF {
   size: number;
   type: string;
   data?: string; // data URL (base64)
+}
+
+/** Metadata-only type for localStorage serialization (no data field) */
+export interface AttachedPDFMetadata {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
 }
 
 export interface SubjectLine {
@@ -152,7 +163,7 @@ export interface PromotionPersistedState {
   importantNotesItems: ImportantNotesItem[];
   howToShopStyle: SectionBoxStyle;
   importantNotesStyle: SectionBoxStyle;
-  attachedPDFs: AttachedPDF[];
+  attachedPDFs: AttachedPDFMetadata[];
   generatedSubjectLines: string[];
   selectedSubjectLine: string | null;
   preheaderText: string;
@@ -195,6 +206,9 @@ export interface PromotionState {
 
   // Email palette
   emailPalette: EmailPaletteConfig;
+
+  // Save status
+  saveStatus: 'ok' | 'warning';
 
   // Bulk email generation state (shared between card and preview button)
   bulkEmailGenerating: boolean;
@@ -256,8 +270,8 @@ export interface PromotionState {
 
   // PDF actions
   addPDF: (pdf: AttachedPDF) => void;
-  removePDF: (id: string) => void;
-  clearAllPDFs: () => void;
+  removePDF: (id: string) => Promise<void>;
+  clearAllPDFs: () => Promise<void>;
 
   // Subject line actions
   setGeneratedSubjectLines: (lines: string[]) => void;
@@ -364,6 +378,7 @@ function getEmptyState() {
     newsletterStyle: { ...DEFAULT_NEWSLETTER_STYLE } as NewsletterStyle,
     newsletterVisible: false as boolean,
     emailPalette: { ...DEFAULT_EMAIL_PALETTE } as EmailPaletteConfig,
+    saveStatus: 'ok' as 'ok' | 'warning',
   };
 }
 
@@ -372,6 +387,7 @@ function getEmptyState() {
 export const usePromotionStore = create<PromotionState>((set, get) => ({
   // Initial state
   ...getEmptyState(),
+  saveStatus: 'ok' as 'ok' | 'warning',
   subjectLineManuallyEdited: false,
   entryCollapsedStates: {},
   columnState: 'left' as ColumnState,
@@ -614,15 +630,27 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       attachedPDFs: [...state.attachedPDFs, pdf],
     })),
 
-  removePDF: (id: string) =>
+  removePDF: async (id: string) => {
+    try {
+      await deletePDFFromIndexedDB(id);
+    } catch {
+      // Non-blocking: state update proceeds even if IndexedDB fails
+    }
     set((state) => ({
       attachedPDFs: state.attachedPDFs.filter((p) => p.id !== id),
-    })),
+    }));
+  },
 
-  clearAllPDFs: () =>
+  clearAllPDFs: async () => {
+    try {
+      await clearAllPDFsFromIndexedDB();
+    } catch {
+      // Non-blocking: state update proceeds even if IndexedDB fails
+    }
     set({
       attachedPDFs: [],
-    }),
+    });
+  },
 
   // ===== Subject Line Actions =====
 
@@ -801,8 +829,6 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         name: pdf.name,
         size: pdf.size,
         type: pdf.type,
-        // Include data if available
-        ...(pdf.data ? { data: pdf.data } : {}),
       })),
       generatedSubjectLines: state.generatedSubjectLines,
       selectedSubjectLine: state.selectedSubjectLine,
@@ -816,9 +842,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
     };
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistData));
-
-      // Also persist PDF data to IndexedDB if available
+      // Step 1: Save PDF data to IndexedDB FIRST
       for (const pdf of state.attachedPDFs) {
         if (pdf.data) {
           try {
@@ -833,8 +857,30 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
           }
         }
       }
+
+      // Step 2: Orphan cleanup — delete IndexedDB entries not in current attachedPDFs
+      try {
+        const allKeys = await getAllPDFKeysFromIndexedDB();
+        const currentIds = new Set(state.attachedPDFs.map((p) => p.id));
+        for (const key of allKeys) {
+          if (!currentIds.has(key)) {
+            try {
+              await deletePDFFromIndexedDB(key);
+            } catch {
+              // Best-effort cleanup
+            }
+          }
+        }
+      } catch {
+        // Best-effort orphan cleanup
+      }
+
+      // Step 3: Save metadata-only to localStorage (after IndexedDB writes)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistData));
+      set({ saveStatus: 'ok' });
     } catch (error) {
       console.warn('Auto-save failed:', error);
+      set({ saveStatus: 'warning' });
     }
   },
 
@@ -843,17 +889,38 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       await initIndexedDB();
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
-        set({ isInitializing: false });
+        set({ isInitializing: false, saveStatus: 'ok' });
         return;
       }
 
-      const parsed: PromotionPersistedState = JSON.parse(stored);
+      const parsed: PromotionPersistedState & {
+        attachedPDFs?: Array<AttachedPDFMetadata & { data?: string }>;
+      } = JSON.parse(stored);
 
-      // Restore PDFs: merge metadata from localStorage with data from IndexedDB
+      // Restore PDFs: prefer IndexedDB data, fallback to legacy localStorage data
       const restoredPDFs: AttachedPDF[] = [];
       for (const metadata of parsed.attachedPDFs || []) {
+        // Try IndexedDB first
+        try {
+          const fullPdfData: PDFRecord | null = await getPDFFromIndexedDB(
+            metadata.id
+          );
+          if (fullPdfData && fullPdfData.data) {
+            restoredPDFs.push({
+              id: metadata.id,
+              name: metadata.name,
+              size: metadata.size,
+              type: metadata.type,
+              data: fullPdfData.data,
+            });
+            continue;
+          }
+        } catch {
+          // IndexedDB read failed, try legacy fallback
+        }
+
+        // Legacy fallback: if localStorage had data (old format)
         if (metadata.data) {
-          // Data was included in localStorage
           restoredPDFs.push({
             id: metadata.id,
             name: metadata.name,
@@ -861,28 +928,8 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
             type: metadata.type,
             data: metadata.data,
           });
-        } else {
-          // Try to get data from IndexedDB
-          try {
-            const fullPdfData: PDFRecord | null = await getPDFFromIndexedDB(
-              metadata.id
-            );
-            if (fullPdfData && fullPdfData.data) {
-              restoredPDFs.push({
-                id: metadata.id,
-                name: metadata.name,
-                size: metadata.size,
-                type: metadata.type,
-                data: fullPdfData.data,
-              });
-            } else {
-              // No data available, skip this PDF
-              console.warn(`PDF ${metadata.name} data not found, skipping.`);
-            }
-          } catch (error) {
-            console.warn(`Failed to restore PDF ${metadata.name}:`, error);
-          }
         }
+        // If no IndexedDB data and no legacy data, omit the PDF
       }
 
       // Migration: if body doesn't start with an H2 but has a heading,
@@ -925,10 +972,11 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         newsletterVisible: parsed.newsletterVisible ?? false,
         emailPalette: parsed.emailPalette || { ...DEFAULT_EMAIL_PALETTE },
         isInitializing: false,
+        saveStatus: 'ok',
       });
     } catch (error) {
       console.warn('Failed to load promotion state:', error);
-      set({ isInitializing: false });
+      set({ isInitializing: false, saveStatus: 'ok' });
     }
   },
 
