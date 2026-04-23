@@ -1,0 +1,53 @@
+{
+  "featureId": "error-boundary-visual-validation",
+  "milestone": "error-boundaries",
+  "reviewedAt": "2026-04-23T00:15:00.000Z",
+  "commitId": "e62bda0",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The visual validation feature was executed thoroughly. The worker used agent-browser to verify all 8 assertions assigned to this feature. During validation, the worker discovered a route isolation bug — ErrorBoundary instances were reused across routes during client-side navigation, causing error state to leak between routes. The worker fixed this by adding unique key props (key='route-/', key='route-/start', key='route-/promotion', key='route-/components') to each ErrorBoundary wrapper in App.tsx. The fix was committed as e62bda0. The worker verified all assertions via interactive browser checks, and all automated checks (tests, lint, typecheck) passed. Test hooks were properly cleaned up after validation (confirmed by git diff showing no changes to ThemeProvider.tsx or ComponentsShowcase.tsx).",
+    "issues": [
+      {
+        "severity": "suggestion",
+        "file": "src/components/ErrorBoundary.tsx",
+        "line": null,
+        "description": "The 'Go to home' link uses a plain <a href='/'> tag instead of React Router's <Link to='/'>. This causes a full page reload instead of client-side navigation. The validation contract (VAL-ROUTE-004, VAL-CROSS-004) specifies 'client-side navigation — no full page reload', and the skill SKILL.md explicitly recommends <a href='/'> for simplicity. However, this means 'Go to home' does a full reload rather than a SPA navigation. The visual validation did not specifically check for this distinction. This is a pre-existing design choice from the implementation feature, not introduced by the validation feature."
+      }
+    ]
+  },
+  "assertionsCovered": [
+    "VAL-APP-003",
+    "VAL-ROUTE-002",
+    "VAL-ROUTE-006",
+    "VAL-ROUTE-007",
+    "VAL-CROSS-001",
+    "VAL-CROSS-002",
+    "VAL-CROSS-004",
+    "VAL-CROSS-005"
+  ],
+  "assertionsMissing": [],
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The worker discovered that React Router reuses component instances when navigating between routes with the same component type. Without unique key props, ErrorBoundary state leaks across routes. This is a critical React pattern for error boundaries wrapping route elements that isn't documented in AGENTS.md.",
+      "evidence": "Handoff salientSummary: 'Discovered and fixed route isolation bug — ErrorBoundary instances were reused across routes during client-side navigation, causing error state to leak.' Commit e62bda0 adds key props to each ErrorBoundary.",
+      "suggestedContent": "Add to AGENTS.md conventions: 'When wrapping route elements with stateful components (like ErrorBoundary), always add unique key props per route to ensure React unmounts/remounts on navigation. Without keys, React Router reuses the same component instance across routes.'"
+    },
+    {
+      "area": "skills",
+      "observation": "The worker used localStorage flags to force errors in page components and providers for browser testing. This is a practical approach for visual validation that isn't documented in the skill or AGENTS.md. The mission AGENTS.md mentions 'temporarily add throw new Error' or 'create a dedicated test route' but the worker chose localStorage flags which is cleaner (no source code modification needed, easy to toggle).",
+      "evidence": "Handoff interactiveChecks show: 'Forced route-level error on /components via localStorage flag' and 'Forced app-level error via ThemeProvider localStorage flag'. Git diff confirms no changes to page components or ThemeProvider after cleanup.",
+      "suggestedContent": "Add to AGENTS.md testing guidance: 'For browser-based error testing, localStorage flags are preferred over modifying source code. Set a flag in the component, check it at render time to throw, then clear the flag to test recovery. This avoids git diffs and ensures clean cleanup.'"
+    },
+    {
+      "area": "conventions",
+      "observation": "The 'Go to home' link in the route-level fallback uses a plain <a href='/'> tag, which causes a full page reload instead of client-side navigation. The validation contract specifies 'client-side navigation — no full page reload' for VAL-ROUTE-004 and VAL-CROSS-004. The skill SKILL.md explicitly recommends <a href='/'> for simplicity, but this conflicts with the validation contract's requirements.",
+      "evidence": "src/components/ErrorBoundary.tsx line in renderRouteFallback: <a href='/' ...>Go to home</a>. Skill SKILL.md says: 'use a regular <a> tag with href=\"/\" (simpler than importing router Link)'. Validation contract VAL-ROUTE-004 says 'This is a client-side navigation — no full page reload.'",
+      "suggestedContent": "Consider updating the skill SKILL.md to recommend React Router's <Link to='/'> instead of <a href='/'> to match the validation contract's client-side navigation requirement."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "The visual validation feature passed all 8 assigned assertions. The worker performed thorough browser-based verification of all error boundary behaviors: normal rendering across all 4 routes, route-level error card with nav header visible, 'Try again' reset, 'Go to home' navigation, error isolation between routes, theme compatibility in light/dark modes, and app-level full-screen fallback with reload. During validation, the worker discovered and fixed a critical route isolation bug where ErrorBoundary state leaked across routes due to React Router reusing component instances — fixed by adding unique key props per route. The fix is minimal (4 line changes in App.tsx), well-targeted, and properly committed. All automated checks pass. One suggestion regarding the 'Go to home' link using <a> instead of React Router <Link> (pre-existing from implementation feature)."
+}

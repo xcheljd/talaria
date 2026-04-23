@@ -44,6 +44,20 @@ React SPA (Vite + TypeScript + Tailwind v4)
     └── PreviewColumn (iframe live preview, HTML code tab, download buttons)
 ```
 
+## Error Boundary Architecture
+
+Two-tier error boundary pattern using a reusable class component (`src/components/ErrorBoundary.tsx`):
+
+1. **App-level boundary** (`main.tsx`): Wraps `<App />` OUTSIDE `<StrictMode>`. Catches errors from providers, router, or layout. Renders a full-screen centered fallback card with "Reload app" button (`window.location.reload()`). Uses CSS custom properties for theme compatibility (falls back to `:root` defaults if ThemeProvider never ran).
+
+2. **Route-level boundaries** (`App.tsx`): Each route element is wrapped with `<ErrorBoundary level="route" key="route-<path>">`. The `key` prop is **mandatory** — without it, React Router reuses the same boundary instance across routes, leaking error state. The key ensures the boundary remounts with fresh state on navigation. Renders an inline error card with "Try again" (resets boundary) and "Go to home" (navigates to `/`).
+
+3. **Props API**: `children: ReactNode`, `level?: 'app' | 'route'` (default: `'route'`), `fallback?: ReactNode | ((error: Error, reset: () => void) => ReactNode)` (optional custom fallback override).
+
+4. **Non-Error handling**: `getDerivedStateFromError` normalizes thrown values into proper `Error` objects, displaying "An unknown error occurred" for non-Error throws.
+
+**Convention for new routes:** When adding routes to `App.tsx`, always wrap the element with `<ErrorBoundary level="route" key="route-<path>">`. The key prop is critical for isolation.
+
 ## Data Flow
 
 1. **Profile Data**: localStorage → ProfileProvider → consumed by templates/signature generation

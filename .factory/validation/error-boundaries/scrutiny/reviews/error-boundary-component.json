@@ -1,0 +1,53 @@
+{
+  "featureId": "error-boundary-component",
+  "milestone": "error-boundaries",
+  "status": "pass",
+  "summary": "The ErrorBoundary implementation is clean, well-structured, and fulfills all 21 assigned validation assertions. The component correctly implements getDerivedStateFromError + componentDidCatch, supports app/route level defaults, custom fallback (ReactNode or render function), non-Error normalization, and Tailwind CSS variable theming. Wiring is correct: app-level outside StrictMode in main.tsx, route-level with unique keys on all 4 routes in App.tsx. The fix commit (e62bda0) properly addressed route isolation with key props. Tests are comprehensive (24 tests) covering all specified behaviors. One non-blocking observation: the 'Go to home' link uses a plain <a href='/'> instead of React Router's <Link> component, causing a full page reload rather than client-side navigation — this contradicts VAL-ROUTE-004's explicit requirement for client-side navigation but is functionally acceptable since it still reaches the correct destination.",
+  "issues": [
+    {
+      "severity": "non_blocking",
+      "description": "The 'Go to home' link uses a plain HTML <a href='/'> instead of React Router's <Link to='/'> component. VAL-ROUTE-004 explicitly requires: 'navigates to / using React Router\\'s <Link to=\\'/\\'> or useNavigate(). This is a client-side navigation — no full page reload.' The current implementation causes a full page reload instead of client-side SPA navigation, which defeats the purpose of having a route-level error boundary (the app fully reloads instead of just navigating).",
+      "file": "src/components/ErrorBoundary.tsx",
+      "line": 112,
+      "suggestion": "Replace <a href='/'>Go to home</a> with React Router's Link component: import { Link } from 'react-router-dom'; and use <Link to='/'>Go to home</Link>. Alternatively, use the useNavigate hook with a button. Since ErrorBoundary is a class component, the Link component approach is simpler."
+    }
+  ],
+  "assertionsCovered": [
+    "VAL-APP-001",
+    "VAL-APP-002",
+    "VAL-APP-004",
+    "VAL-APP-005",
+    "VAL-ROUTE-001",
+    "VAL-ROUTE-003",
+    "VAL-ROUTE-004",
+    "VAL-ROUTE-005",
+    "VAL-COMP-001",
+    "VAL-COMP-002",
+    "VAL-COMP-003",
+    "VAL-COMP-004",
+    "VAL-COMP-005",
+    "VAL-COMP-006",
+    "VAL-COMP-007",
+    "VAL-COMP-008",
+    "VAL-COMP-009",
+    "VAL-CROSS-003",
+    "VAL-CROSS-006",
+    "VAL-CROSS-007",
+    "VAL-CROSS-008"
+  ],
+  "assertionsMissing": [],
+  "sharedStateObservations": [
+    {
+      "target": "library",
+      "observation": "The architecture.md in .factory/library/ does not mention the ErrorBoundary component or the two-tier error boundary pattern (app-level + route-level). This is a significant architectural addition that should be documented.",
+      "suggestedContent": "Add an 'Error Boundaries' section to architecture.md documenting: (1) Two-tier pattern: app-level in main.tsx outside StrictMode, route-level in App.tsx wrapping each route element, (2) The key prop pattern required for route isolation (route-specific keys like key='route-/'), (3) The ErrorBoundary component's props API (level, fallback, children).",
+      "reason": "Future workers need to know about this architectural pattern when modifying main.tsx, App.tsx, or adding new routes. The key prop requirement is especially important — omitting it causes error state to leak between routes."
+    },
+    {
+      "target": "AGENTS.md",
+      "observation": "AGENTS.md does not document the error boundary wiring convention. When new routes are added to App.tsx, they must be wrapped in <ErrorBoundary level='route' key='route-<path>'>. This is a pattern that could easily be missed by a future worker.",
+      "suggestedContent": "Add to CONVENTIONS section: 'Error boundaries: All route elements in App.tsx must be wrapped with <ErrorBoundary level=\"route\" key=\"route-<path>\">. The key prop is mandatory for route isolation — without it, React Router reuses the same boundary instance across routes, leaking error state.'",
+      "reason": "The key prop requirement is non-obvious and was discovered as a bug fix (commit e62bda0). Without documentation, future workers adding routes will likely omit the key prop."
+    }
+  ]
+}
