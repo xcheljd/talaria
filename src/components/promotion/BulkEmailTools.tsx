@@ -51,6 +51,7 @@ import {
 } from '@/lib/promotion-email-html';
 
 import { resolveNewsletterColors } from '@/lib/newsletter-utils';
+import { getRecommendedFormat } from '@/lib/ui-utils';
 import { Button } from '@/components/ui/button';
 import { ClearableTextarea } from '@/components/ui/clearable-textarea';
 import { Label } from '@/components/ui/label';
@@ -349,6 +350,8 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
 
         setBulkState(true, `0/${batches.length}`);
 
+        const emailFormat = getRecommendedFormat();
+
         if (downloadFormat === 'zip') {
           // Create ZIP file with all EML files
           const JSZip = (await import('jszip')).default;
@@ -362,7 +365,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
               htmlContent,
               batch,
               pdfAttachments,
-              'eml',
+              emailFormat,
               i + 1
             );
             zip.file(emlContent.filename, emlContent.data);
@@ -390,7 +393,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
               htmlContent,
               batch,
               pdfAttachments,
-              'eml',
+              emailFormat,
               i + 1
             );
 
