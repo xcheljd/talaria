@@ -215,6 +215,8 @@ export interface PromotionState {
   bulkEmailGenerating: boolean;
   bulkEmailProgress: string;
   setBulkEmailGenerating: (generating: boolean, progress?: string) => void;
+  bulkEmailHasRecipients: boolean;
+  setBulkEmailHasRecipients: (has: boolean) => void;
 
   // Promotion entry actions
   addPromotionEntry: () => void;
@@ -393,9 +395,12 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   isInitializing: true,
   bulkEmailGenerating: false,
   bulkEmailProgress: '',
+  bulkEmailHasRecipients: false,
 
   setBulkEmailGenerating: (generating, progress = '') =>
     set({ bulkEmailGenerating: generating, bulkEmailProgress: progress }),
+
+  setBulkEmailHasRecipients: (has) => set({ bulkEmailHasRecipients: has }),
 
   // ===== Promotion Entry Actions =====
 

@@ -391,7 +391,7 @@ function getCardHasContent(
       );
     }
     case 'bulkEmailCard':
-      return false;
+      return store.bulkEmailHasRecipients;
     default:
       return false;
   }
@@ -430,6 +430,7 @@ function PromotionCard({
       store.newsletterHeading,
       store.newsletterVisible,
       store.emailPalette,
+      store.bulkEmailHasRecipients,
     ]
   );
 

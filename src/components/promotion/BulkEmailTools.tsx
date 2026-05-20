@@ -180,6 +180,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
           if (!cancelled && saved) {
             setRecipientText(saved);
             setEmailStats(computeEmailStats(saved));
+            store.setBulkEmailHasRecipients(saved.trim().length > 0);
           }
         } catch (error) {
           console.warn('Failed to restore recipients from IndexedDB:', error);
@@ -229,6 +230,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
       setRecipientText(newText);
       const stats = computeEmailStats(newText);
       setEmailStats(stats);
+      store.setBulkEmailHasRecipients(newText.trim().length > 0);
 
       // Debounced save to IndexedDB
       if (saveTimerRef.current) {
@@ -257,6 +259,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
         invalidEmails: [],
       });
       setShowInvalidEmails(false);
+      store.setBulkEmailHasRecipients(false);
       try {
         await clearBulkEmailRecipientsFromIndexedDB();
       } catch (error) {
@@ -413,7 +416,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
           onChange={handleRecipientChange}
           placeholder="Enter email addresses (one per line, comma-separated, or paste from spreadsheet)..."
           className={cn(
-            'min-h-[120px] font-mono text-sm',
+            'h-[120px] resize-none overflow-y-auto [field-sizing:fixed] font-mono text-sm',
             emailStats.invalid > 0 &&
               'border-destructive/50 focus-visible:ring-destructive/30'
           )}
