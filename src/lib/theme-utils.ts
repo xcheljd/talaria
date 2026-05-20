@@ -53,6 +53,22 @@ export const DARK_PALETTE_LABELS: Record<string, string> = {
 };
 
 /**
+ * Detect whether the parent document (i.e. the page hosting the email preview
+ * iframe) is currently in dark mode, based on its `data-theme` attribute.
+ *
+ * Returns false in non-browser environments or when no parent document is
+ * accessible (e.g. tests, SSR). Email preview / signature renderers use this
+ * to swap their preview colors when the host UI is dark.
+ */
+export function isIframePreviewDarkMode(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    window.parent?.document?.documentElement?.getAttribute('data-theme') ===
+      'dark'
+  );
+}
+
+/**
  * Validates a palette name against the valid list for the given mode.
  * Returns the palette name if valid, otherwise falls back to 'github'.
  */

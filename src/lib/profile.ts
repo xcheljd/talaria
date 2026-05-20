@@ -1,8 +1,9 @@
 /**
  * Profile Data Access Layer
  * Centralized access to user profile data stored in localStorage.
- * Migrated from src/js/shared/profile.js
  */
+
+import { StorageKeys } from '@/lib/storage-keys';
 
 /** User profile shape */
 export interface UserProfile {
@@ -36,7 +37,7 @@ export interface SignatureData {
  * @returns User profile object or null if not set
  */
 export function getUserProfile(): UserProfile | null {
-  const stored = localStorage.getItem('userProfile');
+  const stored = localStorage.getItem(StorageKeys.userProfile);
   return stored ? (JSON.parse(stored) as UserProfile) : null;
 }
 
@@ -44,7 +45,7 @@ export function getUserProfile(): UserProfile | null {
  * Save user profile to localStorage.
  */
 export function saveUserProfile(profile: UserProfile): void {
-  localStorage.setItem('userProfile', JSON.stringify(profile));
+  localStorage.setItem(StorageKeys.userProfile, JSON.stringify(profile));
 }
 
 /**

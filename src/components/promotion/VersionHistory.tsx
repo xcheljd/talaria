@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { StorageKeys } from '@/lib/storage-keys';
 
 // ===== Types =====
 
@@ -36,15 +37,13 @@ interface Snapshot {
 
 // ===== Constants =====
 
-export const SNAPSHOTS_KEY = 'promotionVersionHistory';
 export const MAX_SNAPSHOTS = 20;
-export const STORAGE_KEY = 'promotionBuilderState';
 
 // ===== Helpers =====
 
 export function loadSnapshots(): Snapshot[] {
   try {
-    const raw = localStorage.getItem(SNAPSHOTS_KEY);
+    const raw = localStorage.getItem(StorageKeys.promotionVersionHistory);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -52,7 +51,10 @@ export function loadSnapshots(): Snapshot[] {
 }
 
 export function persistSnapshots(snapshots: Snapshot[]) {
-  localStorage.setItem(SNAPSHOTS_KEY, JSON.stringify(snapshots));
+  localStorage.setItem(
+    StorageKeys.promotionVersionHistory,
+    JSON.stringify(snapshots)
+  );
 }
 
 export function buildSummary(data: string): string {
@@ -117,7 +119,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
 
   // Get current state JSON
   const getCurrentStateJSON = useCallback((): string => {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(StorageKeys.promotionBuilderState);
     return raw || '{}';
   }, []);
 
@@ -160,17 +162,17 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
       console.warn('Cannot restore: snapshot data is corrupted');
       return;
     }
-    const previous = localStorage.getItem(STORAGE_KEY);
+    const previous = localStorage.getItem(StorageKeys.promotionBuilderState);
     try {
-      localStorage.setItem(STORAGE_KEY, snapshot.data);
+      localStorage.setItem(StorageKeys.promotionBuilderState, snapshot.data);
       await store.loadFromIndexedDB();
       setConfirmRestoreId(null);
     } catch (err) {
       // Roll back localStorage so it stays in sync with the in-memory state.
       if (previous !== null) {
-        localStorage.setItem(STORAGE_KEY, previous);
+        localStorage.setItem(StorageKeys.promotionBuilderState, previous);
       } else {
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(StorageKeys.promotionBuilderState);
       }
       console.warn('Restore failed:', err);
     }

@@ -4,6 +4,7 @@
  */
 
 import { sanitizeHTML } from './html-utils';
+import { isIframePreviewDarkMode } from './theme-utils';
 
 /**
  * Escape HTML special characters to prevent XSS.
@@ -34,11 +35,7 @@ export function plainTextToPreviewHTML(
   let textColor = 'rgb(0, 0, 0)';
 
   if (forPreview) {
-    const isDarkMode =
-      typeof window !== 'undefined' &&
-      window.parent?.document?.documentElement?.getAttribute('data-theme') ===
-        'dark';
-    textColor = isDarkMode ? '#e0e0e0' : 'rgb(0, 0, 0)';
+    textColor = isIframePreviewDarkMode() ? '#e0e0e0' : 'rgb(0, 0, 0)';
   }
 
   const paragraphs = plainText.split(/\n\n/);
@@ -103,12 +100,7 @@ export function wrapHtmlForEmailPreview(
     }
   }
 
-  const isDarkMode =
-    typeof window !== 'undefined' &&
-    window.parent?.document?.documentElement?.getAttribute('data-theme') ===
-      'dark';
-
-  const colors = isDarkMode
+  const colors = isIframePreviewDarkMode()
     ? {
         background: '#1e1e1e',
         text: '#e0e0e0',

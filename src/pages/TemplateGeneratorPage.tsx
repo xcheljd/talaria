@@ -22,6 +22,8 @@ import {
 
 import type { TemplateFormValues } from '@/components/TemplateFormFields';
 
+import { StorageKeys } from '@/lib/storage-keys';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TemplateSelector } from '@/components/TemplateSelector';
 import { TemplateFormFields } from '@/components/TemplateFormFields';
@@ -35,7 +37,7 @@ export function TemplateGeneratorPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(
     () => {
       // Restore previously selected template from localStorage
-      const saved = localStorage.getItem('selectedTemplate');
+      const saved = localStorage.getItem(StorageKeys.selectedTemplate);
       return saved && templates[saved] ? saved : null;
     }
   );
@@ -51,9 +53,9 @@ export function TemplateGeneratorPage() {
 
   useEffect(() => {
     if (selectedTemplate) {
-      localStorage.setItem('selectedTemplate', selectedTemplate);
+      localStorage.setItem(StorageKeys.selectedTemplate, selectedTemplate);
     } else {
-      localStorage.removeItem('selectedTemplate');
+      localStorage.removeItem(StorageKeys.selectedTemplate);
     }
   }, [selectedTemplate]);
 

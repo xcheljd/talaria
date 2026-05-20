@@ -43,6 +43,7 @@ import {
   DARK_PALETTE_LABELS,
 } from '@/lib/theme-utils';
 import { saveBlob } from '@/lib/file-save';
+import { StorageKeys } from '@/lib/storage-keys';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -95,7 +96,7 @@ export function ProfileSettingsPage() {
   const { isTauri, openFolderDialog } = useTauri();
 
   const [downloadFolder, setDownloadFolder] = useState<string>(
-    () => localStorage.getItem('downloadFolderPath') || ''
+    () => localStorage.getItem(StorageKeys.downloadFolderPath) || ''
   );
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -183,7 +184,7 @@ export function ProfileSettingsPage() {
         storeDirections: values.storeDirections?.trim() || '',
         lightPalette: lightPalette,
         darkPalette: darkPalette,
-        currentMode: localStorage.getItem('theme') || 'light',
+        currentMode: localStorage.getItem(StorageKeys.theme) || 'light',
       },
     };
 
@@ -265,7 +266,7 @@ export function ProfileSettingsPage() {
     const folder = await openFolderDialog();
     if (folder) {
       setDownloadFolder(folder);
-      localStorage.setItem('downloadFolderPath', folder);
+      localStorage.setItem(StorageKeys.downloadFolderPath, folder);
     }
   }, [openFolderDialog]);
 

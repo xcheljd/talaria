@@ -11,6 +11,7 @@ import {
   type PaletteName,
   type ThemeMode,
 } from '@/lib/theme-utils';
+import { StorageKeys } from '@/lib/storage-keys';
 
 interface ThemeContextValue {
   theme: ThemeMode;
@@ -40,17 +41,17 @@ function applyThemeToDOM(
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem('theme');
+    const saved = localStorage.getItem(StorageKeys.theme);
     return saved === 'dark' || saved === 'light' ? saved : 'light';
   });
 
   const [lightPalette, setLightPaletteState] = useState<PaletteName>(() => {
-    const saved = localStorage.getItem('lightPalette');
+    const saved = localStorage.getItem(StorageKeys.lightPalette);
     return validatePalette(saved, 'light');
   });
 
   const [darkPalette, setDarkPaletteState] = useState<PaletteName>(() => {
-    const saved = localStorage.getItem('darkPalette');
+    const saved = localStorage.getItem(StorageKeys.darkPalette);
     return validatePalette(saved, 'dark');
   });
 
@@ -61,41 +62,41 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   // Migrate invalid palettes in localStorage on mount
   useEffect(() => {
-    const current = localStorage.getItem('lightPalette');
+    const current = localStorage.getItem(StorageKeys.lightPalette);
     const validated = validatePalette(current, 'light');
     if (current !== validated) {
-      localStorage.setItem('lightPalette', validated);
+      localStorage.setItem(StorageKeys.lightPalette, validated);
     }
 
-    const currentDark = localStorage.getItem('darkPalette');
+    const currentDark = localStorage.getItem(StorageKeys.darkPalette);
     const validatedDark = validatePalette(currentDark, 'dark');
     if (currentDark !== validatedDark) {
-      localStorage.setItem('darkPalette', validatedDark);
+      localStorage.setItem(StorageKeys.darkPalette, validatedDark);
     }
   }, []);
 
   const setTheme = useCallback((newTheme: ThemeMode) => {
-    localStorage.setItem('theme', newTheme);
+    localStorage.setItem(StorageKeys.theme, newTheme);
     setThemeState(newTheme);
   }, []);
 
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
       const next: ThemeMode = prev === 'light' ? 'dark' : 'light';
-      localStorage.setItem('theme', next);
+      localStorage.setItem(StorageKeys.theme, next);
       return next;
     });
   }, []);
 
   const setLightPalette = useCallback((palette: PaletteName) => {
     const validated = validatePalette(palette, 'light');
-    localStorage.setItem('lightPalette', validated);
+    localStorage.setItem(StorageKeys.lightPalette, validated);
     setLightPaletteState(validated);
   }, []);
 
   const setDarkPalette = useCallback((palette: PaletteName) => {
     const validated = validatePalette(palette, 'dark');
-    localStorage.setItem('darkPalette', validated);
+    localStorage.setItem(StorageKeys.darkPalette, validated);
     setDarkPaletteState(validated);
   }, []);
 

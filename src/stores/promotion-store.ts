@@ -16,6 +16,7 @@ import {
   type PDFRecord,
 } from '@/lib/db';
 import { getStorePhone, getStoreEmail, getDirections } from '@/lib/profile';
+import { StorageKeys } from '@/lib/storage-keys';
 
 // ===== Types =====
 
@@ -352,8 +353,6 @@ function moveItemDown<T extends { id: number }>(items: T[], id: number): T[] {
   ];
   return newItems;
 }
-
-const STORAGE_KEY = 'promotionBuilderState';
 
 function getEmptyState() {
   return {
@@ -876,7 +875,10 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       }
 
       // Step 3: Save metadata-only to localStorage (after IndexedDB writes)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistData));
+      localStorage.setItem(
+        StorageKeys.promotionBuilderState,
+        JSON.stringify(persistData)
+      );
       set({ saveStatus: 'ok' });
     } catch (error) {
       console.warn('Auto-save failed:', error);
@@ -887,7 +889,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   loadFromIndexedDB: async () => {
     try {
       await initIndexedDB();
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(StorageKeys.promotionBuilderState);
       if (!stored) {
         set({ isInitializing: false, saveStatus: 'ok' });
         return;

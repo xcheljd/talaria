@@ -55,6 +55,7 @@ import {
 import { resolveNewsletterColors } from '@/lib/newsletter-utils';
 import { detectOS, getRecommendedFormat } from '@/lib/ui-utils';
 import { saveBlob } from '@/lib/file-save';
+import { StorageKeys } from '@/lib/storage-keys';
 import { Button } from '@/components/ui/button';
 import { ClearableTextarea } from '@/components/ui/clearable-textarea';
 import { Label } from '@/components/ui/label';
@@ -160,8 +161,9 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
     const [batchSize, setBatchSize] = useState(500);
     const [downloadFormat, setDownloadFormat] = useState<DownloadFormat>(
       () =>
-        (localStorage.getItem('bulkEmail.downloadFormat') as DownloadFormat) ||
-        'individual'
+        (localStorage.getItem(
+          StorageKeys.bulkEmailDownloadFormat
+        ) as DownloadFormat) || 'individual'
     );
 
     // Generation state (shared via store so preview button can show progress)
@@ -194,7 +196,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
 
     // Restore saved batch size from localStorage
     useEffect(() => {
-      const saved = localStorage.getItem('bulkEmail.batchSize');
+      const saved = localStorage.getItem(StorageKeys.bulkEmailBatchSize);
       if (saved) {
         const parsed = parseInt(saved, 10);
         if (!isNaN(parsed)) {
@@ -262,7 +264,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
     const handleBatchSizeChange = useCallback((newSize: number) => {
       const clamped = clampBatchSize(newSize);
       setBatchSize(clamped);
-      localStorage.setItem('bulkEmail.batchSize', String(clamped));
+      localStorage.setItem(StorageKeys.bulkEmailBatchSize, String(clamped));
     }, []);
 
     const incrementBatchSize = useCallback(() => {
@@ -276,7 +278,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
     // Download format change
     const handleFormatChange = useCallback((format: DownloadFormat) => {
       setDownloadFormat(format);
-      localStorage.setItem('bulkEmail.downloadFormat', format);
+      localStorage.setItem(StorageKeys.bulkEmailDownloadFormat, format);
     }, []);
 
     // Generate email batches

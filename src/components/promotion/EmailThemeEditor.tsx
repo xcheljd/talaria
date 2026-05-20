@@ -15,6 +15,7 @@ import {
   DEFAULT_EMAIL_PALETTE,
   type EmailPaletteConfig,
 } from '@/stores/promotion-store';
+import { StorageKeys } from '@/lib/storage-keys';
 
 interface PaletteField {
   key: keyof EmailPaletteConfig;
@@ -206,8 +207,6 @@ const PRESET_GROUPS: PresetGroup[] = [
   },
 ];
 
-const SAVED_PALETTES_KEY = 'emailPaletteSaved';
-
 interface SavedPalette {
   name: string;
   palette: EmailPaletteConfig;
@@ -215,7 +214,7 @@ interface SavedPalette {
 
 function loadSavedPalettes(): SavedPalette[] {
   try {
-    const raw = localStorage.getItem(SAVED_PALETTES_KEY);
+    const raw = localStorage.getItem(StorageKeys.emailPaletteSaved);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -223,7 +222,7 @@ function loadSavedPalettes(): SavedPalette[] {
 }
 
 function persistSavedPalettes(palettes: SavedPalette[]) {
-  localStorage.setItem(SAVED_PALETTES_KEY, JSON.stringify(palettes));
+  localStorage.setItem(StorageKeys.emailPaletteSaved, JSON.stringify(palettes));
 }
 
 export function EmailThemeEditor() {

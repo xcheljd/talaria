@@ -11,6 +11,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getScrollBehavior } from '@/lib/ui-utils';
 
 // ===== Context for connecting DragHandle to SortableItem =====
 
@@ -39,7 +40,7 @@ export function SortableItem({ id, children, className }: SortableItemProps) {
     if (sortable.isDragging) {
       localRef.current?.scrollIntoView({
         block: 'nearest',
-        behavior: 'smooth',
+        behavior: getScrollBehavior(),
       });
     }
   }, [sortable.isDragging]);

@@ -7,6 +7,7 @@
 import { extractSignatureData } from './profile';
 import type { SignatureData } from './profile';
 import { sanitizeHTML } from './html-utils';
+import { isIframePreviewDarkMode } from './theme-utils';
 
 // ============================================================================
 // TYPES
@@ -84,12 +85,7 @@ export const ENVIRONMENT_MESSAGE =
  */
 function getSignatureColors(forPreview = false): SignatureColors {
   if (forPreview) {
-    const isDarkMode =
-      typeof window !== 'undefined' &&
-      window.parent?.document?.documentElement?.getAttribute('data-theme') ===
-        'dark';
-
-    if (isDarkMode) {
+    if (isIframePreviewDarkMode()) {
       return {
         primary: '#e0e0e0',
         secondary: '#b0b0b0',

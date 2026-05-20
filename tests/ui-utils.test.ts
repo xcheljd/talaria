@@ -4,7 +4,6 @@ import {
   getScrollBehavior,
   detectOS,
   getRecommendedFormat,
-  TOAST_DURATION_MS,
 } from '../src/lib/ui-utils';
 
 // Mock window.matchMedia for jsdom
@@ -25,12 +24,6 @@ beforeEach(() => {
 });
 
 describe('ui-utils', () => {
-  describe('constants', () => {
-    it('exports TOAST_DURATION_MS', () => {
-      expect(TOAST_DURATION_MS).toBe(3000);
-    });
-  });
-
   describe('prefersReducedMotion', () => {
     it('returns a boolean', () => {
       const result = prefersReducedMotion();

@@ -1,253 +1,309 @@
 # Architecture Map
 
-This document summarizes the high-level architecture of the main web app: entry points, core modules, and their relationships.
+This document summarizes the high-level architecture of the app: entry point,
+routing, providers, page layouts, state, and shared libraries. It's intended as
+a quick orientation for new contributors and as a sanity check before a
+refactor.
 
-> Scope: this describes the **source** modules under `src/js/` and the main HTML entry points (`index.html`, `start.html`). It does **not** cover built assets under `dist/`.
-
----
-
-## 1. HTML Entry Points
-
-### `index.html`
-
-- Main application UI for the **Communication Template Generator**.
-- Key sections:
-  - Header with theme toggle and link to `start.html` (profile setup).
-  - Template select, search box, and category tabs (`All`, `Email`, `Phone`, `Text`).
-  - Form card for template fields (`#formFields`), initially showing a placeholder.
-  - Output card (`#outputCard`) for generated message/email/HTML.
-- JS bootstrap:
-  - Loads `src/js/app.js` as a **type=module** script:
-    - `app.js` → initializes theme, IndexedDB, and UI.
-
-### `start.html`
-
-- Profile & theme setup page (user/store info, theme palettes, Electron download folder UI).
-- Uses **inline scripts** for:
-  - Theme initialization and palette handling (mirroring `theme.js` behavior).
-  - Form validation (phone, email, store hours, plus code, company email).
-  - Profile export/import to JSON.
-  - Persistence of profile to `localStorage.userProfile`.
-- Independent from the `src/js/app.js`/`ui.js` module graph.
-
-### `promotion.html`
-
-- Standalone UI for the **Promotion Email Generator**.
-- JS bootstrap:
-  - Loads `src/js/promotion-app.js` as a **type=module** script:
-    - `promotion-app.js` → initializes theme, IndexedDB, and promotion UI.
+> Scope: source under `src/`. The Tauri desktop wrapper lives in `src-tauri/`
+> (see [Desktop / Tauri](#10-desktop--tauri)).
 
 ---
 
-## 2. Module Bootstrap Flow
+## 1. Single Entry Point
 
-### `src/js/app.js`
+The whole app is a single Vite/React SPA. `index.html` loads `src/main.tsx`,
+which mounts `<App />` into `#root`.
 
-Entry point for `index.html`.
+`src/main.tsx`:
 
-```mermaid
-flowchart TD
-    A[DOMContentLoaded] --> B[initTheme()]
-    B --> C[initIndexedDB()]
-    C --> D[init()]
-```
+- Imports `index.css` (Tailwind v4 + design tokens).
+- Wraps `<App />` in `BrowserRouter` and renders into `#root`.
 
-- Imports:
-  - `initIndexedDB` from `db.js`.
-  - `initTheme` from `theme.js`.
-  - `init` from `ui.js`.
-- On `DOMContentLoaded`:
-  1. Initializes theme (`theme.js`).
-  2. Initializes IndexedDB (`db.js`).
-  3. Initializes UI (`ui.js`).
+`src/App.tsx`:
 
-### `src/js/promotion-app.js`
-
-Entry point for `promotion.html`.
-
-High-level flow:
-1. Initialize theme and page transitions
-2. Initialize IndexedDB
-3. Initialize the promotion UI (`promotion-ui.js`)
+- Composes the global providers (Theme, Profile, Sonner toaster).
+- Declares routes (see below).
+- Renders an `<ErrorBoundary>` around the route outlet.
 
 ---
 
-## 3. Core UI & State Modules
+## 2. Providers (cross-cutting state)
 
-### `src/js/ui.js` – Main UI Controller
+Located in `src/contexts/`:
 
-**Responsibility:** glue between DOM, templates, and email utilities for the main template generator (`index.html`).
+| Provider          | File                                  | Purpose                                                                                                   |
+| ----------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `ThemeProvider`   | `src/contexts/ThemeProvider.tsx`      | Light/dark mode + palette selection. Reads/writes `theme`, `lightPalette`, `darkPalette` via `StorageKeys`. Applies `data-theme`, `data-light-palette`, `data-dark-palette` attributes to `<html>`. |
+| `ProfileProvider` | `src/contexts/ProfileProvider.tsx`    | User/store profile (employee name, store info, signature data). Reads/writes `userProfile`. Exposes the `useProfile()` hook and individual selector hooks (`useStorePhone`, `useEmployeeName`, etc.). |
 
-Key exports (non-exhaustive):
-- View state: `currentTemplate`.
-- Initialization & wiring: `init()`, `cacheElements()`, `attachEventListeners()`, `setCurrentTemplate(template)`.
-- Output: `showRegularOutput()`, `updateEmailPreview()`, `clearEmailPreview()`, `writeEmptyStateToIframe(iframe)`.
-- Template selection/search: `populateDropdown()`, `renderSearchResults(query)`, `selectTemplate(key)`.
-- Email helpers: `extractSubjectLine(message)`, `renderEditableSubjectLine(...)`, `openEmailClientUniversal(...)`, `downloadEmailFile(...)`.
+Both providers wrap the entire app in `App.tsx`.
 
-Imports and dependencies (high level):
-- **State:** `appState` from `src/js/state.js`.
-- **Templates:** `templates`, `templateHelp`, `fieldConfig`, plus sanitization and helper utilities from `src/js/templates.js`.
-- **Theme:** `toggleTheme` from `src/js/shared/theme.js` (which emits `theme:changed`).
-- **Email utilities:** `src/js/shared/emailUtils.js` + `src/js/shared/emailPreviewUtils.js`.
-
-### `src/js/state.js` – Core App State
-
-**Responsibility:** minimal shared state used across modules (primarily for profile access and current template/category selection).
-
-- Exports:
-  - `appState` with: `currentCategory`, `currentTemplate`, `searchActive`, `userProfile`.
-
-### `src/js/promotion-state.js` – Promotion Page State
-
-**Responsibility:** state container for the standalone promotion email generator.
-
-- Exports:
-  - `promotionState` with: `promotionEntries`, `specialHours`, `howToShopItems`, `importantNotesItems`, `attachedPDFs`, subject line state, and UI expansion/collapse state.
-
-**Used by:** `promotion-ui.js`.
+The Sonner `<Toaster />` (toast notifications) is also rendered at the App
+level.
 
 ---
 
-## 4. Template & Signature Modules
+## 3. Routing
 
-### `src/js/templates.js` – Template Catalog & Shared Helpers
+React Router v7 (`react-router-dom`), declared in `App.tsx`. Routes:
 
-- Imports:
-  - `appState` from `state.js`.
-  - `getEmployeeSignature as signatureFunction` from `src/js/shared/signature.js`.
-- Exports:
-  - Re-export: `getEmployeeSignature` – for backwards compatibility.
-  - Security/formatting helpers:
-    - `sanitizeHTML(str)`, `escapeAttr(str)`, `sanitizeTemplateData(data)`.
-  - Store/profile helpers:
-    - `getStorePhone()`, `getStoreName()`, `getStoreLocation()`, `getFullStoreLocation()`.
-  - Body formatting:
-    - `convertTextToHTML(textBody)` – plain text → HTML body with signature.
-  - Template metadata:
-    - `templateHelp` – per-template help text.
-    - `fieldConfig` – per-field config (examples, required flags, validation hints, suggestions).
-    - `getFieldSuggestions(field)` – convenience wrapper.
-  - Validation helpers:
-    - `formatPhoneNumber(value)`, `validateTracking(value)`.
-  - Core catalog:
-    - `templates` – all defined templates with fields + `generate(data)` functions.
+- `/` → `TemplatesPage` (landing — pick a template category)
+- `/templates` → `TemplateGeneratorPage` (main template generator UI)
+- `/promotion` → `PromotionPage` (promotion email builder)
+- `/profile` → `ProfilePage` (read-only profile view)
+- `/profile/settings` → `ProfileSettingsPage` (edit profile + app settings)
+- `/start` → redirects to `/profile/settings` (legacy URL)
+- `/components` → `ComponentsShowcase` (dev-only shadcn component preview)
 
-**Used by:** `ui.js` for dynamic form rendering and template generation.
-
-### `src/js/shared/signature.js` – Employee Signature System
-
-- Imports:
-  - `appState` from `state.js`.
-- Exports (summary):
-  - `getEmployeeSignature(format = 'text' | 'html')` – returns appropriate signature variant.
-  - Configuration objects for company/store branding (company info, links, styles, etc.).
-
-**Used by:** `templates.js` (and through it, `ui.js`) to append signatures to email bodies and previews.
+All routes render inside `<Layout>` (`src/components/Layout.tsx`), which holds
+the header (logo, nav, theme toggle) and the route outlet.
 
 ---
 
-## 5. Persistence & Theme Modules
+## 4. Pages
 
-### `src/js/shared/db.js` – IndexedDB Persistence
+Located in `src/pages/`. Each page is the top-level container for one route.
 
-**Responsibility:** persistence for promotion PDFs and bulk email recipients.
+### `TemplatesPage.tsx`
 
-- Exports (from usage):
-  - `initIndexedDB()` and `db` handle.
-  - PDF storage:
-    - `savePDFToIndexedDB(pdfData)`, `getAllPDFsFromIndexedDB()`, `getPDFFromIndexedDB(id)`, `deletePDF...`, `clearAllPDFsFromIndexedDB()`.
-  - Bulk recipient storage:
-    - `saveBulkEmailRecipientsToIndexedDB(recipients)`, `getBulkEmailRecipientsFromIndexedDB()`, `clearBulkEmailRecipientsFromIndexedDB()`.
+Lightweight chooser: cards linking to the template generator, the promotion
+builder, and the profile settings page.
 
-**Used by:** `app.js` (init) and the promotion app (`promotion-app.js` / `promotion-ui.js`).
+### `TemplateGeneratorPage.tsx`
 
-### `src/js/shared/theme.js` – Theme & Palette Management
+Main template-generation UI for short customer emails, phone scripts, text
+messages, etc.
 
-- Exports:
-  - `initTheme()` – read `localStorage` and set `data-theme`, `data-light-palette`, `data-dark-palette` attributes.
-  - `toggleTheme()` – switch between light/dark, update the indicator, and emit `theme:changed`.
+- Persists the last-selected template under `StorageKeys.selectedTemplate`.
+- Composes `<TemplateSelector>` (searchable combobox), `<TemplateFormFields>`
+  (dynamic form driven by `fieldConfig`), and `<OutputPanel>` (preview + EML
+  download).
+- Single-message EML downloads go through `saveBlob()` and honor the recommended
+  format (`.eml` or `.emltpl` based on OS).
 
-**Used by:** `app.js` (initial theme), `ui.js` (theme toggle), and mirrored inline on `start.html`.
+### `PromotionPage.tsx`
 
----
+The largest page — full builder for the promotion email. Hosts a 2-column
+resizable layout (editor on the left, preview/tools on the right):
 
-## 6. Email Utilities & Preview Formatting
+- Editor column: collapsible cards for Basic Details, Discount Entries, Special
+  Hours, How To Shop, Important Notes, Newsletter, Email Theme, PDF Attachments,
+  Subject Line Generator, Version History, Accessibility/Outlook checkers, and
+  Bulk Email Tools.
+- Preview column: live HTML preview (Desktop/Mobile widths, light/dark toggle),
+  plus a download menu (single draft `.eml/.emltpl`, full HTML, bulk batches).
+- Drives `usePromotionStore` (Zustand) for all state.
 
-### `src/js/shared/emailUtils.js` – Email/MIME Utilities
+### `ProfileSettingsPage.tsx`
 
-- Text/encoding:
-  - `extractPlainText(htmlBody)` – HTML → plain text for text/plain parts.
-  - `encodeQuotedPrintable(str)` – quoted-printable encoder.
-  - `encodeSubject(subject)` – RFC 2047 encoded-word subject.
-  - `utf8ToBase64(str)` – UTF-8 Base64 body encoding.
-  - `encodeFilename(filename)` – RFC 2231 filename encoding.
-- Email addresses:
-  - `isValidEmail(email)` – format validation.
-  - `parseEmailList(list)` – split, trim, deduplicate.
-- EML/MIME builders:
-  - `createEMLFile(fromName, fromEmail, to, bcc, subject, htmlBody, attachments)` – single message.
-  - `extractDateRangeFromHTML(htmlContent)`, `formatDateRangeForFilename(text)`, `generateZipFilenameFromHTML(htmlContent)`.
-  - `createBCCBatchEML(subject, htmlBody, recipients, pdfAttachments, format, batchNumber)` – multi-recipient BCC drafts.
+Form-based settings page:
 
-**Used by:** `ui.js` (single-email downloads) and the promotion app (bulk email tooling).
+- React Hook Form + Zod (`profile-validation.ts`) validates employee name, job
+  title, store info, hours.
+- Light/dark palette selectors (driven by `ThemeProvider`).
+- Download Folder picker (Tauri-only — picks the directory `saveBlob` writes to).
+- Export/Import profile JSON.
 
-### `src/js/shared/emailPreviewUtils.js` – Preview Formatting Helpers
+### `ProfilePage.tsx`
 
-- `escapeHtml(text)` – HTML escaping.
-- `plainTextToPreviewHTML(plainText)` – plain text → HTML paragraphs/lists.
-- `wrapHtmlForEmailPreview(htmlContent)` – wraps body HTML in a full email document (subject, header, body container).
+Read-only view of the current profile with an edit link to `/profile/settings`.
 
-**Used by:** `ui.js` for regular email preview and HTML-tab conversions.
+### `ComponentsShowcase.tsx`
 
----
-
-## 7. Promotion Template Config & UI Utilities
-
-Promotion-specific code is isolated to the `promotion.html` entry point:
-
-- `src/js/promotion-app.js` – promotion page bootstrap
-- `src/js/promotion-ui.js` – promotion UI/controller layer (PDF attachments, subject lines, bulk tools, preview)
-- `src/js/promotionConfig.js` – config shaping/validation for save/export/import
-- `src/js/promotionUiUtils.js` – drag-and-drop and common UI utilities
-- `src/js/promotion-column-collapse.js` – column collapse UI
-
-### `src/js/promotionConfig.js` – Config Shaping & Validation
-
-- `buildSavedPromotionConfig({ ... })`
-  - For saving to `localStorage['savedPromotionTemplate']`.
-  - Stores PDF **metadata only** (IDs, names, sizes, types) – binary data remains in IndexedDB.
-- `buildExportedPromotionConfig({ ... })`
-  - For export JSON files.
-  - Includes full `attachedPDFs`, including `data` if present.
-- `validateAndNormalizeImportedConfig(rawConfig)`
-  - Validates object shape and required array fields.
-  - Normalizes missing arrays to `[]`.
-  - Returns `{ ok: true, config }` or `{ ok: false, reason }`.
-
-**Used by:** `promotion-ui.js` for save/export/import.
-
-### `src/js/promotionUiUtils.js` – Movement & Drag-and-Drop
-
-- `moveItemInArray(array, itemId, direction, idKey = 'id')`
-  - Generic helper for moving items up/down in any promotion-related list.
-- `setupDragAndDrop(container, itemsArray, renderFunction, selector = '.editable-item-row')`
-  - Attaches drag-and-drop handlers to list rows.
-  - Reorders the underlying `itemsArray` and calls `renderFunction()`.
-
-**Used by:** `promotion-ui.js` for promotion entries, special hours, How to Shop, and Important Notes reordering.
+Dev-only inventory of shadcn primitives. Not linked from the main nav.
 
 ---
 
-## 8. How to Use This Map
+## 5. Shared Components
 
-- **Adding new templates:**
-  - Update `templates.js` (`templates`, `fieldConfig`, `templateHelp`), then rely on `ui.js`’s dynamic rendering.
-- **Changing email formatting/EML behavior:**
-  - Prefer editing `src/js/shared/emailUtils.js` and `src/js/shared/emailPreviewUtils.js` rather than touching `ui.js`.
-- **Changing promotion config persistence/import/export:**
-  - Adjust `promotionConfig.js` and keep `promotion-ui.js` focused on DOM + wiring.
-- **Promotion UI behaviors (reordering, drag/drop):**
-  - Extend or reuse `promotionUiUtils.js` instead of duplicating logic.
+Located in `src/components/`. Most cross-page components live here at the top
+level; promotion-specific ones live under `src/components/promotion/`.
 
-This map should remain roughly stable even as individual features evolve; if major module boundaries change, update this file to keep a quick, accurate overview available for future housekeeping and refactors.
+Top-level (`src/components/`):
+
+- `Layout.tsx` — global app shell (header, nav, theme toggle, route outlet).
+- `EmailPreview.tsx` — empty-state + plain-text-to-HTML preview for single
+  emails.
+- `OutputPanel.tsx` — preview/text tabs, copy, and download-EML for the
+  template generator.
+- `TemplateSelector.tsx` / `TemplateFormFields.tsx` — search-driven template
+  picker and dynamic form.
+- `ThemeToggle.tsx` — light/dark toggle wired to `ThemeProvider`.
+- `ErrorBoundary.tsx` — top-level React error boundary.
+- `ui/` — shadcn-generated primitives (Button, Card, Tabs, Toast, etc.). Do not
+  edit by hand unless you understand the shadcn generator; prefer composing in
+  feature components.
+
+Promotion-specific (`src/components/promotion/`):
+
+- Editors: `BasicDetailsEditor`, `DiscountEntriesEditor`, `SpecialHoursEditor`,
+  `FormattableItemEditor`, `NewsletterEditor`, `EmailThemeEditor`.
+- Layout: `CollapsibleCard`, `IconToolbar`, `SidebarBar`, `HorizontalStrip`,
+  `SortableItem` (dnd-kit drag handle).
+- Tools: `PDFAttachments`, `SubjectLineGenerator`, `BulkEmailTools`,
+  `VersionHistory`, `OutlookChecker`, `AccessibilityChecker`.
+
+---
+
+## 6. State Management
+
+### `usePromotionStore` — Zustand store
+
+`src/stores/promotion-store.ts` is the single source of truth for the
+promotion builder. It owns all editor state (promo title, date range, entries,
+hours, newsletter, palette, etc.) plus PDF attachment metadata and bulk-email
+UI flags.
+
+- Auto-saves the full state JSON to `localStorage` under
+  `StorageKeys.promotionBuilderState` on every change (debounced via a save
+  status indicator).
+- Mounts an init effect that pulls saved state + IndexedDB PDFs back into the
+  store on first render.
+
+### Per-page local state
+
+Pages and components use `useState` / `useReducer` for transient state. Only
+state that needs to survive reloads or be shared across the page goes through
+the store.
+
+### `localStorage` key registry
+
+`src/lib/storage-keys.ts` exports `StorageKeys`, the typed registry of every
+localStorage key in the app. Always import keys from this module instead of
+typing string literals at call sites.
+
+---
+
+## 7. Persistence
+
+| Surface       | Backend       | Key / store                                                               | Source of truth                                |
+| ------------- | ------------- | ------------------------------------------------------------------------- | ---------------------------------------------- |
+| User profile  | localStorage  | `userProfile`                                                             | `src/lib/profile.ts`                           |
+| Theme prefs   | localStorage  | `theme`, `lightPalette`, `darkPalette`                                    | `src/contexts/ThemeProvider.tsx`               |
+| Promo state   | localStorage  | `promotionBuilderState`                                                   | `src/stores/promotion-store.ts`                |
+| Versioned snapshots | localStorage | `promotionVersionHistory`                                              | `src/components/promotion/VersionHistory.tsx`  |
+| Bulk-email UI | localStorage  | `bulkEmail.downloadFormat`, `bulkEmail.batchSize`                         | `src/components/promotion/BulkEmailTools.tsx`  |
+| Saved palettes | localStorage | `emailPaletteSaved`                                                       | `src/components/promotion/EmailThemeEditor.tsx`|
+| Last template | localStorage  | `selectedTemplate`                                                        | `src/pages/TemplateGeneratorPage.tsx`          |
+| Download folder | localStorage + Tauri config | `downloadFolderPath` + `downloads-config.json`                | `src/pages/ProfileSettingsPage.tsx`            |
+| PDF blobs     | IndexedDB     | DB `CitizenTemplates`, store `promotionPDFs`                              | `src/lib/db.ts`                                |
+| Bulk recipients | IndexedDB   | DB `CitizenTemplates`, store `bulkEmailRecipients`                        | `src/lib/db.ts`                                |
+
+The whole localStorage key surface is also enumerated in
+`src/lib/storage-keys.ts`.
+
+---
+
+## 8. Template & Email Generation
+
+### `src/lib/templates.ts`
+
+Catalog of every template (customer emails, phone scripts, text messages, etc.):
+
+- `templates` — object keyed by template id, each with `fields`, `generate(data)`,
+  and metadata flags.
+- `fieldConfig` — per-field config (placeholder examples, required flags,
+  validation hints).
+- `templateHelp` — long-form help text shown next to the template picker.
+- Helpers: `sanitizeHTML`, `escapeAttr`, `sanitizeTemplateData`,
+  `convertTextToHTML` (plain-text body → HTML with signature).
+
+### `src/lib/signature.ts`
+
+Builds the employee email signature (plain text + HTML). Reads from the user
+profile via `extractSignatureData()` and uses
+`isIframePreviewDarkMode()` from `theme-utils` to switch preview colors when
+the host page is dark.
+
+### `src/lib/emailUtils.ts`
+
+EML / MIME utilities:
+
+- `createEMLFile(...)` — single-message EML with multipart/alternative + optional
+  PDF attachments.
+- `createBCCBatchEML(subject, html, recipients, pdfs, format, batchNumber)` —
+  bulk BCC drafts. `format` is required (`'eml' | 'emltpl'`); callers should
+  derive it via `getRecommendedFormat()`.
+- `parseEmailList`, `isValidEmail`, `resolvePromoSubject`, `DEFAULT_PROMO_SUBJECT`.
+- Filename helpers: `extractDateRangeFromHTML`, `formatDateRangeForFilename`,
+  `generateZipFilenameFromHTML`.
+
+### `src/lib/promotion-email-html.ts`
+
+Generates the promotion email's full HTML document from the store state.
+Includes the export-config builder and the import validator/normalizer used
+by the Version History card and the Export/Import buttons.
+
+### `src/lib/emailPreviewUtils.ts`
+
+Preview formatters used in the on-screen preview (NOT in the generated email
+itself): `plainTextToPreviewHTML`, `wrapHtmlForEmailPreview`. Uses
+`isIframePreviewDarkMode()` to swap preview colors.
+
+---
+
+## 9. Shared `lib` Utilities
+
+Located in `src/lib/`:
+
+- `storage-keys.ts` — typed registry of every localStorage key. **Always use this.**
+- `theme-utils.ts` — palette validation, CSS-injection helpers for the
+  preview, and `isIframePreviewDarkMode()` (shared dark-mode detector for
+  preview/signature renderers).
+- `ui-utils.ts` — small browser helpers: `prefersReducedMotion`,
+  `getScrollBehavior`, `detectOS`, `getRecommendedFormat`. Use
+  `getScrollBehavior()` for all programmatic scrolls.
+- `file-save.ts` — `saveBlob(blob, filename)`. Routes through the Tauri
+  `save_file_to_dir` command when running under the desktop app (honors the
+  configured download folder); falls back to a browser-anchor download
+  otherwise.
+- `db.ts` — IndexedDB wrappers for PDFs and bulk recipients.
+- `profile.ts` / `profile-validation.ts` — profile read/write + Zod schema.
+- `html-utils.ts` / `htmlTextConversion.ts` — HTML escaping, sanitization,
+  HTML↔text conversion.
+- `newsletter-utils.ts` — newsletter card color/border resolvers.
+- `subject-line-generator.ts` — AI-style subject line generation + PDF data
+  helpers (`dataURLtoBlob`, `validatePDFFile`).
+- `utils.ts` — `cn()` className helper (tailwind-merge wrapper).
+
+---
+
+## 10. Desktop / Tauri
+
+`src-tauri/` holds the Tauri 2 wrapper. Rust commands registered in
+`src-tauri/src/lib.rs`:
+
+- `get_download_dir(app)` — returns the configured download dir, or the OS
+  Downloads folder.
+- `choose_download_dir(app)` — opens the native folder picker, persists the
+  selection to `downloads-config.json`.
+- `read_file_as_data_url(path)` — used for drag-and-drop file URI handling.
+- `save_file_to_dir(app, filename, dataBase64)` — writes a base64-encoded blob
+  into the configured download dir. Powers `saveBlob()` for every download in
+  the app.
+
+`src/hooks/useTauri.ts` exposes `isTauri`, `invoke`, and `openFolderDialog`.
+
+---
+
+## 11. How to Use This Map
+
+- **Adding a new template:** add to `templates`, `fieldConfig`, `templateHelp`
+  in `src/lib/templates.ts`. The form and preview will pick it up via the
+  generator page.
+- **Adding a new persisted setting:** add the key to `storage-keys.ts`, then
+  read/write through `StorageKeys.<yourKey>` at the call site. Don't inline
+  string literals.
+- **Adding a new download path:** route through `saveBlob()` so the desktop
+  download-folder setting and browser fallback both work.
+- **Changing dark-mode handling in any preview/signature renderer:** use
+  `isIframePreviewDarkMode()` from `theme-utils.ts`.
+- **Changing promotion editor state:** add the field to `promotion-store.ts`
+  (state, action, persistence). The auto-save effect will handle persistence
+  if the field is included in `persistData`.
+- **Changing scroll behavior:** call `getScrollBehavior()` instead of
+  hardcoding `'smooth'` so reduced-motion users get instant jumps.
+
+This map should stay roughly stable as features evolve. When the major module
+boundaries shift, update this file.

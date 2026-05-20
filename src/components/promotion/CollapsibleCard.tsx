@@ -16,6 +16,7 @@ import {
 } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getScrollBehavior } from '@/lib/ui-utils';
 import {
   Collapsible,
   CollapsibleContent,
@@ -74,7 +75,7 @@ export function CollapsibleCard({
           requestAnimationFrame(() => {
             cardRef.current?.scrollIntoView({
               block: 'nearest',
-              behavior: 'smooth',
+              behavior: getScrollBehavior(),
             });
           });
         });

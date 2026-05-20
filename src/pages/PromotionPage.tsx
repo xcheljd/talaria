@@ -66,8 +66,8 @@ import {
   persistSnapshots,
   buildSummary,
   MAX_SNAPSHOTS,
-  STORAGE_KEY as VERSION_STORAGE_KEY,
 } from '@/components/promotion/VersionHistory';
+import { StorageKeys } from '@/lib/storage-keys';
 import { OutlookChecker } from '@/components/promotion/OutlookChecker';
 import { NewsletterEditor } from '@/components/promotion/NewsletterEditor';
 import { EmailThemeEditor } from '@/components/promotion/EmailThemeEditor';
@@ -85,7 +85,7 @@ import {
   formatDateRangeForFilename,
   resolvePromoSubject,
 } from '@/lib/emailUtils';
-import { getRecommendedFormat } from '@/lib/ui-utils';
+import { getRecommendedFormat, getScrollBehavior } from '@/lib/ui-utils';
 import { saveBlob } from '@/lib/file-save';
 import { getStoreEmail, getEmployeeName } from '@/lib/profile';
 
@@ -661,7 +661,7 @@ function PreviewColumn({
   const handleStartOver = useCallback(() => {
     store.resetState();
     store.initializeDefaultItems();
-    localStorage.removeItem('promotionBuilderState');
+    localStorage.removeItem(StorageKeys.promotionBuilderState);
     toast.success('Reset to defaults completed');
   }, [store]);
 
@@ -1193,7 +1193,7 @@ export function PromotionPage() {
   useEffect(() => {
     const interval = setInterval(
       () => {
-        const data = localStorage.getItem(VERSION_STORAGE_KEY);
+        const data = localStorage.getItem(StorageKeys.promotionBuilderState);
         if (!data || data === '{}') return;
 
         // Skip if unchanged since last auto-save
@@ -1240,7 +1240,10 @@ export function PromotionPage() {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           const cardEl = document.querySelector(`[data-card-id="${cardId}"]`);
-          cardEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          cardEl?.scrollIntoView({
+            behavior: getScrollBehavior(),
+            block: 'nearest',
+          });
         });
       });
     },
@@ -1273,7 +1276,10 @@ export function PromotionPage() {
             `[data-card-id="${cardId}"]`
           ) as HTMLElement | null;
           if (cardEl) {
-            cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            cardEl.scrollIntoView({
+              behavior: getScrollBehavior(),
+              block: 'nearest',
+            });
           }
         });
       });

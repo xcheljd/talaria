@@ -5,6 +5,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
+import { StorageKeys } from '@/lib/storage-keys';
 import {
   getUserProfile,
   saveUserProfile as persistProfile,
@@ -50,7 +51,7 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
   }, []);
 
   const clearProfile = useCallback(() => {
-    localStorage.removeItem('userProfile');
+    localStorage.removeItem(StorageKeys.userProfile);
     setProfile(null);
   }, []);
 
