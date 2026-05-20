@@ -36,6 +36,8 @@ import { cn } from '@/lib/utils';
 import { usePromotionStore } from '@/stores/promotion-store';
 import {
   isValidEmail,
+  parseEmailList,
+  resolvePromoSubject,
   createBCCBatchEML,
   generateZipFilenameFromHTML,
   type PDFAttachment,
@@ -51,7 +53,8 @@ import {
 } from '@/lib/promotion-email-html';
 
 import { resolveNewsletterColors } from '@/lib/newsletter-utils';
-import { getRecommendedFormat } from '@/lib/ui-utils';
+import { detectOS, getRecommendedFormat } from '@/lib/ui-utils';
+import { saveBlob } from '@/lib/file-save';
 import { Button } from '@/components/ui/button';
 import { ClearableTextarea } from '@/components/ui/clearable-textarea';
 import { Label } from '@/components/ui/label';
@@ -75,13 +78,13 @@ type DownloadFormat = 'individual' | 'zip';
 
 /** Parse and analyze the raw email text, computing stats */
 function computeEmailStats(rawText: string): EmailStats {
-  const rawEmails = rawText
+  const rawTokens = rawText
     .split(/[\s,;\n]+/)
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 
-  const uniqueEmails = [...new Set(rawEmails)];
-  const duplicateCount = rawEmails.length - uniqueEmails.length;
+  const uniqueEmails = parseEmailList(rawText);
+  const duplicateCount = rawTokens.length - uniqueEmails.length;
   const validEmails = uniqueEmails.filter(isValidEmail);
   const invalidEmails = uniqueEmails.filter((e) => !isValidEmail(e));
 
@@ -112,24 +115,12 @@ function FormatStatus() {
   });
 
   useEffect(() => {
-    const platform = navigator.platform || '';
-    const userAgent = navigator.userAgent || '';
-
-    let os: 'windows' | 'mac' | 'other';
-    if (platform.includes('Win') || userAgent.includes('Windows')) {
-      os = 'windows';
-    } else if (platform.includes('Mac') || userAgent.includes('Mac')) {
-      os = 'mac';
-    } else {
-      os = 'other';
-    }
-
-    const formatName = os === 'mac' ? 'Template' : 'EML';
-    const extension = os === 'mac' ? '.emltpl' : '.eml';
-
+    const os = detectOS();
+    const format = getRecommendedFormat();
+    const formatName = format === 'emltpl' ? 'Template' : 'EML';
+    const extension = `.${format}`;
     const osName =
       os === 'windows' ? 'Windows' : os === 'mac' ? 'macOS' : 'Other Platform';
-
     setFormatInfo({ formatName, extension, osName });
   }, []);
 
@@ -334,7 +325,10 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
 
         const htmlContent = generatePromotionEmailHTML(data);
 
-        const subject = store.selectedSubjectLine || 'Weekly Promotion';
+        const subject = resolvePromoSubject(
+          store.selectedSubjectLine,
+          store.promoTitle
+        );
 
         // Get PDF attachments
         const pdfAttachments: PDFAttachment[] = store.attachedPDFs
@@ -373,16 +367,10 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
 
           setBulkState(true, 'Zipping...');
           const zipBlob = await zip.generateAsync({ type: 'blob' });
-          const url = URL.createObjectURL(zipBlob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download =
+          const zipFilename =
             generateZipFilenameFromHTML(htmlContent) ||
             'promotion-email-batches.zip';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+          await saveBlob(zipBlob, zipFilename);
         } else {
           // Download individual files
           for (let i = 0; i < batches.length; i++) {
@@ -400,14 +388,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
             const blob = new Blob([emlContent.data as BlobPart], {
               type: 'message/rfc822',
             });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = emlContent.filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            await saveBlob(blob, emlContent.filename);
 
             // Small delay between downloads to prevent browser issues
             if (i < batches.length - 1) {

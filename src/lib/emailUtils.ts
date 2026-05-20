@@ -157,6 +157,20 @@ export function parseEmailList(list: string): string[] {
   return [...new Set(emails)];
 }
 
+// Default fallback used when no subject line is selected and no promo title is set
+export const DEFAULT_PROMO_SUBJECT = 'Promotion';
+
+// Resolve the subject for a promotion email: prefer the selected subject line,
+// then fall back to the promo title, then the generic default.
+export function resolvePromoSubject(
+  selectedSubjectLine: string | null | undefined,
+  promoTitle: string | null | undefined
+): string {
+  return (
+    selectedSubjectLine?.trim() || promoTitle?.trim() || DEFAULT_PROMO_SUBJECT
+  );
+}
+
 // Core EML file generator for single-message with HTML + text parts and optional attachments
 export async function createEMLFile(
   _fromName: string,
@@ -328,8 +342,8 @@ export function createBCCBatchEML(
   subject: string,
   htmlBody: string,
   recipients: string[],
-  pdfAttachments: PDFAttachment[] = [],
-  format: 'eml' | 'emltpl' = 'eml',
+  pdfAttachments: PDFAttachment[],
+  format: 'eml' | 'emltpl',
   batchNumber: number = 1
 ): BCCBatchEMLResult {
   // RFC 5322 §3.4 - Validate email addresses in BCC recipients

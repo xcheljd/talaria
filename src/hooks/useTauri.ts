@@ -51,7 +51,7 @@ export interface UseTauriReturn {
 
   /**
    * Open a native folder picker dialog.
-   * Uses the 'open_download_folder_dialog' Tauri command.
+   * Uses the 'choose_download_dir' Tauri command.
    * @returns The selected folder path, or null if cancelled
    */
   openFolderDialog: () => Promise<string | null>;
@@ -106,7 +106,7 @@ export function useTauri(): UseTauriReturn {
 
   const openFolderDialog = useCallback(async (): Promise<string | null> => {
     try {
-      const result = await invokeCommand<string>('open_download_folder_dialog');
+      const result = await invokeCommand<string>('choose_download_dir');
       return result;
     } catch {
       return null;

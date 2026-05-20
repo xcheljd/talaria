@@ -82,12 +82,49 @@ fn read_file_as_data_url(path: String) -> Result<String, String> {
     Ok(format!("data:{mime};base64,{b64}"))
 }
 
+/// Save a base64-encoded blob to the configured download directory.
+/// Returns the absolute path of the written file on success.
+#[tauri::command]
+fn save_file_to_dir(
+    app: tauri::AppHandle,
+    filename: String,
+    data_base64: String,
+) -> Result<String, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+
+    if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+        return Err(format!("Refusing to write unsafe filename: {filename}"));
+    }
+
+    let dir = get_download_dir(app.clone());
+    let dir_path = PathBuf::from(&dir);
+    if !dir_path.exists() {
+        fs::create_dir_all(&dir_path)
+            .map_err(|e| format!("Failed to create directory {dir}: {e}"))?;
+    }
+
+    let bytes = STANDARD
+        .decode(data_base64.as_bytes())
+        .map_err(|e| format!("Invalid base64 payload: {e}"))?;
+
+    let final_path = dir_path.join(&filename);
+    fs::write(&final_path, &bytes)
+        .map_err(|e| format!("Failed to write {}: {e}", final_path.display()))?;
+
+    Ok(final_path.to_string_lossy().to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![get_download_dir, choose_download_dir, read_file_as_data_url])
+        .invoke_handler(tauri::generate_handler![
+            get_download_dir,
+            choose_download_dir,
+            read_file_as_data_url,
+            save_file_to_dir
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

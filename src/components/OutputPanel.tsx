@@ -13,6 +13,7 @@ import { getEmployeeSignature } from '@/lib/signature';
 import { plainTextToPreviewHTML } from '@/lib/emailPreviewUtils';
 import { getUserProfile } from '@/lib/profile';
 import { getRecommendedFormat } from '@/lib/ui-utils';
+import { saveBlob } from '@/lib/file-save';
 
 import { Button } from '@/components/ui/button';
 import { ClearableInput } from '@/components/ui/clearable-input';
@@ -138,15 +139,10 @@ ${htmlSignature}
       );
 
       const blob = new Blob([emlContent], { type: 'message/rfc822' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
       const safeSubject = subject.replace(/[^a-z0-9]/gi, '_').toLowerCase();
       const format = getRecommendedFormat();
       const extension = format === 'emltpl' ? '.emltpl' : '.eml';
-      link.download = `${safeSubject}${extension}`;
-      link.click();
-      URL.revokeObjectURL(url);
+      await saveBlob(blob, `${safeSubject}${extension}`);
       toast.success('Email file downloaded!');
     } catch (error) {
       console.error('Error creating EML file:', error);

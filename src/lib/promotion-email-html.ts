@@ -1039,10 +1039,12 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
     ? `<span style="display:none;font-size:1px;color:${pal.bodyBg};line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${escapeHtml(data.preheaderText.trim())}</span>`
     : '';
 
+  const headTitle = escapeHtml(data.promoTitle?.trim() || 'Promotion');
+
   return `<!DOCTYPE html>
 <html>
 <head>
-    <title>Weekly Sale</title>
+    <title>${headTitle}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
       @media only screen and (max-width: 480px) {

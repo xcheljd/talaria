@@ -42,6 +42,7 @@ import {
   LIGHT_PALETTE_LABELS,
   DARK_PALETTE_LABELS,
 } from '@/lib/theme-utils';
+import { saveBlob } from '@/lib/file-save';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -163,7 +164,7 @@ export function ProfileSettingsPage() {
 
   // ─── Export Handler ───────────────────────────────────────────────────────
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     const values = form.getValues();
     const profileData = {
       version: '1.0',
@@ -188,15 +189,10 @@ export function ProfileSettingsPage() {
 
     const dataStr = JSON.stringify(profileData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `profile-backup-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    await saveBlob(
+      dataBlob,
+      `profile-backup-${new Date().toISOString().split('T')[0]}.json`
+    );
   }, [form, lightPalette, darkPalette]);
 
   // ─── Import Handler ───────────────────────────────────────────────────────
@@ -727,8 +723,9 @@ export function ProfileSettingsPage() {
                 </Button>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Used by the desktop app to save EML/EMLTPL and ZIP files. In a
-                regular browser, your default Downloads folder is always used.
+                Used by the desktop app to save downloaded files (email batches,
+                drafts, exports). In a regular browser, your default Downloads
+                folder is always used.
               </p>
             </div>
 

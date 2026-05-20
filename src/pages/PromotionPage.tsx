@@ -80,7 +80,13 @@ import {
 } from '@/lib/promotion-email-html';
 import { resolveNewsletterColors } from '@/lib/newsletter-utils';
 import { cn } from '@/lib/utils';
-import { createEMLFile, formatDateRangeForFilename } from '@/lib/emailUtils';
+import {
+  createEMLFile,
+  formatDateRangeForFilename,
+  resolvePromoSubject,
+} from '@/lib/emailUtils';
+import { getRecommendedFormat } from '@/lib/ui-utils';
+import { saveBlob } from '@/lib/file-save';
 import { getStoreEmail, getEmployeeName } from '@/lib/profile';
 
 import { Button } from '@/components/ui/button';
@@ -455,13 +461,8 @@ function promoDraftDateSuffix(dateRange: string): string {
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+async function downloadBlob(blob: Blob, filename: string): Promise<void> {
+  await saveBlob(blob, filename);
 }
 
 // ===== Preview Column Component =====
@@ -604,7 +605,10 @@ function PreviewColumn({
     try {
       const fromName = getEmployeeName();
       const fromEmail = getStoreEmail();
-      const subject = store.selectedSubjectLine || 'Weekly Sale';
+      const subject = resolvePromoSubject(
+        store.selectedSubjectLine,
+        store.promoTitle
+      );
 
       // Get PDF attachments
       const attachments = store.attachedPDFs
@@ -625,16 +629,23 @@ function PreviewColumn({
         type: 'message/rfc822',
       });
       const suffix = promoDraftDateSuffix(store.promoDateRange);
-      downloadBlob(blob, `promo-email-draft.${suffix}.eml`);
+      const extension = getRecommendedFormat();
+      await downloadBlob(blob, `promo-email-draft.${suffix}.${extension}`);
       toast.success('Email draft downloaded');
     } catch (error) {
       console.error('Download draft error:', error);
       toast.error('Failed to download email draft');
     }
-  }, [emailHTML, store.selectedSubjectLine, store.attachedPDFs]);
+  }, [
+    emailHTML,
+    store.selectedSubjectLine,
+    store.promoTitle,
+    store.attachedPDFs,
+    store.promoDateRange,
+  ]);
 
   // Download HTML
-  const handleDownloadHTML = useCallback(() => {
+  const handleDownloadHTML = useCallback(async () => {
     if (!emailHTML) {
       toast.error('No HTML content to download');
       return;
@@ -642,9 +653,9 @@ function PreviewColumn({
 
     const blob = new Blob([emailHTML], { type: 'text/html' });
     const suffix = promoDraftDateSuffix(store.promoDateRange);
-    downloadBlob(blob, `promo-email-draft.${suffix}.html`);
+    await downloadBlob(blob, `promo-email-draft.${suffix}.html`);
     toast.success('HTML file downloaded');
-  }, [emailHTML]);
+  }, [emailHTML, store.promoDateRange]);
 
   // Start Over
   const handleStartOver = useCallback(() => {
@@ -655,7 +666,7 @@ function PreviewColumn({
   }, [store]);
 
   // Export Config
-  const handleExportConfig = useCallback(() => {
+  const handleExportConfig = useCallback(async () => {
     try {
       const resolvedColors = resolveNewsletterColors(
         store.newsletterStyle,
@@ -698,7 +709,7 @@ function PreviewColumn({
 
       const jsonStr = JSON.stringify(config, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
-      downloadBlob(
+      await downloadBlob(
         blob,
         `promotion-template-${new Date().toISOString().split('T')[0]}.json`
       );

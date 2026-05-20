@@ -25,6 +25,7 @@ import {
   formatFileSize,
 } from '@/lib/subject-line-generator';
 import { savePDFToIndexedDB } from '@/lib/db';
+import { saveBlob } from '@/lib/file-save';
 import { AlertTriangle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -234,12 +235,10 @@ export function PDFAttachments() {
     setPreviewBlobUrl(null);
   }, [previewBlobUrl]);
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
     if (!previewPDF?.data) return;
-    const link = document.createElement('a');
-    link.href = previewPDF.data;
-    link.download = previewPDF.name;
-    link.click();
+    const blob = dataURLtoBlob(previewPDF.data);
+    await saveBlob(blob, previewPDF.name);
   }, [previewPDF]);
 
   return (
