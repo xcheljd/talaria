@@ -9,23 +9,7 @@
  * (or the system Downloads folder if none is configured).
  */
 
-type TauriInvoke = (
-  cmd: string,
-  args?: Record<string, unknown>
-) => Promise<unknown>;
-
-interface TauriWindow {
-  __TAURI__?: {
-    core?: {
-      invoke?: TauriInvoke;
-    };
-  };
-}
-
-function getTauriInvoke(): TauriInvoke | null {
-  if (typeof window === 'undefined') return null;
-  return (window as unknown as TauriWindow).__TAURI__?.core?.invoke ?? null;
-}
+import { invoke, isTauri } from '@tauri-apps/api/core';
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
@@ -42,19 +26,11 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
  * Save a Blob to disk. Returns the absolute saved path in Tauri, or `null` in
  * the browser (where the path is unknown — the browser handles it).
  */
-export async function saveBlob(
-  blob: Blob,
-  filename: string
-): Promise<string | null> {
-  const invoke = getTauriInvoke();
-
-  if (invoke) {
+export async function saveBlob(blob: Blob, filename: string): Promise<string | null> {
+  if (isTauri()) {
     const buffer = await blob.arrayBuffer();
     const dataBase64 = arrayBufferToBase64(buffer);
-    const savedPath = (await invoke('save_file_to_dir', {
-      filename,
-      dataBase64,
-    })) as string;
+    const savedPath = await invoke<string>('save_file_to_dir', { filename, dataBase64 });
     return savedPath;
   }
 
