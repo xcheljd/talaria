@@ -181,9 +181,16 @@ function sanitizeNode(node: Element): string {
           continue;
         }
 
-        // For style attributes, strip any expression() or url() with dangerous protocols
         if (attr.name === 'style') {
-          const styleValue = attr.value.replace(/expression\s*\(/gi, '');
+          let styleValue = attr.value.replace(/expression\s*\(/gi, '');
+          // Allow url() only with safe schemes (https, data:image, cid); neutralize the rest
+          styleValue = styleValue.replace(
+            /url\s*\(\s*(['"]?)(.*?)\1\s*\)/gi,
+            (match, _q, inner) =>
+              /^(https?:\/\/|data:image\/|cid:)/i.test(inner.trim())
+                ? match
+                : 'url(about:blank)'
+          );
           safeAttrs.push(`style="${escapeAttr(styleValue)}"`);
           continue;
         }

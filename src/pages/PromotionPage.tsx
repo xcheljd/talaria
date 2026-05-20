@@ -76,9 +76,8 @@ import {
   buildExportConfig,
   validateImportConfig,
   buildDarkModePalette,
-  type PromotionEmailData,
 } from '@/lib/promotion-email-html';
-import { resolveNewsletterColors } from '@/lib/newsletter-utils';
+import { buildPromotionEmailData } from '@/lib/newsletter-utils';
 import { cn } from '@/lib/utils';
 import {
   createEMLFile,
@@ -469,8 +468,10 @@ async function downloadBlob(blob: Blob, filename: string): Promise<void> {
 
 function PreviewColumn({
   bulkEmailRef,
+  emailHTML,
 }: {
   bulkEmailRef?: React.RefObject<BulkEmailToolsHandle | null>;
+  emailHTML: string;
 }) {
   const store = usePromotionStore();
   const [activeTab, setActiveTab] = useState('preview');
@@ -479,121 +480,14 @@ function PreviewColumn({
   );
   const [previewDark, setPreviewDark] = useState(false);
 
-  // Generate email HTML from current store data
-  const emailHTML = useMemo(() => {
-    if (!store.promoDateRange) return '';
-
-    const resolvedColors = resolveNewsletterColors(
-      store.newsletterStyle,
-      store.emailPalette
-    );
-
-    const data: PromotionEmailData = {
-      promoDateRange: store.promoDateRange,
-      promoYear: store.promoYear,
-      promoTitle: store.promoTitle,
-      promotionEntries: store.promotionEntries,
-      specialHours: store.specialHours,
-      howToShopItems: store.howToShopItems,
-      importantNotesItems: store.importantNotesItems,
-      howToShopStyle: store.howToShopStyle,
-      importantNotesStyle: store.importantNotesStyle,
-      newsletterHeading: store.newsletterHeading,
-      newsletterBody: store.newsletterBody,
-      newsletterPosition: store.newsletterPosition,
-      newsletterVisible: store.newsletterVisible,
-      newsletterStyle: {
-        ...resolvedColors,
-        borderStyle: store.newsletterStyle.borderStyle,
-        headingAlign: store.newsletterStyle.headingAlign,
-        tableBorderColor: resolvedColors.tableBorderColor,
-        tableBorderWidth: store.newsletterStyle.tableBorderWidth,
-        tableBorderStyle: store.newsletterStyle.tableBorderStyle,
-        tableHeaderBg: resolvedColors.tableHeaderBg,
-      },
-      emailPalette: store.emailPalette,
-      preheaderText: store.preheaderText,
-    };
-
-    return generatePromotionEmailHTML(data);
-  }, [
-    store.promoDateRange,
-    store.promoYear,
-    store.promoTitle,
-    store.promotionEntries,
-    store.specialHours,
-    store.howToShopItems,
-    store.importantNotesItems,
-    store.howToShopStyle,
-    store.importantNotesStyle,
-    store.newsletterHeading,
-    store.newsletterBody,
-    store.newsletterPosition,
-    store.newsletterVisible,
-    store.newsletterStyle,
-    store.emailPalette,
-    store.preheaderText,
-  ]);
-
-  // Generate dark mode email by re-rendering with transformed palette colors
-  // Mimics Gmail/Outlook: darken light backgrounds, lighten dark text
+  // Re-render with dark palette; only computed when dark preview is active.
+  // emailHTML captures all store-data changes, so it covers the darkModeHTML deps too.
   const darkModeHTML = useMemo(() => {
     if (!emailHTML || !previewDark) return '';
-
-    const darkPalette = buildDarkModePalette(store.emailPalette);
-    const resolvedColors = resolveNewsletterColors(
-      store.newsletterStyle,
-      darkPalette
+    return generatePromotionEmailHTML(
+      buildPromotionEmailData(store, buildDarkModePalette(store.emailPalette))
     );
-
-    const data: PromotionEmailData = {
-      promoDateRange: store.promoDateRange,
-      promoYear: store.promoYear,
-      promoTitle: store.promoTitle,
-      promotionEntries: store.promotionEntries,
-      specialHours: store.specialHours,
-      howToShopItems: store.howToShopItems,
-      importantNotesItems: store.importantNotesItems,
-      howToShopStyle: store.howToShopStyle,
-      importantNotesStyle: store.importantNotesStyle,
-      newsletterHeading: store.newsletterHeading,
-      newsletterBody: store.newsletterBody,
-      newsletterPosition: store.newsletterPosition,
-      newsletterVisible: store.newsletterVisible,
-      newsletterStyle: {
-        ...resolvedColors,
-        borderStyle: store.newsletterStyle.borderStyle,
-        headingAlign: store.newsletterStyle.headingAlign,
-        tableBorderColor: resolvedColors.tableBorderColor,
-        tableBorderWidth: store.newsletterStyle.tableBorderWidth,
-        tableBorderStyle: store.newsletterStyle.tableBorderStyle,
-        tableHeaderBg: resolvedColors.tableHeaderBg,
-      },
-      emailPalette: darkPalette,
-      preheaderText: store.preheaderText,
-    };
-
-    return generatePromotionEmailHTML(data);
-  }, [
-    emailHTML,
-    previewDark,
-    store.promoDateRange,
-    store.promoYear,
-    store.promoTitle,
-    store.promotionEntries,
-    store.specialHours,
-    store.howToShopItems,
-    store.importantNotesItems,
-    store.howToShopStyle,
-    store.importantNotesStyle,
-    store.newsletterHeading,
-    store.newsletterBody,
-    store.newsletterPosition,
-    store.newsletterVisible,
-    store.newsletterStyle,
-    store.preheaderText,
-    store.emailPalette,
-  ]);
+  }, [emailHTML, previewDark, store]);
 
   // Download Email Draft (single EML)
   const handleDownloadDraft = useCallback(async () => {
@@ -668,35 +562,7 @@ function PreviewColumn({
   // Export Config
   const handleExportConfig = useCallback(async () => {
     try {
-      const resolvedColors = resolveNewsletterColors(
-        store.newsletterStyle,
-        store.emailPalette
-      );
-      const data: PromotionEmailData = {
-        promoDateRange: store.promoDateRange,
-        promoYear: store.promoYear,
-        promoTitle: store.promoTitle,
-        promotionEntries: store.promotionEntries,
-        specialHours: store.specialHours,
-        howToShopItems: store.howToShopItems,
-        importantNotesItems: store.importantNotesItems,
-        howToShopStyle: store.howToShopStyle,
-        importantNotesStyle: store.importantNotesStyle,
-        newsletterHeading: store.newsletterHeading,
-        newsletterBody: store.newsletterBody,
-        newsletterPosition: store.newsletterPosition,
-        newsletterVisible: store.newsletterVisible,
-        newsletterStyle: {
-          ...resolvedColors,
-          borderStyle: store.newsletterStyle.borderStyle,
-          headingAlign: store.newsletterStyle.headingAlign,
-          tableBorderColor: resolvedColors.tableBorderColor,
-          tableBorderWidth: store.newsletterStyle.tableBorderWidth,
-          tableBorderStyle: store.newsletterStyle.tableBorderStyle,
-          tableHeaderBg: resolvedColors.tableHeaderBg,
-        },
-        emailPalette: store.emailPalette,
-      };
+      const data = buildPromotionEmailData(store);
 
       const config = buildExportConfig(
         data,
@@ -1146,6 +1012,53 @@ function useAutoSave() {
   ]);
 }
 
+// ===== Scroll Spy Hook =====
+
+function useScrollSpy(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  isUserActionRef: React.RefObject<boolean>,
+  setActiveCardId: (id: string) => void
+) {
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout>;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isUserActionRef.current) return;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          let best: { id: string; ratio: number } | null = null;
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              const id = (entry.target as HTMLElement).dataset.cardId;
+              if (id && entry.intersectionRatio > (best?.ratio ?? 0)) {
+                best = { id, ratio: entry.intersectionRatio };
+              }
+            }
+          }
+          if (best) setActiveCardId(best.id);
+        }, 300);
+      },
+      { root: container, threshold: 0.3 }
+    );
+
+    const cards = container.querySelectorAll('[data-card-id]');
+    cards.forEach((card) => observer.observe(card));
+
+    const handleScroll = () => { isUserActionRef.current = false; };
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      container.removeEventListener('scroll', handleScroll);
+      clearTimeout(debounceTimer);
+    };
+  }, []); // containerRef and isUserActionRef are stable refs; setActiveCardId is a stable state setter
+}
+
 // ===== Main Page Component =====
 
 export function PromotionPage() {
@@ -1174,6 +1087,30 @@ export function PromotionPage() {
   // Ref to BulkEmailTools imperative handle — created here so it's scoped to
   // the page instance (not shared across HMR/test re-mounts).
   const bulkEmailRef = useRef<BulkEmailToolsHandle | null>(null);
+
+  // Computed once and passed to both PreviewColumn instances (desktop + mobile),
+  // so the 1,300-line HTML generation runs once per edit, not twice.
+  const emailHTML = useMemo(() => {
+    if (!store.promoDateRange) return '';
+    return generatePromotionEmailHTML(buildPromotionEmailData(store));
+  }, [
+    store.promoDateRange,
+    store.promoYear,
+    store.promoTitle,
+    store.promotionEntries,
+    store.specialHours,
+    store.howToShopItems,
+    store.importantNotesItems,
+    store.howToShopStyle,
+    store.importantNotesStyle,
+    store.newsletterHeading,
+    store.newsletterBody,
+    store.newsletterPosition,
+    store.newsletterVisible,
+    store.newsletterStyle,
+    store.emailPalette,
+    store.preheaderText,
+  ]);
 
   // Load persisted state on mount
   useEffect(() => {
@@ -1294,93 +1231,8 @@ export function PromotionPage() {
     isUserActionRef.current = true;
   }, []);
 
-  // Desktop scroll spy — IntersectionObserver + scroll listener
-  useEffect(() => {
-    const container = desktopScrollContainerRef.current;
-    if (!container) return;
-
-    let debounceTimer: ReturnType<typeof setTimeout>;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (isUserActionRef.current) return; // locked by user action
-
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          // Find the most visible card
-          let best: { id: string; ratio: number } | null = null;
-          for (const entry of entries) {
-            if (entry.isIntersecting) {
-              const id = (entry.target as HTMLElement).dataset.cardId;
-              if (id && entry.intersectionRatio > (best?.ratio ?? 0)) {
-                best = { id, ratio: entry.intersectionRatio };
-              }
-            }
-          }
-          if (best) setActiveCardId(best.id);
-        }, 300);
-      },
-      { root: container, threshold: 0.3 }
-    );
-
-    const cards = container.querySelectorAll('[data-card-id]');
-    cards.forEach((card) => observer.observe(card));
-
-    // Scroll listener to unlock user action
-    const handleScroll = () => {
-      isUserActionRef.current = false;
-    };
-    container.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      observer.disconnect();
-      container.removeEventListener('scroll', handleScroll);
-      clearTimeout(debounceTimer);
-    };
-  }, []);
-
-  // Mobile scroll spy — IntersectionObserver + scroll listener
-  useEffect(() => {
-    const container = mobileCardsContainerRef.current;
-    if (!container) return;
-
-    let debounceTimer: ReturnType<typeof setTimeout>;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (isUserActionRef.current) return;
-
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          let best: { id: string; ratio: number } | null = null;
-          for (const entry of entries) {
-            if (entry.isIntersecting) {
-              const id = (entry.target as HTMLElement).dataset.cardId;
-              if (id && entry.intersectionRatio > (best?.ratio ?? 0)) {
-                best = { id, ratio: entry.intersectionRatio };
-              }
-            }
-          }
-          if (best) setActiveCardId(best.id);
-        }, 300);
-      },
-      { root: container, threshold: 0.3 }
-    );
-
-    const cards = container.querySelectorAll('[data-card-id]');
-    cards.forEach((card) => observer.observe(card));
-
-    const handleScroll = () => {
-      isUserActionRef.current = false;
-    };
-    container.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      observer.disconnect();
-      container.removeEventListener('scroll', handleScroll);
-      clearTimeout(debounceTimer);
-    };
-  }, []);
+  useScrollSpy(desktopScrollContainerRef, isUserActionRef, setActiveCardId);
+  useScrollSpy(mobileCardsContainerRef, isUserActionRef, setActiveCardId);
 
   // Profile redirect — if no profile, redirect to /start
   if (!hasProfile) {
@@ -1429,7 +1281,7 @@ export function PromotionPage() {
           </div>
 
           {/* Right panel: Email Preview */}
-          <PreviewColumn bulkEmailRef={bulkEmailRef} />
+          <PreviewColumn bulkEmailRef={bulkEmailRef} emailHTML={emailHTML} />
         </ResizablePanels>
       </div>
 
@@ -1469,7 +1321,7 @@ export function PromotionPage() {
           </div>
 
           {/* Email preview */}
-          <PreviewColumn bulkEmailRef={bulkEmailRef} />
+          <PreviewColumn bulkEmailRef={bulkEmailRef} emailHTML={emailHTML} />
         </ResizablePanels>
       </div>
     </>

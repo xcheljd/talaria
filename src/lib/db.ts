@@ -98,177 +98,84 @@ export function initIndexedDB(): Promise<boolean> {
   return initPromise;
 }
 
-/**
- * Save PDF to IndexedDB.
- */
+/** Shared wrapper: init → open transaction → run operation → extract result. */
+async function runRequest<T>(
+  storeName: string,
+  mode: IDBTransactionMode,
+  operate: (store: IDBObjectStore) => IDBRequest,
+  extractResult: (req: IDBRequest) => T
+): Promise<T> {
+  if (!db) await initIndexedDB();
+  if (!db) throw new Error('IndexedDB not available');
+  const database = db;
+  return new Promise<T>((resolve, reject) => {
+    const txn = database.transaction([storeName], mode);
+    const objectStore = txn.objectStore(storeName);
+    const req = operate(objectStore);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(extractResult(req));
+  });
+}
+
 export async function savePDFToIndexedDB(pdfData: PDFRecord): Promise<string> {
-  if (!db) await initIndexedDB();
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      reject(new Error('IndexedDB not available'));
-      return;
-    }
-
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.put(pdfData);
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(pdfData.id);
-  });
+  return runRequest(STORE_NAME, 'readwrite', (s) => s.put(pdfData), () => pdfData.id);
 }
 
-/**
- * Get specific PDF from IndexedDB.
- */
-export async function getPDFFromIndexedDB(
-  pdfId: string
-): Promise<PDFRecord | null> {
-  if (!db) await initIndexedDB();
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      resolve(null);
-      return;
-    }
-
-    const transaction = db.transaction([STORE_NAME], 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.get(pdfId);
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve((request.result as PDFRecord) || null);
-  });
+export async function getPDFFromIndexedDB(pdfId: string): Promise<PDFRecord | null> {
+  try {
+    return await runRequest(STORE_NAME, 'readonly', (s) => s.get(pdfId), (r) => (r.result as PDFRecord) || null);
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Delete PDF from IndexedDB.
- */
 export async function deletePDFFromIndexedDB(pdfId: string): Promise<void> {
-  if (!db) await initIndexedDB();
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      resolve();
-      return;
-    }
-
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.delete(pdfId);
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve();
-  });
+  try {
+    await runRequest(STORE_NAME, 'readwrite', (s) => s.delete(pdfId), () => undefined);
+  } catch { /* no-op if db unavailable */ }
 }
 
-/**
- * Clear all PDFs from IndexedDB.
- */
 export async function clearAllPDFsFromIndexedDB(): Promise<void> {
-  if (!db) await initIndexedDB();
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      resolve();
-      return;
-    }
-
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.clear();
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve();
-  });
+  try {
+    await runRequest(STORE_NAME, 'readwrite', (s) => s.clear(), () => undefined);
+  } catch { /* no-op if db unavailable */ }
 }
 
-/**
- * Get all PDF keys from IndexedDB.
- * Used for orphan cleanup.
- */
+/** Get all PDF keys from IndexedDB. Used for orphan cleanup. */
 export async function getAllPDFKeysFromIndexedDB(): Promise<string[]> {
-  if (!db) await initIndexedDB();
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      resolve([]);
-      return;
-    }
-
-    const transaction = db.transaction([STORE_NAME], 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.getAllKeys();
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const keys = request.result as IDBValidKey[];
-      resolve(keys.map(String));
-    };
-  });
+  try {
+    return await runRequest(
+      STORE_NAME, 'readonly',
+      (s) => s.getAllKeys(),
+      (r) => (r.result as IDBValidKey[]).map(String)
+    );
+  } catch {
+    return [];
+  }
 }
 
-/**
- * Save bulk email recipients to IndexedDB.
- */
-export async function saveBulkEmailRecipientsToIndexedDB(
-  recipients: string
-): Promise<void> {
-  if (!db) await initIndexedDB();
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      reject(new Error('IndexedDB not available'));
-      return;
-    }
-
-    const transaction = db.transaction([BULK_EMAIL_STORE], 'readwrite');
-    const store = transaction.objectStore(BULK_EMAIL_STORE);
-    const request = store.put({
-      id: 'bulk-email-recipients',
-      data: recipients,
-      savedAt: new Date().toISOString(),
-    });
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve();
-  });
+export async function saveBulkEmailRecipientsToIndexedDB(recipients: string): Promise<void> {
+  return runRequest(
+    BULK_EMAIL_STORE, 'readwrite',
+    (s) => s.put({ id: 'bulk-email-recipients', data: recipients, savedAt: new Date().toISOString() }),
+    () => undefined
+  );
 }
 
-/**
- * Get bulk email recipients from IndexedDB.
- */
 export async function getBulkEmailRecipientsFromIndexedDB(): Promise<string> {
-  if (!db) await initIndexedDB();
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      resolve('');
-      return;
-    }
-
-    const transaction = db.transaction([BULK_EMAIL_STORE], 'readonly');
-    const store = transaction.objectStore(BULK_EMAIL_STORE);
-    const request = store.get('bulk-email-recipients');
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const result = request.result as BulkEmailRecord | undefined;
-      resolve(result && result.data ? result.data : '');
-    };
-  });
+  try {
+    return await runRequest(
+      BULK_EMAIL_STORE, 'readonly',
+      (s) => s.get('bulk-email-recipients'),
+      (r) => { const rec = r.result as BulkEmailRecord | undefined; return rec?.data ?? ''; }
+    );
+  } catch {
+    return '';
+  }
 }
 
-/**
- * Clear bulk email recipients from IndexedDB.
- */
 export async function clearBulkEmailRecipientsFromIndexedDB(): Promise<void> {
-  if (!db) await initIndexedDB();
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      resolve();
-      return;
-    }
-
-    const transaction = db.transaction([BULK_EMAIL_STORE], 'readwrite');
-    const store = transaction.objectStore(BULK_EMAIL_STORE);
-    const request = store.clear();
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve();
-  });
+  try {
+    await runRequest(BULK_EMAIL_STORE, 'readwrite', (s) => s.clear(), () => undefined);
+  } catch { /* no-op if db unavailable */ }
 }

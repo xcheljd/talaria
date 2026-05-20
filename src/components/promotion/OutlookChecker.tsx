@@ -15,11 +15,8 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { usePromotionStore } from '@/stores/promotion-store';
-import {
-  generatePromotionEmailHTML,
-  type PromotionEmailData,
-} from '@/lib/promotion-email-html';
-import { resolveNewsletterColors } from '@/lib/newsletter-utils';
+import { generatePromotionEmailHTML } from '@/lib/promotion-email-html';
+import { buildPromotionEmailData } from '@/lib/newsletter-utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -265,37 +262,7 @@ export function OutlookChecker() {
 
   const generateHTML = useCallback((): string => {
     if (!store.promoDateRange) return '';
-    const resolvedColors = resolveNewsletterColors(
-      store.newsletterStyle,
-      store.emailPalette
-    );
-    const data: PromotionEmailData = {
-      promoDateRange: store.promoDateRange,
-      promoYear: store.promoYear,
-      promoTitle: store.promoTitle,
-      promotionEntries: store.promotionEntries,
-      specialHours: store.specialHours,
-      howToShopItems: store.howToShopItems,
-      importantNotesItems: store.importantNotesItems,
-      howToShopStyle: store.howToShopStyle,
-      importantNotesStyle: store.importantNotesStyle,
-      newsletterHeading: store.newsletterHeading,
-      newsletterBody: store.newsletterBody,
-      newsletterPosition: store.newsletterPosition,
-      newsletterVisible: store.newsletterVisible,
-      newsletterStyle: {
-        ...resolvedColors,
-        borderStyle: store.newsletterStyle.borderStyle,
-        headingAlign: store.newsletterStyle.headingAlign,
-        tableBorderColor: resolvedColors.tableBorderColor,
-        tableBorderWidth: store.newsletterStyle.tableBorderWidth,
-        tableBorderStyle: store.newsletterStyle.tableBorderStyle,
-        tableHeaderBg: resolvedColors.tableHeaderBg,
-      },
-      emailPalette: store.emailPalette,
-      preheaderText: store.preheaderText,
-    };
-    return generatePromotionEmailHTML(data);
+    return generatePromotionEmailHTML(buildPromotionEmailData(store));
   }, [store]);
 
   const issues = useMemo(() => {

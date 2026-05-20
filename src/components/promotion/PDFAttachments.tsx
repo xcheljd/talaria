@@ -11,7 +11,7 @@
  * Uses Zustand store for state and IndexedDB for persistence.
  */
 
-import { useState, useRef, useCallback, type DragEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, type DragEvent } from 'react';
 import { Upload, FileText, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { invoke } from '@tauri-apps/api/core';
@@ -23,7 +23,7 @@ import {
   readPDFAsDataURL,
   dataURLtoBlob,
   formatFileSize,
-} from '@/lib/subject-line-generator';
+} from '@/lib/pdf-utils';
 import { savePDFToIndexedDB } from '@/lib/db';
 import { saveBlob } from '@/lib/file-save';
 import { AlertTriangle } from 'lucide-react';
@@ -233,6 +233,13 @@ export function PDFAttachments() {
     }
     setPreviewPDF(null);
     setPreviewBlobUrl(null);
+  }, [previewBlobUrl]);
+
+  // Revoke blob URL on unmount or when it changes (covers route-away, Start Over, error boundary)
+  useEffect(() => {
+    return () => {
+      if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+    };
   }, [previewBlobUrl]);
 
   const handleDownload = useCallback(async () => {

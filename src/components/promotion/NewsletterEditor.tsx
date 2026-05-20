@@ -425,13 +425,27 @@ const DragHandleExtension = Extension.create({
     return [
       new Plugin({
         key: dragHandlePluginKey,
-        view(view) {
-          editorView = view;
+        view(initialView) {
+          editorView = initialView;
+
+          // Delegated mousedown — one listener on the editor root instead of per-block
+          const handleMouseDown = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            const handle = target.closest('.drag-handle') as HTMLElement | null;
+            if (!handle || !editorView) return;
+            e.preventDefault();
+            const pos = parseInt(handle.dataset.pos ?? '', 10);
+            if (isNaN(pos)) return;
+            const sel = NodeSelection.create(editorView.state.doc, pos);
+            editorView.dispatch(editorView.state.tr.setSelection(sel));
+          };
+
+          initialView.dom.addEventListener('mousedown', handleMouseDown);
+
           return {
-            update(v) {
-              editorView = v;
-            },
+            update(v) { editorView = v; },
             destroy() {
+              initialView.dom.removeEventListener('mousedown', handleMouseDown);
               editorView = null;
             },
           };
@@ -441,24 +455,27 @@ const DragHandleExtension = Extension.create({
             const decorations: Decoration[] = [];
             state.doc.forEach((node, pos) => {
               if (DRAGGABLE_NODES.has(node.type.name)) {
-                const nodePos = pos;
                 const handle = document.createElement('div');
                 handle.className = 'drag-handle';
                 handle.contentEditable = 'false';
                 handle.draggable = true;
-                handle.innerHTML =
-                  '<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="3" cy="2" r="1"/><circle cx="7" cy="2" r="1"/><circle cx="3" cy="5" r="1"/><circle cx="7" cy="5" r="1"/><circle cx="3" cy="8" r="1"/><circle cx="7" cy="8" r="1"/></svg>';
+                handle.dataset.pos = String(pos);
 
-                handle.addEventListener('mousedown', (e) => {
-                  e.preventDefault();
-                  if (!editorView) return;
-
-                  const sel = NodeSelection.create(
-                    editorView.state.doc,
-                    nodePos
-                  );
-                  editorView.dispatch(editorView.state.tr.setSelection(sel));
-                });
+                // Build SVG via DOM to avoid innerHTML
+                const ns = 'http://www.w3.org/2000/svg';
+                const svg = document.createElementNS(ns, 'svg');
+                svg.setAttribute('width', '10');
+                svg.setAttribute('height', '10');
+                svg.setAttribute('viewBox', '0 0 10 10');
+                svg.setAttribute('fill', 'currentColor');
+                for (const [cx, cy] of [[3,2],[7,2],[3,5],[7,5],[3,8],[7,8]] as [number,number][]) {
+                  const circle = document.createElementNS(ns, 'circle');
+                  circle.setAttribute('cx', String(cx));
+                  circle.setAttribute('cy', String(cy));
+                  circle.setAttribute('r', '1');
+                  svg.appendChild(circle);
+                }
+                handle.appendChild(svg);
 
                 decorations.push(Decoration.widget(pos, handle, { side: -1 }));
               }

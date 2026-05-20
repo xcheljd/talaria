@@ -47,12 +47,9 @@ import {
   getBulkEmailRecipientsFromIndexedDB,
   clearBulkEmailRecipientsFromIndexedDB,
 } from '@/lib/db';
-import {
-  generatePromotionEmailHTML,
-  type PromotionEmailData,
-} from '@/lib/promotion-email-html';
+import { generatePromotionEmailHTML } from '@/lib/promotion-email-html';
 
-import { resolveNewsletterColors } from '@/lib/newsletter-utils';
+import { buildPromotionEmailData } from '@/lib/newsletter-utils';
 import { detectOS, getRecommendedFormat } from '@/lib/ui-utils';
 import { saveBlob } from '@/lib/file-save';
 import { StorageKeys } from '@/lib/storage-keys';
@@ -220,6 +217,13 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
       };
     }, [emailStats.valid, batchSize]);
 
+    // Clear save timer on unmount to prevent post-teardown state updates
+    useEffect(() => {
+      return () => {
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      };
+    }, []);
+
     // Handle recipient text changes
     const handleRecipientChange = useCallback((newText: string) => {
       setRecipientText(newText);
@@ -293,47 +297,13 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
       setBulkState(true, '0/0');
 
       try {
-        // Generate email HTML from current store data
-        const resolvedColors = resolveNewsletterColors(
-          store.newsletterStyle,
-          store.emailPalette
-        );
-        const data: PromotionEmailData = {
-          promoDateRange: store.promoDateRange,
-          promoYear: store.promoYear,
-          promoTitle: store.promoTitle,
-          promotionEntries: store.promotionEntries,
-          specialHours: store.specialHours,
-          howToShopItems: store.howToShopItems,
-          importantNotesItems: store.importantNotesItems,
-          howToShopStyle: store.howToShopStyle,
-          importantNotesStyle: store.importantNotesStyle,
-          newsletterHeading: store.newsletterHeading,
-          newsletterBody: store.newsletterBody,
-          newsletterPosition: store.newsletterPosition,
-          newsletterVisible: store.newsletterVisible,
-          newsletterStyle: {
-            ...resolvedColors,
-            borderStyle: store.newsletterStyle.borderStyle,
-            headingAlign: store.newsletterStyle.headingAlign,
-            tableBorderColor: resolvedColors.tableBorderColor,
-            tableBorderWidth: store.newsletterStyle.tableBorderWidth,
-            tableBorderStyle: store.newsletterStyle.tableBorderStyle,
-            tableHeaderBg: resolvedColors.tableHeaderBg,
-          },
-          emailPalette: store.emailPalette,
-          preheaderText: store.preheaderText,
-        };
-
-        const htmlContent = generatePromotionEmailHTML(data);
-
-        const subject = resolvePromoSubject(
-          store.selectedSubjectLine,
-          store.promoTitle
-        );
+        // Read current store state at call time to avoid stale-closure issues
+        const s = usePromotionStore.getState();
+        const htmlContent = generatePromotionEmailHTML(buildPromotionEmailData(s));
+        const subject = resolvePromoSubject(s.selectedSubjectLine, s.promoTitle);
 
         // Get PDF attachments
-        const pdfAttachments: PDFAttachment[] = store.attachedPDFs
+        const pdfAttachments: PDFAttachment[] = s.attachedPDFs
           .filter((pdf) => pdf.data)
           .map((pdf) => ({ name: pdf.name, data: pdf.data }));
 
@@ -404,28 +374,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
       } finally {
         setBulkState(false, '');
       }
-    }, [
-      setBulkState,
-      emailStats.valid,
-      emailStats.validEmails,
-      batchSize,
-      downloadFormat,
-      store.promoDateRange,
-      store.promoYear,
-      store.promoTitle,
-      store.promotionEntries,
-      store.specialHours,
-      store.howToShopItems,
-      store.importantNotesItems,
-      store.selectedSubjectLine,
-      store.attachedPDFs,
-      store.newsletterVisible,
-      store.newsletterHeading,
-      store.newsletterBody,
-      store.newsletterPosition,
-      store.newsletterStyle,
-      store.emailPalette,
-    ]);
+    }, [setBulkState, emailStats.valid, emailStats.validEmails, batchSize, downloadFormat]);
 
     useImperativeHandle(
       ref,
