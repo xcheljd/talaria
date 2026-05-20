@@ -480,6 +480,8 @@ function PreviewColumn({
     'desktop'
   );
   const [previewDark, setPreviewDark] = useState(false);
+  const [showGenerateWarning, setShowGenerateWarning] = useState(false);
+  const [generateWarnings, setGenerateWarnings] = useState<string[]>([]);
 
   // Re-render with dark palette; only computed when dark preview is active.
   // emailHTML captures all store-data changes, so it covers the darkModeHTML deps too.
@@ -676,6 +678,25 @@ function PreviewColumn({
   );
 
   const hasContent = !!emailHTML;
+
+  const handleGenerateClick = useCallback(() => {
+    const warnings: string[] = [];
+    if (!store.selectedSubjectLine?.trim()) {
+      warnings.push('Subject line is empty — emails will send with "Promotion" as the subject');
+    }
+    if (!store.preheaderText?.trim()) {
+      warnings.push('Preheader text is empty — inbox preview will show your email title instead');
+    }
+    if (store.attachedPDFs.length === 0) {
+      warnings.push('No PDF attachments — add any flyers or documents if needed');
+    }
+    if (warnings.length > 0) {
+      setGenerateWarnings(warnings);
+      setShowGenerateWarning(true);
+    } else {
+      bulkEmailRef?.current?.generate();
+    }
+  }, [store.selectedSubjectLine, store.preheaderText, store.attachedPDFs, bulkEmailRef]);
 
   const handlePrint = useCallback(() => {
     if (!emailHTML) return;
@@ -926,7 +947,7 @@ function PreviewColumn({
           size="sm"
           className="gap-1.5"
           disabled={!hasContent || store.bulkEmailGenerating}
-          onClick={() => bulkEmailRef?.current?.generate()}
+          onClick={handleGenerateClick}
         >
           {store.bulkEmailGenerating ? (
             <>
@@ -961,6 +982,33 @@ function PreviewColumn({
           Download HTML
         </Button>
       </div>
+
+      {/* Pre-generate warning dialog */}
+      <AlertDialog open={showGenerateWarning} onOpenChange={setShowGenerateWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Before you generate...</AlertDialogTitle>
+            <AlertDialogDescription>
+              The following fields were left empty. You can go back and fill
+              them in, or generate anyway.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="space-y-2 text-sm">
+            {generateWarnings.map((w) => (
+              <li key={w} className="flex items-start gap-2">
+                <span className="mt-0.5 text-amber-500">⚠</span>
+                <span>{w}</span>
+              </li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go Back</AlertDialogCancel>
+            <AlertDialogAction onClick={() => bulkEmailRef?.current?.generate()}>
+              Generate Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

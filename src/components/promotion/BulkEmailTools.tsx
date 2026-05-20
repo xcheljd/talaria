@@ -178,9 +178,10 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
         try {
           const saved = await getBulkEmailRecipientsFromIndexedDB();
           if (!cancelled && saved) {
+            const stats = computeEmailStats(saved);
             setRecipientText(saved);
-            setEmailStats(computeEmailStats(saved));
-            store.setBulkEmailHasRecipients(saved.trim().length > 0);
+            setEmailStats(stats);
+            store.setBulkEmailHasRecipients(stats.total > 0);
           }
         } catch (error) {
           console.warn('Failed to restore recipients from IndexedDB:', error);
@@ -230,7 +231,7 @@ export const BulkEmailTools = forwardRef<BulkEmailToolsHandle>(
       setRecipientText(newText);
       const stats = computeEmailStats(newText);
       setEmailStats(stats);
-      store.setBulkEmailHasRecipients(newText.trim().length > 0);
+      store.setBulkEmailHasRecipients(stats.total > 0);
 
       // Debounced save to IndexedDB
       if (saveTimerRef.current) {
