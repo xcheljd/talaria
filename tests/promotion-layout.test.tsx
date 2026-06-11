@@ -14,7 +14,6 @@ import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import * as jestDom from '@testing-library/jest-dom';
 
 import { PromotionPage } from '@/pages/PromotionPage';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
@@ -22,8 +21,6 @@ import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { SidebarBar, type SidebarCardGroup } from '@/components/promotion/SidebarBar';
 
-// Extend expect with jest-dom matchers
-expect.extend(jestDom);
 
 // Mock ResizeObserver for Radix components
 beforeAll(() => {

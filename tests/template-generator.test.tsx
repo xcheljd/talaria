@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { ProfileProvider } from '../src/contexts/ProfileProvider';
@@ -101,7 +101,7 @@ describe('templates.ts', () => {
   });
 
   it('each template has required properties', () => {
-    Object.entries(templates.templates).forEach(([key, template]) => {
+    Object.entries(templates.templates).forEach(([, template]) => {
       expect(template.name).toBeTruthy();
       expect(template.category).toBeTruthy();
       expect(Array.isArray(template.fields)).toBe(true);

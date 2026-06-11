@@ -7,7 +7,7 @@
  * - PDF file validation and utilities
  */
 
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   generateSubjectLines,
   generatePromoTitle,
@@ -284,11 +284,7 @@ describe('generateSubjectLines', () => {
     const result = generateSubjectLines(input);
     // First elements should be in the optimal range
     expect(result.length).toBeGreaterThan(0);
-    // At least some subjects should be in the optimal range
-    const hasOptimalLength = result.some(
-      (s) => s.length >= 20 && s.length <= 45
-    );
-    // If not, the function should still produce valid subjects
+    // The function should still produce valid subjects
     expect(result.length).toBeGreaterThan(0);
   });
 

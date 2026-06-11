@@ -13,25 +13,21 @@
  */
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import * as jestDom from '@testing-library/jest-dom';
 
 import {
   VersionHistory,
-  SNAPSHOTS_KEY,
-  STORAGE_KEY,
   MAX_SNAPSHOTS,
   loadSnapshots,
   persistSnapshots,
   buildSummary,
 } from '@/components/promotion/VersionHistory';
-import { usePromotionStore } from '@/stores/promotion-store';
+import { StorageKeys } from '@/lib/storage-keys';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 
-expect.extend(jestDom);
 
 // Mock db module
 vi.mock('@/lib/db', () => ({
@@ -132,7 +128,7 @@ describe('VersionHistory', () => {
     });
 
     it('returns empty array for corrupted data', () => {
-      localStorage.setItem(SNAPSHOTS_KEY, 'bad json');
+      localStorage.setItem(StorageKeys.promotionVersionHistory, 'bad json');
       expect(loadSnapshots()).toEqual([]);
     });
   });
@@ -158,7 +154,7 @@ describe('VersionHistory', () => {
     it('saves a manual snapshot on button click', async () => {
       const user = userEvent.setup();
       // Seed some state for the snapshot to capture
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ promoTitle: 'Test' }));
+      localStorage.setItem(StorageKeys.promotionBuilderState, JSON.stringify({ promoTitle: 'Test' }));
 
       renderVersionHistory();
 
@@ -174,7 +170,7 @@ describe('VersionHistory', () => {
 
     it('saves snapshot with Enter key', async () => {
       const user = userEvent.setup();
-      localStorage.setItem(STORAGE_KEY, '{}');
+      localStorage.setItem(StorageKeys.promotionBuilderState, '{}');
       renderVersionHistory();
 
       const input = screen.getByPlaceholderText(/Snapshot name/);
@@ -185,7 +181,7 @@ describe('VersionHistory', () => {
 
     it('uses default name when input is empty', async () => {
       const user = userEvent.setup();
-      localStorage.setItem(STORAGE_KEY, '{}');
+      localStorage.setItem(StorageKeys.promotionBuilderState, '{}');
       renderVersionHistory();
 
       await user.click(screen.getByText('Save'));

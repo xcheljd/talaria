@@ -15,14 +15,12 @@ import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import * as jestDom from '@testing-library/jest-dom';
 
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 
-expect.extend(jestDom);
 
 // Mock db
 vi.mock('@/lib/db', () => ({

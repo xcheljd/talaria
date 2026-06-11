@@ -6,13 +6,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { usePromotionStore, _resetIdCounter } from '@/stores/promotion-store';
-import type {
-  PromotionEntry,
-  SpecialHour,
-  HowToShopItem,
-  ImportantNotesItem,
-  AttachedPDF,
-} from '@/stores/promotion-store';
+import type { AttachedPDF } from '@/stores/promotion-store';
 import {
   savePDFToIndexedDB,
   deletePDFFromIndexedDB,

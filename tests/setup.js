@@ -1,4 +1,8 @@
 import { vi } from 'vitest';
+// Registers jest-dom matchers (toBeInTheDocument, etc.) on vitest's expect
+// once, instead of per-file `expect.extend` calls. Types come from
+// tests/jest-dom.d.ts.
+import '@testing-library/jest-dom/vitest';
 
 // jsdom does not implement layout APIs (getClientRects / getBoundingClientRect)
 // on Range or text nodes. Tiptap/ProseMirror calls these inside

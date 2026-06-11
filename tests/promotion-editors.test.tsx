@@ -17,9 +17,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import * as jestDom from '@testing-library/jest-dom';
 
 import { DiscountEntriesEditor } from '@/components/promotion/DiscountEntriesEditor';
 import {
@@ -30,8 +29,6 @@ import { SpecialHoursEditor } from '@/components/promotion/SpecialHoursEditor';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 
-// Extend expect with jest-dom matchers
-expect.extend(jestDom);
 
 // Mock ResizeObserver for Radix components
 beforeAll(() => {

@@ -15,15 +15,12 @@
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import * as jestDom from '@testing-library/jest-dom';
 
 import { PDFAttachments } from '@/components/promotion/PDFAttachments';
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 
-// Extend expect with jest-dom matchers
-expect.extend(jestDom);
 
 // Mock ResizeObserver for Radix components
 beforeAll(() => {

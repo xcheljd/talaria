@@ -16,14 +16,12 @@ import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import * as jestDom from '@testing-library/jest-dom';
 
 import { AccessibilityChecker } from '@/components/promotion/AccessibilityChecker';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 
-expect.extend(jestDom);
 
 vi.mock('@/lib/db', () => ({
   initIndexedDB: vi.fn().mockResolvedValue(true),

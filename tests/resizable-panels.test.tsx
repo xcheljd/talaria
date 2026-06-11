@@ -17,15 +17,12 @@
  * - VAL-CROSS-009: No focus trap during keyboard resize
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, beforeAll } from 'vitest';
+import { describe, it, expect, afterEach, vi, beforeAll } from 'vitest';
 import { render, screen, act, cleanup, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import * as jestDom from '@testing-library/jest-dom';
 
 import { ResizablePanels } from '@/components/ui/resizable-panels';
 
-// Extend expect with jest-dom matchers
-expect.extend(jestDom);
 
 // ===== Test Helpers =====
 

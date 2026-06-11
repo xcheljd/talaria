@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, useTheme } from '../src/contexts/ThemeProvider';
 import { ThemeToggle } from '../src/components/ThemeToggle';
@@ -10,7 +10,6 @@ import {
   getEmailDarkModeCSS,
   getScrollbarCSS,
   type PaletteName,
-  type ThemeMode,
 } from '../src/lib/theme-utils';
 
 // ─── Palette Validation (pure utility) ────────────────────────────────────────

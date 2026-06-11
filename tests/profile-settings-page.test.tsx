@@ -223,8 +223,8 @@ describe('ProfileSettingsPage', () => {
     const user = userEvent.setup();
     const createObjectURLSpy = vi.fn(() => 'blob:mock-url');
     const revokeObjectURLSpy = vi.fn();
-    global.URL.createObjectURL = createObjectURLSpy;
-    global.URL.revokeObjectURL = revokeObjectURLSpy;
+    globalThis.URL.createObjectURL = createObjectURLSpy;
+    globalThis.URL.revokeObjectURL = revokeObjectURLSpy;
 
     renderPage({
       employeeName: 'Test User',

@@ -10,13 +10,12 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { NewsletterEditor } from '@/components/promotion/NewsletterEditor';
-import { usePromotionStore } from '@/stores/promotion-store';
 
 // Mock the store
 const mockStore = {
   newsletterHeading: 'Newsletter',
   newsletterBody: '',
-  newsletterPosition: 'top' as const,
+  newsletterPosition: 'top' as 'top' | 'bottom',
   newsletterVisible: false,
   newsletterStyle: {
     borderColor: null as string | null,

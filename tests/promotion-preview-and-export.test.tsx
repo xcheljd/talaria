@@ -18,7 +18,6 @@ import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import * as jestDom from '@testing-library/jest-dom';
 
 import {
   generatePromotionEmailHTML,
@@ -26,7 +25,6 @@ import {
   buildExportConfig,
   validateImportConfig,
   type PromotionEmailData,
-  type PromotionConfigForExport,
 } from '@/lib/promotion-email-html';
 
 import { PromotionPage } from '@/pages/PromotionPage';
@@ -34,8 +32,6 @@ import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 
-// Extend expect with jest-dom matchers
-expect.extend(jestDom);
 
 /** Helper to create a complete PromotionEmailData with newsletter defaults */
 function makeEmailData(overrides: Partial<PromotionEmailData> = {}): PromotionEmailData {

@@ -11,10 +11,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import * as jestDom from '@testing-library/jest-dom';
 
 import { ProfileProvider } from '../src/contexts/ProfileProvider';
 import { ThemeProvider } from '../src/contexts/ThemeProvider';
@@ -43,8 +41,6 @@ import { PromotionPage } from '../src/pages/PromotionPage';
 import { Toaster } from '../src/components/ui/sonner';
 import { TooltipProvider } from '../src/components/ui/tooltip';
 
-// Extend expect with jest-dom matchers
-expect.extend(jestDom);
 
 // ===== Mocks =====
 
@@ -259,7 +255,7 @@ describe('VAL-CROSS-003: Profile data flows into promotion signature', () => {
       promoTitle: 'SPRING SALE',
       promotionEntries: [
         {
-          id: '1',
+          id: 1,
           line: 'Citizen Eco-Drive',
           collections: 'Promaster, Field',
           callout: 'Great deals!',
@@ -268,6 +264,9 @@ describe('VAL-CROSS-003: Profile data flows into promotion signature', () => {
       specialHours: [],
       howToShopItems: [],
       importantNotesItems: [],
+      newsletterHeading: 'Newsletter',
+      newsletterBody: '',
+      newsletterPosition: 'top',
       newsletterVisible: true,
       newsletterStyle: {
         borderColor: '#2563eb',
@@ -403,18 +402,18 @@ describe('VAL-CROSS-006: XSS prevention in generated content', () => {
       promoTitle: '<script>alert("title")</script>',
       promotionEntries: [
         {
-          id: '1',
+          id: 1,
           line: '<script>alert("entry")</script>',
           collections: '<b>bold attempt</b>',
           callout: '<script>alert("callout")</script>',
         },
       ],
       specialHours: [
-        { id: '1', day: '<script>alert("day")</script>', hours: '<script>alert("hrs")</script>' },
+        { id: 1, day: '<script>alert("day")</script>', hours: '<script>alert("hrs")</script>' },
       ],
       howToShopItems: [
         {
-          id: '1',
+          id: 1,
           text: '<script>alert("shop")</script>',
           bold: false,
           italic: false,
@@ -423,13 +422,16 @@ describe('VAL-CROSS-006: XSS prevention in generated content', () => {
       ],
       importantNotesItems: [
         {
-          id: '1',
+          id: 1,
           text: '<script>alert("note")</script>',
           bold: false,
           italic: false,
           underline: false,
         },
       ],
+      newsletterHeading: 'Newsletter',
+      newsletterBody: '',
+      newsletterPosition: 'top',
       newsletterVisible: true,
       newsletterStyle: {
         borderColor: '#2563eb',
@@ -630,6 +632,9 @@ describe('VAL-CROSS-005: Full promotion workflow end-to-end', () => {
       specialHours: state.specialHours,
       howToShopItems: state.howToShopItems,
       importantNotesItems: state.importantNotesItems,
+      newsletterHeading: 'Newsletter',
+      newsletterBody: '',
+      newsletterPosition: 'top',
       newsletterVisible: true,
       newsletterStyle: {
         borderColor: '#2563eb',

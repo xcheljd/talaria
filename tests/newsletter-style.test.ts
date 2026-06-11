@@ -450,6 +450,7 @@ describe('newsletter style - export/import config', () => {
   it('includes newsletterStyle in export', () => {
     const data = makeEmailData();
     const style = {
+      ...DEFAULT_NEWSLETTER_STYLE,
       borderColor: '#ff0000' as string | null,
       backgroundColor: '#ffffff' as string | null,
       headingColor: '#333333' as string | null,
@@ -485,6 +486,7 @@ describe('newsletter style - export/import config', () => {
   it('round-trips newsletterStyle through export/import', () => {
     const data = makeEmailData();
     const style = {
+      ...DEFAULT_NEWSLETTER_STYLE,
       borderColor: '#ff0000' as string | null,
       backgroundColor: null as string | null,
       headingColor: '#333333' as string | null,

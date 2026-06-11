@@ -16,10 +16,9 @@
  */
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import * as jestDom from '@testing-library/jest-dom';
 
 import { BulkEmailTools } from '@/components/promotion/BulkEmailTools';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
@@ -27,8 +26,6 @@ import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { isValidEmail } from '@/lib/emailUtils';
 
-// Extend expect with jest-dom matchers
-expect.extend(jestDom);
 
 // ===== Mock Setup =====
 
@@ -209,7 +206,6 @@ describe('BulkEmailTools', () => {
   });
 
   it('does not decrement below 50', async () => {
-    const user = userEvent.setup();
     renderBulkEmailTools();
 
     const input = screen.getByTestId(

@@ -16,11 +16,9 @@
  * - EML export includes newsletter at correct position
  */
 
-import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import * as jestDom from '@testing-library/jest-dom';
 
 import {
   generatePromotionEmailHTML,
@@ -31,7 +29,6 @@ import {
 import {
   sanitizeRichHTML,
   isSafeURL,
-  sanitizeHTML,
 } from '@/lib/html-utils';
 
 import { PromotionPage } from '@/pages/PromotionPage';
@@ -39,8 +36,6 @@ import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore, _resetIdCounter } from '@/stores/promotion-store';
 
-// Extend expect with jest-dom matchers
-expect.extend(jestDom);
 
 // ===== Mock Profile =====
 

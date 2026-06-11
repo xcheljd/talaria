@@ -19,10 +19,6 @@ import { MemoryRouter } from 'react-router-dom';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-// Extend expect with jest-dom matchers
-import * as jestDom from '@testing-library/jest-dom';
-expect.extend(jestDom);
-
 // Mock ResizeObserver for Radix components
 beforeAll(() => {
   if (typeof globalThis.ResizeObserver === 'undefined') {
@@ -37,16 +33,8 @@ beforeAll(() => {
 // ===== Test Helpers =====
 
 /** Component that always throws during render */
-function ThrowingComponent({ error }: { error: unknown }) {
+function ThrowingComponent({ error }: { error: unknown }): React.ReactNode {
   throw error;
-}
-
-/** Component that throws on first render, then succeeds on re-render */
-function ThrowOnce({ shouldThrow }: { shouldThrow: boolean }) {
-  if (shouldThrow) {
-    throw new Error('Transient error');
-  }
-  return <div data-testid="recovered">Recovered!</div>;
 }
 
 /** Component that renders normally */
@@ -237,7 +225,7 @@ describe('ErrorBoundary', () => {
       return <div data-testid="success">Success!</div>;
     }
 
-    const { rerender } = renderWithRouter(
+    renderWithRouter(
       <ErrorBoundary level="route">
         <ControlledComponent />
       </ErrorBoundary>
@@ -362,7 +350,7 @@ describe('ErrorBoundary', () => {
 
     // Find the call from componentDidCatch (format string for multiple args)
     const componentDidCatchCall = consoleErrorSpy.mock.calls.find(
-      (call) => call.length >= 2 && call[0] === 'ErrorBoundary caught an error:'
+      (call: unknown[]) => call.length >= 2 && call[0] === 'ErrorBoundary caught an error:'
     );
     expect(componentDidCatchCall).toBeDefined();
     // Second argument should be the error object
@@ -704,7 +692,7 @@ describe('ErrorBoundary', () => {
 
       expect(consoleErrorSpy).toHaveBeenCalled();
       const componentDidCatchCall = consoleErrorSpy.mock.calls.find(
-        (call) => call.length >= 2 && call[0] === 'ErrorBoundary caught an error:'
+        (call: unknown[]) => call.length >= 2 && call[0] === 'ErrorBoundary caught an error:'
       );
       expect(componentDidCatchCall).toBeDefined();
       expect(componentDidCatchCall![1]).toBeInstanceOf(Error);
