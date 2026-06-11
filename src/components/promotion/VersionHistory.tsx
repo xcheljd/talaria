@@ -50,11 +50,18 @@ export function loadSnapshots(): Snapshot[] {
   }
 }
 
-export function persistSnapshots(snapshots: Snapshot[]) {
-  localStorage.setItem(
-    StorageKeys.promotionVersionHistory,
-    JSON.stringify(snapshots)
-  );
+/** Persist snapshots to localStorage. Returns false on failure (e.g. quota). */
+export function persistSnapshots(snapshots: Snapshot[]): boolean {
+  try {
+    localStorage.setItem(
+      StorageKeys.promotionVersionHistory,
+      JSON.stringify(snapshots)
+    );
+    return true;
+  } catch (error) {
+    console.warn('Failed to persist version history snapshots:', error);
+    return false;
+  }
 }
 
 export function buildSummary(data: string): string {

@@ -64,6 +64,19 @@ function createMockDB(): {
       const storeName = storeNames[0];
       const storeMap = stores[storeName] || new Map();
 
+      // Mock transaction with oncomplete/onabort, fired after request
+      // success to mirror real IndexedDB commit ordering.
+      const txn = {
+        error: null as DOMException | null,
+        oncomplete: null as (() => void) | null,
+        onabort: null as (() => void) | null,
+        objectStore: vi.fn(() => mockStore),
+      };
+
+      const completeTxn = () => {
+        setTimeout(() => txn.oncomplete?.(), 0);
+      };
+
       const mockStore = {
         put: vi.fn((value: { id: string }) => {
           const req = createMockRequest(value.id);
@@ -72,6 +85,7 @@ function createMockDB(): {
             storeMap.set(value.id, value);
             req.result = value.id;
             req._success();
+            completeTxn();
           }, 0);
           pendingRequests.push(req);
           return req;
@@ -80,6 +94,7 @@ function createMockDB(): {
           const req = createMockRequest(storeMap.get(key) || null);
           setTimeout(() => {
             req._success();
+            completeTxn();
           }, 0);
           pendingRequests.push(req);
           return req;
@@ -89,6 +104,7 @@ function createMockDB(): {
           setTimeout(() => {
             storeMap.delete(key);
             req._success();
+            completeTxn();
           }, 0);
           pendingRequests.push(req);
           return req;
@@ -98,15 +114,14 @@ function createMockDB(): {
           setTimeout(() => {
             storeMap.clear();
             req._success();
+            completeTxn();
           }, 0);
           pendingRequests.push(req);
           return req;
         }),
       };
 
-      return {
-        objectStore: vi.fn(() => mockStore),
-      };
+      return txn;
     }),
     close: vi.fn(),
     objectStoreNames: {

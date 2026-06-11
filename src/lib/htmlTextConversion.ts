@@ -48,6 +48,15 @@ export function htmlToPlainText(
       const content = node.textContent;
       if (content && content.trim()) {
         text += content;
+      } else if (
+        content &&
+        text &&
+        !text.endsWith(' ') &&
+        !text.endsWith('\n')
+      ) {
+        // Whitespace-only node between inline elements
+        // (e.g. <b>Hello</b> <i>world</i>) — keep a single separating space
+        text += ' ';
       }
     } else if (nodeName === 'p') {
       const isEmptyParagraph =

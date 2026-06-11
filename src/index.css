@@ -523,8 +523,11 @@ body {
 .newsletter-editor .selectedCell::after {
   z-index: 2;
   position: absolute;
-  content: "";
-  left: 0; right: 0; top: 0; bottom: 0;
+  content: '';
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
   background: rgba(59, 130, 246, 0.15);
   pointer-events: none;
 }

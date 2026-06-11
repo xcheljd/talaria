@@ -74,6 +74,8 @@ function resetStore() {
     entryCollapsedStates: {},
     columnState: 'left',
     isInitializing: false,
+    bulkEmailRecipients: '',
+    bulkEmailHasRecipients: false,
   });
 }
 

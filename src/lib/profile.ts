@@ -38,7 +38,13 @@ export interface SignatureData {
  */
 export function getUserProfile(): UserProfile | null {
   const stored = localStorage.getItem(StorageKeys.userProfile);
-  return stored ? (JSON.parse(stored) as UserProfile) : null;
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored) as UserProfile;
+  } catch {
+    console.warn('Stored user profile is corrupted; ignoring it');
+    return null;
+  }
 }
 
 /**

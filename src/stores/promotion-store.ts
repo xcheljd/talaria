@@ -13,6 +13,7 @@ import {
   deletePDFFromIndexedDB,
   clearAllPDFsFromIndexedDB,
   getAllPDFKeysFromIndexedDB,
+  getBulkEmailRecipientsFromIndexedDB,
   type PDFRecord,
 } from '@/lib/db';
 import { getStorePhone, getStoreEmail, getDirections } from '@/lib/profile';
@@ -80,7 +81,7 @@ export interface NewsletterStyle {
   headingColor: string | null; // null = auto (use palette primary)
   borderStyle: 'left' | 'full' | 'none' | 'top'; // default 'left'
   headingAlign: 'left' | 'center'; // default 'left'
-  tableBorderColor: string | null; // null = auto (use palette accent)
+  tableBorderColor: string | null; // null = auto (use palette text)
   tableBorderWidth: 1 | 2 | 3; // default 1
   tableBorderStyle: 'solid' | 'dashed' | 'dotted' | 'none'; // default 'solid'
   tableHeaderBg: string | null; // null = auto (use palette sectionBg)
@@ -217,6 +218,9 @@ export interface PromotionState {
   setBulkEmailGenerating: (generating: boolean, progress?: string) => void;
   bulkEmailHasRecipients: boolean;
   setBulkEmailHasRecipients: (has: boolean) => void;
+  /** Raw recipient list text, shared so both layouts and the preview panel see one value */
+  bulkEmailRecipients: string;
+  setBulkEmailRecipients: (text: string) => void;
 
   // Promotion entry actions
   addPromotionEntry: () => void;
@@ -396,11 +400,18 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   bulkEmailGenerating: false,
   bulkEmailProgress: '',
   bulkEmailHasRecipients: false,
+  bulkEmailRecipients: '',
 
   setBulkEmailGenerating: (generating, progress = '') =>
     set({ bulkEmailGenerating: generating, bulkEmailProgress: progress }),
 
   setBulkEmailHasRecipients: (has) => set({ bulkEmailHasRecipients: has }),
+
+  setBulkEmailRecipients: (text) =>
+    set({
+      bulkEmailRecipients: text,
+      bulkEmailHasRecipients: text.trim().length > 0,
+    }),
 
   // ===== Promotion Entry Actions =====
 
@@ -894,6 +905,21 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   loadFromIndexedDB: async () => {
     try {
       await initIndexedDB();
+
+      // Restore bulk email recipients so generation works even before the
+      // Bulk Email Tools card is opened.
+      try {
+        const recipients = await getBulkEmailRecipientsFromIndexedDB();
+        if (recipients) {
+          set({
+            bulkEmailRecipients: recipients,
+            bulkEmailHasRecipients: recipients.trim().length > 0,
+          });
+        }
+      } catch {
+        // Non-blocking: recipients just start empty
+      }
+
       const stored = localStorage.getItem(StorageKeys.promotionBuilderState);
       if (!stored) {
         set({ isInitializing: false, saveStatus: 'ok' });

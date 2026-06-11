@@ -4,7 +4,10 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { invoke as tauriInvoke, isTauri as isTauriEnv } from '@tauri-apps/api/core';
+import {
+  invoke as tauriInvoke,
+  isTauri as isTauriEnv,
+} from '@tauri-apps/api/core';
 
 export function isTauriEnvironment(): boolean {
   return isTauriEnv();
@@ -14,7 +17,10 @@ export interface UseTauriReturn {
   isTauri: boolean;
   isLoading: boolean;
   error: Error | null;
-  invoke: <T = unknown>(command: string, args?: Record<string, unknown>) => Promise<T>;
+  invoke: <T = unknown>(
+    command: string,
+    args?: Record<string, unknown>
+  ) => Promise<T>;
   openFolderDialog: () => Promise<string | null>;
 }
 
@@ -28,9 +34,14 @@ export function useTauri(): UseTauriReturn {
   }, []);
 
   const invokeCommand = useCallback(
-    async <T = unknown>(command: string, args?: Record<string, unknown>): Promise<T> => {
+    async <T = unknown>(
+      command: string,
+      args?: Record<string, unknown>
+    ): Promise<T> => {
       if (!isTauriEnv()) {
-        throw new Error('Tauri IPC not available. This feature requires the desktop app.');
+        throw new Error(
+          'Tauri IPC not available. This feature requires the desktop app.'
+        );
       }
       setIsLoading(true);
       setError(null);

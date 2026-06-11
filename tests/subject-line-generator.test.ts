@@ -11,11 +11,13 @@ import { describe, it, expect, vi, beforeAll } from 'vitest';
 import {
   generateSubjectLines,
   generatePromoTitle,
+  type SubjectLineInput,
+} from '@/lib/subject-line-generator';
+import {
   formatFileSize,
   validatePDFFile,
   dataURLtoBlob,
-  type SubjectLineInput,
-} from '@/lib/subject-line-generator';
+} from '@/lib/pdf-utils';
 
 // ===== formatFileSize =====
 

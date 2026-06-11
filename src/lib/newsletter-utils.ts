@@ -11,7 +11,11 @@ import type {
   SectionBoxStyle,
   NewsletterPosition,
 } from '@/stores/promotion-store';
-import { EMAIL_PALETTE, type EmailPalette, type PromotionEmailData } from './promotion-email-html';
+import {
+  EMAIL_PALETTE,
+  type EmailPalette,
+  type PromotionEmailData,
+} from './promotion-email-html';
 
 /**
  * Resolve newsletter style colors from the email palette.

@@ -55,10 +55,8 @@ import { FormattableItemEditor } from '@/components/promotion/FormattableItemEdi
 import { SpecialHoursEditor } from '@/components/promotion/SpecialHoursEditor';
 import { PDFAttachments } from '@/components/promotion/PDFAttachments';
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
-import {
-  BulkEmailTools,
-  type BulkEmailToolsHandle,
-} from '@/components/promotion/BulkEmailTools';
+import { BulkEmailTools } from '@/components/promotion/BulkEmailTools';
+import { generateEmailBatches } from '@/lib/bulk-email-generation';
 import { AccessibilityChecker } from '@/components/promotion/AccessibilityChecker';
 import {
   VersionHistory,
@@ -156,7 +154,6 @@ function getCardContent(
   cardId: string,
   extra?: {
     versionRefreshKey?: number;
-    bulkEmailRef?: React.Ref<BulkEmailToolsHandle>;
   }
 ) {
   switch (cardId) {
@@ -199,7 +196,7 @@ function getCardContent(
     case 'bulkEmailCard':
       return (
         <ErrorBoundary level="component">
-          <BulkEmailTools ref={extra?.bulkEmailRef} />
+          <BulkEmailTools />
         </ErrorBoundary>
       );
     default:
@@ -353,11 +350,10 @@ function getCardHasContent(
 ): boolean {
   switch (cardId) {
     case 'basicDetailsCard':
-      return (
-        store.promotionEntries.length > 0 ||
-        store.specialHours.length > 0 ||
-        store.howToShopItems.length > 0 ||
-        store.importantNotesItems.length > 0
+      return !!(
+        store.promoDateRange.trim() ||
+        store.promoYear.trim() ||
+        store.promoTitle.trim()
       );
     case 'newsletterCard':
       return (
@@ -405,13 +401,11 @@ function PromotionCard({
   forceExpand,
   onToggle,
   versionRefreshKey,
-  bulkEmailRef,
 }: {
   config: CardConfig;
   forceExpand?: boolean;
   onToggle?: (cardId: string, isOpen: boolean) => void;
   versionRefreshKey?: number;
-  bulkEmailRef?: React.Ref<BulkEmailToolsHandle>;
 }) {
   const store = usePromotionStore();
 
@@ -419,6 +413,9 @@ function PromotionCard({
     () => getCardHasContent(config.id, store),
     [
       config.id,
+      store.promoDateRange,
+      store.promoYear,
+      store.promoTitle,
       store.promotionEntries,
       store.specialHours,
       store.howToShopItems,
@@ -443,7 +440,7 @@ function PromotionCard({
       forceExpand={forceExpand}
       onToggle={onToggle}
     >
-      {getCardContent(config.id, { versionRefreshKey, bulkEmailRef })}
+      {getCardContent(config.id, { versionRefreshKey })}
     </CollapsibleCard>
   );
 }
@@ -467,13 +464,7 @@ async function downloadBlob(blob: Blob, filename: string): Promise<void> {
 
 // ===== Preview Column Component =====
 
-function PreviewColumn({
-  bulkEmailRef,
-  emailHTML,
-}: {
-  bulkEmailRef?: React.RefObject<BulkEmailToolsHandle | null>;
-  emailHTML: string;
-}) {
+function PreviewColumn({ emailHTML }: { emailHTML: string }) {
   const store = usePromotionStore();
   const [activeTab, setActiveTab] = useState('preview');
   const [previewWidth, setPreviewWidth] = useState<'desktop' | 'mobile'>(
@@ -682,21 +673,27 @@ function PreviewColumn({
   const handleGenerateClick = useCallback(() => {
     const warnings: string[] = [];
     if (!store.selectedSubjectLine?.trim()) {
-      warnings.push('Subject line is empty — emails will send with "Promotion" as the subject');
+      warnings.push(
+        'Subject line is empty — emails will send with "Promotion" as the subject'
+      );
     }
     if (!store.preheaderText?.trim()) {
-      warnings.push('Preheader text is empty — inbox preview will show your email title instead');
+      warnings.push(
+        'Preheader text is empty — inbox preview will show your email title instead'
+      );
     }
     if (store.attachedPDFs.length === 0) {
-      warnings.push('No PDF attachments — add any flyers or documents if needed');
+      warnings.push(
+        'No PDF attachments — add any flyers or documents if needed'
+      );
     }
     if (warnings.length > 0) {
       setGenerateWarnings(warnings);
       setShowGenerateWarning(true);
     } else {
-      bulkEmailRef?.current?.generate();
+      generateEmailBatches();
     }
-  }, [store.selectedSubjectLine, store.preheaderText, store.attachedPDFs, bulkEmailRef]);
+  }, [store.selectedSubjectLine, store.preheaderText, store.attachedPDFs]);
 
   const handlePrint = useCallback(() => {
     if (!emailHTML) return;
@@ -984,7 +981,10 @@ function PreviewColumn({
       </div>
 
       {/* Pre-generate warning dialog */}
-      <AlertDialog open={showGenerateWarning} onOpenChange={setShowGenerateWarning}>
+      <AlertDialog
+        open={showGenerateWarning}
+        onOpenChange={setShowGenerateWarning}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Before you generate...</AlertDialogTitle>
@@ -1003,7 +1003,7 @@ function PreviewColumn({
           </ul>
           <AlertDialogFooter>
             <AlertDialogCancel>Go Back</AlertDialogCancel>
-            <AlertDialogAction onClick={() => bulkEmailRef?.current?.generate()}>
+            <AlertDialogAction onClick={() => generateEmailBatches()}>
               Generate Anyway
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1052,6 +1052,8 @@ function useAutoSave() {
     store.attachedPDFs,
     store.generatedSubjectLines,
     store.selectedSubjectLine,
+    store.preheaderText,
+    store.emailPalette,
     store.newsletterHeading,
     store.newsletterBody,
     store.newsletterPosition,
@@ -1097,7 +1099,9 @@ function useScrollSpy(
     const cards = container.querySelectorAll('[data-card-id]');
     cards.forEach((card) => observer.observe(card));
 
-    const handleScroll = () => { isUserActionRef.current = false; };
+    const handleScroll = () => {
+      isUserActionRef.current = false;
+    };
     container.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
@@ -1132,10 +1136,6 @@ export function PromotionPage() {
 
   // Ref to the mobile scrollable card container
   const mobileCardsContainerRef = useRef<HTMLDivElement>(null);
-
-  // Ref to BulkEmailTools imperative handle — created here so it's scoped to
-  // the page instance (not shared across HMR/test re-mounts).
-  const bulkEmailRef = useRef<BulkEmailToolsHandle | null>(null);
 
   // Computed once and passed to both PreviewColumn instances (desktop + mobile),
   // so the 1,300-line HTML generation runs once per edit, not twice.
@@ -1196,9 +1196,10 @@ export function PromotionPage() {
           summary: buildSummary(data),
         };
         const updated = [snapshot, ...existing].slice(0, MAX_SNAPSHOTS);
-        persistSnapshots(updated);
-        setVersionRefreshKey((k) => k + 1);
-        toast.info('Auto-saved snapshot', { duration: 2000 });
+        if (persistSnapshots(updated)) {
+          setVersionRefreshKey((k) => k + 1);
+          toast.info('Auto-saved snapshot', { duration: 2000 });
+        }
       },
       5 * 60 * 1000
     );
@@ -1320,7 +1321,6 @@ export function PromotionPage() {
                         forceExpand={forceExpandedCardId === config.id}
                         onToggle={handleCardToggle}
                         versionRefreshKey={versionRefreshKey}
-                        bulkEmailRef={bulkEmailRef}
                       />
                     </div>
                   );
@@ -1330,7 +1330,7 @@ export function PromotionPage() {
           </div>
 
           {/* Right panel: Email Preview */}
-          <PreviewColumn bulkEmailRef={bulkEmailRef} emailHTML={emailHTML} />
+          <PreviewColumn emailHTML={emailHTML} />
         </ResizablePanels>
       </div>
 
@@ -1361,7 +1361,6 @@ export function PromotionPage() {
                       config={config}
                       forceExpand={forceExpandedCardId === config.id}
                       onToggle={handleCardToggle}
-                      bulkEmailRef={bulkEmailRef}
                     />
                   </div>
                 );
@@ -1370,7 +1369,7 @@ export function PromotionPage() {
           </div>
 
           {/* Email preview */}
-          <PreviewColumn bulkEmailRef={bulkEmailRef} emailHTML={emailHTML} />
+          <PreviewColumn emailHTML={emailHTML} />
         </ResizablePanels>
       </div>
     </>

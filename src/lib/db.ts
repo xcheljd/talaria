@@ -67,6 +67,15 @@ export function initIndexedDB(): Promise<boolean> {
       resolve(false);
     };
 
+    // Another tab holds a connection with an older schema version; the open
+    // request stalls until that tab closes. Resolve false so callers don't
+    // hang — if the upgrade later completes, onsuccess still caches `db`.
+    request.onblocked = () => {
+      console.warn('IndexedDB open blocked by another tab');
+      initPromise = null;
+      resolve(false);
+    };
+
     request.onsuccess = () => {
       db = request.result;
       // If another tab upgrades the schema, the browser fires `versionchange`
@@ -113,17 +122,43 @@ async function runRequest<T>(
     const objectStore = txn.objectStore(storeName);
     const req = operate(objectStore);
     req.onerror = () => reject(req.error);
-    req.onsuccess = () => resolve(extractResult(req));
+
+    if (mode === 'readwrite') {
+      // A write request's onsuccess fires before the transaction commits; the
+      // transaction can still abort afterwards (e.g. quota). Only report
+      // success once the transaction has actually committed.
+      let result: T;
+      req.onsuccess = () => {
+        result = extractResult(req);
+      };
+      txn.oncomplete = () => resolve(result);
+      txn.onabort = () =>
+        reject(txn.error ?? new Error('IndexedDB transaction aborted'));
+    } else {
+      req.onsuccess = () => resolve(extractResult(req));
+    }
   });
 }
 
 export async function savePDFToIndexedDB(pdfData: PDFRecord): Promise<string> {
-  return runRequest(STORE_NAME, 'readwrite', (s) => s.put(pdfData), () => pdfData.id);
+  return runRequest(
+    STORE_NAME,
+    'readwrite',
+    (s) => s.put(pdfData),
+    () => pdfData.id
+  );
 }
 
-export async function getPDFFromIndexedDB(pdfId: string): Promise<PDFRecord | null> {
+export async function getPDFFromIndexedDB(
+  pdfId: string
+): Promise<PDFRecord | null> {
   try {
-    return await runRequest(STORE_NAME, 'readonly', (s) => s.get(pdfId), (r) => (r.result as PDFRecord) || null);
+    return await runRequest(
+      STORE_NAME,
+      'readonly',
+      (s) => s.get(pdfId),
+      (r) => (r.result as PDFRecord) || null
+    );
   } catch {
     return null;
   }
@@ -131,21 +166,36 @@ export async function getPDFFromIndexedDB(pdfId: string): Promise<PDFRecord | nu
 
 export async function deletePDFFromIndexedDB(pdfId: string): Promise<void> {
   try {
-    await runRequest(STORE_NAME, 'readwrite', (s) => s.delete(pdfId), () => undefined);
-  } catch { /* no-op if db unavailable */ }
+    await runRequest(
+      STORE_NAME,
+      'readwrite',
+      (s) => s.delete(pdfId),
+      () => undefined
+    );
+  } catch {
+    /* no-op if db unavailable */
+  }
 }
 
 export async function clearAllPDFsFromIndexedDB(): Promise<void> {
   try {
-    await runRequest(STORE_NAME, 'readwrite', (s) => s.clear(), () => undefined);
-  } catch { /* no-op if db unavailable */ }
+    await runRequest(
+      STORE_NAME,
+      'readwrite',
+      (s) => s.clear(),
+      () => undefined
+    );
+  } catch {
+    /* no-op if db unavailable */
+  }
 }
 
 /** Get all PDF keys from IndexedDB. Used for orphan cleanup. */
 export async function getAllPDFKeysFromIndexedDB(): Promise<string[]> {
   try {
     return await runRequest(
-      STORE_NAME, 'readonly',
+      STORE_NAME,
+      'readonly',
       (s) => s.getAllKeys(),
       (r) => (r.result as IDBValidKey[]).map(String)
     );
@@ -154,10 +204,18 @@ export async function getAllPDFKeysFromIndexedDB(): Promise<string[]> {
   }
 }
 
-export async function saveBulkEmailRecipientsToIndexedDB(recipients: string): Promise<void> {
+export async function saveBulkEmailRecipientsToIndexedDB(
+  recipients: string
+): Promise<void> {
   return runRequest(
-    BULK_EMAIL_STORE, 'readwrite',
-    (s) => s.put({ id: 'bulk-email-recipients', data: recipients, savedAt: new Date().toISOString() }),
+    BULK_EMAIL_STORE,
+    'readwrite',
+    (s) =>
+      s.put({
+        id: 'bulk-email-recipients',
+        data: recipients,
+        savedAt: new Date().toISOString(),
+      }),
     () => undefined
   );
 }
@@ -165,9 +223,13 @@ export async function saveBulkEmailRecipientsToIndexedDB(recipients: string): Pr
 export async function getBulkEmailRecipientsFromIndexedDB(): Promise<string> {
   try {
     return await runRequest(
-      BULK_EMAIL_STORE, 'readonly',
+      BULK_EMAIL_STORE,
+      'readonly',
       (s) => s.get('bulk-email-recipients'),
-      (r) => { const rec = r.result as BulkEmailRecord | undefined; return rec?.data ?? ''; }
+      (r) => {
+        const rec = r.result as BulkEmailRecord | undefined;
+        return rec?.data ?? '';
+      }
     );
   } catch {
     return '';
@@ -176,6 +238,13 @@ export async function getBulkEmailRecipientsFromIndexedDB(): Promise<string> {
 
 export async function clearBulkEmailRecipientsFromIndexedDB(): Promise<void> {
   try {
-    await runRequest(BULK_EMAIL_STORE, 'readwrite', (s) => s.clear(), () => undefined);
-  } catch { /* no-op if db unavailable */ }
+    await runRequest(
+      BULK_EMAIL_STORE,
+      'readwrite',
+      (s) => s.clear(),
+      () => undefined
+    );
+  } catch {
+    /* no-op if db unavailable */
+  }
 }

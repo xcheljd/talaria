@@ -542,7 +542,7 @@ function buildNewsletterSection(
   const restBody = h2Match ? body.replace(/<h2[^>]*>.*?<\/h2>/i, '') : body;
 
   const tableOpts: TableStyleOptions = {
-    borderColor: style.tableBorderColor ?? palette.accent,
+    borderColor: style.tableBorderColor ?? palette.text,
     borderWidth: style.tableBorderWidth ?? 1,
     borderStyle: style.tableBorderStyle ?? 'solid',
     headerBg: style.tableHeaderBg ?? palette.sectionBg,

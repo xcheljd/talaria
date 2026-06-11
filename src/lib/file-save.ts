@@ -26,11 +26,17 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
  * Save a Blob to disk. Returns the absolute saved path in Tauri, or `null` in
  * the browser (where the path is unknown — the browser handles it).
  */
-export async function saveBlob(blob: Blob, filename: string): Promise<string | null> {
+export async function saveBlob(
+  blob: Blob,
+  filename: string
+): Promise<string | null> {
   if (isTauri()) {
     const buffer = await blob.arrayBuffer();
     const dataBase64 = arrayBufferToBase64(buffer);
-    const savedPath = await invoke<string>('save_file_to_dir', { filename, dataBase64 });
+    const savedPath = await invoke<string>('save_file_to_dir', {
+      filename,
+      dataBase64,
+    });
     return savedPath;
   }
 

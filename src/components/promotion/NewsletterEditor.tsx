@@ -443,7 +443,9 @@ const DragHandleExtension = Extension.create({
           initialView.dom.addEventListener('mousedown', handleMouseDown);
 
           return {
-            update(v) { editorView = v; },
+            update(v) {
+              editorView = v;
+            },
             destroy() {
               initialView.dom.removeEventListener('mousedown', handleMouseDown);
               editorView = null;
@@ -468,7 +470,14 @@ const DragHandleExtension = Extension.create({
                 svg.setAttribute('height', '10');
                 svg.setAttribute('viewBox', '0 0 10 10');
                 svg.setAttribute('fill', 'currentColor');
-                for (const [cx, cy] of [[3,2],[7,2],[3,5],[7,5],[3,8],[7,8]] as [number,number][]) {
+                for (const [cx, cy] of [
+                  [3, 2],
+                  [7, 2],
+                  [3, 5],
+                  [7, 5],
+                  [3, 8],
+                  [7, 8],
+                ] as [number, number][]) {
                   const circle = document.createElementNS(ns, 'circle');
                   circle.setAttribute('cx', String(cx));
                   circle.setAttribute('cy', String(cy));

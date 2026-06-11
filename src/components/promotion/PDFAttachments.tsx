@@ -11,7 +11,13 @@
  * Uses Zustand store for state and IndexedDB for persistence.
  */
 
-import { useState, useRef, useCallback, useEffect, type DragEvent } from 'react';
+import {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  type DragEvent,
+} from 'react';
 import { Upload, FileText, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { invoke } from '@tauri-apps/api/core';
