@@ -21,6 +21,8 @@ import {
   RefreshCw,
   Info,
 } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
+
 import { usePromotionStore } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -182,7 +184,11 @@ const CATEGORY_ICONS: Record<string, typeof AlertTriangle> = {
 // ===== Component =====
 
 export function AccessibilityChecker() {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      newsletterBody: s.newsletterBody,
+    }))
+  );
   const [hasScanned, setHasScanned] = useState(false);
   const [scanTrigger, setScanTrigger] = useState(0);
 

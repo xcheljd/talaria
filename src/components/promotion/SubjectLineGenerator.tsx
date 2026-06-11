@@ -13,6 +13,8 @@
 import { useCallback, useMemo } from 'react';
 import { RefreshCw, Mail, Star, Sparkles } from 'lucide-react';
 
+import { useShallow } from 'zustand/react/shallow';
+
 import { usePromotionStore } from '@/stores/promotion-store';
 import { generateSubjectLines } from '@/lib/subject-line-generator';
 
@@ -115,7 +117,19 @@ function InboxPreview({
 const OPTIMAL_LENGTH = 50;
 
 export function SubjectLineGenerator() {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      promoDateRange: s.promoDateRange,
+      promotionEntries: s.promotionEntries,
+      generatedSubjectLines: s.generatedSubjectLines,
+      selectedSubjectLine: s.selectedSubjectLine,
+      preheaderText: s.preheaderText,
+      setGeneratedSubjectLines: s.setGeneratedSubjectLines,
+      setSelectedSubjectLine: s.setSelectedSubjectLine,
+      setSubjectLineManuallyEdited: s.setSubjectLineManuallyEdited,
+      setPreheaderText: s.setPreheaderText,
+    }))
+  );
 
   // Generate subject lines from promotion content
   const handleGenerate = useCallback(() => {

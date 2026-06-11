@@ -21,6 +21,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Plus, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
+
 import { usePromotionStore, type SpecialHour } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
 import { ClearableInput } from '@/components/ui/clearable-input';
@@ -35,7 +37,17 @@ interface HourRowProps {
 }
 
 function HourRow({ hour, index, total }: HourRowProps) {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      specialHours: s.specialHours,
+      addSpecialHour: s.addSpecialHour,
+      removeSpecialHour: s.removeSpecialHour,
+      updateSpecialHour: s.updateSpecialHour,
+      moveSpecialHourUp: s.moveSpecialHourUp,
+      moveSpecialHourDown: s.moveSpecialHourDown,
+      reorderSpecialHours: s.reorderSpecialHours,
+    }))
+  );
 
   const handleChange = useCallback(
     (field: keyof Pick<SpecialHour, 'day' | 'hours'>) => (val: string) => {
@@ -132,7 +144,17 @@ function HourRow({ hour, index, total }: HourRowProps) {
 // ===== Main Editor Component =====
 
 export function SpecialHoursEditor() {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      specialHours: s.specialHours,
+      addSpecialHour: s.addSpecialHour,
+      removeSpecialHour: s.removeSpecialHour,
+      updateSpecialHour: s.updateSpecialHour,
+      moveSpecialHourUp: s.moveSpecialHourUp,
+      moveSpecialHourDown: s.moveSpecialHourDown,
+      reorderSpecialHours: s.reorderSpecialHours,
+    }))
+  );
   const hours = store.specialHours;
 
   const handleAdd = useCallback(() => {

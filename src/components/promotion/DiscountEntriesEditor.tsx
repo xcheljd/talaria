@@ -24,6 +24,8 @@ import {
 } from '@dnd-kit/sortable';
 import { Plus, X, ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useShallow } from 'zustand/react/shallow';
+
 import {
   usePromotionStore,
   type PromotionEntry,
@@ -42,7 +44,19 @@ interface EntryItemProps {
 }
 
 function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      promotionEntries: s.promotionEntries,
+      entryCollapsedStates: s.entryCollapsedStates,
+      addPromotionEntry: s.addPromotionEntry,
+      removePromotionEntry: s.removePromotionEntry,
+      updatePromotionEntry: s.updatePromotionEntry,
+      movePromotionEntryUp: s.movePromotionEntryUp,
+      movePromotionEntryDown: s.movePromotionEntryDown,
+      reorderPromotionEntries: s.reorderPromotionEntries,
+      toggleEntryCollapse: s.toggleEntryCollapse,
+    }))
+  );
 
   const handleChange = useCallback(
     (field: keyof Pick<PromotionEntry, 'line' | 'collections' | 'callout'>) =>
@@ -201,7 +215,19 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
 // ===== Main Editor Component =====
 
 export function DiscountEntriesEditor() {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      promotionEntries: s.promotionEntries,
+      entryCollapsedStates: s.entryCollapsedStates,
+      addPromotionEntry: s.addPromotionEntry,
+      removePromotionEntry: s.removePromotionEntry,
+      updatePromotionEntry: s.updatePromotionEntry,
+      movePromotionEntryUp: s.movePromotionEntryUp,
+      movePromotionEntryDown: s.movePromotionEntryDown,
+      reorderPromotionEntries: s.reorderPromotionEntries,
+      toggleEntryCollapse: s.toggleEntryCollapse,
+    }))
+  );
   const entries = store.promotionEntries;
 
   const handleAdd = useCallback(() => {

@@ -80,6 +80,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { useShallow } from 'zustand/react/shallow';
+
 import {
   usePromotionStore,
   type NewsletterPosition,
@@ -545,7 +547,21 @@ const DropImageExtension = Extension.create({
 // ===== Main Component =====
 
 export function NewsletterEditor() {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      newsletterBody: s.newsletterBody,
+      newsletterHeading: s.newsletterHeading,
+      newsletterPosition: s.newsletterPosition,
+      newsletterStyle: s.newsletterStyle,
+      newsletterVisible: s.newsletterVisible,
+      emailPalette: s.emailPalette,
+      setNewsletterBody: s.setNewsletterBody,
+      setNewsletterHeading: s.setNewsletterHeading,
+      setNewsletterPosition: s.setNewsletterPosition,
+      setNewsletterStyle: s.setNewsletterStyle,
+      setNewsletterVisible: s.setNewsletterVisible,
+    }))
+  );
   const [showCustomize, setShowCustomize] = useState(false);
   const [showTableStyle, setShowTableStyle] = useState(false);
 

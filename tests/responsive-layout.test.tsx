@@ -200,7 +200,7 @@ describe('PromotionPage Mobile Layout', () => {
   it('renders an IconToolbar in the mobile layout', () => {
     const { container } = renderPromotionPage();
 
-    const mobileContainer = container.querySelector('.lg\\:hidden');
+    const mobileContainer = container.querySelector('[data-testid="mobile-layout"]');
     expect(mobileContainer).toBeInTheDocument();
 
     const toolbars = mobileContainer!.querySelectorAll('[data-testid="icon-toolbar"]');
@@ -223,7 +223,7 @@ describe('PromotionPage Mobile Layout', () => {
       'bulkEmailCard',
     ];
 
-    const mobileContainer = container.querySelector('.lg\\:hidden');
+    const mobileContainer = container.querySelector('[data-testid="mobile-layout"]');
     expect(mobileContainer).toBeInTheDocument();
 
     for (const cardId of allCardIds) {
@@ -264,12 +264,11 @@ describe('PromotionPage Mobile Layout', () => {
   it('renders preview panel with horizontal ResizablePanels on mobile', () => {
     const { container } = renderPromotionPage();
 
-    // Find all ResizablePanels instances
+    // Only the mobile ResizablePanels instance is mounted
     const allPanels = container.querySelectorAll(
       '[data-testid="resizable-panels"]'
     );
-    // At least desktop (vertical) and mobile (horizontal)
-    expect(allPanels.length).toBeGreaterThanOrEqual(2);
+    expect(allPanels.length).toBe(1);
 
     // Find the horizontal separator (mobile ResizablePanels)
     const horizontalSeparators = container.querySelectorAll(
@@ -311,18 +310,19 @@ describe('PromotionPage Mobile Layout', () => {
     }
   });
 
-  // 6. Mobile section renders its own IconToolbar (separate from desktop)
+  // 6. Mobile section renders its own IconToolbar (desktop layout not mounted)
   it('renders an IconToolbar in the mobile section', () => {
     const { container } = renderPromotionPage();
 
-    // Desktop layout uses hidden lg:flex
-    const desktopContainers = container.querySelectorAll(
-      '[class*="hidden"][class*="lg:flex"]'
-    );
-    expect(desktopContainers.length).toBeGreaterThanOrEqual(1);
+    // Only the mobile layout is mounted (matchMedia matches: false)
+    expect(
+      container.querySelector('[data-testid="desktop-layout"]')
+    ).not.toBeInTheDocument();
 
     // Mobile container should contain its own icon toolbar
-    const mobileContainer = container.querySelector('.lg\\:hidden');
+    const mobileContainer = container.querySelector(
+      '[data-testid="mobile-layout"]'
+    );
     expect(mobileContainer).toBeInTheDocument();
     expect(
       mobileContainer?.querySelector('[data-testid="icon-toolbar"]')
@@ -343,24 +343,24 @@ describe('PromotionPage Mobile Layout', () => {
     const allPanels = container.querySelectorAll(
       '[data-testid="resizable-panels"]'
     );
-    expect(allPanels.length).toBeGreaterThanOrEqual(2);
+    expect(allPanels.length).toBe(1);
 
-    // Verify panel-first and panel-second exist (from both desktop and mobile)
+    // Verify panel-first and panel-second exist (mobile layout only)
     const firstPanels = container.querySelectorAll(
       '[data-testid="panel-first"]'
     );
     const secondPanels = container.querySelectorAll(
       '[data-testid="panel-second"]'
     );
-    expect(firstPanels.length).toBeGreaterThanOrEqual(2);
-    expect(secondPanels.length).toBeGreaterThanOrEqual(2);
+    expect(firstPanels.length).toBe(1);
+    expect(secondPanels.length).toBe(1);
   });
 
   // Additional: Toolbar icons have proper aria labels
   it('has accessible aria-labels on toolbar icons', () => {
     const { container } = renderPromotionPage();
 
-    const mobileContainer = container.querySelector('.lg\\:hidden');
+    const mobileContainer = container.querySelector('[data-testid="mobile-layout"]');
     expect(mobileContainer).toBeInTheDocument();
 
     const toolbarIcons = mobileContainer!.querySelectorAll(
@@ -406,7 +406,7 @@ describe('PromotionPage Mobile Layout', () => {
   it('toolbar icons use aria-pressed for active state', () => {
     const { container } = renderPromotionPage();
 
-    const mobileContainer = container.querySelector('.lg\\:hidden');
+    const mobileContainer = container.querySelector('[data-testid="mobile-layout"]');
     expect(mobileContainer).toBeInTheDocument();
 
     const toolbarIcons = mobileContainer!.querySelectorAll(

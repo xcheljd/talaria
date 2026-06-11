@@ -15,6 +15,8 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
+
 import { usePromotionStore } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -111,7 +113,11 @@ function formatTimestamp(iso: string): string {
 // ===== Component =====
 
 export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      loadFromIndexedDB: s.loadFromIndexedDB,
+    }))
+  );
   const [snapshots, setSnapshots] = useState<Snapshot[]>(loadSnapshots);
 
   // Re-read from localStorage when auto-save happens externally

@@ -42,6 +42,18 @@ beforeAll(() => {
   if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = vi.fn();
   }
+  // These are desktop-layout tests: make the lg media query match so the
+  // page renders the desktop layout (only one layout mounts at a time).
+  window.matchMedia = ((query: string) => ({
+    matches: query.includes('min-width: 1024px'),
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia;
 });
 
 // ===== Test Helpers =====

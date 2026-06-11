@@ -10,6 +10,8 @@ import { useState } from 'react';
 import { RotateCcw, Save, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useShallow } from 'zustand/react/shallow';
+
 import {
   usePromotionStore,
   DEFAULT_EMAIL_PALETTE,
@@ -226,7 +228,13 @@ function persistSavedPalettes(palettes: SavedPalette[]) {
 }
 
 export function EmailThemeEditor() {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      emailPalette: s.emailPalette,
+      setEmailPalette: s.setEmailPalette,
+      resetEmailPalette: s.resetEmailPalette,
+    }))
+  );
   const palette = store.emailPalette;
   const [savedPalettes, setSavedPalettes] =
     useState<SavedPalette[]>(loadSavedPalettes);

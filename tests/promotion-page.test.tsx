@@ -489,18 +489,39 @@ describe('PromotionPage', () => {
     await user.click(expandBtns[0]);
   });
 
-  it('renders desktop layout container with hidden lg:flex class', () => {
+  it('renders only the mobile layout by default (matchMedia matches: false)', () => {
     const { container } = renderPromotionPage({ profile: true });
-    // The desktop layout uses class "hidden lg:flex ..."
-    const desktopDiv = container.querySelector('[class*="hidden"][class*="lg:flex"]');
-    expect(desktopDiv).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-testid="mobile-layout"]')
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-testid="desktop-layout"]')
+    ).not.toBeInTheDocument();
   });
 
-  it('renders mobile layout container with lg:hidden class', () => {
-    const { container } = renderPromotionPage({ profile: true });
-    // The mobile layout uses class "lg:hidden"
-    const mobileDiv = container.querySelector('[class*="lg:hidden"]');
-    expect(mobileDiv).toBeInTheDocument();
+  it('renders only the desktop layout when the lg media query matches', () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('min-width: 1024px'),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      const { container } = renderPromotionPage({ profile: true });
+      expect(
+        container.querySelector('[data-testid="desktop-layout"]')
+      ).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-testid="mobile-layout"]')
+      ).not.toBeInTheDocument();
+    } finally {
+      window.matchMedia = original;
+    }
   });
 
   it('renders all 9 cards in desktop and mobile layouts', () => {

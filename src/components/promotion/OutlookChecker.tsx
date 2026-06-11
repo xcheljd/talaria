@@ -14,6 +14,8 @@ import {
   Info,
   ShieldAlert,
 } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
+
 import { usePromotionStore } from '@/stores/promotion-store';
 import { generatePromotionEmailHTML } from '@/lib/promotion-email-html';
 import { buildPromotionEmailData } from '@/lib/newsletter-utils';
@@ -255,15 +257,22 @@ const SEVERITY_CONFIG: Record<
 // ===== Component =====
 
 export function OutlookChecker() {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      promoDateRange: s.promoDateRange,
+    }))
+  );
   const [hasScanned, setHasScanned] = useState(false);
   const [scanTrigger, setScanTrigger] = useState(0);
   const [emailHTML, setEmailHTML] = useState('');
 
+  // Reads full state at scan time instead of subscribing to every field —
+  // this component only re-renders when promoDateRange changes.
   const generateHTML = useCallback((): string => {
-    if (!store.promoDateRange) return '';
-    return generatePromotionEmailHTML(buildPromotionEmailData(store));
-  }, [store]);
+    const s = usePromotionStore.getState();
+    if (!s.promoDateRange) return '';
+    return generatePromotionEmailHTML(buildPromotionEmailData(s));
+  }, []);
 
   const issues = useMemo(() => {
     if (!hasScanned || !emailHTML) return [];

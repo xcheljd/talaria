@@ -15,6 +15,8 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { CalendarDays, X } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
+
 import { usePromotionStore } from '@/stores/promotion-store';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { Button } from '@/components/ui/button';
@@ -129,7 +131,16 @@ function parseDateRange(
 // ===== Main Editor Component =====
 
 export function BasicDetailsEditor() {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      promoDateRange: s.promoDateRange,
+      promoTitle: s.promoTitle,
+      promoYear: s.promoYear,
+      setPromoDateRange: s.setPromoDateRange,
+      setPromoTitle: s.setPromoTitle,
+      setPromoYear: s.setPromoYear,
+    }))
+  );
 
   // Try to seed date pickers from existing store values
   const initialDates = parseDateRange(store.promoDateRange, store.promoYear);

@@ -42,10 +42,14 @@ import {
   Loader2,
 } from 'lucide-react';
 
+import { useShallow } from 'zustand/react/shallow';
+
 import { useHasProfile } from '@/contexts/ProfileProvider';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import {
   usePromotionStore,
   DEFAULT_EMAIL_PALETTE,
+  type PromotionState,
 } from '@/stores/promotion-store';
 import { CollapsibleCard } from '@/components/promotion/CollapsibleCard';
 import { IconToolbar } from '@/components/promotion/IconToolbar';
@@ -103,6 +107,32 @@ import {
 import { toast } from 'sonner';
 import { ResizablePanels } from '@/components/ui/resizable-panels';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+// ===== Shared Store Selectors =====
+
+/**
+ * Fields consumed by buildPromotionEmailData (the EmailDataSource shape).
+ * Shared by the page-level emailHTML memo and PreviewColumn so both stay in
+ * sync with what HTML generation actually reads.
+ */
+const selectEmailDataSource = (s: PromotionState) => ({
+  promoDateRange: s.promoDateRange,
+  promoYear: s.promoYear,
+  promoTitle: s.promoTitle,
+  promotionEntries: s.promotionEntries,
+  specialHours: s.specialHours,
+  howToShopItems: s.howToShopItems,
+  importantNotesItems: s.importantNotesItems,
+  howToShopStyle: s.howToShopStyle,
+  importantNotesStyle: s.importantNotesStyle,
+  newsletterHeading: s.newsletterHeading,
+  newsletterBody: s.newsletterBody,
+  newsletterPosition: s.newsletterPosition,
+  newsletterVisible: s.newsletterVisible,
+  newsletterStyle: s.newsletterStyle,
+  emailPalette: s.emailPalette,
+  preheaderText: s.preheaderText,
+});
 
 // ===== Card Configuration =====
 
@@ -257,7 +287,20 @@ function SectionColorPicker({
 
 /** How to Shop editor connected to store */
 function HowToShopEditor() {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      howToShopItems: s.howToShopItems,
+      howToShopStyle: s.howToShopStyle,
+      setHowToShopStyle: s.setHowToShopStyle,
+      addHowToShopItem: s.addHowToShopItem,
+      removeHowToShopItem: s.removeHowToShopItem,
+      updateHowToShopItem: s.updateHowToShopItem,
+      moveHowToShopItemUp: s.moveHowToShopItemUp,
+      moveHowToShopItemDown: s.moveHowToShopItemDown,
+      toggleHowToShopFormat: s.toggleHowToShopFormat,
+      reorderHowToShopItems: s.reorderHowToShopItems,
+    }))
+  );
   return (
     <div className="space-y-3">
       <FormattableItemEditor
@@ -296,7 +339,20 @@ function HowToShopEditor() {
 
 /** Important Notes editor connected to store */
 function ImportantNotesEditor() {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      importantNotesItems: s.importantNotesItems,
+      importantNotesStyle: s.importantNotesStyle,
+      setImportantNotesStyle: s.setImportantNotesStyle,
+      addImportantNotesItem: s.addImportantNotesItem,
+      removeImportantNotesItem: s.removeImportantNotesItem,
+      updateImportantNotesItem: s.updateImportantNotesItem,
+      moveImportantNotesItemUp: s.moveImportantNotesItemUp,
+      moveImportantNotesItemDown: s.moveImportantNotesItemDown,
+      toggleImportantNotesFormat: s.toggleImportantNotesFormat,
+      reorderImportantNotesItems: s.reorderImportantNotesItems,
+    }))
+  );
   return (
     <div className="space-y-3">
       <FormattableItemEditor
@@ -345,10 +401,26 @@ function CardPlaceholderContent({ cardId }: { cardId: string }) {
 
 // ===== Check if a card has content =====
 
-function getCardHasContent(
-  cardId: string,
-  store: ReturnType<typeof usePromotionStore.getState>
-): boolean {
+/** State slice needed to compute card status dots */
+type CardContentState = Pick<
+  PromotionState,
+  | 'promoDateRange'
+  | 'promoYear'
+  | 'promoTitle'
+  | 'promotionEntries'
+  | 'specialHours'
+  | 'howToShopItems'
+  | 'importantNotesItems'
+  | 'attachedPDFs'
+  | 'selectedSubjectLine'
+  | 'generatedSubjectLines'
+  | 'newsletterBody'
+  | 'newsletterVisible'
+  | 'emailPalette'
+  | 'bulkEmailHasRecipients'
+>;
+
+function getCardHasContent(cardId: string, store: CardContentState): boolean {
   switch (cardId) {
     case 'basicDetailsCard':
       return !!(
@@ -408,28 +480,33 @@ function PromotionCard({
   onToggle?: (cardId: string, isOpen: boolean) => void;
   versionRefreshKey?: number;
 }) {
-  const store = usePromotionStore();
+  // useShallow keeps the slice referentially stable until one of these
+  // fields actually changes, so this component no longer re-renders on
+  // every store update.
+  const store = usePromotionStore(
+    useShallow(
+      (s): CardContentState => ({
+        promoDateRange: s.promoDateRange,
+        promoYear: s.promoYear,
+        promoTitle: s.promoTitle,
+        promotionEntries: s.promotionEntries,
+        specialHours: s.specialHours,
+        howToShopItems: s.howToShopItems,
+        importantNotesItems: s.importantNotesItems,
+        attachedPDFs: s.attachedPDFs,
+        selectedSubjectLine: s.selectedSubjectLine,
+        generatedSubjectLines: s.generatedSubjectLines,
+        newsletterBody: s.newsletterBody,
+        newsletterVisible: s.newsletterVisible,
+        emailPalette: s.emailPalette,
+        bulkEmailHasRecipients: s.bulkEmailHasRecipients,
+      })
+    )
+  );
 
   const hasContent = useMemo(
     () => getCardHasContent(config.id, store),
-    [
-      config.id,
-      store.promoDateRange,
-      store.promoYear,
-      store.promoTitle,
-      store.promotionEntries,
-      store.specialHours,
-      store.howToShopItems,
-      store.importantNotesItems,
-      store.attachedPDFs,
-      store.selectedSubjectLine,
-      store.generatedSubjectLines,
-      store.newsletterBody,
-      store.newsletterHeading,
-      store.newsletterVisible,
-      store.emailPalette,
-      store.bulkEmailHasRecipients,
-    ]
+    [config.id, store]
   );
 
   return (
@@ -466,7 +543,21 @@ async function downloadBlob(blob: Blob, filename: string): Promise<void> {
 // ===== Preview Column Component =====
 
 function PreviewColumn({ emailHTML }: { emailHTML: string }) {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      ...selectEmailDataSource(s),
+      attachedPDFs: s.attachedPDFs,
+      generatedSubjectLines: s.generatedSubjectLines,
+      selectedSubjectLine: s.selectedSubjectLine,
+      bulkEmailGenerating: s.bulkEmailGenerating,
+      bulkEmailProgress: s.bulkEmailProgress,
+      setPromoDateRange: s.setPromoDateRange,
+      setPromoYear: s.setPromoYear,
+      setPromoTitle: s.setPromoTitle,
+      resetState: s.resetState,
+      initializeDefaultItems: s.initializeDefaultItems,
+    }))
+  );
   const [activeTab, setActiveTab] = useState('preview');
   const [previewWidth, setPreviewWidth] = useState<'desktop' | 'mobile'>(
     'desktop'
@@ -1018,7 +1109,19 @@ function PreviewColumn({ emailHTML }: { emailHTML: string }) {
 
 /** Debounced auto-save to IndexedDB */
 function useAutoSave() {
-  const store = usePromotionStore();
+  // Selects exactly the persisted fields: the useShallow slice changes
+  // identity only when one of them changes, which is what should trigger
+  // a save. New persisted fields added to the store must be added here.
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      ...selectEmailDataSource(s),
+      attachedPDFs: s.attachedPDFs,
+      generatedSubjectLines: s.generatedSubjectLines,
+      selectedSubjectLine: s.selectedSubjectLine,
+      isInitializing: s.isInitializing,
+      saveToIndexedDB: s.saveToIndexedDB,
+    }))
+  );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Watch for state changes and trigger debounced save
@@ -1039,29 +1142,7 @@ function useAutoSave() {
         clearTimeout(timerRef.current);
       }
     };
-  }, [
-    store.isInitializing,
-    store.promoDateRange,
-    store.promoYear,
-    store.promoTitle,
-    store.promotionEntries,
-    store.specialHours,
-    store.howToShopItems,
-    store.importantNotesItems,
-    store.howToShopStyle,
-    store.importantNotesStyle,
-    store.attachedPDFs,
-    store.generatedSubjectLines,
-    store.selectedSubjectLine,
-    store.preheaderText,
-    store.emailPalette,
-    store.newsletterHeading,
-    store.newsletterBody,
-    store.newsletterPosition,
-    store.newsletterStyle,
-    store.newsletterVisible,
-    store.saveToIndexedDB,
-  ]);
+  }, [store]);
 }
 
 // ===== Scroll Spy Hook =====
@@ -1069,7 +1150,9 @@ function useAutoSave() {
 function useScrollSpy(
   containerRef: React.RefObject<HTMLDivElement | null>,
   isUserActionRef: React.RefObject<boolean>,
-  setActiveCardId: (id: string) => void
+  setActiveCardId: (id: string) => void,
+  /** Re-attach when the active layout (and thus the container) changes */
+  layoutKey: boolean
 ) {
   useEffect(() => {
     const container = containerRef.current;
@@ -1110,14 +1193,24 @@ function useScrollSpy(
       container.removeEventListener('scroll', handleScroll);
       clearTimeout(debounceTimer);
     };
-  }, []); // containerRef and isUserActionRef are stable refs; setActiveCardId is a stable state setter
+    // containerRef and isUserActionRef are stable refs; setActiveCardId is a
+    // stable state setter. layoutKey forces re-attachment when the rendered
+    // layout (desktop vs mobile) switches and the old container unmounts.
+  }, [layoutKey]);
 }
 
 // ===== Main Page Component =====
 
 export function PromotionPage() {
   const hasProfile = useHasProfile();
-  const store = usePromotionStore();
+  const isDesktop = useIsDesktop();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      ...selectEmailDataSource(s),
+      loadFromIndexedDB: s.loadFromIndexedDB,
+      initializeDefaultItems: s.initializeDefaultItems,
+    }))
+  );
 
   // Tracks which card should be force-expanded (from toolbar/strip click)
   const [forceExpandedCardId, setForceExpandedCardId] = useState<
@@ -1138,29 +1231,13 @@ export function PromotionPage() {
   // Ref to the mobile scrollable card container
   const mobileCardsContainerRef = useRef<HTMLDivElement>(null);
 
-  // Computed once and passed to both PreviewColumn instances (desktop + mobile),
-  // so the 1,300-line HTML generation runs once per edit, not twice.
+  // Computed once at page level and passed down to PreviewColumn, so the
+  // 1,300-line HTML generation runs once per edit. The useShallow slice
+  // above changes identity only when an EmailDataSource field changes.
   const emailHTML = useMemo(() => {
     if (!store.promoDateRange) return '';
     return generatePromotionEmailHTML(buildPromotionEmailData(store));
-  }, [
-    store.promoDateRange,
-    store.promoYear,
-    store.promoTitle,
-    store.promotionEntries,
-    store.specialHours,
-    store.howToShopItems,
-    store.importantNotesItems,
-    store.howToShopStyle,
-    store.importantNotesStyle,
-    store.newsletterHeading,
-    store.newsletterBody,
-    store.newsletterPosition,
-    store.newsletterVisible,
-    store.newsletterStyle,
-    store.emailPalette,
-    store.preheaderText,
-  ]);
+  }, [store]);
 
   // Load persisted state on mount
   useEffect(() => {
@@ -1282,18 +1359,30 @@ export function PromotionPage() {
     isUserActionRef.current = true;
   }, []);
 
-  useScrollSpy(desktopScrollContainerRef, isUserActionRef, setActiveCardId);
-  useScrollSpy(mobileCardsContainerRef, isUserActionRef, setActiveCardId);
+  useScrollSpy(
+    desktopScrollContainerRef,
+    isUserActionRef,
+    setActiveCardId,
+    isDesktop
+  );
+  useScrollSpy(
+    mobileCardsContainerRef,
+    isUserActionRef,
+    setActiveCardId,
+    isDesktop
+  );
 
   // Profile redirect — if no profile, redirect to /start
   if (!hasProfile) {
     return <Navigate to="/start" replace state={{ from: '/promotion' }} />;
   }
 
-  return (
-    <>
-      {/* ===== Desktop Layout (>=1024px): ResizablePanels 50/50 split ===== */}
-      <div className="hidden lg:flex h-full overflow-hidden">
+  // Only one layout is mounted at a time (driven by matchMedia, not CSS
+  // hiding) — previously both rendered, doubling every card, editor, and
+  // preview iframe.
+  if (isDesktop) {
+    return (
+      <div className="flex h-full overflow-hidden" data-testid="desktop-layout">
         <ResizablePanels
           orientation="vertical"
           defaultSplit={50}
@@ -1334,45 +1423,48 @@ export function PromotionPage() {
           <PreviewColumn emailHTML={emailHTML} />
         </ResizablePanels>
       </div>
+    );
+  }
 
-      {/* ===== Mobile Layout (<1024px): IconToolbar + all cards + preview ===== */}
-      <div className="lg:hidden flex flex-col h-full">
-        {/* Icon toolbar for mobile navigation */}
-        <IconToolbar
-          activeCardId={activeCardId}
-          onCardClick={handleMobileIconClick}
-        />
+  // ===== Mobile Layout (<1024px): IconToolbar + all cards + preview =====
+  return (
+    <div className="flex flex-col h-full" data-testid="mobile-layout">
+      {/* Icon toolbar for mobile navigation */}
+      <IconToolbar
+        activeCardId={activeCardId}
+        onCardClick={handleMobileIconClick}
+      />
 
-        {/* Resizable split: cards on top, preview on bottom */}
-        <ResizablePanels
-          orientation="horizontal"
-          defaultSplit={60}
-          minPx={[200, 150]}
-        >
-          {/* All cards */}
-          <div className="overflow-y-auto h-full" ref={mobileCardsContainerRef}>
-            <div className="space-y-3 p-4">
-              {CARD_CONFIGS.map((config) => {
-                const showDivider =
-                  config.id === 'subjectCard' || config.id === 'emailThemeCard';
-                return (
-                  <div key={config.id}>
-                    {showDivider && <div className="h-px bg-border mb-3" />}
-                    <PromotionCard
-                      config={config}
-                      forceExpand={forceExpandedCardId === config.id}
-                      onToggle={handleCardToggle}
-                    />
-                  </div>
-                );
-              })}
-            </div>
+      {/* Resizable split: cards on top, preview on bottom */}
+      <ResizablePanels
+        orientation="horizontal"
+        defaultSplit={60}
+        minPx={[200, 150]}
+      >
+        {/* All cards */}
+        <div className="overflow-y-auto h-full" ref={mobileCardsContainerRef}>
+          <div className="space-y-3 p-4">
+            {CARD_CONFIGS.map((config) => {
+              const showDivider =
+                config.id === 'subjectCard' || config.id === 'emailThemeCard';
+              return (
+                <div key={config.id}>
+                  {showDivider && <div className="h-px bg-border mb-3" />}
+                  <PromotionCard
+                    config={config}
+                    forceExpand={forceExpandedCardId === config.id}
+                    onToggle={handleCardToggle}
+                    versionRefreshKey={versionRefreshKey}
+                  />
+                </div>
+              );
+            })}
           </div>
+        </div>
 
-          {/* Email preview */}
-          <PreviewColumn emailHTML={emailHTML} />
-        </ResizablePanels>
-      </div>
-    </>
+        {/* Email preview */}
+        <PreviewColumn emailHTML={emailHTML} />
+      </ResizablePanels>
+    </div>
   );
 }

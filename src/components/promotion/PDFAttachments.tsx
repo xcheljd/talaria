@@ -23,6 +23,8 @@ import { toast } from 'sonner';
 import { invoke } from '@tauri-apps/api/core';
 
 import { cn } from '@/lib/utils';
+import { useShallow } from 'zustand/react/shallow';
+
 import { usePromotionStore, type AttachedPDF } from '@/stores/promotion-store';
 import {
   validatePDFFile,
@@ -47,7 +49,14 @@ import {
 // ===== Component =====
 
 export function PDFAttachments() {
-  const store = usePromotionStore();
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      attachedPDFs: s.attachedPDFs,
+      addPDF: s.addPDF,
+      removePDF: s.removePDF,
+      saveStatus: s.saveStatus,
+    }))
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [previewPDF, setPreviewPDF] = useState<AttachedPDF | null>(null);
