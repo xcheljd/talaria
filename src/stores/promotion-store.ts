@@ -17,6 +17,7 @@ import {
   type PDFRecord,
 } from '@/lib/db';
 import { getStorePhone, getStoreEmail, getDirections } from '@/lib/profile';
+import { sanitizeHTML } from '@/lib/html-utils';
 import { StorageKeys } from '@/lib/storage-keys';
 
 // ===== Types =====
@@ -975,7 +976,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         loadedHeading !== 'Newsletter' &&
         !loadedBody.match(/<h2[^>]*>/i)
       ) {
-        loadedBody = `<h2>${loadedHeading}</h2>${loadedBody}`;
+        loadedBody = `<h2>${sanitizeHTML(loadedHeading)}</h2>${loadedBody}`;
       }
 
       set({

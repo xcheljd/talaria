@@ -4,7 +4,7 @@
  * Migrated from src/js/promotion-ui.js generatePromotionEmailHTML()
  */
 
-import { sanitizeHTML, sanitizeRichHTML } from './html-utils';
+import { sanitizeHTML, sanitizeRichHTML, escapeAttr } from './html-utils';
 import {
   getStorePhone,
   getStoreAddress,
@@ -21,6 +21,15 @@ import {
   type NewsletterPosition,
   type NewsletterStyle,
 } from '@/stores/promotion-store';
+import {
+  parsePromotionEntries,
+  parseSpecialHours,
+  parseFormattableItems,
+  parseSectionBoxStyle,
+  parseNewsletterStyle,
+  parseEmailPalette,
+  parseStringArray,
+} from './promotion-config-schema';
 
 // ===== Email Palette =====
 
@@ -1117,7 +1126,7 @@ ${newsletterBottomHTML}
                 </p>
                 <p style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
                     📞 <a href="tel:+1${phoneDigits}" target="_blank" style="color: ${pal.footerText};">${storePhone}</a> |
-                    📧 <a href="mailto:${storeEmailRaw}" target="_blank" style="color: ${pal.footerText};">${storeEmail}</a>
+                    📧 <a href="mailto:${escapeAttr(storeEmailRaw)}" target="_blank" style="color: ${pal.footerText};">${storeEmail}</a>
                 </p>
                 <p style="color: ${pal.accent}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 13px; margin: 10px 0 0 0;">
                     <b>STORE HOURS</b><br>
@@ -1278,41 +1287,34 @@ export function validateImportConfig(
     return { ok: false, reason: 'importantNotesItemsNotArray' };
   }
 
+  const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
+
   return {
     ok: true,
     config: {
       templateType: 'promotion-email',
-      version: (config.version as number) || 1,
-      dateRange:
-        (config.dateRange as string) || (config.promoDateRange as string) || '',
-      year: (config.year as string) || (config.promoYear as string) || '',
-      title: (config.title as string) || (config.promoTitle as string) || '',
-      promotionEntries: config.promotionEntries as PromotionEntry[],
-      specialHours: config.specialHours as SpecialHour[],
-      howToShopItems: (config.howToShopItems as HowToShopItem[]) || [],
-      importantNotesItems:
-        (config.importantNotesItems as ImportantNotesItem[]) || [],
-      howToShopStyle:
-        (config.howToShopStyle as PromotionConfigForExport['howToShopStyle']) ||
-        undefined,
-      importantNotesStyle:
-        (config.importantNotesStyle as PromotionConfigForExport['importantNotesStyle']) ||
-        undefined,
+      version: typeof config.version === 'number' ? config.version : 1,
+      dateRange: asString(config.dateRange) || asString(config.promoDateRange),
+      year: asString(config.year) || asString(config.promoYear),
+      title: asString(config.title) || asString(config.promoTitle),
+      promotionEntries: parsePromotionEntries(config.promotionEntries),
+      specialHours: parseSpecialHours(config.specialHours),
+      howToShopItems: parseFormattableItems(config.howToShopItems),
+      importantNotesItems: parseFormattableItems(config.importantNotesItems),
+      howToShopStyle: parseSectionBoxStyle(config.howToShopStyle),
+      importantNotesStyle: parseSectionBoxStyle(config.importantNotesStyle),
       attachedPDFs:
         (config.attachedPDFs as PromotionConfigForExport['attachedPDFs']) || [],
-      generatedSubjectLines: (config.generatedSubjectLines as string[]) || [],
-      selectedSubjectLine:
-        (config.selectedSubjectLine as string | null) || null,
-      preheaderText: (config.preheaderText as string) || '',
-      newsletterHeading: (config.newsletterHeading as string) || 'Newsletter',
-      newsletterBody: (config.newsletterBody as string) || '',
+      generatedSubjectLines: parseStringArray(config.generatedSubjectLines),
+      selectedSubjectLine: asString(config.selectedSubjectLine) || null,
+      preheaderText: asString(config.preheaderText),
+      newsletterHeading: asString(config.newsletterHeading) || 'Newsletter',
+      newsletterBody: asString(config.newsletterBody),
       newsletterPosition:
-        (config.newsletterPosition as NewsletterPosition) || 'top',
-      newsletterStyle: (config.newsletterStyle as NewsletterStyle) || {
-        ...DEFAULT_NEWSLETTER_STYLE,
-      },
-      newsletterVisible: (config.newsletterVisible as boolean) ?? false,
-      emailPalette: (config.emailPalette as EmailPalette) || undefined,
+        config.newsletterPosition === 'bottom' ? 'bottom' : 'top',
+      newsletterStyle: parseNewsletterStyle(config.newsletterStyle),
+      newsletterVisible: config.newsletterVisible === true,
+      emailPalette: parseEmailPalette(config.emailPalette),
     },
   };
 }

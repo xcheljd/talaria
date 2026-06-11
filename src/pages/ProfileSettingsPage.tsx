@@ -41,6 +41,7 @@ import {
   VALID_DARK_PALETTES,
   LIGHT_PALETTE_LABELS,
   DARK_PALETTE_LABELS,
+  validatePalette,
 } from '@/lib/theme-utils';
 import { saveBlob } from '@/lib/file-save';
 import { StorageKeys } from '@/lib/storage-keys';
@@ -234,12 +235,17 @@ export function ProfileSettingsPage() {
             storeDirections: importedProfile.storeDirections || '',
           });
 
-          // Restore theme preferences
+          // Restore theme preferences (validated — imported files can carry
+          // arbitrary strings)
           if (importedProfile.lightPalette) {
-            setLightPalette(importedProfile.lightPalette);
+            setLightPalette(
+              validatePalette(importedProfile.lightPalette, 'light')
+            );
           }
           if (importedProfile.darkPalette) {
-            setDarkPalette(importedProfile.darkPalette);
+            setDarkPalette(
+              validatePalette(importedProfile.darkPalette, 'dark')
+            );
           }
 
           setShowImportDialog(false);

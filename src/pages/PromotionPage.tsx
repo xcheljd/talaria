@@ -76,6 +76,7 @@ import {
   buildDarkModePalette,
 } from '@/lib/promotion-email-html';
 import { buildPromotionEmailData } from '@/lib/newsletter-utils';
+import { sanitizeHTML } from '@/lib/html-utils';
 import { cn } from '@/lib/utils';
 import {
   createEMLFile,
@@ -619,7 +620,7 @@ function PreviewColumn({ emailHTML }: { emailHTML: string }) {
             importedHeading &&
             !importedBody.match(/<h2[^>]*>/i)
           ) {
-            importedBody = `<h2>${importedHeading}</h2>${importedBody}`;
+            importedBody = `<h2>${sanitizeHTML(importedHeading)}</h2>${importedBody}`;
           }
 
           usePromotionStore.setState({
