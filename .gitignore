@@ -53,3 +53,9 @@ WARP.md
 playwright-report/
 test-results/
 .playwright-mcp/
+
+# Coverage artifacts
+coverage/
+
+# Factory local config
+.factory/
