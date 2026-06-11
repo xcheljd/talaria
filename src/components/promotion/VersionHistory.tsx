@@ -159,7 +159,14 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
   );
 
   // Manual save
-  const handleManualSave = () => {
+  const handleManualSave = async () => {
+    // Flush the debounced auto-save first so the snapshot captures edits
+    // made within the last ~500ms, not the stale localStorage copy.
+    try {
+      await usePromotionStore.getState().saveToIndexedDB();
+    } catch {
+      // Snapshot still proceeds with the last persisted state
+    }
     const name = saveName.trim() || `Snapshot ${snapshots.length + 1}`;
     saveSnapshot(name, false);
     setSaveName('');

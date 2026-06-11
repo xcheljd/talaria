@@ -24,10 +24,19 @@ export function getScrollBehavior(): 'smooth' | 'auto' {
 }
 
 /**
- * Detect the user's operating system from `navigator.platform`.
+ * Detect the user's operating system. Prefers the User-Agent Client Hints
+ * API; falls back to the deprecated `navigator.platform`, then userAgent.
  */
 export function detectOS(): 'windows' | 'mac' | 'other' {
-  const platform = navigator.platform.toLowerCase();
+  const uaData = (
+    navigator as Navigator & { userAgentData?: { platform?: string } }
+  ).userAgentData;
+  const platform = (
+    uaData?.platform ||
+    navigator.platform ||
+    navigator.userAgent ||
+    ''
+  ).toLowerCase();
   if (platform.includes('win')) return 'windows';
   if (platform.includes('mac')) return 'mac';
   return 'other';

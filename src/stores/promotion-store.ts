@@ -322,8 +322,11 @@ export interface PromotionState {
 let _idCounter = 0;
 
 function generateId(): number {
-  // Combine timestamp with counter for uniqueness
-  return Date.now() * 1000 + ++_idCounter;
+  // Combine timestamp with counter for uniqueness. The counter wraps at
+  // 1000 so it stays within the millisecond slot and can't drift into a
+  // future timestamp's range over a long session.
+  _idCounter = (_idCounter + 1) % 1000;
+  return Date.now() * 1000 + _idCounter;
 }
 
 /** Reset ID counter (useful for testing) */

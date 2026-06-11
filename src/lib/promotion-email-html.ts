@@ -337,30 +337,35 @@ function convertTipTapToInlineHTML(
   let result = clean;
 
   // ===== Semantic formatting → inline-styled spans =====
+  // Note: these regexes operate on sanitizeRichHTML output (above), which
+  // re-serializes the DOM with a known attribute order. The \b[^>]*
+  // patterns tolerate attributes so a sanitizer change can't silently
+  // leave tags unconverted.
 
-  // <strong> → <span style="font-weight: bold;">
-  result = result.replace(/<strong>/g, '<span style="font-weight: bold;">');
-  result = result.replace(/<\/strong>/g, '</span>');
+  // <strong>/<b> → <span style="font-weight: bold;">
+  result = result.replace(
+    /<(?:strong|b)\b[^>]*>/g,
+    '<span style="font-weight: bold;">'
+  );
+  result = result.replace(/<\/(?:strong|b)>/g, '</span>');
 
-  // <b> → <span style="font-weight: bold;">
-  result = result.replace(/<b>/g, '<span style="font-weight: bold;">');
-  result = result.replace(/<\/b>/g, '</span>');
-
-  // <em> → <span style="font-style: italic;">
-  result = result.replace(/<em>/g, '<span style="font-style: italic;">');
-  result = result.replace(/<\/em>/g, '</span>');
-
-  // <i> → <span style="font-style: italic;">
-  result = result.replace(/<i>/g, '<span style="font-style: italic;">');
-  result = result.replace(/<\/i>/g, '</span>');
+  // <em>/<i> → <span style="font-style: italic;">
+  result = result.replace(
+    /<(?:em|i)\b[^>]*>/g,
+    '<span style="font-style: italic;">'
+  );
+  result = result.replace(/<\/(?:em|i)>/g, '</span>');
 
   // <u> → <span style="text-decoration: underline;">
-  result = result.replace(/<u>/g, '<span style="text-decoration: underline;">');
+  result = result.replace(
+    /<u\b[^>]*>/g,
+    '<span style="text-decoration: underline;">'
+  );
   result = result.replace(/<\/u>/g, '</span>');
 
   // <s> → <span style="text-decoration: line-through;">
   result = result.replace(
-    /<s>/g,
+    /<s\b[^>]*>/g,
     '<span style="text-decoration: line-through;">'
   );
   result = result.replace(/<\/s>/g, '</span>');
@@ -513,22 +518,24 @@ function convertTipTapToInlineHTML(
     return imgTag;
   });
 
-  // Replace <a> with inline-styled version (preserve href and merge any
-  // existing style attribute so we don't emit a duplicate `style=` on the tag).
-  result = result.replace(
-    /<a\s+href="([^"]*)"([^>]*)>/g,
-    (_match, href, rest) => {
-      const styleMatch = rest.match(/\s*style="([^"]*)"/);
-      const linkStyle = `color: ${palette.link}; text-decoration: underline;`;
-      if (styleMatch) {
-        const restWithoutStyle = rest.replace(styleMatch[0], '');
-        const existing = styleMatch[1].trim().replace(/;\s*$/, '');
-        const merged = existing ? `${existing}; ${linkStyle}` : linkStyle;
-        return `<a href="${href}"${restWithoutStyle} style="${merged}">`;
-      }
-      return `<a href="${href}"${rest} style="${linkStyle}">`;
+  // Replace <a> with inline-styled version (preserve href regardless of
+  // attribute order, and merge any existing style attribute so we don't
+  // emit a duplicate `style=` on the tag).
+  result = result.replace(/<a\b([^>]*)>/g, (match, attrs: string) => {
+    const hrefMatch = attrs.match(/\bhref="([^"]*)"/);
+    if (!hrefMatch) return match; // anchor without href — leave as-is
+    const href = hrefMatch[1];
+    const rest = attrs.replace(hrefMatch[0], '').replace(/^\s+/, ' ');
+    const styleMatch = rest.match(/\s*style="([^"]*)"/);
+    const linkStyle = `color: ${palette.link}; text-decoration: underline;`;
+    if (styleMatch) {
+      const restWithoutStyle = rest.replace(styleMatch[0], '');
+      const existing = styleMatch[1].trim().replace(/;\s*$/, '');
+      const merged = existing ? `${existing}; ${linkStyle}` : linkStyle;
+      return `<a href="${href}"${restWithoutStyle} style="${merged}">`;
     }
-  );
+    return `<a href="${href}"${rest} style="${linkStyle}">`;
+  });
 
   // Strip javascript: URIs from links for safety
   result = result.replace(/href="javascript:[^"]*"/gi, 'href="#"');

@@ -874,7 +874,7 @@ function PreviewColumn({ emailHTML }: { emailHTML: string }) {
                 <AlertDialogDescription>
                   This will reset everything to defaults and cannot be undone.
                   All promotion data, entries, and attachments will be cleared.
-                  Continue?
+                  Your bulk email recipient list is kept. Continue?
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
