@@ -95,6 +95,11 @@ export function getSavedDownloadFormat(): DownloadFormat {
  */
 export async function generateEmailBatches(): Promise<boolean> {
   const store = usePromotionStore.getState();
+
+  // Re-entrancy guard: the main button disables while generating, but the
+  // warning dialog's "Generate Anyway" does not.
+  if (store.bulkEmailGenerating) return false;
+
   const stats = computeEmailStats(store.bulkEmailRecipients);
 
   if (stats.valid === 0) {

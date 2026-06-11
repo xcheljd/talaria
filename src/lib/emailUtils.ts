@@ -67,30 +67,55 @@ export function extractPlainText(htmlBody: string): string {
   return plainText;
 }
 
-// Quoted-printable encoder with UTF-8 support
+// RFC 2045 §6.7 caps encoded lines at 76 chars; we wrap at 75 so the
+// soft-break "=" fits within the limit.
+const QP_MAX_LINE = 75;
+
+/** Encode a trailing space/tab so it survives transport (RFC 2045 rule 3). */
+function escapeTrailingWhitespace(line: string): string {
+  const last = line.slice(-1);
+  if (last === ' ') return line.slice(0, -1) + '=20';
+  if (last === '\t') return line.slice(0, -1) + '=09';
+  return line;
+}
+
+// Quoted-printable encoder with UTF-8 support.
+// Inserts soft line breaks ("=\r\n") so no encoded line exceeds 76 chars —
+// the promotion HTML is effectively one huge line, and strict MTAs/clients
+// wrap-and-corrupt over-long lines.
 export function encodeQuotedPrintable(str: string): string {
-  const encoder = new TextEncoder();
-  const utf8Bytes = encoder.encode(str);
+  const utf8Bytes = new TextEncoder().encode(str);
 
   let result = '';
+  let line = '';
   for (let i = 0; i < utf8Bytes.length; i++) {
     const byte = utf8Bytes[i];
-    const c = String.fromCharCode(byte);
 
-    if (c === '=') {
-      result += '=3D';
-    } else if (byte < 32 || byte > 126) {
-      if (byte === 9 || byte === 10 || byte === 13) {
-        result += c;
-      } else {
-        const hex = byte.toString(16).toUpperCase().padStart(2, '0');
-        result += '=' + hex;
-      }
-    } else {
-      result += c;
+    // Hard line breaks pass through and reset the line-length counter.
+    if (byte === 10 || byte === 13) {
+      result += escapeTrailingWhitespace(line) + String.fromCharCode(byte);
+      line = '';
+      continue;
     }
+
+    let token: string;
+    if (byte === 61) {
+      token = '=3D';
+    } else if (byte === 9) {
+      token = '\t';
+    } else if (byte < 32 || byte > 126) {
+      token = '=' + byte.toString(16).toUpperCase().padStart(2, '0');
+    } else {
+      token = String.fromCharCode(byte);
+    }
+
+    if (line.length + token.length > QP_MAX_LINE) {
+      result += line + '=\r\n';
+      line = '';
+    }
+    line += token;
   }
-  return result;
+  return result + line;
 }
 
 // Encode subject for non-ASCII characters (RFC 2047 - Encoded-words)
@@ -106,13 +131,31 @@ export function encodeSubject(subject: string): string {
     return subject;
   }
 
-  const utf8Bytes = new TextEncoder().encode(subject);
-  const binaryString = Array.from(utf8Bytes, (byte) =>
-    String.fromCodePoint(byte)
-  ).join('');
-  const base64 = btoa(binaryString);
+  // RFC 2047 §2 limits each encoded-word to 75 chars. The "=?UTF-8?B?...?="
+  // wrapper is 12 chars, leaving 63 for base64, i.e. 45 input bytes per word.
+  // Chunk on code-point boundaries and fold with CRLF + space.
+  const MAX_BYTES_PER_WORD = 45;
+  const encoder = new TextEncoder();
+  const words: string[] = [];
+  let chunkBytes: number[] = [];
 
-  return `=?UTF-8?B?${base64}?=`;
+  const flushChunk = () => {
+    if (chunkBytes.length === 0) return;
+    const binary = chunkBytes.map((b) => String.fromCodePoint(b)).join('');
+    words.push(`=?UTF-8?B?${btoa(binary)}?=`);
+    chunkBytes = [];
+  };
+
+  for (const char of subject) {
+    const charBytes = encoder.encode(char);
+    if (chunkBytes.length + charBytes.length > MAX_BYTES_PER_WORD) {
+      flushChunk();
+    }
+    chunkBytes.push(...charBytes);
+  }
+  flushChunk();
+
+  return words.join('\r\n ');
 }
 
 // Convert string to UTF-8 Base64 encoding (RFC 2045)
@@ -124,20 +167,30 @@ export function utf8ToBase64(str: string): string {
   return btoa(binaryString);
 }
 
+/**
+ * Make a filename safe for interpolation into a quoted MIME header
+ * parameter: strips CR/LF (header injection) and replaces double quotes
+ * (which would terminate the quoted-string early).
+ */
+export function sanitizeHeaderFilename(filename: string): string {
+  return filename.replace(/[\r\n]+/g, ' ').replace(/"/g, "'");
+}
+
 // Encode filename for non-ASCII characters (RFC 2231)
 export function encodeFilename(filename: string): string {
+  const safe = sanitizeHeaderFilename(filename);
   let isAscii = true;
-  for (let i = 0; i < filename.length; i++) {
-    if (filename.charCodeAt(i) > 127) {
+  for (let i = 0; i < safe.length; i++) {
+    if (safe.charCodeAt(i) > 127) {
       isAscii = false;
       break;
     }
   }
   if (isAscii) {
-    return `filename="${filename}"`;
+    return `filename="${safe}"`;
   }
 
-  const encodedFilename = encodeURIComponent(filename);
+  const encodedFilename = encodeURIComponent(safe);
   return `filename*=UTF-8''${encodedFilename}`;
 }
 
@@ -225,7 +278,7 @@ export async function createEMLFile(
         if (parts.length === 2 && parts[0].includes('base64')) {
           const base64Data = parts[1];
           eml += `--${boundary}\r\n`;
-          eml += `Content-Type: application/pdf; name="${pdf.name}"\r\n`;
+          eml += `Content-Type: application/pdf; name="${sanitizeHeaderFilename(pdf.name)}"\r\n`;
           eml += `Content-Transfer-Encoding: base64\r\n`;
           eml += `Content-Disposition: attachment; ${encodeFilename(pdf.name)}\r\n\r\n`;
           const lines = base64Data.match(/.{1,76}/g) || [];
@@ -446,7 +499,7 @@ export function createBCCBatchEML(
       }
 
       emlContent += `--${boundary}\r\n`;
-      emlContent += `Content-Type: application/pdf; name="${pdf.name}"\r\n`;
+      emlContent += `Content-Type: application/pdf; name="${sanitizeHeaderFilename(pdf.name)}"\r\n`;
       emlContent += `Content-Transfer-Encoding: base64\r\n`;
       emlContent += `Content-Disposition: attachment; ${encodeFilename(pdf.name)}\r\n`;
       emlContent += `\r\n`;

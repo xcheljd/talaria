@@ -899,6 +899,12 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
 
   const storePhoneRaw = getStorePhone();
   const storePhone = escapeHtml(storePhoneRaw);
+  // Normalize to a US tel: href; tolerate numbers already entered with a
+  // leading country code so we don't emit tel:+11702...
+  let phoneDigits = storePhoneRaw.replace(/\D/g, '');
+  if (phoneDigits.length === 11 && phoneDigits.startsWith('1')) {
+    phoneDigits = phoneDigits.slice(1);
+  }
 
   // Build brand sections from entries
   let brandSections = '';
@@ -1110,7 +1116,7 @@ ${newsletterBottomHTML}
                     ${storeAddress}</a>
                 </p>
                 <p style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
-                    📞 <a href="tel:+1${storePhoneRaw.replace(/\D/g, '')}" target="_blank" style="color: ${pal.footerText};">${storePhone}</a> |
+                    📞 <a href="tel:+1${phoneDigits}" target="_blank" style="color: ${pal.footerText};">${storePhone}</a> |
                     📧 <a href="mailto:${storeEmailRaw}" target="_blank" style="color: ${pal.footerText};">${storeEmail}</a>
                 </p>
                 <p style="color: ${pal.accent}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 13px; margin: 10px 0 0 0;">
