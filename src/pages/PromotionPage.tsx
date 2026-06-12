@@ -1195,6 +1195,7 @@ function useScrollSpy(
     // containerRef and isUserActionRef are stable refs; setActiveCardId is a
     // stable state setter. layoutKey forces re-attachment when the rendered
     // layout (desktop vs mobile) switches and the old container unmounts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layoutKey]);
 }
 
@@ -1244,6 +1245,9 @@ export function PromotionPage() {
       store.initializeDefaultItems();
     };
     init();
+    // Mount-only: load persisted state and seed defaults exactly once. The store
+    // action identities are stable, so re-running on `store` changes is unwanted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-save with debounce

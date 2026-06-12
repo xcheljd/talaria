@@ -7,10 +7,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - "src/js/**"
-      - "src/css/**"
+      - "src/**"
       - "src-tauri/src/**"
-      - "electron/**"
   workflow_dispatch:
 
 engine: claude
@@ -35,16 +33,16 @@ Run Simplify & Harden in CI (headless mode) for this pull request.
 
 ## Context
 
-You are reviewing a pull request in the **Communication Template Generator** project — a multi-page web application for generating customer communication templates (emails, text messages, phone orders). Built as a Vite-based SPA with Tauri/Electron desktop support.
+You are reviewing a pull request in the **Communication Template Generator** project — a multi-page web application for generating customer communication templates (emails, text messages, phone orders). Built as a Vite-based SPA with a Tauri desktop shell.
 
 ## Instructions
 
 1. Determine the changed files by running:
    ```bash
-   git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} -- src/js/ src/css/ src-tauri/src/ electron/
+   git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} -- src/ src-tauri/src/
    ```
 
-2. If no relevant files changed, post a comment: "No reviewable changes in scope (src/js/, src/css/, src-tauri/src/, electron/)." and exit successfully.
+2. If no relevant files changed, post a comment: "No reviewable changes in scope (src/, src-tauri/src/)." and exit successfully.
 
 3. Read every changed file. Re-read all changed code with "fresh eyes" and actively look for obvious bugs, errors, confusing logic, brittle assumptions, naming issues, and missed hardening opportunities.
 

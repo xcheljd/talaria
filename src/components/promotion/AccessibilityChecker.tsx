@@ -195,6 +195,9 @@ export function AccessibilityChecker() {
   const issues = useMemo(() => {
     if (!hasScanned) return [];
     return scanHTML(store.newsletterBody);
+    // scanTrigger is intentionally a dependency: it forces a re-scan when the
+    // user clicks Scan again even if newsletterBody hasn't changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasScanned, scanTrigger, store.newsletterBody]);
 
   const handleScan = () => {

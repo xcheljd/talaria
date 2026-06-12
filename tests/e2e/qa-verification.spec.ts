@@ -663,7 +663,6 @@ test.describe('QA Item 8 — Regression sweep', () => {
     await page.waitForTimeout(2000);
 
     // Either the page renders with profile data, or we're redirected somewhere else
-    const url = page.url();
     const content = await page.content();
 
     // If on templates page, check for profile data

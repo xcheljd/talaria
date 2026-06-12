@@ -198,7 +198,9 @@ export function BasicDetailsEditor() {
       if (startDate) setStartDate('');
       if (endDate) setEndDate('');
     }
-    // Only react to store changes, not local state
+    // Only react to store changes, not local state — including startDate/endDate
+    // here would re-seed the pickers while the user is editing them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.promoDateRange, store.promoYear]);
 
   const handleTitleChange = useCallback(

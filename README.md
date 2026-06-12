@@ -29,9 +29,15 @@ npm run dev          # Start dev server on http://localhost:8080
 
 | Page | Route | Description |
 |---|---|---|
-| Templates | `/` | Main communication template generator |
-| Profile Setup | `/start` | User profile and settings configuration |
+| Templates landing | `/` | Pick a template category |
+| Template generator | `/templates` | Main communication template generator |
 | Promotions | `/promotion` | Promotion email generator with collapsible editors |
+| Profile (read-only) | `/profile` | View current profile |
+| Profile settings | `/profile/settings` | Edit profile + app settings |
+| Legacy redirect | `/start` | Redirects to `/profile/settings` |
+| Components showcase | `/components` | Dev-only shadcn component preview |
+
+See [docs/ARCHITECTURE-MAP.md](docs/ARCHITECTURE-MAP.md) for the canonical, up-to-date architecture overview.
 
 ## Development
 
@@ -47,7 +53,7 @@ npm run format           # Prettier on JS/TS/CSS
 ## Testing
 
 ```bash
-npm run test             # Vitest unit tests (618 tests)
+npm run test             # Vitest unit tests
 npm run test:watch       # Vitest in watch mode
 npm run test:coverage    # Vitest with coverage report
 npm run test:e2e         # Playwright end-to-end tests
@@ -95,7 +101,7 @@ src/
 │   ├── templates.ts            # 15+ communication template definitions
 │   └── theme-utils.ts          # Palette/theme utilities
 ├── hooks/
-│   ├── useIndexedDB.ts         # IndexedDB React hook
+│   ├── useMediaQuery.ts        # Responsive breakpoint hook
 │   └── useTauri.ts             # Tauri IPC hook
 └── vite-env.d.ts               # Vite type declarations
 ```

@@ -295,6 +295,9 @@ export function OutlookChecker() {
     }
 
     return found;
+    // scanTrigger is intentionally a dependency: it forces a re-scan when the
+    // user clicks Scan again even if emailHTML hasn't changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasScanned, scanTrigger, emailHTML]);
 
   const handleScan = () => {
