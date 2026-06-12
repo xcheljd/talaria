@@ -44,7 +44,7 @@ export function resolveNewsletterColors(
   };
 }
 
-type EmailDataSource = {
+export type EmailDataSource = {
   promoDateRange: string;
   promoYear: string;
   promoTitle: string;

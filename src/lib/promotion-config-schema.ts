@@ -12,6 +12,7 @@ import { z } from 'zod';
 import {
   DEFAULT_NEWSLETTER_STYLE,
   DEFAULT_EMAIL_PALETTE,
+  generateId,
   type PromotionEntry,
   type SpecialHour,
   type HowToShopItem,
@@ -103,20 +104,13 @@ const stringArraySchema = z.array(z.string().catch('')).catch([]);
 
 // ===== Id normalization =====
 
-// Fallback id generator for imported items with missing/duplicate ids.
-// Mirrors the store's generateId (timestamp * 1000 + counter).
-let _importIdCounter = 0;
-function nextImportId(): number {
-  return Date.now() * 1000 + ++_importIdCounter;
-}
-
 /** Ensure every item has a unique positive numeric id. */
 function normalizeIds<T extends { id: number }>(items: T[]): T[] {
   const seen = new Set<number>();
   return items.map((item) => {
     let { id } = item;
     if (!Number.isFinite(id) || id <= 0 || seen.has(id)) {
-      id = nextImportId();
+      id = generateId();
     }
     seen.add(id);
     return { ...item, id };

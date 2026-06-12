@@ -17,7 +17,7 @@ import {
   type PDFRecord,
 } from '@/lib/db';
 import { getStorePhone, getStoreEmail, getDirections } from '@/lib/profile';
-import { sanitizeHTML } from '@/lib/html-utils';
+import { prependHeadingIfMissing } from '@/lib/html-utils';
 import { StorageKeys } from '@/lib/storage-keys';
 
 // ===== Types =====
@@ -321,7 +321,8 @@ export interface PromotionState {
 // Monotonic counter to guarantee unique IDs even within the same millisecond
 let _idCounter = 0;
 
-function generateId(): number {
+/** Generate a unique numeric item id (also used by config import). */
+export function generateId(): number {
   // Combine timestamp with counter for uniqueness. The counter wraps at
   // 1000 so it stays within the millisecond slot and can't drift into a
   // future timestamp's range over a long session.
@@ -973,13 +974,8 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       // prepend the heading as an H2 element in the body
       let loadedBody = parsed.newsletterBody || '';
       const loadedHeading = parsed.newsletterHeading || 'Newsletter';
-      if (
-        loadedBody &&
-        loadedHeading &&
-        loadedHeading !== 'Newsletter' &&
-        !loadedBody.match(/<h2[^>]*>/i)
-      ) {
-        loadedBody = `<h2>${sanitizeHTML(loadedHeading)}</h2>${loadedBody}`;
+      if (loadedHeading !== 'Newsletter') {
+        loadedBody = prependHeadingIfMissing(loadedBody, loadedHeading);
       }
 
       set({

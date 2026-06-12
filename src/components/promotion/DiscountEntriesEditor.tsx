@@ -29,10 +29,24 @@ import { useShallow } from 'zustand/react/shallow';
 import {
   usePromotionStore,
   type PromotionEntry,
+  type PromotionState,
 } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
+
+// Shared slice for both EntryItem and the list component
+const selectEntryState = (s: PromotionState) => ({
+  promotionEntries: s.promotionEntries,
+  entryCollapsedStates: s.entryCollapsedStates,
+  addPromotionEntry: s.addPromotionEntry,
+  removePromotionEntry: s.removePromotionEntry,
+  updatePromotionEntry: s.updatePromotionEntry,
+  movePromotionEntryUp: s.movePromotionEntryUp,
+  movePromotionEntryDown: s.movePromotionEntryDown,
+  reorderPromotionEntries: s.reorderPromotionEntries,
+  toggleEntryCollapse: s.toggleEntryCollapse,
+});
 
 // ===== Single Entry Component =====
 
@@ -44,19 +58,7 @@ interface EntryItemProps {
 }
 
 function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
-  const store = usePromotionStore(
-    useShallow((s) => ({
-      promotionEntries: s.promotionEntries,
-      entryCollapsedStates: s.entryCollapsedStates,
-      addPromotionEntry: s.addPromotionEntry,
-      removePromotionEntry: s.removePromotionEntry,
-      updatePromotionEntry: s.updatePromotionEntry,
-      movePromotionEntryUp: s.movePromotionEntryUp,
-      movePromotionEntryDown: s.movePromotionEntryDown,
-      reorderPromotionEntries: s.reorderPromotionEntries,
-      toggleEntryCollapse: s.toggleEntryCollapse,
-    }))
-  );
+  const store = usePromotionStore(useShallow(selectEntryState));
 
   const handleChange = useCallback(
     (field: keyof Pick<PromotionEntry, 'line' | 'collections' | 'callout'>) =>
@@ -215,19 +217,7 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
 // ===== Main Editor Component =====
 
 export function DiscountEntriesEditor() {
-  const store = usePromotionStore(
-    useShallow((s) => ({
-      promotionEntries: s.promotionEntries,
-      entryCollapsedStates: s.entryCollapsedStates,
-      addPromotionEntry: s.addPromotionEntry,
-      removePromotionEntry: s.removePromotionEntry,
-      updatePromotionEntry: s.updatePromotionEntry,
-      movePromotionEntryUp: s.movePromotionEntryUp,
-      movePromotionEntryDown: s.movePromotionEntryDown,
-      reorderPromotionEntries: s.reorderPromotionEntries,
-      toggleEntryCollapse: s.toggleEntryCollapse,
-    }))
-  );
+  const store = usePromotionStore(useShallow(selectEntryState));
   const entries = store.promotionEntries;
 
   const handleAdd = useCallback(() => {

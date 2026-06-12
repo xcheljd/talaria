@@ -226,6 +226,16 @@ export function escapeAttr(str: string): string {
 }
 
 /**
+ * Migration helper: if the body has content but no H2 heading element,
+ * prepend the (HTML-escaped) heading as an H2. Shared by every newsletter
+ * load/import path so none of them can forget the escape.
+ */
+export function prependHeadingIfMissing(body: string, heading: string): string {
+  if (!body || !heading || body.match(/<h2[^>]*>/i)) return body;
+  return `<h2>${sanitizeHTML(heading)}</h2>${body}`;
+}
+
+/**
  * Sanitize template data to prevent XSS attacks.
  * Recursively sanitizes all string values in an object.
  */

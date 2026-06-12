@@ -23,10 +23,25 @@ import {
 import { Plus, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { usePromotionStore, type SpecialHour } from '@/stores/promotion-store';
+import {
+  usePromotionStore,
+  type SpecialHour,
+  type PromotionState,
+} from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
+
+// Shared slice for both HourRow and the list component
+const selectHoursState = (s: PromotionState) => ({
+  specialHours: s.specialHours,
+  addSpecialHour: s.addSpecialHour,
+  removeSpecialHour: s.removeSpecialHour,
+  updateSpecialHour: s.updateSpecialHour,
+  moveSpecialHourUp: s.moveSpecialHourUp,
+  moveSpecialHourDown: s.moveSpecialHourDown,
+  reorderSpecialHours: s.reorderSpecialHours,
+});
 
 // ===== Single Hour Row Component =====
 
@@ -37,17 +52,7 @@ interface HourRowProps {
 }
 
 function HourRow({ hour, index, total }: HourRowProps) {
-  const store = usePromotionStore(
-    useShallow((s) => ({
-      specialHours: s.specialHours,
-      addSpecialHour: s.addSpecialHour,
-      removeSpecialHour: s.removeSpecialHour,
-      updateSpecialHour: s.updateSpecialHour,
-      moveSpecialHourUp: s.moveSpecialHourUp,
-      moveSpecialHourDown: s.moveSpecialHourDown,
-      reorderSpecialHours: s.reorderSpecialHours,
-    }))
-  );
+  const store = usePromotionStore(useShallow(selectHoursState));
 
   const handleChange = useCallback(
     (field: keyof Pick<SpecialHour, 'day' | 'hours'>) => (val: string) => {
@@ -144,17 +149,7 @@ function HourRow({ hour, index, total }: HourRowProps) {
 // ===== Main Editor Component =====
 
 export function SpecialHoursEditor() {
-  const store = usePromotionStore(
-    useShallow((s) => ({
-      specialHours: s.specialHours,
-      addSpecialHour: s.addSpecialHour,
-      removeSpecialHour: s.removeSpecialHour,
-      updateSpecialHour: s.updateSpecialHour,
-      moveSpecialHourUp: s.moveSpecialHourUp,
-      moveSpecialHourDown: s.moveSpecialHourDown,
-      reorderSpecialHours: s.reorderSpecialHours,
-    }))
-  );
+  const store = usePromotionStore(useShallow(selectHoursState));
   const hours = store.specialHours;
 
   const handleAdd = useCallback(() => {

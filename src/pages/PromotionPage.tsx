@@ -79,8 +79,11 @@ import {
   validateImportConfig,
   buildDarkModePalette,
 } from '@/lib/promotion-email-html';
-import { buildPromotionEmailData } from '@/lib/newsletter-utils';
-import { sanitizeHTML } from '@/lib/html-utils';
+import {
+  buildPromotionEmailData,
+  type EmailDataSource,
+} from '@/lib/newsletter-utils';
+import { prependHeadingIfMissing } from '@/lib/html-utils';
 import { cn } from '@/lib/utils';
 import {
   createEMLFile,
@@ -113,9 +116,10 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 /**
  * Fields consumed by buildPromotionEmailData (the EmailDataSource shape).
  * Shared by the page-level emailHTML memo and PreviewColumn so both stay in
- * sync with what HTML generation actually reads.
+ * sync with what HTML generation actually reads. The return type annotation
+ * makes typecheck fail if this selector drifts from EmailDataSource.
  */
-const selectEmailDataSource = (s: PromotionState) => ({
+const selectEmailDataSource = (s: PromotionState): EmailDataSource => ({
   promoDateRange: s.promoDateRange,
   promoYear: s.promoYear,
   promoTitle: s.promoTitle,
@@ -701,18 +705,13 @@ function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           store.setPromoYear(config.year);
           store.setPromoTitle(config.title);
 
-          // Replace entries
           // Migration: if imported body doesn't start with an H2 but has
           // a heading, prepend the heading as an H2 element in the body
-          let importedBody = config.newsletterBody || '';
           const importedHeading = config.newsletterHeading || '';
-          if (
-            importedBody &&
-            importedHeading &&
-            !importedBody.match(/<h2[^>]*>/i)
-          ) {
-            importedBody = `<h2>${sanitizeHTML(importedHeading)}</h2>${importedBody}`;
-          }
+          const importedBody = prependHeadingIfMissing(
+            config.newsletterBody || '',
+            importedHeading
+          );
 
           usePromotionStore.setState({
             promotionEntries: config.promotionEntries,
@@ -1225,11 +1224,9 @@ export function PromotionPage() {
   // True when highlight came from click/expand; false when from scroll
   const isUserActionRef = useRef(false);
 
-  // Ref to the desktop scrollable card container
-  const desktopScrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // Ref to the mobile scrollable card container
-  const mobileCardsContainerRef = useRef<HTMLDivElement>(null);
+  // Ref to the scrollable card container of whichever layout is mounted
+  // (only one layout renders at a time)
+  const cardsContainerRef = useRef<HTMLDivElement>(null);
 
   // Computed once at page level and passed down to PreviewColumn, so the
   // 1,300-line HTML generation runs once per edit. The useShallow slice
@@ -1285,13 +1282,14 @@ export function PromotionPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Desktop icon toolbar click handler
-  const handleDesktopIconClick = useCallback(
+  // Icon toolbar click handler (shared by both layouts — only one mounts)
+  const handleIconClick = useCallback(
     (cardId: string) => {
       // Highlight the clicked icon and lock it
       setActiveCardId(cardId);
       isUserActionRef.current = true;
 
+      // Force expand if not already (re-trigger via undefined when re-clicked)
       if (forceExpandedCardId === cardId) {
         setForceExpandedCardId(undefined);
         requestAnimationFrame(() => {
@@ -1301,51 +1299,16 @@ export function PromotionPage() {
         setForceExpandedCardId(cardId);
       }
 
-      // Scroll to card in desktop container
+      // Scroll the card into view after the expand has rendered
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          const cardEl = document.querySelector(`[data-card-id="${cardId}"]`);
+          const cardEl = cardsContainerRef.current?.querySelector(
+            `[data-card-id="${cardId}"]`
+          );
           cardEl?.scrollIntoView({
             behavior: getScrollBehavior(),
             block: 'nearest',
           });
-        });
-      });
-    },
-    [forceExpandedCardId]
-  );
-
-  // Mobile icon toolbar click handler
-  const handleMobileIconClick = useCallback(
-    (cardId: string) => {
-      // Highlight the clicked icon and lock it
-      setActiveCardId(cardId);
-      isUserActionRef.current = true;
-
-      // Force expand if not already
-      if (forceExpandedCardId === cardId) {
-        setForceExpandedCardId(undefined);
-        requestAnimationFrame(() => {
-          setForceExpandedCardId(cardId);
-        });
-      } else {
-        setForceExpandedCardId(cardId);
-      }
-
-      // Scroll card into view in mobile container
-      const container = mobileCardsContainerRef.current;
-      if (!container) return;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const cardEl = container.querySelector(
-            `[data-card-id="${cardId}"]`
-          ) as HTMLElement | null;
-          if (cardEl) {
-            cardEl.scrollIntoView({
-              behavior: getScrollBehavior(),
-              block: 'nearest',
-            });
-          }
         });
       });
     },
@@ -1359,18 +1322,7 @@ export function PromotionPage() {
     isUserActionRef.current = true;
   }, []);
 
-  useScrollSpy(
-    desktopScrollContainerRef,
-    isUserActionRef,
-    setActiveCardId,
-    isDesktop
-  );
-  useScrollSpy(
-    mobileCardsContainerRef,
-    isUserActionRef,
-    setActiveCardId,
-    isDesktop
-  );
+  useScrollSpy(cardsContainerRef, isUserActionRef, setActiveCardId, isDesktop);
 
   // Profile redirect — if no profile, redirect to /start
   if (!hasProfile) {
@@ -1380,6 +1332,28 @@ export function PromotionPage() {
   // Only one layout is mounted at a time (driven by matchMedia, not CSS
   // hiding) — previously both rendered, doubling every card, editor, and
   // preview iframe.
+
+  // Card list shared by both layouts
+  const cardList = (
+    <div className="space-y-3 p-4">
+      {CARD_CONFIGS.map((config) => {
+        const showDivider =
+          config.id === 'subjectCard' || config.id === 'emailThemeCard';
+        return (
+          <div key={config.id}>
+            {showDivider && <div className="h-px bg-border mb-3" />}
+            <PromotionCard
+              config={config}
+              forceExpand={forceExpandedCardId === config.id}
+              onToggle={handleCardToggle}
+              versionRefreshKey={versionRefreshKey}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+
   if (isDesktop) {
     return (
       <div className="flex h-full overflow-hidden" data-testid="desktop-layout">
@@ -1392,30 +1366,13 @@ export function PromotionPage() {
           <div className="flex h-full min-w-0 flex-col">
             <IconToolbar
               activeCardId={activeCardId}
-              onCardClick={handleDesktopIconClick}
+              onCardClick={handleIconClick}
             />
             <div
               className="flex-1 overflow-y-auto min-w-0"
-              ref={desktopScrollContainerRef}
+              ref={cardsContainerRef}
             >
-              <div className="space-y-3 p-4">
-                {CARD_CONFIGS.map((config) => {
-                  const showDivider =
-                    config.id === 'subjectCard' ||
-                    config.id === 'emailThemeCard';
-                  return (
-                    <div key={config.id}>
-                      {showDivider && <div className="h-px bg-border mb-3" />}
-                      <PromotionCard
-                        config={config}
-                        forceExpand={forceExpandedCardId === config.id}
-                        onToggle={handleCardToggle}
-                        versionRefreshKey={versionRefreshKey}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+              {cardList}
             </div>
           </div>
 
@@ -1430,10 +1387,7 @@ export function PromotionPage() {
   return (
     <div className="flex flex-col h-full" data-testid="mobile-layout">
       {/* Icon toolbar for mobile navigation */}
-      <IconToolbar
-        activeCardId={activeCardId}
-        onCardClick={handleMobileIconClick}
-      />
+      <IconToolbar activeCardId={activeCardId} onCardClick={handleIconClick} />
 
       {/* Resizable split: cards on top, preview on bottom */}
       <ResizablePanels
@@ -1442,24 +1396,8 @@ export function PromotionPage() {
         minPx={[200, 150]}
       >
         {/* All cards */}
-        <div className="overflow-y-auto h-full" ref={mobileCardsContainerRef}>
-          <div className="space-y-3 p-4">
-            {CARD_CONFIGS.map((config) => {
-              const showDivider =
-                config.id === 'subjectCard' || config.id === 'emailThemeCard';
-              return (
-                <div key={config.id}>
-                  {showDivider && <div className="h-px bg-border mb-3" />}
-                  <PromotionCard
-                    config={config}
-                    forceExpand={forceExpandedCardId === config.id}
-                    onToggle={handleCardToggle}
-                    versionRefreshKey={versionRefreshKey}
-                  />
-                </div>
-              );
-            })}
-          </div>
+        <div className="overflow-y-auto h-full" ref={cardsContainerRef}>
+          {cardList}
         </div>
 
         {/* Email preview */}
