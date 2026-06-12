@@ -32,7 +32,6 @@ import {
   dataURLtoBlob,
   formatFileSize,
 } from '@/lib/pdf-utils';
-import { savePDFToIndexedDB } from '@/lib/db';
 import { saveBlob } from '@/lib/file-save';
 import { AlertTriangle } from 'lucide-react';
 
@@ -67,16 +66,14 @@ export function PDFAttachments() {
 
   const persistPDF = useCallback(
     async (pdf: AttachedPDF) => {
+      // addPDF updates state synchronously, then persists the blob to
+      // IndexedDB. If persistence fails the PDF is still in memory for this
+      // session, so warn rather than error.
       try {
-        await savePDFToIndexedDB({
-          id: pdf.id,
-          name: pdf.name,
-          data: pdf.data,
-        });
+        await store.addPDF(pdf);
       } catch {
         toast.warning('PDF kept in memory but will not persist after refresh');
       }
-      store.addPDF(pdf);
     },
     [store]
   );

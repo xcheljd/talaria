@@ -1534,15 +1534,8 @@ describe('promotion store', () => {
   // ===== PDF Persistence Fix: Save Path =====
 
   describe('PDF persistence: save path', () => {
-    it('IndexedDB saves execute before localStorage write', async () => {
+    it('blob is persisted at add time before metadata is saved', async () => {
       const store = getFreshStore();
-      store.addPDF({
-        id: 'pdf-1',
-        name: 'test.pdf',
-        size: 1024,
-        type: 'application/pdf',
-        data: 'data:application/pdf;base64,abc',
-      });
 
       const callOrder: string[] = [];
       vi.mocked(savePDFToIndexedDB).mockImplementation(async () => {
@@ -1556,6 +1549,16 @@ describe('promotion store', () => {
         originalSetItem(key, value);
       });
 
+      // Adding persists the blob to IndexedDB...
+      await store.addPDF({
+        id: 'pdf-1',
+        name: 'test.pdf',
+        size: 1024,
+        type: 'application/pdf',
+        data: 'data:application/pdf;base64,abc',
+      });
+      // ...so by the time auto-save writes the metadata reference, the blob
+      // already exists — metadata never points at an unpersisted blob.
       await store.saveToIndexedDB();
 
       expect(callOrder).toEqual(['indexeddb', 'localstorage']);
@@ -1602,23 +1605,23 @@ describe('promotion store', () => {
       expect(saved.attachedPDFs[0]).not.toHaveProperty('data');
     });
 
-    it('saving 3 PDFs results in 3 IndexedDB writes and 3 metadata entries', async () => {
+    it('adding 3 PDFs writes each blob to IndexedDB once, at add time', async () => {
       const store = getFreshStore();
-      store.addPDF({
+      await store.addPDF({
         id: 'pdf-1',
         name: 'a.pdf',
         size: 100,
         type: 'application/pdf',
         data: 'data:1',
       });
-      store.addPDF({
+      await store.addPDF({
         id: 'pdf-2',
         name: 'b.pdf',
         size: 200,
         type: 'application/pdf',
         data: 'data:2',
       });
-      store.addPDF({
+      await store.addPDF({
         id: 'pdf-3',
         name: 'c.pdf',
         size: 300,
@@ -1626,9 +1629,13 @@ describe('promotion store', () => {
         data: 'data:3',
       });
 
-      await store.saveToIndexedDB();
-
+      // Each PDF is persisted exactly once, when added.
       expect(savePDFToIndexedDB).toHaveBeenCalledTimes(3);
+
+      // Auto-save does NOT re-write the blobs — only the metadata JSON.
+      await store.saveToIndexedDB();
+      expect(savePDFToIndexedDB).toHaveBeenCalledTimes(3);
+
       const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.attachedPDFs).toHaveLength(3);
       expect(saved.attachedPDFs.map((p: { id: string }) => p.id)).toEqual([
@@ -1638,7 +1645,7 @@ describe('promotion store', () => {
       ]);
     });
 
-    it('saving with empty attachedPDFs makes no IndexedDB writes', async () => {
+    it('saving makes no IndexedDB blob writes (metadata only)', async () => {
       const store = getFreshStore();
       // No PDFs added
 
@@ -1921,25 +1928,38 @@ describe('promotion store', () => {
       expect(getFreshStore().attachedPDFs).toHaveLength(0);
     });
 
-    it('orphan cleanup deletes stale IndexedDB entries on save', async () => {
-      const store = getFreshStore();
-      store.addPDF({
+    it('orphan cleanup deletes stale IndexedDB entries on load', async () => {
+      // localStorage references only pdf-1
+      localStorage.setItem(
+        'promotionBuilderState',
+        JSON.stringify({
+          promotionEntries: [],
+          specialHours: [],
+          howToShopItems: [],
+          importantNotesItems: [],
+          attachedPDFs: [
+            { id: 'pdf-1', name: 'a.pdf', size: 100, type: 'application/pdf' },
+          ],
+          generatedSubjectLines: [],
+          selectedSubjectLine: null,
+        })
+      );
+      vi.mocked(getPDFFromIndexedDB).mockResolvedValue({
         id: 'pdf-1',
         name: 'a.pdf',
-        size: 100,
-        type: 'application/pdf',
         data: 'data:1',
       });
-
-      // IndexedDB has an orphan entry
+      // IndexedDB holds an orphan blob no longer referenced by metadata
       vi.mocked(getAllPDFKeysFromIndexedDB).mockResolvedValue([
         'pdf-1',
         'pdf-orphan',
       ]);
 
-      await store.saveToIndexedDB();
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
 
       expect(deletePDFFromIndexedDB).toHaveBeenCalledWith('pdf-orphan');
+      expect(deletePDFFromIndexedDB).not.toHaveBeenCalledWith('pdf-1');
     });
 
     it('removePDF still updates state when IndexedDB throws', async () => {

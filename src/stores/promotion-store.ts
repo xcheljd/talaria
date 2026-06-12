@@ -277,7 +277,7 @@ export interface PromotionState {
   setImportantNotesStyle: (style: Partial<SectionBoxStyle>) => void;
 
   // PDF actions
-  addPDF: (pdf: AttachedPDF) => void;
+  addPDF: (pdf: AttachedPDF) => Promise<void>;
   removePDF: (id: string) => Promise<void>;
   clearAllPDFs: () => Promise<void>;
 
@@ -645,10 +645,18 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
 
   // ===== PDF Actions =====
 
-  addPDF: (pdf: AttachedPDF) =>
+  addPDF: async (pdf: AttachedPDF) => {
     set((state) => ({
       attachedPDFs: [...state.attachedPDFs, pdf],
-    })),
+    }));
+    // Persist the blob to IndexedDB once, at add time. Auto-save then only
+    // rewrites the lightweight metadata JSON — not the base64 payload — so a
+    // few multi-MB PDFs no longer get serialized to disk on every keystroke.
+    // Errors propagate so the caller can surface a "won't persist" warning.
+    if (pdf.data) {
+      await savePDFToIndexedDB({ id: pdf.id, name: pdf.name, data: pdf.data });
+    }
+  },
 
   removePDF: async (id: string) => {
     try {
@@ -861,41 +869,10 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       emailPalette: state.emailPalette,
     };
 
+    // PDF blobs are persisted to IndexedDB once, at add time (see addPDF), and
+    // removed in removePDF/clearAllPDFs. Stale blobs are swept on load. So the
+    // hot auto-save path only writes the lightweight metadata JSON below.
     try {
-      // Step 1: Save PDF data to IndexedDB FIRST
-      for (const pdf of state.attachedPDFs) {
-        if (pdf.data) {
-          try {
-            await savePDFToIndexedDB({
-              id: pdf.id,
-              name: pdf.name,
-              data: pdf.data,
-            });
-          } catch {
-            // Non-blocking: PDF save failure shouldn't disrupt user
-            console.warn(`Failed to save PDF ${pdf.name} to IndexedDB`);
-          }
-        }
-      }
-
-      // Step 2: Orphan cleanup — delete IndexedDB entries not in current attachedPDFs
-      try {
-        const allKeys = await getAllPDFKeysFromIndexedDB();
-        const currentIds = new Set(state.attachedPDFs.map((p) => p.id));
-        for (const key of allKeys) {
-          if (!currentIds.has(key)) {
-            try {
-              await deletePDFFromIndexedDB(key);
-            } catch {
-              // Best-effort cleanup
-            }
-          }
-        }
-      } catch {
-        // Best-effort orphan cleanup
-      }
-
-      // Step 3: Save metadata-only to localStorage (after IndexedDB writes)
       localStorage.setItem(
         StorageKeys.promotionBuilderState,
         JSON.stringify(persistData)
@@ -968,6 +945,20 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
           });
         }
         // If no IndexedDB data and no legacy data, omit the PDF
+      }
+
+      // Orphan cleanup: remove IndexedDB blobs no longer referenced by the
+      // restored metadata. Runs once per load instead of on every auto-save.
+      try {
+        const allKeys = await getAllPDFKeysFromIndexedDB();
+        const currentIds = new Set(restoredPDFs.map((p) => p.id));
+        for (const key of allKeys) {
+          if (!currentIds.has(key)) {
+            await deletePDFFromIndexedDB(key);
+          }
+        }
+      } catch {
+        // Best-effort orphan cleanup
       }
 
       // Migration: if body doesn't start with an H2 but has a heading,
