@@ -77,7 +77,7 @@ const ALLOWED_ATTRS: Record<string, Set<string>> = {
   th: new Set(['style', 'colspan', 'rowspan']),
   table: new Set(['style']),
   tr: new Set(['style']),
-  img: new Set(['src', 'alt', 'width', 'height', 'style', 'align', 'href']),
+  img: new Set(['src', 'alt', 'width', 'height', 'style', 'align']),
   hr: new Set(['style']),
   pre: new Set(['style']),
   code: new Set(['class', 'style']),
@@ -94,16 +94,21 @@ const SAFE_PROTOCOLS = ['http:', 'https:', 'mailto:', 'tel:'];
  */
 export function isSafeURL(url: string): boolean {
   if (!url || !url.trim()) return false;
-  const trimmed = url.trim().toLowerCase();
-  // Allow relative URLs and anchors
+  const trimmed = url.trim();
+  // Relative URLs and anchors have no scheme — always safe
   if (trimmed.startsWith('#') || trimmed.startsWith('/')) return true;
-  try {
-    const parsed = new URL(url);
-    return SAFE_PROTOCOLS.includes(parsed.protocol);
-  } catch {
-    // If URL parsing fails, it might be a relative URL
-    return true;
+  // If the URL carries an explicit scheme, it must be in the allowlist.
+  // Fail closed: an unknown or malformed scheme (e.g. javascript:, data:,
+  // or a URL that won't parse) is rejected rather than allowed through.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
+    try {
+      return SAFE_PROTOCOLS.includes(new URL(trimmed).protocol);
+    } catch {
+      return false;
+    }
   }
+  // No scheme → relative URL (e.g. "page.html", "foo/bar") → safe
+  return true;
 }
 
 /**

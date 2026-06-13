@@ -485,6 +485,17 @@ describe('isSafeURL', () => {
     expect(isSafeURL('#section')).toBe(true);
   });
 
+  it('allows scheme-less relative URLs', () => {
+    expect(isSafeURL('page.html')).toBe(true);
+    expect(isSafeURL('foo/bar')).toBe(true);
+  });
+
+  it('fails closed on unknown or malformed schemes', () => {
+    expect(isSafeURL('vbscript:msgbox(1)')).toBe(false);
+    expect(isSafeURL('foo:bar')).toBe(false);
+    expect(isSafeURL('javascript:alert(1)')).toBe(false);
+  });
+
   it('returns false for empty string', () => {
     expect(isSafeURL('')).toBe(false);
   });
