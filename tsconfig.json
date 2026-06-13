@@ -21,12 +21,16 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
+    /* App is browser-only: don't auto-include @types/node globals here.
+       The e2e tests that need Node (Buffer, etc.) use tsconfig.test.json. */
+    "types": [],
+
     /* Path aliases */
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "tests"],
+  "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }
