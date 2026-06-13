@@ -1144,6 +1144,32 @@ function useAutoSave() {
   }, [store]);
 }
 
+// ===== Save-status Toast Hook =====
+
+/**
+ * Surface auto-save failures globally. The PDF card shows a small badge, but
+ * it's collapsed by default — a user editing any other section would never see
+ * a failed save. Fire a persistent, deduped toast on the ok→warning transition
+ * (not on every debounced save) and clear it when saving recovers.
+ */
+function useSaveStatusToast() {
+  const saveStatus = usePromotionStore((s) => s.saveStatus);
+  const prev = useRef(saveStatus);
+
+  useEffect(() => {
+    if (prev.current !== 'warning' && saveStatus === 'warning') {
+      toast.warning(
+        'Auto-save failed — your changes are kept in memory but may not survive a refresh. Free up device storage and keep this tab open.',
+        { id: 'promo-save-warning', duration: Infinity }
+      );
+    } else if (prev.current === 'warning' && saveStatus === 'ok') {
+      toast.dismiss('promo-save-warning');
+      toast.success('Auto-save recovered');
+    }
+    prev.current = saveStatus;
+  }, [saveStatus]);
+}
+
 // ===== Scroll Spy Hook =====
 
 function useScrollSpy(
@@ -1252,6 +1278,7 @@ export function PromotionPage() {
 
   // Auto-save with debounce
   useAutoSave();
+  useSaveStatusToast();
 
   // Version history: auto-save snapshot every 5 minutes
   const [versionRefreshKey, setVersionRefreshKey] = useState(0);
