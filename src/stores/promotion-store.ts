@@ -365,6 +365,55 @@ function moveItemDown<T extends { id: number }>(items: T[], id: number): T[] {
   return newItems;
 }
 
+function toggleItemFormat<T extends { id: number }>(
+  items: T[],
+  id: number,
+  format: keyof T
+): T[] {
+  return items.map((i) => (i.id === id ? { ...i, [format]: !i[format] } : i));
+}
+
+/** State keys whose value is an array of items with a numeric `id`. */
+type ListStateKey = {
+  [K in keyof PromotionState]: PromotionState[K] extends Array<{ id: number }>
+    ? K
+    : never;
+}[keyof PromotionState];
+
+type StoreSet = (
+  partial:
+    | Partial<PromotionState>
+    | ((state: PromotionState) => Partial<PromotionState>)
+) => void;
+
+/**
+ * Build the standard add/remove/update/move/reorder actions for one of the
+ * store's `{ id }[]` list fields. Collapses four near-identical CRUD families
+ * into one typed factory.
+ */
+function createListActions<K extends ListStateKey>(
+  set: StoreSet,
+  key: K,
+  createItem: () => PromotionState[K][number]
+) {
+  type Item = PromotionState[K][number];
+  const writeList = (next: (items: Item[]) => Item[]) =>
+    set((s) => ({ [key]: next(s[key] as Item[]) }) as Partial<PromotionState>);
+  return {
+    add: () => writeList((items) => [...items, createItem()]),
+    remove: (id: number) =>
+      writeList((items) => items.filter((i) => i.id !== id)),
+    update: (id: number, patch: Partial<Item>) =>
+      writeList((items) =>
+        items.map((i) => (i.id === id ? { ...i, ...patch } : i))
+      ),
+    moveUp: (id: number) => writeList((items) => moveItemUp(items, id)),
+    moveDown: (id: number) => writeList((items) => moveItemDown(items, id)),
+    reorder: (oldIndex: number, newIndex: number) =>
+      writeList((items) => reorderItems(items, oldIndex, newIndex)),
+  };
+}
+
 function getEmptyState() {
   return {
     promoDateRange: '' as string,
@@ -389,6 +438,109 @@ function getEmptyState() {
     newsletterVisible: false as boolean,
     emailPalette: { ...DEFAULT_EMAIL_PALETTE } as EmailPaletteConfig,
     saveStatus: 'ok' as 'ok' | 'warning',
+  };
+}
+
+/** The list-CRUD slice of the store, built from the generic factory above. */
+type PromotionListActions = Pick<
+  PromotionState,
+  | 'addPromotionEntry'
+  | 'removePromotionEntry'
+  | 'updatePromotionEntry'
+  | 'movePromotionEntryUp'
+  | 'movePromotionEntryDown'
+  | 'reorderPromotionEntries'
+  | 'addSpecialHour'
+  | 'removeSpecialHour'
+  | 'updateSpecialHour'
+  | 'moveSpecialHourUp'
+  | 'moveSpecialHourDown'
+  | 'reorderSpecialHours'
+  | 'addHowToShopItem'
+  | 'removeHowToShopItem'
+  | 'updateHowToShopItem'
+  | 'moveHowToShopItemUp'
+  | 'moveHowToShopItemDown'
+  | 'reorderHowToShopItems'
+  | 'toggleHowToShopFormat'
+  | 'addImportantNotesItem'
+  | 'removeImportantNotesItem'
+  | 'updateImportantNotesItem'
+  | 'moveImportantNotesItemUp'
+  | 'moveImportantNotesItemDown'
+  | 'reorderImportantNotesItems'
+  | 'toggleImportantNotesFormat'
+>;
+
+function createPromotionListActions(set: StoreSet): PromotionListActions {
+  const entries = createListActions(set, 'promotionEntries', () => ({
+    id: generateId(),
+    line: '',
+    collections: '',
+    callout: '',
+  }));
+  const hours = createListActions(set, 'specialHours', () => ({
+    id: generateId(),
+    day: '',
+    hours: '',
+  }));
+  const howToShop = createListActions(set, 'howToShopItems', () => ({
+    id: generateId(),
+    text: '',
+    bold: false,
+    italic: false,
+    underline: false,
+  }));
+  const notes = createListActions(set, 'importantNotesItems', () => ({
+    id: generateId(),
+    text: '',
+    bold: false,
+    italic: false,
+    underline: false,
+  }));
+
+  return {
+    addPromotionEntry: entries.add,
+    removePromotionEntry: entries.remove,
+    updatePromotionEntry: (id, field, value) =>
+      entries.update(id, { [field]: value } as Partial<PromotionEntry>),
+    movePromotionEntryUp: entries.moveUp,
+    movePromotionEntryDown: entries.moveDown,
+    reorderPromotionEntries: entries.reorder,
+
+    addSpecialHour: hours.add,
+    removeSpecialHour: hours.remove,
+    updateSpecialHour: (id, field, value) =>
+      hours.update(id, { [field]: value } as Partial<SpecialHour>),
+    moveSpecialHourUp: hours.moveUp,
+    moveSpecialHourDown: hours.moveDown,
+    reorderSpecialHours: hours.reorder,
+
+    addHowToShopItem: howToShop.add,
+    removeHowToShopItem: howToShop.remove,
+    updateHowToShopItem: (id, text) => howToShop.update(id, { text }),
+    moveHowToShopItemUp: howToShop.moveUp,
+    moveHowToShopItemDown: howToShop.moveDown,
+    reorderHowToShopItems: howToShop.reorder,
+    toggleHowToShopFormat: (id, format) =>
+      set((s) => ({
+        howToShopItems: toggleItemFormat(s.howToShopItems, id, format),
+      })),
+
+    addImportantNotesItem: notes.add,
+    removeImportantNotesItem: notes.remove,
+    updateImportantNotesItem: (id, text) => notes.update(id, { text }),
+    moveImportantNotesItemUp: notes.moveUp,
+    moveImportantNotesItemDown: notes.moveDown,
+    reorderImportantNotesItems: notes.reorder,
+    toggleImportantNotesFormat: (id, format) =>
+      set((s) => ({
+        importantNotesItems: toggleItemFormat(
+          s.importantNotesItems,
+          id,
+          format
+        ),
+      })),
   };
 }
 
@@ -418,55 +570,8 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       bulkEmailHasRecipients: text.trim().length > 0,
     }),
 
-  // ===== Promotion Entry Actions =====
-
-  addPromotionEntry: () =>
-    set((state) => ({
-      promotionEntries: [
-        ...state.promotionEntries,
-        {
-          id: generateId(),
-          line: '',
-          collections: '',
-          callout: '',
-        },
-      ],
-    })),
-
-  removePromotionEntry: (id: number) =>
-    set((state) => ({
-      promotionEntries: state.promotionEntries.filter((e) => e.id !== id),
-    })),
-
-  updatePromotionEntry: (
-    id: number,
-    field: keyof Pick<PromotionEntry, 'line' | 'collections' | 'callout'>,
-    value: string
-  ) =>
-    set((state) => ({
-      promotionEntries: state.promotionEntries.map((entry) =>
-        entry.id === id ? { ...entry, [field]: value } : entry
-      ),
-    })),
-
-  movePromotionEntryUp: (id: number) =>
-    set((state) => ({
-      promotionEntries: moveItemUp(state.promotionEntries, id),
-    })),
-
-  movePromotionEntryDown: (id: number) =>
-    set((state) => ({
-      promotionEntries: moveItemDown(state.promotionEntries, id),
-    })),
-
-  reorderPromotionEntries: (oldIndex: number, newIndex: number) =>
-    set((state) => ({
-      promotionEntries: reorderItems(
-        state.promotionEntries,
-        oldIndex,
-        newIndex
-      ),
-    })),
+  // ===== List CRUD Actions (entries, hours, how-to-shop, notes) =====
+  ...createPromotionListActions(set),
 
   toggleEntryCollapse: (id: number) =>
     set((state) => ({
@@ -474,161 +579,6 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         ...state.entryCollapsedStates,
         [id]: !state.entryCollapsedStates[id],
       },
-    })),
-
-  // ===== Special Hours Actions =====
-
-  addSpecialHour: () =>
-    set((state) => ({
-      specialHours: [
-        ...state.specialHours,
-        {
-          id: generateId(),
-          day: '',
-          hours: '',
-        },
-      ],
-    })),
-
-  removeSpecialHour: (id: number) =>
-    set((state) => ({
-      specialHours: state.specialHours.filter((h) => h.id !== id),
-    })),
-
-  updateSpecialHour: (
-    id: number,
-    field: keyof Pick<SpecialHour, 'day' | 'hours'>,
-    value: string
-  ) =>
-    set((state) => ({
-      specialHours: state.specialHours.map((hour) =>
-        hour.id === id ? { ...hour, [field]: value } : hour
-      ),
-    })),
-
-  moveSpecialHourUp: (id: number) =>
-    set((state) => ({
-      specialHours: moveItemUp(state.specialHours, id),
-    })),
-
-  moveSpecialHourDown: (id: number) =>
-    set((state) => ({
-      specialHours: moveItemDown(state.specialHours, id),
-    })),
-
-  reorderSpecialHours: (oldIndex: number, newIndex: number) =>
-    set((state) => ({
-      specialHours: reorderItems(state.specialHours, oldIndex, newIndex),
-    })),
-
-  // ===== How to Shop Actions =====
-
-  addHowToShopItem: () =>
-    set((state) => ({
-      howToShopItems: [
-        ...state.howToShopItems,
-        {
-          id: generateId(),
-          text: '',
-          bold: false,
-          italic: false,
-          underline: false,
-        },
-      ],
-    })),
-
-  removeHowToShopItem: (id: number) =>
-    set((state) => ({
-      howToShopItems: state.howToShopItems.filter((i) => i.id !== id),
-    })),
-
-  updateHowToShopItem: (id: number, text: string) =>
-    set((state) => ({
-      howToShopItems: state.howToShopItems.map((item) =>
-        item.id === id ? { ...item, text } : item
-      ),
-    })),
-
-  moveHowToShopItemUp: (id: number) =>
-    set((state) => ({
-      howToShopItems: moveItemUp(state.howToShopItems, id),
-    })),
-
-  moveHowToShopItemDown: (id: number) =>
-    set((state) => ({
-      howToShopItems: moveItemDown(state.howToShopItems, id),
-    })),
-
-  reorderHowToShopItems: (oldIndex: number, newIndex: number) =>
-    set((state) => ({
-      howToShopItems: reorderItems(state.howToShopItems, oldIndex, newIndex),
-    })),
-
-  toggleHowToShopFormat: (
-    id: number,
-    format: 'bold' | 'italic' | 'underline'
-  ) =>
-    set((state) => ({
-      howToShopItems: state.howToShopItems.map((item) =>
-        item.id === id ? { ...item, [format]: !item[format] } : item
-      ),
-    })),
-
-  // ===== Important Notes Actions =====
-
-  addImportantNotesItem: () =>
-    set((state) => ({
-      importantNotesItems: [
-        ...state.importantNotesItems,
-        {
-          id: generateId(),
-          text: '',
-          bold: false,
-          italic: false,
-          underline: false,
-        },
-      ],
-    })),
-
-  removeImportantNotesItem: (id: number) =>
-    set((state) => ({
-      importantNotesItems: state.importantNotesItems.filter((i) => i.id !== id),
-    })),
-
-  updateImportantNotesItem: (id: number, text: string) =>
-    set((state) => ({
-      importantNotesItems: state.importantNotesItems.map((item) =>
-        item.id === id ? { ...item, text } : item
-      ),
-    })),
-
-  moveImportantNotesItemUp: (id: number) =>
-    set((state) => ({
-      importantNotesItems: moveItemUp(state.importantNotesItems, id),
-    })),
-
-  moveImportantNotesItemDown: (id: number) =>
-    set((state) => ({
-      importantNotesItems: moveItemDown(state.importantNotesItems, id),
-    })),
-
-  reorderImportantNotesItems: (oldIndex: number, newIndex: number) =>
-    set((state) => ({
-      importantNotesItems: reorderItems(
-        state.importantNotesItems,
-        oldIndex,
-        newIndex
-      ),
-    })),
-
-  toggleImportantNotesFormat: (
-    id: number,
-    format: 'bold' | 'italic' | 'underline'
-  ) =>
-    set((state) => ({
-      importantNotesItems: state.importantNotesItems.map((item) =>
-        item.id === id ? { ...item, [format]: !item[format] } : item
-      ),
     })),
 
   // ===== Section Box Style Actions =====
