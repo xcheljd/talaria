@@ -13,7 +13,6 @@ import {
   getStorePlusCode,
 } from './profile';
 import {
-  DEFAULT_NEWSLETTER_STYLE,
   type PromotionEntry,
   type SpecialHour,
   type HowToShopItem,
@@ -21,19 +20,11 @@ import {
   type NewsletterPosition,
   type NewsletterStyle,
 } from '@/stores/promotion-store';
-import {
-  parsePromotionEntries,
-  parseSpecialHours,
-  parseFormattableItems,
-  parseSectionBoxStyle,
-  parseNewsletterStyle,
-  parseEmailPalette,
-  parseStringArray,
-} from './promotion-config-schema';
 import { generatePromoTitle } from './holiday-dates';
 
-// Re-exported for callers/tests that import it from this module
+// Re-exported for callers/tests that import them from this module
 export { generatePromoTitle };
+export { buildExportConfig, validateImportConfig } from './promotion-config';
 
 // ===== Email Palette =====
 
@@ -922,138 +913,4 @@ function buildEntryHTML(
   }
 
   return html;
-}
-
-// ===== Export Config Builder =====
-
-/**
- * Build a promotion config object for JSON export.
- */
-export function buildExportConfig(
-  data: PromotionEmailData,
-  attachedPDFs: Array<{ id: string; name: string; size: number; type: string }>,
-  generatedSubjectLines: string[],
-  selectedSubjectLine: string | null,
-  newsletterStyle?: NewsletterStyle,
-  emailPalette?: EmailPalette
-): PromotionConfigForExport {
-  return {
-    templateType: 'promotion-email',
-    version: 1,
-    dateRange: data.promoDateRange,
-    year: data.promoYear,
-    title: data.promoTitle,
-    promotionEntries: data.promotionEntries.map((e) => ({
-      id: e.id,
-      line: e.line,
-      collections: e.collections,
-      callout: e.callout,
-    })),
-    specialHours: data.specialHours.map((h) => ({
-      id: h.id,
-      day: h.day,
-      hours: h.hours,
-    })),
-    howToShopItems: data.howToShopItems.map((i) => ({
-      id: i.id,
-      text: i.text,
-      bold: i.bold,
-      italic: i.italic,
-      underline: i.underline,
-    })),
-    importantNotesItems: data.importantNotesItems.map((i) => ({
-      id: i.id,
-      text: i.text,
-      bold: i.bold,
-      italic: i.italic,
-      underline: i.underline,
-    })),
-    howToShopStyle: data.howToShopStyle,
-    importantNotesStyle: data.importantNotesStyle,
-    attachedPDFs: attachedPDFs.map((p) => ({
-      id: p.id,
-      name: p.name,
-      size: p.size,
-      type: p.type,
-    })),
-    generatedSubjectLines: [...generatedSubjectLines],
-    selectedSubjectLine,
-    preheaderText: data.preheaderText,
-    newsletterHeading: data.newsletterHeading,
-    newsletterBody: data.newsletterBody,
-    newsletterPosition: data.newsletterPosition,
-    newsletterStyle: newsletterStyle || { ...DEFAULT_NEWSLETTER_STYLE },
-    newsletterVisible: data.newsletterVisible,
-    emailPalette: emailPalette || data.emailPalette,
-  };
-}
-
-/**
- * Validate and normalize an imported config object.
- */
-export function validateImportConfig(
-  raw: unknown
-):
-  | { ok: true; config: PromotionConfigForExport }
-  | { ok: false; reason: string } {
-  if (!raw || typeof raw !== 'object') {
-    return { ok: false, reason: 'notObject' };
-  }
-
-  const config = raw as Record<string, unknown>;
-
-  if (config.templateType && config.templateType !== 'promotion-email') {
-    return { ok: false, reason: 'wrongType' };
-  }
-
-  if (!Array.isArray(config.promotionEntries)) {
-    return { ok: false, reason: 'promotionEntriesNotArray' };
-  }
-
-  if (!Array.isArray(config.specialHours)) {
-    return { ok: false, reason: 'specialHoursNotArray' };
-  }
-
-  // Normalize: howToShopItems and importantNotesItems default to []
-  if (config.howToShopItems && !Array.isArray(config.howToShopItems)) {
-    return { ok: false, reason: 'howToShopItemsNotArray' };
-  }
-
-  if (
-    config.importantNotesItems &&
-    !Array.isArray(config.importantNotesItems)
-  ) {
-    return { ok: false, reason: 'importantNotesItemsNotArray' };
-  }
-
-  const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
-
-  return {
-    ok: true,
-    config: {
-      templateType: 'promotion-email',
-      version: typeof config.version === 'number' ? config.version : 1,
-      dateRange: asString(config.dateRange) || asString(config.promoDateRange),
-      year: asString(config.year) || asString(config.promoYear),
-      title: asString(config.title) || asString(config.promoTitle),
-      promotionEntries: parsePromotionEntries(config.promotionEntries),
-      specialHours: parseSpecialHours(config.specialHours),
-      howToShopItems: parseFormattableItems(config.howToShopItems),
-      importantNotesItems: parseFormattableItems(config.importantNotesItems),
-      howToShopStyle: parseSectionBoxStyle(config.howToShopStyle),
-      importantNotesStyle: parseSectionBoxStyle(config.importantNotesStyle),
-      attachedPDFs:
-        (config.attachedPDFs as PromotionConfigForExport['attachedPDFs']) || [],
-      generatedSubjectLines: parseStringArray(config.generatedSubjectLines),
-      selectedSubjectLine: asString(config.selectedSubjectLine) || null,
-      preheaderText: asString(config.preheaderText),
-      newsletterHeading: asString(config.newsletterHeading) || 'Newsletter',
-      newsletterBody: asString(config.newsletterBody),
-      newsletterPosition:
-        config.newsletterPosition === 'bottom' ? 'bottom' : 'top',
-      newsletterStyle: parseNewsletterStyle(config.newsletterStyle),
-      newsletterVisible: config.newsletterVisible === true,
-      emailPalette: parseEmailPalette(config.emailPalette),
-    },
-  };
 }
