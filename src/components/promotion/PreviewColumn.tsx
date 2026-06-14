@@ -1,0 +1,639 @@
+/**
+ * PreviewColumn — the right-hand pane of the promotion builder: live email
+ * preview (desktop/mobile, light/dark), HTML source tab, and the
+ * import/export/download/print/generate actions. Extracted from PromotionPage.
+ */
+
+import { useState, useCallback, useMemo, useRef } from 'react';
+import {
+  RotateCcw,
+  Eye,
+  Code,
+  Mail,
+  FileDown,
+  FileCode,
+  Download,
+  Upload,
+  Monitor,
+  Smartphone,
+  Sun,
+  Moon,
+  Printer,
+  Loader2,
+} from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
+import { toast } from 'sonner';
+
+import { usePromotionStore } from '@/stores/promotion-store';
+import {
+  generatePromotionEmailHTML,
+  buildExportConfig,
+  validateImportConfig,
+  buildDarkModePalette,
+} from '@/lib/promotion-email-html';
+import { buildPromotionEmailData } from '@/lib/newsletter-utils';
+import { prependHeadingIfMissing } from '@/lib/html-utils';
+import { cn } from '@/lib/utils';
+import {
+  createEMLFile,
+  formatDateRangeForFilename,
+  resolvePromoSubject,
+} from '@/lib/emailUtils';
+import { getRecommendedFormat } from '@/lib/ui-utils';
+import { saveBlob } from '@/lib/file-save';
+import { getStoreEmail, getEmployeeName } from '@/lib/profile';
+import { generateEmailBatches } from '@/lib/bulk-email-generation';
+import { StorageKeys } from '@/lib/storage-keys';
+
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
+import { selectEmailDataSource } from './email-data-source';
+
+// ===== Download Helpers =====
+
+function promoDraftDateSuffix(dateRange: string): string {
+  if (dateRange) {
+    const formatted = formatDateRangeForFilename(dateRange);
+    if (formatted) return formatted;
+  }
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+async function downloadBlob(blob: Blob, filename: string): Promise<void> {
+  await saveBlob(blob, filename);
+}
+
+// ===== Preview Column Component =====
+
+export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
+  const store = usePromotionStore(
+    useShallow((s) => ({
+      ...selectEmailDataSource(s),
+      attachedPDFs: s.attachedPDFs,
+      generatedSubjectLines: s.generatedSubjectLines,
+      selectedSubjectLine: s.selectedSubjectLine,
+      bulkEmailGenerating: s.bulkEmailGenerating,
+      bulkEmailProgress: s.bulkEmailProgress,
+      setPromoDateRange: s.setPromoDateRange,
+      setPromoYear: s.setPromoYear,
+      setPromoTitle: s.setPromoTitle,
+      resetState: s.resetState,
+      initializeDefaultItems: s.initializeDefaultItems,
+    }))
+  );
+  const [activeTab, setActiveTab] = useState('preview');
+  const [previewWidth, setPreviewWidth] = useState<'desktop' | 'mobile'>(
+    'desktop'
+  );
+  const [previewDark, setPreviewDark] = useState(false);
+  const [showGenerateWarning, setShowGenerateWarning] = useState(false);
+  const [generateWarnings, setGenerateWarnings] = useState<string[]>([]);
+
+  // Re-render with dark palette; only computed when dark preview is active.
+  // emailHTML captures all store-data changes, so it covers the darkModeHTML deps too.
+  const darkModeHTML = useMemo(() => {
+    if (!emailHTML || !previewDark) return '';
+    return generatePromotionEmailHTML(
+      buildPromotionEmailData(store, buildDarkModePalette(store.emailPalette))
+    );
+  }, [emailHTML, previewDark, store]);
+
+  // Download Email Draft (single EML)
+  const handleDownloadDraft = useCallback(async () => {
+    if (!emailHTML) {
+      toast.error('No email content to download');
+      return;
+    }
+
+    try {
+      const fromName = getEmployeeName();
+      const fromEmail = getStoreEmail();
+      const subject = resolvePromoSubject(
+        store.selectedSubjectLine,
+        store.promoTitle
+      );
+
+      // Get PDF attachments
+      const attachments = store.attachedPDFs
+        .filter((pdf) => pdf.data)
+        .map((pdf) => ({ name: pdf.name, data: pdf.data }));
+
+      const emlContent = await createEMLFile(
+        fromName,
+        fromEmail,
+        '',
+        '',
+        subject,
+        emailHTML,
+        attachments
+      );
+
+      const blob = new Blob([emlContent], {
+        type: 'message/rfc822',
+      });
+      const suffix = promoDraftDateSuffix(store.promoDateRange);
+      const extension = getRecommendedFormat();
+      await downloadBlob(blob, `promo-email-draft.${suffix}.${extension}`);
+      toast.success('Email draft downloaded');
+    } catch (error) {
+      console.error('Download draft error:', error);
+      toast.error('Failed to download email draft');
+    }
+  }, [
+    emailHTML,
+    store.selectedSubjectLine,
+    store.promoTitle,
+    store.attachedPDFs,
+    store.promoDateRange,
+  ]);
+
+  // Download HTML
+  const handleDownloadHTML = useCallback(async () => {
+    if (!emailHTML) {
+      toast.error('No HTML content to download');
+      return;
+    }
+
+    const blob = new Blob([emailHTML], { type: 'text/html' });
+    const suffix = promoDraftDateSuffix(store.promoDateRange);
+    await downloadBlob(blob, `promo-email-draft.${suffix}.html`);
+    toast.success('HTML file downloaded');
+  }, [emailHTML, store.promoDateRange]);
+
+  // Start Over
+  const handleStartOver = useCallback(() => {
+    store.resetState();
+    store.initializeDefaultItems();
+    localStorage.removeItem(StorageKeys.promotionBuilderState);
+    toast.success('Reset to defaults completed');
+  }, [store]);
+
+  // Export Config
+  const handleExportConfig = useCallback(async () => {
+    try {
+      const data = buildPromotionEmailData(store);
+
+      const config = buildExportConfig(
+        data,
+        store.attachedPDFs,
+        store.generatedSubjectLines,
+        store.selectedSubjectLine,
+        store.newsletterStyle,
+        store.emailPalette
+      );
+
+      const jsonStr = JSON.stringify(config, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      await downloadBlob(
+        blob,
+        `promotion-template-${new Date().toISOString().split('T')[0]}.json`
+      );
+      toast.success('Config exported successfully');
+    } catch (error) {
+      console.error('Export config error:', error);
+      toast.error('Failed to export config');
+    }
+  }, [store]);
+
+  // Import Config
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const handleImportConfig = useCallback(() => {
+    importInputRef.current?.click();
+  }, []);
+
+  const handleImportFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const raw = JSON.parse(event.target?.result as string);
+          const validation = validateImportConfig(raw);
+
+          if (!validation.ok) {
+            toast.error(`Invalid config: ${validation.reason}`);
+            return;
+          }
+
+          const config = validation.config;
+
+          // Apply imported config to store
+          store.setPromoDateRange(config.dateRange);
+          store.setPromoYear(config.year);
+          store.setPromoTitle(config.title);
+
+          // Migration: if imported body doesn't start with an H2 but has
+          // a heading, prepend the heading as an H2 element in the body
+          const importedHeading = config.newsletterHeading || '';
+          const importedBody = prependHeadingIfMissing(
+            config.newsletterBody || '',
+            importedHeading
+          );
+
+          usePromotionStore.setState({
+            promotionEntries: config.promotionEntries,
+            specialHours: config.specialHours,
+            howToShopItems: config.howToShopItems,
+            importantNotesItems: config.importantNotesItems,
+            howToShopStyle: config.howToShopStyle || {
+              borderColor: null,
+              backgroundColor: null,
+            },
+            importantNotesStyle: config.importantNotesStyle || {
+              borderColor: null,
+              backgroundColor: null,
+            },
+            generatedSubjectLines: config.generatedSubjectLines,
+            selectedSubjectLine: config.selectedSubjectLine,
+            preheaderText: config.preheaderText || '',
+            newsletterHeading: importedHeading,
+            newsletterBody: importedBody,
+            newsletterPosition: config.newsletterPosition,
+            newsletterVisible: config.newsletterVisible ?? false,
+            newsletterStyle: config.newsletterStyle || {
+              borderColor: null,
+              backgroundColor: null,
+              headingColor: null,
+              borderStyle: 'left',
+              headingAlign: 'left',
+            },
+            ...(config.emailPalette
+              ? { emailPalette: config.emailPalette }
+              : {}),
+          });
+
+          toast.success('Config imported successfully');
+        } catch (error) {
+          console.error('Import config error:', error);
+          toast.error('Failed to import config — invalid JSON');
+        }
+      };
+      reader.readAsText(file);
+
+      // Reset input so the same file can be re-selected
+      e.target.value = '';
+    },
+    [store]
+  );
+
+  const hasContent = !!emailHTML;
+
+  const handleGenerateClick = useCallback(() => {
+    const warnings: string[] = [];
+    if (!store.selectedSubjectLine?.trim()) {
+      warnings.push(
+        'Subject line is empty — emails will send with "Promotion" as the subject'
+      );
+    }
+    if (!store.preheaderText?.trim()) {
+      warnings.push(
+        'Preheader text is empty — inbox preview will show your email title instead'
+      );
+    }
+    if (store.attachedPDFs.length === 0) {
+      warnings.push(
+        'No PDF attachments — add any flyers or documents if needed'
+      );
+    }
+    if (warnings.length > 0) {
+      setGenerateWarnings(warnings);
+      setShowGenerateWarning(true);
+    } else {
+      generateEmailBatches();
+    }
+  }, [store.selectedSubjectLine, store.preheaderText, store.attachedPDFs]);
+
+  const handlePrint = useCallback(() => {
+    if (!emailHTML) return;
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-9999px';
+    iframe.style.width = '600px';
+    iframe.style.height = '800px';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+    if (!doc) {
+      document.body.removeChild(iframe);
+      return;
+    }
+    doc.open();
+    doc.write(emailHTML);
+    doc.close();
+    const fallback = setTimeout(() => {
+      if (document.body.contains(iframe)) document.body.removeChild(iframe);
+    }, 5000);
+    iframe.contentWindow?.addEventListener(
+      'afterprint',
+      () => {
+        clearTimeout(fallback);
+        if (document.body.contains(iframe)) document.body.removeChild(iframe);
+      },
+      { once: true }
+    );
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+  }, [emailHTML]);
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* Hidden file input for import */}
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={handleImportFileChange}
+        data-testid="import-config-input"
+      />
+
+      {/* Preview Header */}
+      <div className="flex items-center justify-between border-b px-4 py-2">
+        <h2 className="text-sm font-semibold">Email Preview</h2>
+
+        <div className="flex items-center gap-1.5">
+          {/* Import */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={handleImportConfig}
+            aria-label="Import"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Import
+          </Button>
+
+          {/* Export */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={handleExportConfig}
+            disabled={!hasContent}
+            aria-label="Export"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </Button>
+
+          {/* Start Over with AlertDialog */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="gap-1.5">
+                <RotateCcw className="h-3.5 w-3.5" />
+                Start Over
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset to Defaults</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will reset everything to defaults and cannot be undone.
+                  All promotion data, entries, and attachments will be cleared.
+                  Your bulk email recipient list is kept. Continue?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleStartOver}>
+                  Reset
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+
+      {/* Preview Tabs */}
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="flex flex-1 flex-col overflow-hidden"
+      >
+        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
+          <TabsTrigger
+            value="preview"
+            className="gap-1.5 rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Preview
+          </TabsTrigger>
+          <TabsTrigger
+            value="code"
+            className="gap-1.5 rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+          >
+            <Code className="h-3.5 w-3.5" />
+            HTML Code
+          </TabsTrigger>
+          {/* Preview Width Toggle */}
+          <div className="ml-auto flex items-center gap-0.5 pr-2">
+            <button
+              type="button"
+              onClick={() => setPreviewWidth('desktop')}
+              className={cn(
+                'rounded p-1 transition-colors',
+                previewWidth === 'desktop'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              title="Desktop preview (600px)"
+              aria-label="Desktop preview"
+              aria-pressed={previewWidth === 'desktop'}
+            >
+              <Monitor className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewWidth('mobile')}
+              className={cn(
+                'rounded p-1 transition-colors',
+                previewWidth === 'mobile'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              title="Mobile preview (320px)"
+              aria-label="Mobile preview"
+              aria-pressed={previewWidth === 'mobile'}
+            >
+              <Smartphone className="h-3.5 w-3.5" />
+            </button>
+            <div className="mx-1 h-4 w-px bg-border" />
+            <button
+              type="button"
+              onClick={() => setPreviewDark((d) => !d)}
+              className={cn(
+                'rounded p-1 transition-colors',
+                previewDark
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              title={previewDark ? 'Light mode preview' : 'Dark mode preview'}
+              aria-label={
+                previewDark
+                  ? 'Switch to light preview'
+                  : 'Switch to dark preview'
+              }
+              aria-pressed={previewDark}
+            >
+              {previewDark ? (
+                <Sun className="h-3.5 w-3.5" />
+              ) : (
+                <Moon className="h-3.5 w-3.5" />
+              )}
+            </button>
+            <div className="mx-1 h-4 w-px bg-border" />
+            <button
+              type="button"
+              onClick={handlePrint}
+              disabled={!hasContent}
+              className={cn(
+                'rounded p-1 transition-colors',
+                hasContent
+                  ? 'text-muted-foreground hover:text-foreground'
+                  : 'text-muted-foreground/40 cursor-not-allowed'
+              )}
+              title="Print email"
+              aria-label="Print email"
+            >
+              <Printer className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </TabsList>
+
+        <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
+          {hasContent ? (
+            <div
+              className={cn(
+                'h-full mx-auto transition-all duration-200',
+                previewWidth === 'mobile'
+                  ? 'max-w-[320px] border-x border-dashed'
+                  : 'w-full'
+              )}
+            >
+              <iframe
+                srcDoc={
+                  emailHTML
+                    ? previewDark
+                      ? darkModeHTML
+                      : emailHTML
+                    : `<html><body style="display:flex;align-items:center;justify-content:center;min-height:400px;font-family:system-ui,sans-serif;color:#888;"><p style="text-align:center;">Enter promotion details to see preview</p></body></html>`
+                }
+                className="h-full w-full border-0"
+                title="Email Preview"
+                sandbox="allow-same-origin"
+              />
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center p-4">
+              <div className="flex min-h-[400px] w-full items-center justify-center rounded-lg border border-dashed">
+                <p className="text-sm text-muted-foreground">
+                  Enter promotion details to see preview
+                </p>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="code" className="flex-1 m-0 overflow-hidden">
+          <div className="h-full p-4">
+            <textarea
+              className="h-full w-full rounded-md border bg-muted/50 p-3 font-mono text-xs"
+              value={emailHTML || ''}
+              placeholder="HTML code will appear here..."
+              readOnly
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Preview Actions */}
+      <div className="flex flex-wrap gap-2 border-t px-4 py-3">
+        <Button
+          size="sm"
+          className="gap-1.5"
+          disabled={!hasContent || store.bulkEmailGenerating}
+          onClick={handleGenerateClick}
+        >
+          {store.bulkEmailGenerating ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Generating... {store.bulkEmailProgress}
+            </>
+          ) : (
+            <>
+              <Mail className="h-3.5 w-3.5" />
+              Generate Email Batches
+            </>
+          )}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={handleDownloadDraft}
+          disabled={!hasContent}
+        >
+          <FileDown className="h-3.5 w-3.5" />
+          Download Email Draft
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={handleDownloadHTML}
+          disabled={!hasContent}
+        >
+          <FileCode className="h-3.5 w-3.5" />
+          Download HTML
+        </Button>
+      </div>
+
+      {/* Pre-generate warning dialog */}
+      <AlertDialog
+        open={showGenerateWarning}
+        onOpenChange={setShowGenerateWarning}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Before you generate...</AlertDialogTitle>
+            <AlertDialogDescription>
+              The following fields were left empty. You can go back and fill
+              them in, or generate anyway.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="space-y-2 text-sm">
+            {generateWarnings.map((w) => (
+              <li key={w} className="flex items-start gap-2">
+                <span className="mt-0.5 text-amber-500">⚠</span>
+                <span>{w}</span>
+              </li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go Back</AlertDialogCancel>
+            <AlertDialogAction onClick={() => generateEmailBatches()}>
+              Generate Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
