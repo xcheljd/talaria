@@ -347,6 +347,40 @@ describe('buildExportConfig', () => {
     expect(config.newsletterBody).toBe('');
     expect(config.newsletterPosition).toBe('top');
   });
+
+  it('embeds PDF data when includePdfData is set', () => {
+    const data = makeEmailData();
+    const pdfs = [
+      {
+        id: '1',
+        name: 'test.pdf',
+        size: 1024,
+        type: 'application/pdf',
+        data: 'data:application/pdf;base64,abc',
+      },
+    ];
+    const config = buildExportConfig(data, pdfs, [], null, undefined, undefined, {
+      includePdfData: true,
+    });
+    expect(config.attachedPDFs[0].data).toBe('data:application/pdf;base64,abc');
+  });
+
+  it('omits bulk recipients by default', () => {
+    const data = makeEmailData();
+    const config = buildExportConfig(data, [], [], null, undefined, undefined, {
+      bulkEmailRecipients: 'a@x.com, b@x.com',
+    });
+    expect(config.bulkEmailRecipients).toBeUndefined();
+  });
+
+  it('embeds bulk recipients when includeRecipients is set', () => {
+    const data = makeEmailData();
+    const config = buildExportConfig(data, [], [], null, undefined, undefined, {
+      includeRecipients: true,
+      bulkEmailRecipients: 'a@x.com, b@x.com',
+    });
+    expect(config.bulkEmailRecipients).toBe('a@x.com, b@x.com');
+  });
 });
 
 describe('validateImportConfig', () => {
@@ -401,6 +435,29 @@ describe('validateImportConfig', () => {
     if (result.ok) {
       expect(result.config.dateRange).toBe('Nov 28 - Dec 1');
       expect(result.config.promotionEntries).toHaveLength(1);
+    }
+  });
+
+  it('passes through bulk recipients when present', () => {
+    const result = validateImportConfig({
+      promotionEntries: [],
+      specialHours: [],
+      bulkEmailRecipients: 'a@x.com, b@x.com',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.bulkEmailRecipients).toBe('a@x.com, b@x.com');
+    }
+  });
+
+  it('leaves bulk recipients undefined when absent', () => {
+    const result = validateImportConfig({
+      promotionEntries: [],
+      specialHours: [],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.bulkEmailRecipients).toBeUndefined();
     }
   });
 

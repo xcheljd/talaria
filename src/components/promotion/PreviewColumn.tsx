@@ -44,8 +44,10 @@ import { saveBlob } from '@/lib/file-save';
 import { getStoreEmail, getEmployeeName } from '@/lib/profile';
 import { generateEmailBatches } from '@/lib/bulk-email-generation';
 import { StorageKeys } from '@/lib/storage-keys';
+import { saveBulkEmailRecipientsToIndexedDB } from '@/lib/db';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   AlertDialog,
@@ -89,6 +91,10 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
       selectedSubjectLine: s.selectedSubjectLine,
       bulkEmailGenerating: s.bulkEmailGenerating,
       bulkEmailProgress: s.bulkEmailProgress,
+      bulkEmailRecipients: s.bulkEmailRecipients,
+      setBulkEmailRecipients: s.setBulkEmailRecipients,
+      addPDF: s.addPDF,
+      clearAllPDFs: s.clearAllPDFs,
       setPromoDateRange: s.setPromoDateRange,
       setPromoYear: s.setPromoYear,
       setPromoTitle: s.setPromoTitle,
@@ -103,6 +109,18 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
   const [previewDark, setPreviewDark] = useState(false);
   const [showGenerateWarning, setShowGenerateWarning] = useState(false);
   const [generateWarnings, setGenerateWarnings] = useState<string[]>([]);
+
+  // Export options dialog (Recipients OFF, PDFs ON; reset to defaults each open)
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportIncludeRecipients, setExportIncludeRecipients] = useState(false);
+  const [exportIncludePdfData, setExportIncludePdfData] = useState(true);
+
+  const openExportDialog = useCallback(() => {
+    // Always reset to defaults when opening (no persistence)
+    setExportIncludeRecipients(false);
+    setExportIncludePdfData(true);
+    setExportDialogOpen(true);
+  }, []);
 
   // Re-render with dark palette; only computed when dark preview is active.
   // emailHTML captures all store-data changes, so it covers the darkModeHTML deps too.
@@ -183,8 +201,9 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
     toast.success('Reset to defaults completed');
   }, [store]);
 
-  // Export Config
+  // Export Config — runs with the options chosen in the export dialog
   const handleExportConfig = useCallback(async () => {
+    setExportDialogOpen(false);
     try {
       const data = buildPromotionEmailData(store);
 
@@ -194,7 +213,12 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
         store.generatedSubjectLines,
         store.selectedSubjectLine,
         store.newsletterStyle,
-        store.emailPalette
+        store.emailPalette,
+        {
+          includeRecipients: exportIncludeRecipients,
+          includePdfData: exportIncludePdfData,
+          bulkEmailRecipients: store.bulkEmailRecipients,
+        }
       );
 
       const jsonStr = JSON.stringify(config, null, 2);
@@ -208,7 +232,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
       console.error('Export config error:', error);
       toast.error('Failed to export config');
     }
-  }, [store]);
+  }, [store, exportIncludeRecipients, exportIncludePdfData]);
 
   // Import Config
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -222,7 +246,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const raw = JSON.parse(event.target?.result as string);
           const validation = validateImportConfig(raw);
@@ -278,6 +302,37 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
               ? { emailPalette: config.emailPalette }
               : {}),
           });
+
+          // Restore embedded PDF files, if the export included their data.
+          // Replaces current attachments only when the import actually carries
+          // file bytes; metadata-only exports leave existing PDFs untouched.
+          const importedPDFs = (config.attachedPDFs ?? []).filter(
+            (p) => typeof p.data === 'string'
+          );
+          if (importedPDFs.length > 0) {
+            await store.clearAllPDFs();
+            for (const p of importedPDFs) {
+              await store.addPDF({
+                id: p.id,
+                name: p.name,
+                size: p.size,
+                type: p.type,
+                data: p.data,
+              });
+            }
+          }
+
+          // Restore bulk recipients, if the export included them.
+          if (typeof config.bulkEmailRecipients === 'string') {
+            store.setBulkEmailRecipients(config.bulkEmailRecipients);
+            try {
+              await saveBulkEmailRecipientsToIndexedDB(
+                config.bulkEmailRecipients
+              );
+            } catch {
+              // Non-blocking: recipients are in memory even if persistence fails
+            }
+          }
 
           toast.success('Config imported successfully');
         } catch (error) {
@@ -385,7 +440,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
             variant="ghost"
             size="sm"
             className="gap-1.5 text-xs"
-            onClick={handleExportConfig}
+            onClick={openExportDialog}
             disabled={!hasContent}
             aria-label="Export"
           >
@@ -604,6 +659,56 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           Download HTML
         </Button>
       </div>
+
+      {/* Export options dialog */}
+      <AlertDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Export options</AlertDialogTitle>
+            <AlertDialogDescription>
+              Choose what to include in the exported template file.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 py-1">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <Checkbox
+                checked={exportIncludeRecipients}
+                onCheckedChange={(c) => setExportIncludeRecipients(c === true)}
+                data-testid="export-include-recipients"
+                className="mt-0.5"
+              />
+              <span className="text-sm">
+                Include bulk email recipients
+                <span className="block text-xs text-muted-foreground">
+                  Embeds your recipient list (email addresses) in the file. Off
+                  by default.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <Checkbox
+                checked={exportIncludePdfData}
+                onCheckedChange={(c) => setExportIncludePdfData(c === true)}
+                data-testid="export-include-pdfs"
+                className="mt-0.5"
+              />
+              <span className="text-sm">
+                Include PDF attachments (files)
+                <span className="block text-xs text-muted-foreground">
+                  Embeds the actual PDF files so they restore on import.
+                  Increases file size. Unchecked exports names only.
+                </span>
+              </span>
+            </label>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleExportConfig}>
+              Export
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Pre-generate warning dialog */}
       <AlertDialog

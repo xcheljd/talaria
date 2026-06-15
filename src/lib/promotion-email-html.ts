@@ -266,6 +266,8 @@ export interface PromotionConfigForExport {
     name: string;
     size: number;
     type: string;
+    /** base64 data URL — only present when the export embedded PDF files */
+    data?: string;
   }>;
   generatedSubjectLines: string[];
   selectedSubjectLine: string | null;
@@ -276,6 +278,8 @@ export interface PromotionConfigForExport {
   newsletterStyle: NewsletterStyle;
   newsletterVisible: boolean;
   emailPalette?: EmailPalette;
+  /** Raw bulk-email recipient text — only present when the export included it */
+  bulkEmailRecipients?: string;
 }
 
 // ===== Helpers =====

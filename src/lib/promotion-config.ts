@@ -26,17 +26,39 @@ import type {
 
 // ===== Export Config Builder =====
 
+/** Optional payloads the user can opt into when exporting. */
+export interface ExportOptions {
+  /** Embed the bulk-email recipient list in the config (PII; off by default). */
+  includeRecipients?: boolean;
+  /** Embed each PDF's base64 file data, not just metadata (larger file). */
+  includePdfData?: boolean;
+  /** The recipient text to embed when includeRecipients is set. */
+  bulkEmailRecipients?: string;
+}
+
 /**
  * Build a promotion config object for JSON export.
  */
 export function buildExportConfig(
   data: PromotionEmailData,
-  attachedPDFs: Array<{ id: string; name: string; size: number; type: string }>,
+  attachedPDFs: Array<{
+    id: string;
+    name: string;
+    size: number;
+    type: string;
+    data?: string;
+  }>,
   generatedSubjectLines: string[],
   selectedSubjectLine: string | null,
   newsletterStyle?: NewsletterStyle,
-  emailPalette?: EmailPalette
+  emailPalette?: EmailPalette,
+  options: ExportOptions = {}
 ): PromotionConfigForExport {
+  const {
+    includeRecipients = false,
+    includePdfData = false,
+    bulkEmailRecipients,
+  } = options;
   return {
     templateType: 'promotion-email',
     version: 1,
@@ -75,6 +97,8 @@ export function buildExportConfig(
       name: p.name,
       size: p.size,
       type: p.type,
+      // Embed the file bytes only when the user opted in; otherwise metadata only.
+      ...(includePdfData && p.data ? { data: p.data } : {}),
     })),
     generatedSubjectLines: [...generatedSubjectLines],
     selectedSubjectLine,
@@ -85,6 +109,10 @@ export function buildExportConfig(
     newsletterStyle: newsletterStyle || { ...DEFAULT_NEWSLETTER_STYLE },
     newsletterVisible: data.newsletterVisible,
     emailPalette: emailPalette || data.emailPalette,
+    // Recipients are PII, so only embedded when explicitly included.
+    ...(includeRecipients
+      ? { bulkEmailRecipients: bulkEmailRecipients ?? '' }
+      : {}),
   };
 }
 
@@ -154,6 +182,10 @@ export function validateImportConfig(
       newsletterStyle: parseNewsletterStyle(config.newsletterStyle),
       newsletterVisible: config.newsletterVisible === true,
       emailPalette: parseEmailPalette(config.emailPalette),
+      // Optional; only present when the export embedded it.
+      ...(typeof config.bulkEmailRecipients === 'string'
+        ? { bulkEmailRecipients: config.bulkEmailRecipients }
+        : {}),
     },
   };
 }
