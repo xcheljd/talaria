@@ -961,5 +961,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       entryCollapsedStates: {},
       columnState: 'left' as ColumnState,
       isInitializing: false,
+      bulkEmailRecipients: '',
+      bulkEmailHasRecipients: false,
     }),
 }));

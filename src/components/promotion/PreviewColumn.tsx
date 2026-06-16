@@ -44,7 +44,10 @@ import { saveBlob } from '@/lib/file-save';
 import { getStoreEmail, getEmployeeName } from '@/lib/profile';
 import { generateEmailBatches } from '@/lib/bulk-email-generation';
 import { StorageKeys } from '@/lib/storage-keys';
-import { saveBulkEmailRecipientsToIndexedDB } from '@/lib/db';
+import {
+  saveBulkEmailRecipientsToIndexedDB,
+  clearBulkEmailRecipientsFromIndexedDB,
+} from '@/lib/db';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -198,6 +201,8 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
     store.resetState();
     store.initializeDefaultItems();
     localStorage.removeItem(StorageKeys.promotionBuilderState);
+    // resetState clears the in-memory recipients; also drop the persisted copy.
+    void clearBulkEmailRecipientsFromIndexedDB();
     toast.success('Reset to defaults completed');
   }, [store]);
 
@@ -461,8 +466,8 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
                 <AlertDialogTitle>Reset to Defaults</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will reset everything to defaults and cannot be undone.
-                  All promotion data, entries, and attachments will be cleared.
-                  Your bulk email recipient list is kept. Continue?
+                  All promotion data, entries, attachments, and your bulk email
+                  recipient list will be cleared. Continue?
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

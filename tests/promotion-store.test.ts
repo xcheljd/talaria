@@ -969,6 +969,18 @@ describe('promotion store', () => {
       expect(state.columnState).toBe('left');
       expect(state.isInitializing).toBe(false);
     });
+
+    it('clears bulk email recipients', () => {
+      const store = getFreshStore();
+      store.setBulkEmailRecipients('a@x.com, b@x.com');
+      expect(getFreshStore().bulkEmailHasRecipients).toBe(true);
+
+      store.resetState();
+
+      const state = getFreshStore();
+      expect(state.bulkEmailRecipients).toBe('');
+      expect(state.bulkEmailHasRecipients).toBe(false);
+    });
   });
 
   // ===== Reorder Edge Cases =====
