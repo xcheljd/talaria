@@ -54,7 +54,8 @@ React Router v7 (`react-router-dom`), declared in `App.tsx`. Routes:
 - `/profile` → `ProfilePage` (read-only profile view)
 - `/profile/settings` → `ProfileSettingsPage` (edit profile + app settings)
 - `/start` → redirects to `/profile/settings` (legacy URL)
-- `/components` → `ComponentsShowcase` (dev-only shadcn component preview)
+- `/components` → `ComponentsShowcase` (shadcn component preview; route is
+  registered only when `import.meta.env.DEV`, so it is absent from production builds)
 
 All routes render inside `<Layout>` (`src/components/Layout.tsx`), which holds
 the header (logo, nav, theme toggle) and the route outlet.

@@ -22,10 +22,9 @@ import { MemoryRouter } from 'react-router-dom';
 
 import {
   generatePromotionEmailHTML,
-  buildExportConfig,
-  validateImportConfig,
   type PromotionEmailData,
 } from '@/lib/promotion-email-html';
+import { buildExportConfig, validateImportConfig } from '@/lib/promotion-config';
 import {
   sanitizeRichHTML,
   isSafeURL,

@@ -16,10 +16,9 @@ import {
 } from '@/stores/promotion-store';
 import {
   generatePromotionEmailHTML,
-  buildExportConfig,
-  validateImportConfig,
   type PromotionEmailData,
 } from '@/lib/promotion-email-html';
+import { buildExportConfig, validateImportConfig } from '@/lib/promotion-config';
 
 // Mock the db module
 vi.mock('@/lib/db', () => ({

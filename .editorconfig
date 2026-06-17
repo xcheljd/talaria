@@ -1,0 +1,19 @@
+# EditorConfig — https://editorconfig.org
+# Keeps indentation, charset, and line endings consistent across editors.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Markdown: trailing whitespace can be a meaningful line break
+[*.md]
+trim_trailing_whitespace = false
+
+# Email templates and fixtures rely on CRLF per RFC 5322 (see docs/SIGNATURE-FORMAT.md)
+[*.{eml,emltpl}]
+end_of_line = crlf

@@ -21,11 +21,10 @@ import { MemoryRouter } from 'react-router-dom';
 
 import {
   generatePromotionEmailHTML,
-  generatePromoTitle,
-  buildExportConfig,
-  validateImportConfig,
   type PromotionEmailData,
 } from '@/lib/promotion-email-html';
+import { generatePromoTitle } from '@/lib/holiday-dates';
+import { buildExportConfig, validateImportConfig } from '@/lib/promotion-config';
 
 import { PromotionPage } from '@/pages/PromotionPage';
 import { ProfileProvider } from '@/contexts/ProfileProvider';

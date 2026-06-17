@@ -42,14 +42,16 @@ function App() {
                     </ErrorBoundary>
                   }
                 />
-                <Route
-                  path="/components"
-                  element={
-                    <ErrorBoundary level="route" key="route-/components">
-                      <ComponentsShowcase />
-                    </ErrorBoundary>
-                  }
-                />
+                {import.meta.env.DEV && (
+                  <Route
+                    path="/components"
+                    element={
+                      <ErrorBoundary level="route" key="route-/components">
+                        <ComponentsShowcase />
+                      </ErrorBoundary>
+                    }
+                  />
+                )}
               </Route>
             </Routes>
           </BrowserRouter>

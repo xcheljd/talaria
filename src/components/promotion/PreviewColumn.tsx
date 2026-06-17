@@ -27,10 +27,12 @@ import { toast } from 'sonner';
 import { usePromotionStore } from '@/stores/promotion-store';
 import {
   generatePromotionEmailHTML,
-  buildExportConfig,
-  validateImportConfig,
   buildDarkModePalette,
 } from '@/lib/promotion-email-html';
+import {
+  buildExportConfig,
+  validateImportConfig,
+} from '@/lib/promotion-config';
 import { buildPromotionEmailData } from '@/lib/newsletter-utils';
 import { prependHeadingIfMissing } from '@/lib/html-utils';
 import { cn } from '@/lib/utils';
@@ -42,7 +44,10 @@ import {
 import { getRecommendedFormat } from '@/lib/ui-utils';
 import { saveBlob } from '@/lib/file-save';
 import { getStoreEmail, getEmployeeName } from '@/lib/profile';
-import { generateEmailBatches } from '@/lib/bulk-email-generation';
+import {
+  generateEmailBatches,
+  computeEmailStats,
+} from '@/lib/bulk-email-generation';
 import { StorageKeys } from '@/lib/storage-keys';
 import {
   saveBulkEmailRecipientsToIndexedDB,
@@ -357,6 +362,17 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
 
   const handleGenerateClick = useCallback(() => {
     const warnings: string[] = [];
+    const stats = computeEmailStats(store.bulkEmailRecipients);
+    if (stats.invalid > 0) {
+      warnings.push(
+        `${stats.invalid} invalid email${stats.invalid === 1 ? '' : 's'} will be skipped`
+      );
+    }
+    if (stats.duplicates > 0) {
+      warnings.push(
+        `${stats.duplicates} duplicate recipient${stats.duplicates === 1 ? '' : 's'} removed`
+      );
+    }
     if (!store.selectedSubjectLine?.trim()) {
       warnings.push(
         'Subject line is empty — emails will send with "Promotion" as the subject'
@@ -378,7 +394,12 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
     } else {
       generateEmailBatches();
     }
-  }, [store.selectedSubjectLine, store.preheaderText, store.attachedPDFs]);
+  }, [
+    store.bulkEmailRecipients,
+    store.selectedSubjectLine,
+    store.preheaderText,
+    store.attachedPDFs,
+  ]);
 
   const handlePrint = useCallback(() => {
     if (!emailHTML) return;

@@ -22,10 +22,6 @@ import {
 } from '@/stores/promotion-store';
 import { generatePromoTitle } from './holiday-dates';
 
-// Re-exported for callers/tests that import them from this module
-export { generatePromoTitle };
-export { buildExportConfig, validateImportConfig } from './promotion-config';
-
 // ===== Email Palette =====
 
 /**
