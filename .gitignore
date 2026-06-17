@@ -59,3 +59,7 @@ coverage/
 
 # Factory local config
 .factory/
+
+# Agent skills (installed via `skills add`; prefer global installs)
+.agents/
+skills-lock.json
