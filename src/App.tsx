@@ -9,8 +9,10 @@ import { TooltipProvider } from './components/ui/tooltip';
 import { ThemeProvider } from './contexts/ThemeProvider';
 import { ProfileProvider } from './contexts/ProfileProvider';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { useGlobalDropGuard } from './hooks/useGlobalDropGuard';
 
 function App() {
+  useGlobalDropGuard();
   return (
     <ThemeProvider>
       <ProfileProvider>
