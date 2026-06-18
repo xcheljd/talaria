@@ -88,18 +88,41 @@ async fn choose_download_dir(app: tauri::AppHandle) -> Result<String, String> {
     }
 }
 
-/// Read a local PDF and return its contents as a base64 data URL.
-/// Restricted to `.pdf` files under `MAX_READ_BYTES` so the webview can't ask
-/// the backend to read arbitrary files off disk.
+/// Validate a path the webview asked us to read: it must point at an existing,
+/// regular `.pdf` file. Canonicalization collapses `..` and resolves symlinks,
+/// so a crafted path can't smuggle the read somewhere unexpected.
+fn validate_readable_pdf(path: &str) -> Result<PathBuf, String> {
+    if path.is_empty() {
+        return Err("Empty path".to_string());
+    }
+    if !has_pdf_extension(path) {
+        return Err(format!("Refusing to read non-PDF file: {path}"));
+    }
+    let canonical = fs::canonicalize(path)
+        .map_err(|e| format!("Failed to resolve {path}: {e}"))?;
+    if !has_pdf_extension(&canonical.to_string_lossy()) {
+        return Err(format!("Refusing to read non-PDF file: {path}"));
+    }
+    let meta = fs::metadata(&canonical)
+        .map_err(|e| format!("Failed to read {path}: {e}"))?;
+    if !meta.is_file() {
+        return Err(format!("Not a regular file: {path}"));
+    }
+    Ok(canonical)
+}
+
+/// Read a local PDF and return its contents as a base64 data URL. The path is
+/// canonicalized and must resolve to an existing regular `.pdf` file under
+/// `MAX_READ_BYTES`. This supports the drag-and-drop attach flow, where the
+/// user supplies the file location; it does not let the webview read non-PDF
+/// files or traverse via `..`/symlinks to a non-PDF target.
 #[tauri::command]
 fn read_file_as_data_url(path: String) -> Result<String, String> {
     use base64::{engine::general_purpose::STANDARD, Engine};
 
-    if !has_pdf_extension(&path) {
-        return Err(format!("Refusing to read non-PDF file: {path}"));
-    }
+    let canonical = validate_readable_pdf(&path)?;
 
-    let metadata = fs::metadata(&path).map_err(|e| format!("Failed to read {path}: {e}"))?;
+    let metadata = fs::metadata(&canonical).map_err(|e| format!("Failed to read {path}: {e}"))?;
     if metadata.len() > MAX_READ_BYTES {
         return Err(format!(
             "File too large to read ({} bytes, max {MAX_READ_BYTES})",
@@ -107,7 +130,7 @@ fn read_file_as_data_url(path: String) -> Result<String, String> {
         ));
     }
 
-    let bytes = fs::read(&path).map_err(|e| format!("Failed to read {path}: {e}"))?;
+    let bytes = fs::read(&canonical).map_err(|e| format!("Failed to read {path}: {e}"))?;
     let b64 = STANDARD.encode(&bytes);
     Ok(format!("data:application/pdf;base64,{b64}"))
 }
@@ -186,5 +209,85 @@ mod tests {
         assert!(!has_pdf_extension("/etc/passwd"));
         assert!(!has_pdf_extension("/home/user/notes.txt"));
         assert!(!has_pdf_extension("/home/user/evil.pdf.exe"));
+    }
+
+    /// Create a unique temp dir rooted under std::env::temp_dir() using the
+    /// process id and current time nanos so parallel test runs don't collide.
+    fn make_test_dir(label: &str) -> PathBuf {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .subsec_nanos();
+        let dir = std::env::temp_dir()
+            .join(format!("cct_test_{}_{}_{}", std::process::id(), nanos, label));
+        fs::create_dir_all(&dir).expect("failed to create test dir");
+        dir
+    }
+
+    #[test]
+    fn validate_readable_pdf_accepts_real_pdf() {
+        let dir = make_test_dir("real_pdf");
+        let file = dir.join("test.pdf");
+        fs::write(&file, b"%PDF-1.4 fake").unwrap();
+
+        let result = validate_readable_pdf(file.to_str().unwrap());
+        assert!(result.is_ok(), "expected Ok, got {result:?}");
+        assert!(result.unwrap().exists());
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn validate_readable_pdf_rejects_non_pdf_extension() {
+        // Non-existent path is fine — extension check happens before fs access
+        let result = validate_readable_pdf("/tmp/secret_config.txt");
+        assert!(result.is_err());
+        let msg = result.unwrap_err();
+        assert!(
+            msg.contains("Refusing"),
+            "unexpected error message: {msg}"
+        );
+    }
+
+    #[test]
+    fn validate_readable_pdf_rejects_nonexistent_pdf() {
+        let result = validate_readable_pdf("/tmp/does_not_exist_at_all_cct_test.pdf");
+        assert!(result.is_err());
+        // canonicalize fails for a nonexistent path
+        let msg = result.unwrap_err();
+        assert!(
+            msg.contains("Failed to resolve"),
+            "unexpected error message: {msg}"
+        );
+    }
+
+    #[test]
+    fn validate_readable_pdf_rejects_directory_named_pdf() {
+        let dir = make_test_dir("dir_pdf");
+        // Create a sub-directory whose name ends in .pdf
+        let fake = dir.join("not_a_file.pdf");
+        fs::create_dir_all(&fake).unwrap();
+
+        let result = validate_readable_pdf(fake.to_str().unwrap());
+        assert!(result.is_err());
+        let msg = result.unwrap_err();
+        assert!(
+            msg.contains("Not a regular file"),
+            "unexpected error message: {msg}"
+        );
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn validate_readable_pdf_rejects_empty_path() {
+        let result = validate_readable_pdf("");
+        assert!(result.is_err());
+        let msg = result.unwrap_err();
+        assert!(
+            msg.contains("Empty path"),
+            "unexpected error message: {msg}"
+        );
     }
 }
