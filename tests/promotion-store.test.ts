@@ -928,6 +928,124 @@ describe('promotion store', () => {
         'data:application/pdf;base64,abc123'
       );
     });
+
+    it('does not warn when all PDFs restore from IndexedDB', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [
+          { id: 'pdf-1', name: 'a.pdf', size: 10, type: 'application/pdf' },
+          { id: 'pdf-2', name: 'b.pdf', size: 20, type: 'application/pdf' },
+        ],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      vi.mocked(getPDFFromIndexedDB).mockImplementation(async (id) => ({
+        id,
+        name: `${id}.pdf`,
+        data: `data:application/pdf;base64,${id}`,
+      }));
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      const state = getFreshStore();
+      expect(state.attachedPDFs).toHaveLength(2);
+      expect(state.pdfRestoreWarning).toBe(false);
+    });
+
+    it('warns when a PDF fails to restore with no legacy data', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [
+          { id: 'pdf-1', name: 'a.pdf', size: 10, type: 'application/pdf' },
+          { id: 'pdf-2', name: 'b.pdf', size: 20, type: 'application/pdf' },
+        ],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      // pdf-1 restores; pdf-2 read rejects (transient IndexedDB failure)
+      vi.mocked(getPDFFromIndexedDB).mockImplementation(async (id) => {
+        if (id === 'pdf-1') {
+          return { id, name: 'a.pdf', data: 'data:application/pdf;base64,a' };
+        }
+        throw new Error('IndexedDB read failed');
+      });
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      const state = getFreshStore();
+      expect(state.attachedPDFs).toHaveLength(1);
+      expect(state.attachedPDFs[0].id).toBe('pdf-1');
+      expect(state.pdfRestoreWarning).toBe(true);
+    });
+
+    it('clearPdfRestoreWarning resets the flag', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [
+          { id: 'pdf-1', name: 'a.pdf', size: 10, type: 'application/pdf' },
+        ],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      vi.mocked(getPDFFromIndexedDB).mockResolvedValue(null);
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+      expect(getFreshStore().pdfRestoreWarning).toBe(true);
+
+      getFreshStore().clearPdfRestoreWarning();
+      expect(getFreshStore().pdfRestoreWarning).toBe(false);
+    });
+
+    it('restores from legacy inline data without warning when IndexedDB fails', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [
+          {
+            id: 'pdf-legacy',
+            name: 'legacy.pdf',
+            size: 30,
+            type: 'application/pdf',
+            data: 'data:application/pdf;base64,legacy',
+          },
+        ],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      vi.mocked(getPDFFromIndexedDB).mockRejectedValue(
+        new Error('IndexedDB read failed')
+      );
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      const state = getFreshStore();
+      expect(state.attachedPDFs).toHaveLength(1);
+      expect(state.attachedPDFs[0].data).toBe('data:application/pdf;base64,legacy');
+      expect(state.pdfRestoreWarning).toBe(false);
+    });
   });
 
   // ===== Reset =====
