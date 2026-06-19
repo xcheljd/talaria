@@ -294,9 +294,11 @@ test.describe('QA Item 3 — Bulk email generation', () => {
     await ta.fill('good1@test.com\ngood2@test.com');
     await page.waitForTimeout(800);
 
-    // Select all and backspace
+    // Select all and backspace. Use ControlOrMeta so select-all works on both
+    // macOS (Cmd+A) and the Linux CI runners (Ctrl+A) — a bare Meta+a is a
+    // no-op on Linux, leaving text behind and failing the post-reload assertion.
     await ta.click();
-    await page.keyboard.press('Meta+a');
+    await page.keyboard.press('ControlOrMeta+a');
     await page.keyboard.press('Backspace');
     await page.waitForTimeout(2500);
 
