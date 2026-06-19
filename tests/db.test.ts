@@ -4,6 +4,7 @@ import {
   getPDFFromIndexedDB,
   deletePDFFromIndexedDB,
   clearAllPDFsFromIndexedDB,
+  getAllPDFKeysFromIndexedDB,
   saveBulkEmailRecipientsToIndexedDB,
   getBulkEmailRecipientsFromIndexedDB,
   clearBulkEmailRecipientsFromIndexedDB,
@@ -112,6 +113,17 @@ function createMockDB(): {
           const req = createMockRequest(undefined);
           setTimeout(() => {
             storeMap.clear();
+            req._success();
+            completeTxn();
+          }, 0);
+          pendingRequests.push(req);
+          return req;
+        }),
+        getAllKeys: vi.fn(() => {
+          const req = createMockRequest(Array.from(storeMap.keys()));
+          setTimeout(() => {
+            // Refresh in case writes landed between call and flush.
+            req.result = Array.from(storeMap.keys());
             req._success();
             completeTxn();
           }, 0);
@@ -253,6 +265,166 @@ describe('db', () => {
       await expect(
         clearBulkEmailRecipientsFromIndexedDB()
       ).resolves.toBeUndefined();
+    });
+  });
+
+  // ====================================================================
+  // Error / resilience branches (Plan 008)
+  //
+  // These are characterization tests: each asserts the *current* contract
+  // of the error path — readers swallow failures and resolve a fallback
+  // (null / '' / []), while writers propagate the rejection. The existing
+  // createMockDB harness auto-fires request success on a setTimeout; to
+  // force an error we grab the shared mockStore and override its method to
+  // return a request that we fail synchronously via _error().
+  // ====================================================================
+
+  /**
+   * Force the next call to `storeMethod` (e.g. 'get', 'put') to produce a
+   * request that errors. db.ts calls db.transaction(...) once per operation;
+   * we spy on the next such call, let the original implementation build the
+   * store (so all other store methods keep working), then override only the
+   * target method to return a request we fail.
+   */
+  function failNextRequest(
+    db: IDBDatabase,
+    _storeName: string,
+    storeMethod: string
+  ) {
+    // Save the real transaction implementation (from createMockDB) before
+    // wrapping it for one call. Cast to a loose shape: db here is the mock,
+    // not a real IDBDatabase, and we need to call its transaction fn with
+    // the (string[], mode) shape the mock expects.
+    type LooseTxn = {
+      objectStore: (name: string) => Record<string, ReturnType<typeof vi.fn>>;
+    };
+    type LooseDB = {
+      transaction: (
+        storeNames: string[],
+        mode: string
+      ) => LooseTxn;
+    };
+    const looseDb = db as unknown as LooseDB;
+    const realTransaction = looseDb.transaction.bind(looseDb);
+    const txnSpy = vi.spyOn(db, 'transaction');
+    txnSpy.mockImplementationOnce(((storeNames: string[], mode: string) => {
+      const txn = realTransaction(storeNames, mode);
+      const store = txn.objectStore(storeNames[0]);
+      vi.spyOn(store, storeMethod as never).mockImplementationOnce((() => {
+        const req = createMockRequest();
+        setTimeout(() => req._error(new DOMException('boom')), 0);
+        return req;
+      }) as never);
+      return txn as unknown as ReturnType<IDBDatabase['transaction']>;
+    }) as never);
+  }
+
+  describe('request-error branches', () => {
+    let mockDB: IDBDatabase;
+
+    beforeEach(() => {
+      const { db } = createMockDB();
+      mockDB = db;
+      setDb(mockDB);
+    });
+
+    it('getPDFFromIndexedDB resolves null when the get request errors', async () => {
+      failNextRequest(mockDB, STORE_NAME, 'get');
+      // Reader wraps runRequest in try/catch and returns null on failure.
+      await expect(getPDFFromIndexedDB('any')).resolves.toBeNull();
+    });
+
+    it('savePDFToIndexedDB rejects when the put request errors', async () => {
+      failNextRequest(mockDB, STORE_NAME, 'put');
+      // Writer has no try/catch — rejection propagates from runRequest.
+      await expect(
+        savePDFToIndexedDB({ id: 'x', name: 'x.pdf' })
+      ).rejects.toThrow('boom');
+    });
+
+    it('deletePDFFromIndexedDB resolves when the delete request errors', async () => {
+      failNextRequest(mockDB, STORE_NAME, 'delete');
+      // delete wraps in try/catch and swallows.
+      await expect(
+        deletePDFFromIndexedDB('x')
+      ).resolves.toBeUndefined();
+    });
+
+    it('saveBulkEmailRecipientsToIndexedDB rejects when the put request errors', async () => {
+      failNextRequest(mockDB, BULK_EMAIL_STORE, 'put');
+      // Bulk save is a writer: no try/catch, rejects on error.
+      await expect(
+        saveBulkEmailRecipientsToIndexedDB('a@test.com')
+      ).rejects.toThrow('boom');
+    });
+
+    it('getBulkEmailRecipientsFromIndexedDB resolves empty string when get errors', async () => {
+      failNextRequest(mockDB, BULK_EMAIL_STORE, 'get');
+      await expect(
+        getBulkEmailRecipientsFromIndexedDB()
+      ).resolves.toBe('');
+    });
+  });
+
+  describe('getAllPDFKeysFromIndexedDB (orphan-key path)', () => {
+    let mockDB: IDBDatabase;
+
+    beforeEach(() => {
+      const { db } = createMockDB();
+      mockDB = db;
+      setDb(mockDB);
+    });
+
+    it('returns all stored PDF keys when several PDFs are present', async () => {
+      await savePDFToIndexedDB({ id: 'a', name: 'a.pdf' });
+      await savePDFToIndexedDB({ id: 'b', name: 'b.pdf' });
+      await savePDFToIndexedDB({ id: 'c', name: 'c.pdf' });
+
+      const keys = await getAllPDFKeysFromIndexedDB();
+      expect(keys.sort()).toEqual(['a', 'b', 'c']);
+    });
+
+    it('returns an empty array when the store is empty', async () => {
+      const keys = await getAllPDFKeysFromIndexedDB();
+      expect(keys).toEqual([]);
+    });
+
+    it('resolves an empty array when getAllKeys errors (swallowed)', async () => {
+      failNextRequest(mockDB, STORE_NAME, 'getAllKeys');
+      await expect(getAllPDFKeysFromIndexedDB()).resolves.toEqual([]);
+    });
+  });
+
+  describe('round-trip integrity', () => {
+    let mockDB: IDBDatabase;
+
+    beforeEach(() => {
+      const { db } = createMockDB();
+      mockDB = db;
+      setDb(mockDB);
+    });
+
+    it('PDF record survives a save → read round-trip unchanged', async () => {
+      const pdf: PDFRecord = {
+        id: 'rt-1',
+        name: 'round-trip.pdf',
+        data: 'data:application/pdf;base64,' + 'A'.repeat(2048),
+      };
+      await savePDFToIndexedDB(pdf);
+
+      const back = await getPDFFromIndexedDB('rt-1');
+      expect(back).not.toBeNull();
+      expect(back!.id).toBe('rt-1');
+      expect(back!.name).toBe('round-trip.pdf');
+      expect(back!.data).toBe(pdf.data);
+    });
+
+    it('bulk recipients (multi-line string) survive a save → read round-trip', async () => {
+      const recipients = 'a@test.com\nb@test.com\nc@test.com';
+      await saveBulkEmailRecipientsToIndexedDB(recipients);
+
+      const back = await getBulkEmailRecipientsFromIndexedDB();
+      expect(back).toBe(recipients);
     });
   });
 });
