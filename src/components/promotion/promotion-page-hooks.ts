@@ -73,6 +73,25 @@ export function useSaveStatusToast() {
   }, [saveStatus]);
 }
 
+/**
+ * One-time warning when PDF attachments couldn't be restored on load. Mirrors
+ * the save-failure toast, but for the rehydration path: a user whose PDF card is
+ * collapsed would otherwise never know an attachment silently vanished.
+ */
+export function usePdfRestoreToast() {
+  const pdfRestoreWarning = usePromotionStore((s) => s.pdfRestoreWarning);
+  const clear = usePromotionStore((s) => s.clearPdfRestoreWarning);
+  useEffect(() => {
+    if (pdfRestoreWarning) {
+      toast.warning(
+        'Some PDF attachments could not be restored from storage. Re-attach them if needed.',
+        { id: 'promo-pdf-restore-warning', duration: Infinity }
+      );
+      clear();
+    }
+  }, [pdfRestoreWarning, clear]);
+}
+
 /** Highlight the card scrolled into view; re-attaches on layout change. */
 export function useScrollSpy(
   containerRef: RefObject<HTMLDivElement | null>,

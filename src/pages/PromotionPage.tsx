@@ -45,6 +45,7 @@ import { PreviewColumn } from '@/components/promotion/PreviewColumn';
 import {
   useAutoSave,
   useSaveStatusToast,
+  usePdfRestoreToast,
   useScrollSpy,
 } from '@/components/promotion/promotion-page-hooks';
 
@@ -105,6 +106,7 @@ export function PromotionPage() {
   // Auto-save with debounce
   useAutoSave();
   useSaveStatusToast();
+  usePdfRestoreToast();
 
   // Version history: auto-save snapshot every 5 minutes
   const [versionRefreshKey, setVersionRefreshKey] = useState(0);

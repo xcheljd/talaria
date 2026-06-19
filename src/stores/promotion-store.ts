@@ -213,6 +213,10 @@ export interface PromotionState {
   // Save status
   saveStatus: 'ok' | 'warning';
 
+  // Transient: set when one or more PDF attachments couldn't be restored on
+  // load. Not persisted (a persisted warning flag would re-fire forever).
+  pdfRestoreWarning: boolean;
+
   // Bulk email generation state (shared between card and preview button)
   bulkEmailGenerating: boolean;
   bulkEmailProgress: string;
@@ -308,6 +312,7 @@ export interface PromotionState {
 
   // Initialization
   setInitializing: (value: boolean) => void;
+  clearPdfRestoreWarning: () => void;
   initializeDefaultItems: () => void;
 
   // Auto-save / persistence
@@ -550,6 +555,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   // Initial state
   ...getEmptyState(),
   saveStatus: 'ok' as 'ok' | 'warning',
+  pdfRestoreWarning: false,
   subjectLineManuallyEdited: false,
   entryCollapsedStates: {},
   columnState: 'left' as ColumnState,
@@ -683,6 +689,8 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   // ===== Initialization =====
 
   setInitializing: (value: boolean) => set({ isInitializing: value }),
+
+  clearPdfRestoreWarning: () => set({ pdfRestoreWarning: false }),
 
   initializeDefaultItems: () => {
     const state = get();
@@ -897,6 +905,14 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         // If no IndexedDB data and no legacy data, omit the PDF
       }
 
+      const expectedCount = parsed.attachedPDFs?.length ?? 0;
+      const pdfRestoreWarning = restoredPDFs.length < expectedCount;
+      if (pdfRestoreWarning) {
+        console.warn(
+          `PDF restore: ${expectedCount - restoredPDFs.length} of ${expectedCount} attachment(s) could not be restored`
+        );
+      }
+
       // Orphan cleanup: remove IndexedDB blobs no longer referenced by the
       // restored metadata. Runs once per load instead of on every auto-save.
       try {
@@ -947,6 +963,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         emailPalette: parsed.emailPalette || { ...DEFAULT_EMAIL_PALETTE },
         isInitializing: false,
         saveStatus: 'ok',
+        pdfRestoreWarning,
       });
     } catch (error) {
       console.warn('Failed to load promotion state:', error);
