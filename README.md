@@ -6,7 +6,7 @@ Single-page React app for customer communications (email, text, phone). Built wi
 
 ```bash
 npm install
-npm run dev          # Start dev server on http://localhost:8080
+npm run dev          # Start dev server on http://localhost:5173
 ```
 
 ## Tech Stack
@@ -42,7 +42,7 @@ See [docs/ARCHITECTURE-MAP.md](docs/ARCHITECTURE-MAP.md) for the canonical, up-t
 ## Development
 
 ```bash
-npm run dev              # Vite dev server (port 8080)
+npm run dev              # Vite dev server (port 5173)
 npm run build            # Production build to dist/ + copy dist-helpers/
 npm run preview          # Serve built dist/ via Vite preview
 npm run typecheck        # TypeScript check (tsc --noEmit)

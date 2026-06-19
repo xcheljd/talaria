@@ -3,36 +3,24 @@ import { test, expect } from '@playwright/test';
 test.describe('Palette Attributes', () => {
   test('sets light palette attribute', async ({ page }) => {
     await page.goto('/index.html');
-
-    await page.evaluate((p) => {
-      document.documentElement.setAttribute('data-theme', 'light');
-      document.documentElement.setAttribute('data-light-palette', p);
-    }, 'nord');
-
-    const paletteAttr = await page
-      .locator('html')
-      .getAttribute('data-light-palette');
-    expect(paletteAttr).toBe('nord');
-
-    const themeAttr = await page.locator('html').getAttribute('data-theme');
-    expect(themeAttr).toBe('light');
+    await page.evaluate(() => {
+      localStorage.setItem('theme', 'light');
+      localStorage.setItem('lightPalette', 'nord');
+    });
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-light-palette', 'nord');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   });
 
   test('sets dark palette attribute', async ({ page }) => {
     await page.goto('/index.html');
-
-    await page.evaluate((p) => {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      document.documentElement.setAttribute('data-dark-palette', p);
-    }, 'monokai');
-
-    const paletteAttr = await page
-      .locator('html')
-      .getAttribute('data-dark-palette');
-    expect(paletteAttr).toBe('monokai');
-
-    const themeAttr = await page.locator('html').getAttribute('data-theme');
-    expect(themeAttr).toBe('dark');
+    await page.evaluate(() => {
+      localStorage.setItem('theme', 'dark');
+      localStorage.setItem('darkPalette', 'monokai');
+    });
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-dark-palette', 'monokai');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   });
 
   test('switches between palettes', async ({ page }) => {

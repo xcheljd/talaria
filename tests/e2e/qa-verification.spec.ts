@@ -457,9 +457,12 @@ test.describe('QA Item 5 — Import/export config', () => {
     await fillBasics(page);
     await page.waitForTimeout(1000);
 
+    // Open the export-options dialog
+    await page.locator('button[aria-label="Export"]').click();
+    // Confirm export in the dialog → this is what triggers the download
     const [download] = await Promise.all([
       page.waitForEvent('download', { timeout: 15000 }),
-      page.locator('button[aria-label="Export"]').click(),
+      page.getByRole('alertdialog').getByRole('button', { name: 'Export' }).click(),
     ]);
 
     expect(download).toBeTruthy();
