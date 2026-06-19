@@ -102,11 +102,12 @@ real large-newsletter load (judged a non-issue — see rejected findings).
 
 ## Direction findings (not planned — maintainer's call)
 
-- **Discoverable "Load saved promotion" entry point.** Import/validate logic
-  exists and is tested but is buried in a PreviewColumn menu; `features.md`
-  advertises loading saved templates. A `/promotion/import` entry beside "Start
-  Over" would deliver a stated-but-undelivered feature. Ask for a spike plan if
-  wanted.
+- ~~**Discoverable "Load saved promotion" entry point.**~~ **RETIRED 2026-06-19
+  — audit miss.** This is already shipped: an "Import" button (Upload icon,
+  `aria-label="Import"`) renders in the Email Preview header bar beside Export
+  and Start Over (`PreviewColumn.tsx:453-462`), wired to `handleImportConfig` →
+  `validateImportConfig`. The feature is exposed exactly where this finding
+  proposed putting it; nothing to do.
 - **Batch preview before bulk send.** `computeEmailStats()` already yields the
   data; a "which recipients land in which batch" preview is one component away.
   Ask for a spike plan if wanted.
