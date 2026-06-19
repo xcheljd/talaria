@@ -19,8 +19,8 @@ since then, reconcile before proceeding.
 | 004 | Standardize dev port on 5173 + run E2E suite in CI | P1 | M | LOW | — | DONE (merged to main as `715b5f5`. Port aligned to 5173, stale export-dialog spec + flaky webkit palette tests repaired, e2e CI job added. Verified on branch: typecheck/lint clean, unit 982/982, e2e 99/99.) |
 | 005 | Warn on failed PDF restore instead of silently dropping attachments | P2 | M | LOW | — | DONE (executor: branch `advisor/005-pdf-hydration-warning`, commit `d3f227d`, NOT merged. Reviewed & verified: typecheck/lint clean, store tests 126/126, full suite 986/986. Flag confirmed non-persisted.) |
 | 006 | Validate TipTap `data-color` before inlining into `style` | P2 | S | LOW | — | DONE (executor: droid `--auto high`, branch `advisor/006-data-color-validation`, commit `4c65874`, NOT merged. Reviewed & verified: typecheck/lint clean, module 15/15, full suite 990/990. Injection test confirms `background-image` payload dropped → `yellow` fallback.) |
-| 007 | PDFAttachments drag-and-drop tests (direct + `file://` URI) | P2 | M | LOW | 001 (soft) | TODO |
-| 008 | `db.ts` error/resilience branch tests | P2 | M | MED | — | TODO |
+| 007 | PDFAttachments drag-and-drop tests (direct + `file://` URI) | P2 | M | LOW | 001 (soft) | DONE (executor: droid `--auto high`, branch `advisor/007-008-batch`, commit `efa2716`, NOT merged. Reviewed & verified: 7 tests cover direct-file/uri-list/Windows-path/html-fallback/de-dupe/invoke-error; `PDFAttachments.tsx` unchanged; full suite 1007/1007.) |
+| 008 | `db.ts` error/resilience branch tests | P2 | M | MED | — | DONE (executor: droid `--auto high`, branch `advisor/007-008-batch`, commit `7dd47f2`, NOT merged. Reviewed & verified: 10 chars. tests (request-error/orphan-keys/round-trip); `db.ts` unchanged. NOTE: corrected plan's stale claim — `getPDFFromIndexedDB` resolves null on error, not rejects; plan 005 warning still fires either way.) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
@@ -49,10 +49,12 @@ priority (001 is the reported bug) then by blast radius.
 - **007 soft-depends on 001**: Plan 001 adds a window-level drop guard but does
   not modify `PDFAttachments.tsx`, so 007 can run independently. Doing 001 first
   means 007 tests the component in its final runtime context. Not a hard block.
-- **005 and 008 share a contract**: 005's load-warning relies on
-  `getPDFFromIndexedDB` *rejecting* on failure (not silently resolving). 008
-  characterizes that contract. If both are queued, 008's assertion and 005's
-  behavior should agree — if 008 finds the contract differs, revisit 005.
+- **005 and 008 share a contract** (resolved 2026-06-19): on a read error
+  `getPDFFromIndexedDB` **resolves `null`** (it swallows; it does not reject).
+  005's load-warning fires correctly under this contract anyway — a `null`
+  result is omitted from `restoredPDFs`, so the count mismatch trips the
+  warning. 008 characterizes the resolves-null behavior; both plans are DONE
+  and agree.
 - Otherwise all plans are independent.
 
 ## What was audited (and what was not)

@@ -172,7 +172,13 @@ Stop and report if:
 - These are characterization tests: if `db.ts`'s error contract is intentionally
   changed later, update the assertions deliberately (they should fail loudly
   first).
-- Plan 005's PDF-restore warning relies on `getPDFFromIndexedDB` rejecting (not
-  silently resolving data) on failure — keep that contract test green.
+- Contract correction (verified 2026-06-19): `getPDFFromIndexedDB` **resolves
+  `null`** on a read error (its `try/catch` swallows), it does **not** reject.
+  Plan 005's PDF-restore warning still fires correctly under this contract —
+  the load loop's `if (fullPdfData && fullPdfData.data)` is false on `null`, so
+  the attachment is omitted and the count mismatch trips the warning. Keep the
+  characterization test (`getPDFFromIndexedDB resolves null when the get request
+  errors`) green; if the contract is ever changed to reject, update it
+  deliberately and re-check the 005 load loop.
 - Reviewer should confirm no test depends on real disk/browser IndexedDB timing
   (no real timers / network), keeping the suite deterministic.
