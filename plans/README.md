@@ -17,7 +17,7 @@ since then, reconcile before proceeding.
 | 002 | `saveBlob` unit tests (Tauri + browser branches) | P1 | S | LOW | — | DONE |
 | 003 | `read_file_as_data_url` path scoping + honest comment | P1 | S | LOW | — | DONE |
 | 004 | Standardize dev port on 5173 + run E2E suite in CI | P1 | M | LOW | — | DONE (merged to main as `715b5f5`. Port aligned to 5173, stale export-dialog spec + flaky webkit palette tests repaired, e2e CI job added. Verified on branch: typecheck/lint clean, unit 982/982, e2e 99/99.) |
-| 005 | Warn on failed PDF restore instead of silently dropping attachments | P2 | M | LOW | — | TODO |
+| 005 | Warn on failed PDF restore instead of silently dropping attachments | P2 | M | LOW | — | DONE (executor: branch `advisor/005-pdf-hydration-warning`, commit `d3f227d`, NOT merged. Reviewed & verified: typecheck/lint clean, store tests 126/126, full suite 986/986. Flag confirmed non-persisted.) |
 | 006 | Validate TipTap `data-color` before inlining into `style` | P2 | S | LOW | — | TODO |
 | 007 | PDFAttachments drag-and-drop tests (direct + `file://` URI) | P2 | M | LOW | 001 (soft) | TODO |
 | 008 | `db.ts` error/resilience branch tests | P2 | M | MED | — | TODO |
