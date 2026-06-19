@@ -117,7 +117,7 @@ in IndexedDB.
 ### Install & run
 ```bash
 npm install
-npm run dev          # Vite dev server at http://localhost:8080
+npm run dev          # Vite dev server at http://localhost:5173
 ```
 
 The app is a single SPA — navigate within it (`/`, `/promotion`,
