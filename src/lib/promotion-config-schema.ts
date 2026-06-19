@@ -29,7 +29,7 @@ import {
  * Excludes quotes, semicolons, and angle brackets so a value can never break
  * out of the style="" attribute it is interpolated into.
  */
-const SAFE_COLOR_RE =
+export const SAFE_COLOR_RE =
   /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]+|(rgb|rgba|hsl|hsla)\([0-9.,\s%deg-]*\))$/;
 
 const safeColor = z.string().regex(SAFE_COLOR_RE);

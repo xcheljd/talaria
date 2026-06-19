@@ -21,6 +21,7 @@ import {
   type NewsletterStyle,
 } from '@/stores/promotion-store';
 import { generatePromoTitle } from './holiday-dates';
+import { SAFE_COLOR_RE } from './promotion-config-schema';
 
 // ===== Email Palette =====
 
@@ -363,10 +364,17 @@ function convertTipTapToInlineHTML(
 
   // <mark> → <span style="background-color: yellow;">
   // Also handle marks with data-color attribute from TipTap highlight,
-  // regardless of attribute order or additional attributes.
+  // regardless of attribute order or additional attributes. The captured
+  // color is validated against SAFE_COLOR_RE (no quotes, semicolons, or
+  // angle brackets) before inlining so a malicious value can't inject
+  // additional CSS declarations into the style attribute; invalid values
+  // fall back to the default 'yellow'.
   result = result.replace(
     /<mark\b[^>]*\bdata-color="([^"]*)"[^>]*>/g,
-    '<span style="background-color: $1;">'
+    (_match, color: string) => {
+      const safe = SAFE_COLOR_RE.test(color) ? color : 'yellow';
+      return `<span style="background-color: ${safe};">`;
+    }
   );
   result = result.replace(
     /<mark\b[^>]*>/g,
