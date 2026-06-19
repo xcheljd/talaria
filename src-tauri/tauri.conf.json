@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Communication Template Generator",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "identifier": "com.citizen.communicationtemplates",
   "build": {
     "frontendDist": "../dist",
