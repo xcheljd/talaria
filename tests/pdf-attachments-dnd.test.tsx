@@ -69,7 +69,7 @@ vi.mock('@/lib/pdf-utils', () => ({
     new Blob([dataURL], { type: 'application/pdf' }),
   // Identity optimize keeps the DnD paths deterministic; optimization itself is
   // covered by the Rust tests. dataURLByteSize mirrors the real implementation.
-  optimizePDF: (dataURL: string) => Promise.resolve(dataURL),
+  amatl: { optimize: (dataURL: string) => Promise.resolve(dataURL) },
   dataURLByteSize: (dataURL: string) => {
     const comma = dataURL.indexOf(',');
     const b64 = comma >= 0 ? dataURL.slice(comma + 1) : dataURL;

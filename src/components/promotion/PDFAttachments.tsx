@@ -31,7 +31,7 @@ import {
   readPDFAsDataURL,
   dataURLtoBlob,
   dataURLByteSize,
-  optimizePDF,
+  amatl,
   formatFileSize,
 } from '@/lib/pdf-utils';
 import { saveBlob } from '@/lib/file-save';
@@ -99,7 +99,7 @@ export function PDFAttachments() {
 
         try {
           const original = await readPDFAsDataURL(file);
-          const data = await optimizePDF(original);
+          const data = await amatl.optimize(original);
           const size = dataURLByteSize(data);
           if (size < file.size) {
             toast.info(
@@ -191,7 +191,7 @@ export function PDFAttachments() {
                 path: filePath,
               });
               const originalSize = dataURLByteSize(original);
-              const dataUrl = await optimizePDF(original);
+              const dataUrl = await amatl.optimize(original);
               const size = dataURLByteSize(dataUrl);
 
               await persistPDF({

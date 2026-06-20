@@ -14,8 +14,8 @@ Tauri dialogs, and provides in-app PDF optimization for promotion attachments.
 ```
 src-tauri/src/
 ├── main.rs                 # Entry point (calls lib::run())
-├── lib.rs                  # IPC handlers (download dir + PDF optimize)
-└── pdf_optimize.rs         # PDF optimizer: mozjpeg downsample (see strategy below)
+├── lib.rs                  # IPC handlers (download dir + amatl_optimize)
+└── amatl.rs                # PDF optimizer: mozjpeg downsample (see strategy below)
 ```
 
 ## WHERE TO LOOK
@@ -24,7 +24,7 @@ src-tauri/src/
 | --------------- | ------------------------------------------------- | -------------------------------- |
 | Download config | lib.rs: config_path()                             | appDataDir/downloads-config.json |
 | IPC handlers    | lib.rs: get_download_dir(), choose_download_dir() | Folder dialog + persistence      |
-| PDF optimize    | lib.rs: optimize_pdf() + pdf_optimize.rs          | Shrink attached PDFs at upload   |
+| amatl (PDF opt) | lib.rs: amatl_optimize() + amatl.rs               | Shrink attached PDFs at upload   |
 | Tauri setup     | lib.rs: run()                                     | Plugin init, invoke_handler      |
 
 ## IPC COMMANDS
@@ -35,7 +35,7 @@ choose_download_dir()       // Opens folder dialog, saves selection
 read_file_as_data_url(path) // Drag-drop file:// URI handler (scoped reads)
 save_file_to_dir(...)       // Writes base64 blob into download dir (silent; batch)
 save_file_as(...)           // Native Save-As dialog; OS prompts on overwrite
-optimize_pdf(data_url)      // Returns (possibly smaller) PDF data URL
+amatl_optimize(data_url)    // Returns (possibly smaller) PDF data URL
 ```
 
 ## CONVENTIONS
@@ -44,21 +44,63 @@ optimize_pdf(data_url)      // Returns (possibly smaller) PDF data URL
 - **Default**: Falls back to `dirs::download_dir()` if not configured
 - **Plugins**: tauri-plugin-dialog, tauri-plugin-fs
 - **Storage**: JSON with DownloadConfig struct
-- **PDF optimize**: always fail-safe — on any error, parse failure, or when the
-  result is not smaller, the original bytes are returned unchanged. Callers
-  never need to special-case errors.
+- **amatl**: always fail-safe — on any error, parse failure, or when the result
+  is not smaller, the original bytes are returned unchanged. Callers never need
+  to special-case errors.
 
-## PDF OPTIMIZATION STRATEGY
+## amatl — PDF OPTIMIZATION STRATEGY
 
-Promotion PDFs are ~80% embedded JPEG product thumbnails by byte count, so the
-only meaningful compression lever is **image downsampling**. The shipped path is
-pure Rust — no sidecar, no external binary, fully permissive-licensed:
+Promotion PDFs are ~80% embedded JPEG product thumbnails by byte count, and
+~17% of file bytes are the PDF structure tree (`/StructTreeRoot` + ~2000
+`/StructElem` objects — accessibility metadata for screen readers). amatl
+attacks both:
 
-**`pdf_optimize.rs`** walks each page's content stream tracking the CTM to
-compute effective DPI per image placement, downsamples over-resolution JPEGs to
-130 DPI, re-encodes via **mozjpeg** (optimized Huffman + trellis quantization),
-swaps the streams back via `lopdf`, then `renumber_objects()` + classic save so
-the output is `qpdf --check`-clean. MIT/BSD licensed.
+**`amatl.rs`** (named for the Nahuatl word for fig-bark paper; intentionally
+library-neutral so it can be extracted to its own crate for future
+distribution) walks each page's content stream tracking the CTM to compute
+effective DPI per image placement, downsamples over-resolution JPEGs to 130
+DPI, re-encodes via **mozjpeg** (optimized Huffman + trellis quantization),
+swaps the streams back via `lopdf`, optionally strips the structure tree, then
+`renumber_objects()` + classic save so the output is `qpdf --check`-clean.
+MIT/BSD licensed.
+
+**Public API (library-neutral):**
+- `optimize(bytes)` — convenience, accessibility-preserving (default).
+- `optimize_with_options(bytes, OptimizeOptions)` — configurable. Currently the
+  only option is `strip_accessibility: bool`.
+- `OptimizeOptions::default()` is `strip_accessibility: false`, so the library
+  is accessibility-preserving by default. Future external consumers of amatl
+  would opt in deliberately.
+
+**This app's binding (TS):** `amatl.optimize(dataURL)` in
+`src/lib/pdf-utils.ts` calls `optimize_with_options` with
+`strip_accessibility: true`. This is the citizen-communications app's
+deliberate choice, hardcoded in the wrapper: promotion flyers are visual
+documents for a sighted retail audience, and the gain matches industry behavior
+(Ghostscript's `/ebook` and `/screen` presets strip the same data silently).
+The IPC command `amatl_optimize` takes `strip_accessibility: bool` so the
+configurability is preserved across the boundary; a different consumer could
+pass `false`.
+
+### Accessibility-strip decision (read before changing)
+
+Stripping removes `/StructTreeRoot`, `/MarkInfo`, and `/Lang` from the catalog.
+**Visually lossless; accessibility-lossy.** Every page and image renders
+identically; the output degrades from "tagged" (PDF/UA-compatible) to
+"untagged" — still readable as a flat image-like document, but no longer
+navigable by screen readers (VoiceOver, NVDA, JAWS).
+
+The decision to strip in this app was deliberate, not accidental:
+- Audience: retail store managers reading promotion flyers — sighted use case.
+- Content: watch photos + prices + dates, inherently visual.
+- Precedent: Ghostscript's industry-standard presets do the same thing silently.
+- Trade: ~18 percentage points of compression for accessibility data that has
+  near-zero realistic use on this document type.
+
+If this app's audience or content ever shifts (e.g. documents with substantial
+semantic text that screen-reader users might actually consume), revisit this.
+The library default of `strip_accessibility: false` means a future externalized
+amatl would preserve accessibility unless the caller opts in.
 
 Build note: mozjpeg compiles libjpeg-turbo, which needs **NASM** (+ a C
 compiler) at build time. CI installs it via `ilammy/setup-nasm` in
@@ -66,29 +108,70 @@ compiler) at build time. CI installs it via `ilammy/setup-nasm` in
 
 ### Measured results (real promo file, 1376 KB original)
 
-| Pipeline | Size | Reduction | `qpdf --check` | License |
-| --- | --- | --- | --- | --- |
-| Rust (basic encoder) | 1031 KB | 27% | clean | MIT |
-| **Rust (mozjpeg) — SHIPPED** | **821 KB** | **40%** | clean | MIT/BSD |
-| Rust (mozjpeg) + qpdf pack | 608 KB | 56% | clean | + Apache |
-| Ghostscript 130/Q78 | 530 KB | 62% | clean | AGPL |
+| Pipeline | Size | Reduction | `qpdf --check` | Accessibility | License |
+| --- | --- | --- | --- | --- | --- |
+| amatl library default (no strip) | 821 KB | 40% | clean | preserved | MIT/BSD |
+| **amatl (this app, strip=true) — SHIPPED** | **597 KB** | **58%** | clean | **stripped** | MIT/BSD |
+| Ghostscript 130/Q78 /ebook | 530 KB | 62% | clean | stripped | AGPL |
 
-mozjpeg makes the image payload **byte-identical to Ghostscript (422 KB)** — the
-images are fully optimized. The shipped 40% leaves structural objects
-uncompressed; the remaining gap to 56%/62% is *entirely* PDF structure, not
-image quality. Validated: the 56% output opened correctly (images intact) in
-the user's real Outlook + Apple Mail via an actual EML round-trip, and the
-shipped 40% output has byte-identical images.
+mozjpeg makes the image payload match Ghostscript within ~0.01% (422 KB image
+bytes in both). The structure-tree strip closes 18 of the 22 percentage points
+to Ghostscript. Object-stream packing (off by default) closes only ~2 more
+points post-strip and carries one benign warning — see "Object-stream packing"
+below.
 
-### Optional future upgrade: qpdf object-stream packing (~56%)
+Validated: the shipped 597 KB output opened correctly (images intact) in the
+user's real Outlook + Apple Mail via an actual EML round-trip through
+`emailUtils.createEMLFile`.
 
-`qpdf --object-streams=generate` packs the ~2700 uncompressed structural
-objects, reaching 56% — clean and Apache-2.0. **Deferred, not implemented**,
-because the only way to invoke it (sidecar binary or the `qpdf-sys` bindgen
-crate) adds a fragile cross-platform native build for a marginal 16% structural
-gain. Revisit only if 40% proves insufficient in the field. Do NOT use lopdf's
-`save_modern()` to pack structure in-process — it emits **invalid object
-streams** (`qpdf --check`: "supposed object stream N is not a stream"). Verified.
+### Object-stream packing (`pack_object_streams`) — implemented, off by default
+
+Packing is implemented behind `OptimizeOptions.pack_object_streams` (default
+`false`). It uses **lopdf's own** `save_with_options(use_object_streams,
+use_xref_streams)` — not a hand-rolled writer and not qpdf. See `pack_and_save`.
+
+**Key discovery (corrects an earlier conclusion).** A prior attempt declared
+lopdf's object-stream save unusable because it produced output `qpdf --check`
+called invalid ("supposed object stream N is not a stream"). That was a
+symptom of the non-contiguous id space; **`renumber_objects()` before save
+fixes it.** With renumber in place, the packed output is structurally sound:
+across the whole promo archive it passes `qpdf --check` with **exit code 3
+(warnings only, zero hard errors), all images intact**. The hand-rolled
+ObjStm/xref-stream writer the previous notes scoped at "2-4 weeks" is **not
+needed** — lopdf does the packing.
+
+**The one remaining wrinkle.** lopdf's xref-stream writer omits the xref
+stream's own self-entry, so qpdf emits exactly one benign warning:
+`xref entry for the xref stream itself is missing - a common error handled
+correctly by qpdf and most other applications`. No hard error; Preview /
+PDF.js / Adobe all render it. But it is *not* zero-warning, which is our bar.
+
+**Post-strip math (why the app leaves it off).** After the accessibility strip
+the file is ~217 objects and only **1.9% of bytes** are packable dict/scalar
+text:
+
+| Category (shipped output, 597 KB) | Bytes | % of file |
+| --- | --- | --- |
+| Stream bytes (183 streams — images + content) | 552,496 | 92.5% |
+| Dict/scalar objects (34 remaining objects) | 11,523 | 1.9% |
+| Overhead (xref, trailer) | 33,205 | 5.6% |
+
+Measured packed output: **572 KB vs 583 KB unpacked — ~11 KB / 1.9% gain**,
+for the cost of that one benign warning. **The app stays `pack_object_streams:
+false`**: post-strip there's almost nothing to pack, and we hold the
+zero-warning bar. The remaining ~4-point gap to Ghostscript is spread across
+micro-optimizations (font-subsetting/dict-serialization quirks) packing can't
+touch.
+
+**Productization.** The option already exists and works; a product tier that
+wants the extra ~1.9% (or much more on accessibility-preserving / object-dense
+inputs, where the structure tree is *not* stripped and packing closes ~16
+points) flips it on. To make the packed path **strictly** zero-warning, the one
+task left is eliminating the missing xref-stream self-entry — a narrow fix in
+lopdf's xref writer (upstream PR or a vendored patch), **not** a multi-week
+hand-roll. Do NOT bundle qpdf for this: the per-file gain is a constant ~11 KB
+that doesn't compound, against ongoing cross-platform native-build/maintenance
+cost.
 
 ### Why NOT Ghostscript (evaluated and rejected)
 
@@ -100,8 +183,11 @@ streams** (`qpdf --check`: "supposed object stream N is not a stream"). Verified
   narrower.
 - **Bundling cost.** The Homebrew `gs` is not portable (10+ dylib deps, needs a
   static build, Windows build, per-platform code-signing).
-- **Marginal upside.** Only ~6 points smaller than the (already-deferred) qpdf
-  option, all of it structure — and the images already match it byte-for-byte.
+- **Marginal upside.** Only ~4 points smaller than the shipped amatl output
+  (530 vs 597 KB), all of it micro-optimizations across many small pieces —
+  and the images already match it byte-for-byte. The same compression behavior
+  (strip + downsample) is what gets amatl to 58%; the last 4% is not worth
+  AGPL + RCE + bundling.
 
 ### lopdf save caveat (why `renumber_objects()` is required)
 
@@ -125,10 +211,15 @@ Verify on real promo PDFs:
 - Never hardcode paths - use `app.path().app_data_dir()`
 - Never skip config parent directory creation - use `fs::create_dir_all()`
 - Never reach for Ghostscript to "just compress harder" — it's AGPL and a known
-  RCE surface on untrusted input. The mozjpeg image payload already matches it
-  byte-for-byte; the only gap is marginal structure (see strategy).
-- Never use lopdf's `save_modern()` (object streams) — it emits invalid object
-  streams. Use classic save + `renumber_objects()` (and an external `qpdf` pack
-  pass only if structure packing is ever needed).
+  RCE surface on untrusted input. amatl already matches its image payload
+  byte-for-byte, and after the structure-tree strip the gap is only ~4 points
+  of micro-optimizations (see strategy). Not worth the cost.
+- Always `renumber_objects()` before saving — both the classic (default) and
+  the packed (`save_with_options`) paths depend on a contiguous id space.
+  Without it the classic save warns on `/Size` and the packed save emits
+  *invalid* object streams.
+- Don't enable `pack_object_streams` for this app — post-strip it buys ~2 points
+  (~11 KB) and carries one benign qpdf warning (xref-stream self-entry). It's
+  there for library/product consumers; this app holds the zero-warning bar.
 - Keep the optimizer fail-safe: any error or non-smaller result returns the
   original bytes unchanged.

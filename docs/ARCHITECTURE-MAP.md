@@ -283,14 +283,22 @@ Located in `src/lib/`:
 - `save_file_to_dir(app, filename, dataBase64)` — writes a base64-encoded blob
   into the configured download dir. Powers `saveBlob()` for every download in
   the app.
-- `optimize_pdf(data_url)` — shrinks an attached PDF at upload time by
-  downsampling its embedded JPEG thumbnails (pure Rust + mozjpeg in
-  `pdf_optimize.rs`, ~40% on real promo files). Wired into both upload paths in
-  `PDFAttachments.tsx`, so the stored bytes — and therefore the list size and
-  preview modal — reflect the optimized PDF. Fail-safe: returns the original on
-  any error or non-shrink. Fully permissive-licensed; Ghostscript and a qpdf
-  pack pass were evaluated and rejected/deferred. See `src-tauri/src/AGENTS.md`
-  for measured numbers and rationale.
+- `amatl_optimize(data_url, strip_accessibility, pack_object_streams)` — shrinks
+  an attached PDF at upload time by downsampling its embedded JPEG thumbnails
+  and (when `strip_accessibility` is true) removing the PDF structure tree (pure
+  Rust + mozjpeg in `amatl.rs`, ~58% on real promo files with strip on). Wired
+  into both upload paths in `PDFAttachments.tsx`, so the stored bytes — and
+  therefore the list size and preview modal — reflect the optimized PDF.
+  Fail-safe: returns the original on any error or non-shrink. The TS wrapper
+  `amatl.optimize()` in `pdf-utils.ts` passes `stripAccessibility: true` and
+  `packObjectStreams: false` for this app; the Rust library defaults are both
+  `false` (accessibility-preserving, classic save). Fully permissive-licensed.
+  Ghostscript was rejected (AGPL + RCE surface for ~4 marginal points).
+  Object-stream packing **is implemented** (via lopdf's own object/xref-stream
+  save, made valid by `renumber_objects()`), behind `pack_object_streams`, but
+  left off here: post-strip it buys only ~2 points (~11 KB) and carries one
+  benign qpdf warning. See `src-tauri/src/AGENTS.md` for the accessibility
+  decision, the packing finding, and cost/benefit math.
 
 `src/hooks/useTauri.ts` exposes `isTauri`, `invoke`, and `openFolderDialog`.
 

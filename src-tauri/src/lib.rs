@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::Manager;
 
-mod pdf_optimize;
+mod amatl;
 
 #[derive(Serialize, Deserialize, Default)]
 struct DownloadConfig {
@@ -211,15 +211,34 @@ async fn save_file_as(
     }
 }
 
-/// Optimize an attached PDF, returning a (possibly smaller) base64 data URL.
+/// Optimize an attached PDF via amatl, returning a (possibly smaller) base64
+/// data URL.
 ///
 /// Decodes the `data:application/pdf;base64,...` URL, downsamples
-/// over-resolution embedded JPEGs (see [`pdf_optimize`]), and re-encodes the
-/// result. On any failure — or if optimization doesn't shrink the file — the
-/// original data URL is returned unchanged, so callers can use the result
-/// directly without special-casing errors.
+/// over-resolution embedded JPEGs (see [`amatl`]), and re-encodes the result.
+/// On any failure — or if optimization doesn't shrink the file — the original
+/// data URL is returned unchanged, so callers can use the result directly
+/// without special-casing errors.
+///
+/// `strip_accessibility` controls whether the PDF's structure tree (the data
+/// screen readers use to navigate the document semantically) is removed for
+/// additional size reduction. The citizen-communications app passes `true`
+/// for promotion flyers (visual documents aimed at a sighted retail audience);
+/// this matches the behavior of Ghostscript's `/ebook` and `/screen` presets.
+/// A library consumer of amatl would default to `false` (accessibility-
+/// preserving) and opt in deliberately.
+///
+/// `pack_object_streams` controls whether eligible non-stream objects are
+/// packed into PDF 1.5 `ObjStm` streams for additional structural compression.
+/// Default `false`; the citizen-communications app leaves this off (post-strip,
+/// only ~1.5 points remain to pack). Exposed for library consumers and future
+/// product tiers that need the extra compression.
 #[tauri::command]
-fn optimize_pdf(data_url: String) -> Result<String, String> {
+fn amatl_optimize(
+    data_url: String,
+    strip_accessibility: bool,
+    pack_object_streams: bool,
+) -> Result<String, String> {
     use base64::{engine::general_purpose::STANDARD, Engine};
 
     let Some(comma) = data_url.find(',') else {
@@ -230,7 +249,11 @@ fn optimize_pdf(data_url: String) -> Result<String, String> {
         .decode(b64.as_bytes())
         .map_err(|e| format!("Invalid base64 payload: {e}"))?;
 
-    let optimized = pdf_optimize::optimize_pdf_bytes(&bytes);
+    let options = amatl::OptimizeOptions {
+        strip_accessibility,
+        pack_object_streams,
+    };
+    let optimized = amatl::optimize_with_options(&bytes, options);
 
     // Reuse the original (already-valid) data URL when nothing was saved.
     if optimized.len() >= bytes.len() {
@@ -252,7 +275,7 @@ pub fn run() {
             read_file_as_data_url,
             save_file_to_dir,
             save_file_as,
-            optimize_pdf
+            amatl_optimize
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
