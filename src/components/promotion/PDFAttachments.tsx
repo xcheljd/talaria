@@ -30,6 +30,8 @@ import {
   validatePDFFile,
   readPDFAsDataURL,
   dataURLtoBlob,
+  dataURLByteSize,
+  optimizePDF,
   formatFileSize,
 } from '@/lib/pdf-utils';
 import { saveBlob } from '@/lib/file-save';
@@ -96,11 +98,18 @@ export function PDFAttachments() {
         }
 
         try {
-          const data = await readPDFAsDataURL(file);
+          const original = await readPDFAsDataURL(file);
+          const data = await optimizePDF(original);
+          const size = dataURLByteSize(data);
+          if (size < file.size) {
+            toast.info(
+              `${file.name} optimized: ${formatFileSize(file.size)} → ${formatFileSize(size)}`
+            );
+          }
           await persistPDF({
             id: generatePdfId(),
             name: file.name,
-            size: file.size,
+            size,
             type: file.type,
             data,
           });
@@ -178,11 +187,12 @@ export function PDFAttachments() {
                 continue;
               }
 
-              const dataUrl = await invoke<string>('read_file_as_data_url', {
+              const original = await invoke<string>('read_file_as_data_url', {
                 path: filePath,
               });
-              const b64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
-              const size = Math.floor(b64.length * 0.75);
+              const originalSize = dataURLByteSize(original);
+              const dataUrl = await optimizePDF(original);
+              const size = dataURLByteSize(dataUrl);
 
               await persistPDF({
                 id: generatePdfId(),
@@ -191,7 +201,13 @@ export function PDFAttachments() {
                 type: 'application/pdf',
                 data: dataUrl,
               });
-              toast.success(`${name} attached successfully`);
+              if (size < originalSize) {
+                toast.success(
+                  `${name} attached & optimized: ${formatFileSize(originalSize)} → ${formatFileSize(size)}`
+                );
+              } else {
+                toast.success(`${name} attached successfully`);
+              }
             }
           } catch (err) {
             toast.error(`Failed to read dropped PDF: ${err}`);
@@ -257,7 +273,10 @@ export function PDFAttachments() {
   const handleDownload = useCallback(async () => {
     if (!previewPDF?.data) return;
     const blob = dataURLtoBlob(previewPDF.data);
-    await saveBlob(blob, previewPDF.name);
+    // Use a Save-As dialog: this is a single user-initiated download, and the
+    // attachment is the optimized PDF — silently overwriting a same-named source
+    // file in the download folder would be surprising (and lossy vs. the source).
+    await saveBlob(blob, previewPDF.name, { dialog: true });
   }, [previewPDF]);
 
   return (

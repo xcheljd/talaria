@@ -283,6 +283,14 @@ Located in `src/lib/`:
 - `save_file_to_dir(app, filename, dataBase64)` — writes a base64-encoded blob
   into the configured download dir. Powers `saveBlob()` for every download in
   the app.
+- `optimize_pdf(data_url)` — shrinks an attached PDF at upload time by
+  downsampling its embedded JPEG thumbnails (pure Rust + mozjpeg in
+  `pdf_optimize.rs`, ~40% on real promo files). Wired into both upload paths in
+  `PDFAttachments.tsx`, so the stored bytes — and therefore the list size and
+  preview modal — reflect the optimized PDF. Fail-safe: returns the original on
+  any error or non-shrink. Fully permissive-licensed; Ghostscript and a qpdf
+  pack pass were evaluated and rejected/deferred. See `src-tauri/src/AGENTS.md`
+  for measured numbers and rationale.
 
 `src/hooks/useTauri.ts` exposes `isTauri`, `invoke`, and `openFolderDialog`.
 

@@ -3,6 +3,8 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::Manager;
 
+mod pdf_optimize;
+
 #[derive(Serialize, Deserialize, Default)]
 struct DownloadConfig {
     download_base_dir: Option<String>,
@@ -167,6 +169,78 @@ fn save_file_to_dir(
     Ok(final_path.to_string_lossy().to_string())
 }
 
+/// Save a base64-encoded blob via a native "Save As" dialog, so the user
+/// chooses the destination and the OS handles overwrite confirmation. Returns
+/// the chosen path, or `None` if the user cancelled. Used for single,
+/// user-initiated downloads (e.g. the PDF preview) where silently overwriting a
+/// same-named file would be surprising; batch exports keep `save_file_to_dir`.
+#[tauri::command]
+async fn save_file_as(
+    app: tauri::AppHandle,
+    filename: String,
+    data_base64: String,
+) -> Result<Option<String>, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    use tauri_plugin_dialog::DialogExt;
+
+    let bytes = STANDARD
+        .decode(data_base64.as_bytes())
+        .map_err(|e| format!("Invalid base64 payload: {e}"))?;
+
+    let start_dir = get_download_dir(app.clone());
+
+    let chosen = app
+        .dialog()
+        .file()
+        .set_directory(&start_dir)
+        .set_file_name(&filename)
+        .set_title("Save file")
+        .blocking_save_file();
+
+    match chosen {
+        Some(path) => {
+            let pb = path
+                .into_path()
+                .map_err(|e| format!("Invalid save path: {e}"))?;
+            fs::write(&pb, &bytes)
+                .map_err(|e| format!("Failed to write {}: {e}", pb.display()))?;
+            Ok(Some(pb.to_string_lossy().to_string()))
+        }
+        // User cancelled the dialog — not an error.
+        None => Ok(None),
+    }
+}
+
+/// Optimize an attached PDF, returning a (possibly smaller) base64 data URL.
+///
+/// Decodes the `data:application/pdf;base64,...` URL, downsamples
+/// over-resolution embedded JPEGs (see [`pdf_optimize`]), and re-encodes the
+/// result. On any failure — or if optimization doesn't shrink the file — the
+/// original data URL is returned unchanged, so callers can use the result
+/// directly without special-casing errors.
+#[tauri::command]
+fn optimize_pdf(data_url: String) -> Result<String, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+
+    let Some(comma) = data_url.find(',') else {
+        return Err("Not a data URL".to_string());
+    };
+    let b64 = &data_url[comma + 1..];
+    let bytes = STANDARD
+        .decode(b64.as_bytes())
+        .map_err(|e| format!("Invalid base64 payload: {e}"))?;
+
+    let optimized = pdf_optimize::optimize_pdf_bytes(&bytes);
+
+    // Reuse the original (already-valid) data URL when nothing was saved.
+    if optimized.len() >= bytes.len() {
+        return Ok(data_url);
+    }
+
+    let out_b64 = STANDARD.encode(&optimized);
+    Ok(format!("data:application/pdf;base64,{out_b64}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -176,7 +250,9 @@ pub fn run() {
             get_download_dir,
             choose_download_dir,
             read_file_as_data_url,
-            save_file_to_dir
+            save_file_to_dir,
+            save_file_as,
+            optimize_pdf
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

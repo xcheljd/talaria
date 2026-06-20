@@ -25,15 +25,22 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 /**
  * Save a Blob to disk. Returns the absolute saved path in Tauri, or `null` in
  * the browser (where the path is unknown — the browser handles it).
+ *
+ * Pass `{ dialog: true }` for single, user-initiated downloads: in Tauri this
+ * opens a native "Save As" dialog (the OS prompts before overwriting a
+ * same-named file) and returns `null` if the user cancels. Batch exports should
+ * omit it and keep writing silently to the configured download folder.
  */
 export async function saveBlob(
   blob: Blob,
-  filename: string
+  filename: string,
+  options?: { dialog?: boolean }
 ): Promise<string | null> {
   if (isTauri()) {
     const buffer = await blob.arrayBuffer();
     const dataBase64 = arrayBufferToBase64(buffer);
-    const savedPath = await invoke<string>('save_file_to_dir', {
+    const command = options?.dialog ? 'save_file_as' : 'save_file_to_dir';
+    const savedPath = await invoke<string | null>(command, {
       filename,
       dataBase64,
     });

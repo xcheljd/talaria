@@ -67,6 +67,16 @@ vi.mock('@/lib/pdf-utils', () => ({
   formatFileSize: (bytes: number) => `${bytes} B`,
   dataURLtoBlob: (dataURL: string) =>
     new Blob([dataURL], { type: 'application/pdf' }),
+  // Identity optimize keeps the DnD paths deterministic; optimization itself is
+  // covered by the Rust tests. dataURLByteSize mirrors the real implementation.
+  optimizePDF: (dataURL: string) => Promise.resolve(dataURL),
+  dataURLByteSize: (dataURL: string) => {
+    const comma = dataURL.indexOf(',');
+    const b64 = comma >= 0 ? dataURL.slice(comma + 1) : dataURL;
+    if (b64.length === 0) return 0;
+    const padding = b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0;
+    return Math.floor((b64.length * 3) / 4) - padding;
+  },
   MAX_PDF_SIZE: 10 * 1024 * 1024,
 }));
 

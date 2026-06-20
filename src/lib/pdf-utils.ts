@@ -34,6 +34,33 @@ export function readPDFAsDataURL(file: File): Promise<string> {
   });
 }
 
+/** Bytes represented by a base64 data URL's payload (accounts for padding). */
+export function dataURLByteSize(dataURL: string): number {
+  const comma = dataURL.indexOf(',');
+  const b64 = comma >= 0 ? dataURL.slice(comma + 1) : dataURL;
+  if (b64.length === 0) return 0;
+  const padding = b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0;
+  return Math.floor((b64.length * 3) / 4) - padding;
+}
+
+/**
+ * Optimize a PDF data URL via the Rust backend (downsamples over-resolution
+ * embedded JPEGs). Fail-safe by contract: on any error, outside Tauri, or when
+ * the backend can't shrink the file, the original data URL is returned
+ * unchanged — callers can use the result directly without special-casing.
+ */
+export async function optimizePDF(dataURL: string): Promise<string> {
+  try {
+    // Imported lazily so non-Tauri contexts (browser preview, tests) don't
+    // require the API to be present at module load.
+    const { invoke } = await import('@tauri-apps/api/core');
+    const result = await invoke<string>('optimize_pdf', { dataUrl: dataURL });
+    return typeof result === 'string' && result.length > 0 ? result : dataURL;
+  } catch {
+    return dataURL;
+  }
+}
+
 export function dataURLtoBlob(dataURL: string): Blob {
   const byteCharacters = atob(dataURL.split(',')[1]);
   const byteArray = new Uint8Array(byteCharacters.length);

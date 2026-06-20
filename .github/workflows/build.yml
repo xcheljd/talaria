@@ -41,6 +41,13 @@ jobs:
         with:
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
+      # mozjpeg (PDF image optimizer) builds libjpeg-turbo, which needs NASM to
+      # assemble its x86_64 SIMD kernels. cmake is already present on the
+      # GitHub-hosted runners. ARM macOS uses NEON intrinsics (no NASM), but
+      # installing it everywhere is harmless and keeps the matrix uniform.
+      - name: Install NASM (for mozjpeg)
+        uses: ilammy/setup-nasm@v1
+
       - name: Install dependencies
         run: npm ci
 
