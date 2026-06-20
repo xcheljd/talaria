@@ -75,7 +75,7 @@ export const amatl = {
       const result = await invoke<string>('amatl_optimize', {
         dataUrl: dataURL,
         stripAccessibility: true,
-        packObjectStreams: false, // post-strip only ~1.5 points remain; not worth it for this app
+        packObjectStreams: true, // strictly qpdf-clean; squeezes out the last ~2% structural bytes
       });
       return typeof result === 'string' && result.length > 0 ? result : dataURL;
     } catch {

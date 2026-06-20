@@ -285,21 +285,21 @@ Located in `src/lib/`:
   the app.
 - `amatl_optimize(data_url, strip_accessibility, pack_object_streams)` — shrinks
   an attached PDF at upload time by downsampling its embedded JPEG thumbnails
-  and (when `strip_accessibility` is true) removing the PDF structure tree (pure
-  Rust + mozjpeg in `amatl.rs`, ~58% on real promo files with strip on). Wired
+  and (when `strip_accessibility` is true) removing the PDF structure tree, then
+  (when `pack_object_streams` is true) packing structural objects into object
+  streams (pure Rust + mozjpeg in `amatl.rs`, ~59% on real promo files). Wired
   into both upload paths in `PDFAttachments.tsx`, so the stored bytes — and
   therefore the list size and preview modal — reflect the optimized PDF.
   Fail-safe: returns the original on any error or non-shrink. The TS wrapper
   `amatl.optimize()` in `pdf-utils.ts` passes `stripAccessibility: true` and
-  `packObjectStreams: false` for this app; the Rust library defaults are both
+  `packObjectStreams: true` for this app; the Rust library defaults are both
   `false` (accessibility-preserving, classic save). Fully permissive-licensed.
   Ghostscript was rejected (AGPL + RCE surface for ~4 marginal points).
-  Object-stream packing **is implemented** and **strictly `qpdf --check`-clean**
-  (via lopdf's own object/xref-stream save, made valid by `renumber_objects()`
-  plus a fail-safe post-pass that adds the xref stream's self-entry lopdf omits),
-  behind `pack_object_streams`. Left off here: post-strip it buys only ~2 points
-  (~11 KB) on already-small files. See `src-tauri/src/AGENTS.md` for the
-  accessibility decision, the packing finding, and cost/benefit math.
+  Object-stream packing is **strictly `qpdf --check`-clean** (lopdf's own
+  object/xref-stream save, made valid by `renumber_objects()` plus a fail-safe
+  post-pass that adds the xref stream's self-entry lopdf omits). See
+  `src-tauri/src/AGENTS.md` for the accessibility decision, the packing finding,
+  and cost/benefit math.
 
 `src/hooks/useTauri.ts` exposes `isTauri`, `invoke`, and `openFolderDialog`.
 

@@ -111,7 +111,7 @@ compiler) at build time. CI installs it via `ilammy/setup-nasm` in
 | Pipeline | Size | Reduction | `qpdf --check` | Accessibility | License |
 | --- | --- | --- | --- | --- | --- |
 | amatl library default (no strip) | 821 KB | 40% | clean | preserved | MIT/BSD |
-| **amatl (this app, strip=true) — SHIPPED** | **597 KB** | **58%** | clean | **stripped** | MIT/BSD |
+| **amatl (this app, strip+pack) — SHIPPED** | **572 KB** | **59%** | clean | **stripped** | MIT/BSD |
 | Ghostscript 130/Q78 /ebook | 530 KB | 62% | clean | stripped | AGPL |
 
 mozjpeg makes the image payload match Ghostscript within ~0.01% (422 KB image
@@ -150,24 +150,22 @@ Getting there took two findings about lopdf 0.41:
    proper long-term fix is upstream (one line: refresh `xref.size` before
    `create_xref_steam`); this workaround can be dropped if/when lopdf fixes it.
 
-**Why the app still leaves it off.** Post-strip the file is ~217 objects and
-only **1.9% of bytes** are packable dict/scalar text:
+**Gain.** Post-strip the file is ~217 objects and only **1.9% of bytes** are
+packable dict/scalar text:
 
-| Category (shipped output, 597 KB) | Bytes | % of file |
+| Category (unpacked output, 583 KB) | Bytes | % of file |
 | --- | --- | --- |
 | Stream bytes (183 streams — images + content) | 552,496 | 92.5% |
 | Dict/scalar objects (34 remaining objects) | 11,523 | 1.9% |
 | Overhead (xref, trailer) | 33,205 | 5.6% |
 
-Measured packed output: **572 KB vs 583 KB unpacked — ~11 KB / 1.9% gain**, now
-with zero warnings. The app stays `pack_object_streams: false` because the gain
-is marginal on already-small files and the unpacked classic save is the simpler
-path — but the option is production-grade if wanted (re-validate via an EML
-round-trip before enabling, since packed output uses object streams). On
-accessibility-preserving / object-dense inputs (structure tree *not* stripped)
-packing closes far more, which is the productization case. Do NOT bundle qpdf:
-the per-file gain is a constant ~11 KB that doesn't compound, against ongoing
-cross-platform native-build/maintenance cost.
+Measured packed output: **572 KB vs 583 KB unpacked — ~11 KB / 1.9% gain**, with
+zero warnings. **The app enables it** (`packObjectStreams: true` in the TS
+wrapper) — small but free now that it's strictly clean and EML-round-trip
+validated. On accessibility-preserving / object-dense inputs (structure tree
+*not* stripped) packing closes far more, which is the productization case. Do
+NOT bundle qpdf: the per-file gain is a constant ~11 KB that doesn't compound,
+against ongoing cross-platform native-build/maintenance cost.
 
 ### Why NOT Ghostscript (evaluated and rejected)
 
@@ -214,11 +212,9 @@ Verify on real promo PDFs:
   the packed (`save_with_options`) paths depend on a contiguous id space.
   Without it the classic save warns on `/Size` and the packed save emits
   *invalid* object streams.
-- Don't enable `pack_object_streams` for this app — post-strip it buys only
-  ~2 points (~11 KB) on already-small files. It's strictly qpdf-clean and there
-  for library/product consumers; this app keeps the simpler unpacked save.
 - If you touch `pack_and_save`, keep `max_objects_per_stream` very high — the
   single-object-stream invariant is what makes `add_xref_self_entry`'s
-  one-entry fix sufficient (see the packing section).
+  one-entry fix sufficient (see the packing section). Don't "fix" it to a small
+  value without also generalizing the self-entry pass to every omitted id.
 - Keep the optimizer fail-safe: any error or non-smaller result returns the
   original bytes unchanged.
