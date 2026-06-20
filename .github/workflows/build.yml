@@ -37,8 +37,11 @@ jobs:
           cache: 'npm'
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+        # Pinned to a commit SHA. dtolnay/rust-toolchain infers the channel from
+        # the ref name, so when pinned we MUST set `toolchain` explicitly.
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
+          toolchain: stable
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       # mozjpeg (PDF image optimizer) builds libjpeg-turbo, which needs NASM to
@@ -52,7 +55,7 @@ jobs:
         run: npm ci
 
       - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -96,7 +99,7 @@ jobs:
           path: artifacts
 
       - name: Create Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3
         with:
           files: artifacts/**/*
           draft: true
