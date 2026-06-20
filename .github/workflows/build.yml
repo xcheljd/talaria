@@ -46,7 +46,7 @@ jobs:
       # GitHub-hosted runners. ARM macOS uses NEON intrinsics (no NASM), but
       # installing it everywhere is harmless and keeps the matrix uniform.
       - name: Install NASM (for mozjpeg)
-        uses: ilammy/setup-nasm@v1
+        uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1.5.2
 
       - name: Install dependencies
         run: npm ci
