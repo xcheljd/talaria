@@ -294,11 +294,12 @@ Located in `src/lib/`:
   `packObjectStreams: false` for this app; the Rust library defaults are both
   `false` (accessibility-preserving, classic save). Fully permissive-licensed.
   Ghostscript was rejected (AGPL + RCE surface for ~4 marginal points).
-  Object-stream packing **is implemented** (via lopdf's own object/xref-stream
-  save, made valid by `renumber_objects()`), behind `pack_object_streams`, but
-  left off here: post-strip it buys only ~2 points (~11 KB) and carries one
-  benign qpdf warning. See `src-tauri/src/AGENTS.md` for the accessibility
-  decision, the packing finding, and cost/benefit math.
+  Object-stream packing **is implemented** and **strictly `qpdf --check`-clean**
+  (via lopdf's own object/xref-stream save, made valid by `renumber_objects()`
+  plus a fail-safe post-pass that adds the xref stream's self-entry lopdf omits),
+  behind `pack_object_streams`. Left off here: post-strip it buys only ~2 points
+  (~11 KB) on already-small files. See `src-tauri/src/AGENTS.md` for the
+  accessibility decision, the packing finding, and cost/benefit math.
 
 `src/hooks/useTauri.ts` exposes `isTauri`, `invoke`, and `openFolderDialog`.
 

@@ -555,19 +555,116 @@ fn save_document(
 /// Until implemented, callers requesting packing silently get the classic
 /// output — fail-safe, but does not actually pack.
 fn pack_and_save(doc: &mut Document) -> Result<Vec<u8>, lopdf::Error> {
-    // Pack non-stream objects into ObjStm + cross-reference streams via lopdf's
-    // own writer. (HYPOTHESIS UNDER TEST: an earlier attempt produced output
-    // qpdf flagged as invalid, but that was before renumber_objects() made the
-    // id space contiguous — the same fix that cleared the classic-save xref
-    // warning may clear this too. Validated by qpdf --check before trusting.)
+    // Pack non-stream objects into an ObjStm + cross-reference stream via
+    // lopdf's own writer. `renumber_objects()` (done by the caller) clears the
+    // hard "invalid object stream" errors a contiguous id space avoids.
+    //
+    // One lopdf 0.41 bug remains: `create_xref_steam` iterates to a stale
+    // `xref.size` captured before the ObjStm/CRS object ids are assigned, so
+    // ids at/above it are omitted from the emitted xref. We pin
+    // `max_objects_per_stream` very high so there is exactly ONE object stream
+    // — which makes the *only* ever-omitted id the cross-reference stream's own
+    // entry — then `add_xref_self_entry` appends it. Together the packed output
+    // is strictly `qpdf --check`-clean.
     let options = lopdf::SaveOptions::builder()
         .use_object_streams(true)
         .use_xref_streams(true)
+        .max_objects_per_stream(100_000_000)
         .compression_level(9)
         .build();
     let mut out: Vec<u8> = Vec::new();
     doc.save_with_options(&mut out, options)?;
-    Ok(out)
+    Ok(add_xref_self_entry(out))
+}
+
+/// Append the cross-reference stream's own xref entry, which lopdf 0.41 omits
+/// (see [`pack_and_save`]). Deliberately narrow and fail-safe: it only rewrites
+/// output in lopdf's exact shape (a trailing `startxref`, an uncompressed
+/// `/Type/XRef` stream with `/W[1 4 2]` as the last object) and returns the
+/// bytes unchanged if anything doesn't match — so it can never corrupt a file
+/// it doesn't fully understand.
+fn add_xref_self_entry(bytes: Vec<u8>) -> Vec<u8> {
+    try_add_xref_self_entry(&bytes).unwrap_or(bytes)
+}
+
+fn find_sub(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack.windows(needle.len()).position(|w| w == needle)
+}
+
+fn try_add_xref_self_entry(bytes: &[u8]) -> Option<Vec<u8>> {
+    // startxref <offset> %%EOF  -> the CRS object begins at <offset>.
+    let sx = bytes.windows(9).rposition(|w| w == b"startxref")?;
+    let tail = std::str::from_utf8(bytes.get(sx + 9..)?).ok()?;
+    let xref_start: usize = tail.split_whitespace().next()?.parse().ok()?;
+    let crs = bytes.get(xref_start..)?;
+
+    // "<id> 0 obj"
+    let obj_pos = find_sub(crs, b" 0 obj")?;
+    let crs_id: u32 = std::str::from_utf8(&crs[..obj_pos]).ok()?.trim().parse().ok()?;
+
+    // Dict text between "<<" and the "stream" keyword.
+    let dict_open = find_sub(crs, b"<<")?;
+    let stream_kw = find_sub(crs, b"stream")?;
+    if stream_kw <= dict_open {
+        return None;
+    }
+    let dict = std::str::from_utf8(&crs[dict_open..stream_kw]).ok()?;
+    // Only handle lopdf's exact, uncompressed XRef-stream shape.
+    if !dict.contains("/Type/XRef") || !dict.contains("/W[1 4 2]") || dict.contains("/Filter") {
+        return None;
+    }
+
+    // /Length N (the stream byte count).
+    let len_rest = &dict[dict.find("/Length ")? + "/Length ".len()..];
+    let len_digits: String = len_rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+    let length: usize = len_digits.parse().ok()?;
+
+    // /Index[ ... ] subsections.
+    let idx_open = dict.find("/Index[")? + "/Index[".len();
+    let idx_len = dict[idx_open..].find(']')?;
+    let index_inner = dict[idx_open..idx_open + idx_len].to_string();
+    // Already has the self-entry (last subsection starts at crs_id)? Nothing to do.
+    let toks: Vec<&str> = index_inner.split_whitespace().collect();
+    if toks.len() >= 2 && toks[toks.len() - 2] == crs_id.to_string() {
+        return None;
+    }
+
+    // Stream content is "stream\n" + <length bytes> + "\nendstream".
+    let stream_abs = xref_start + stream_kw;
+    if bytes.get(stream_abs + 6)? != &b'\n' {
+        return None;
+    }
+    let content_start = stream_abs + 7;
+    let content_end = content_start + length;
+    if bytes.get(content_end..content_end + 10)? != b"\nendstream" {
+        return None;
+    }
+
+    // Type-1 entry for the CRS: [01][offset u32 BE][generation u16 BE = 0].
+    let mut entry = [0u8; 7];
+    entry[0] = 1;
+    entry[1..5].copy_from_slice(&(xref_start as u32).to_be_bytes());
+
+    let new_dict = dict
+        .replacen(
+            &format!("/Length {length}"),
+            &format!("/Length {}", length + entry.len()),
+            1,
+        )
+        .replacen(
+            &format!("/Index[{index_inner}]"),
+            &format!("/Index[{index_inner} {crs_id} 1]"),
+            1,
+        );
+
+    let dict_open_abs = xref_start + dict_open;
+    let mut out = Vec::with_capacity(bytes.len() + 16);
+    out.extend_from_slice(&bytes[..dict_open_abs]); // everything up to the dict
+    out.extend_from_slice(new_dict.as_bytes()); // patched dict (replaces dict region)
+    out.extend_from_slice(&bytes[stream_abs..content_end]); // "stream\n" + content
+    out.extend_from_slice(&entry); // the appended self-entry
+    out.extend_from_slice(&bytes[content_end..]); // "\nendstream..." + startxref + %%EOF
+    Some(out)
 }
 
 #[cfg(test)]
@@ -665,6 +762,21 @@ mod tests {
             }
         }
         panic!("no image found");
+    }
+
+    #[test]
+    fn add_xref_self_entry_is_fail_safe_on_unexpected_input() {
+        // Anything that isn't lopdf's exact uncompressed-XRef shape must pass
+        // through untouched — never corrupt a file we don't fully understand.
+        for input in [
+            &b""[..],
+            b"%PDF-1.7 not really a pdf",
+            b"...startxref\n999999999\n%%EOF", // offset past EOF
+            b"5 0 obj<</Type/XRef/W[1 2 1]>>stream\nx\nendstream\nstartxref\n0\n%%EOF",
+        ] {
+            let v = input.to_vec();
+            assert_eq!(add_xref_self_entry(v.clone()), v, "must be unchanged");
+        }
     }
 
     #[test]

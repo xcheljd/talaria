@@ -130,25 +130,28 @@ Packing is implemented behind `OptimizeOptions.pack_object_streams` (default
 `false`). It uses **lopdf's own** `save_with_options(use_object_streams,
 use_xref_streams)` — not a hand-rolled writer and not qpdf. See `pack_and_save`.
 
-**Key discovery (corrects an earlier conclusion).** A prior attempt declared
-lopdf's object-stream save unusable because it produced output `qpdf --check`
-called invalid ("supposed object stream N is not a stream"). That was a
-symptom of the non-contiguous id space; **`renumber_objects()` before save
-fixes it.** With renumber in place, the packed output is structurally sound:
-across the whole promo archive it passes `qpdf --check` with **exit code 3
-(warnings only, zero hard errors), all images intact**. The hand-rolled
-ObjStm/xref-stream writer the previous notes scoped at "2-4 weeks" is **not
-needed** — lopdf does the packing.
+It is **strictly `qpdf --check`-clean** (exit 0, zero warnings) across the whole
+promo archive, all images intact — no sidecar, no qpdf, no hand-rolled writer.
+Getting there took two findings about lopdf 0.41:
 
-**The one remaining wrinkle.** lopdf's xref-stream writer omits the xref
-stream's own self-entry, so qpdf emits exactly one benign warning:
-`xref entry for the xref stream itself is missing - a common error handled
-correctly by qpdf and most other applications`. No hard error; Preview /
-PDF.js / Adobe all render it. But it is *not* zero-warning, which is our bar.
+1. **`renumber_objects()` before save** (done by the caller) clears the hard
+   "supposed object stream N is not a stream" errors an earlier attempt hit —
+   those were a symptom of a non-contiguous id space, not a real packer bug.
+2. **lopdf omits the xref stream's own self-entry.** Its `create_xref_steam`
+   loops to a stale `xref.size` captured *before* the ObjStm/CRS object ids are
+   assigned, so the highest id is skipped, leaving qpdf's benign warning
+   "xref entry for the xref stream itself is missing". `pack_and_save` works
+   around it: it pins `max_objects_per_stream` very high so there is exactly
+   **one** object stream (making the *only* skipped id deterministically the CRS
+   itself), then `add_xref_self_entry` appends that one type-1 entry to the
+   (uncompressed) xref stream and patches `/Index` + `/Length`. That post-pass
+   is narrow and fail-safe — it only edits lopdf's exact output shape and
+   returns the bytes unchanged otherwise, so it cannot corrupt a file. The
+   proper long-term fix is upstream (one line: refresh `xref.size` before
+   `create_xref_steam`); this workaround can be dropped if/when lopdf fixes it.
 
-**Post-strip math (why the app leaves it off).** After the accessibility strip
-the file is ~217 objects and only **1.9% of bytes** are packable dict/scalar
-text:
+**Why the app still leaves it off.** Post-strip the file is ~217 objects and
+only **1.9% of bytes** are packable dict/scalar text:
 
 | Category (shipped output, 597 KB) | Bytes | % of file |
 | --- | --- | --- |
@@ -156,22 +159,15 @@ text:
 | Dict/scalar objects (34 remaining objects) | 11,523 | 1.9% |
 | Overhead (xref, trailer) | 33,205 | 5.6% |
 
-Measured packed output: **572 KB vs 583 KB unpacked — ~11 KB / 1.9% gain**,
-for the cost of that one benign warning. **The app stays `pack_object_streams:
-false`**: post-strip there's almost nothing to pack, and we hold the
-zero-warning bar. The remaining ~4-point gap to Ghostscript is spread across
-micro-optimizations (font-subsetting/dict-serialization quirks) packing can't
-touch.
-
-**Productization.** The option already exists and works; a product tier that
-wants the extra ~1.9% (or much more on accessibility-preserving / object-dense
-inputs, where the structure tree is *not* stripped and packing closes ~16
-points) flips it on. To make the packed path **strictly** zero-warning, the one
-task left is eliminating the missing xref-stream self-entry — a narrow fix in
-lopdf's xref writer (upstream PR or a vendored patch), **not** a multi-week
-hand-roll. Do NOT bundle qpdf for this: the per-file gain is a constant ~11 KB
-that doesn't compound, against ongoing cross-platform native-build/maintenance
-cost.
+Measured packed output: **572 KB vs 583 KB unpacked — ~11 KB / 1.9% gain**, now
+with zero warnings. The app stays `pack_object_streams: false` because the gain
+is marginal on already-small files and the unpacked classic save is the simpler
+path — but the option is production-grade if wanted (re-validate via an EML
+round-trip before enabling, since packed output uses object streams). On
+accessibility-preserving / object-dense inputs (structure tree *not* stripped)
+packing closes far more, which is the productization case. Do NOT bundle qpdf:
+the per-file gain is a constant ~11 KB that doesn't compound, against ongoing
+cross-platform native-build/maintenance cost.
 
 ### Why NOT Ghostscript (evaluated and rejected)
 
@@ -218,8 +214,11 @@ Verify on real promo PDFs:
   the packed (`save_with_options`) paths depend on a contiguous id space.
   Without it the classic save warns on `/Size` and the packed save emits
   *invalid* object streams.
-- Don't enable `pack_object_streams` for this app — post-strip it buys ~2 points
-  (~11 KB) and carries one benign qpdf warning (xref-stream self-entry). It's
-  there for library/product consumers; this app holds the zero-warning bar.
+- Don't enable `pack_object_streams` for this app — post-strip it buys only
+  ~2 points (~11 KB) on already-small files. It's strictly qpdf-clean and there
+  for library/product consumers; this app keeps the simpler unpacked save.
+- If you touch `pack_and_save`, keep `max_objects_per_stream` very high — the
+  single-object-stream invariant is what makes `add_xref_self_entry`'s
+  one-entry fix sufficient (see the packing section).
 - Keep the optimizer fail-safe: any error or non-smaller result returns the
   original bytes unchanged.
