@@ -87,8 +87,14 @@ pub fn optimize(input: &[u8]) -> Vec<u8> {
 /// On any failure or if the result is not smaller, the original bytes are
 /// returned unchanged.
 pub fn optimize_with_options(input: &[u8], options: OptimizeOptions) -> Vec<u8> {
-    match try_optimize(input, options) {
-        Ok(out) if out.len() < input.len() => out,
+    // amatl optimizes arbitrary user-supplied PDFs, and its contract is to
+    // return the original bytes on ANY failure. try_optimize handles the
+    // expected error paths (Result::Err), but a crafted PDF could still trigger
+    // a panic deep in the JPEG decoder, the mozjpeg encoder, or lopdf. Catch it
+    // here so a panic becomes the same graceful fallback as any other failure.
+    let result = std::panic::catch_unwind(|| try_optimize(input, options));
+    match result {
+        Ok(Ok(out)) if out.len() < input.len() => out,
         _ => input.to_vec(),
     }
 }
@@ -914,5 +920,62 @@ mod tests {
         if let Ok(dest) = std::env::var("CCT_TEST_OUT") {
             std::fs::write(&dest, &out).unwrap();
         }
+    }
+
+    #[test]
+    fn corrupt_jpeg_stream_falls_back_without_crashing() {
+        // Structurally valid PDF, but the image's "JPEG" bytes are garbage. The
+        // effective DPI (400px drawn into a 100pt box ≈ 288 DPI) is above target,
+        // so plan_replacement attempts to decode — and must fail gracefully,
+        // leaving the document untouched and returning the original bytes.
+        let mut doc = Document::with_version("1.5");
+        let img_id = doc.add_object(Stream::new(
+            dictionary! {
+                "Type" => "XObject",
+                "Subtype" => "Image",
+                "Width" => 400_i64,
+                "Height" => 400_i64,
+                "ColorSpace" => "DeviceRGB",
+                "BitsPerComponent" => 8,
+                "Filter" => "DCTDecode",
+            },
+            b"\xff\xd8\xff not a real jpeg payload".to_vec(),
+        ));
+        let content = Content {
+            operations: vec![
+                Operation::new("q", vec![]),
+                Operation::new(
+                    "cm",
+                    vec![100.into(), 0.into(), 0.into(), 100.into(), 0.into(), 0.into()],
+                ),
+                Operation::new("Do", vec![Object::Name(b"Im0".to_vec())]),
+                Operation::new("Q", vec![]),
+            ],
+        };
+        let content_id = doc.add_object(Stream::new(dictionary! {}, content.encode().unwrap()));
+        let pages_id = doc.new_object_id();
+        let page_id = doc.add_object(dictionary! {
+            "Type" => "Page",
+            "Parent" => pages_id,
+            "Contents" => content_id,
+            "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+            "Resources" => dictionary! { "XObject" => dictionary! { "Im0" => img_id } },
+        });
+        doc.objects.insert(
+            pages_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Pages",
+                "Kids" => vec![page_id.into()],
+                "Count" => 1,
+            }),
+        );
+        let catalog_id = doc.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
+        doc.trailer.set("Root", catalog_id);
+        let mut input: Vec<u8> = Vec::new();
+        doc.save_to(&mut input).unwrap();
+
+        let out = optimize(&input);
+        assert_eq!(out, input, "corrupt image must leave the document unchanged");
+        assert!(Document::load_mem(&out).is_ok(), "output must remain a valid PDF");
     }
 }
