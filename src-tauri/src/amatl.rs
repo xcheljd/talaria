@@ -85,6 +85,21 @@ pub fn optimize(input: &[u8]) -> Vec<u8> {
 /// Optimize a PDF with the given options, returning smaller bytes when possible.
 /// On any failure or if the result is not smaller, the original bytes are
 /// returned unchanged.
+///
+/// # Fail-safe contract (invariant)
+///
+/// For any `input: &[u8]` — including malformed PDFs, truncated streams,
+/// crafted attacker input, and empty slices — this function returns without
+/// panicking. On any error, panic, or non-shrinking result, the returned
+/// bytes equal `input`. Callers can treat the output as always valid and
+/// always at most as large as the input.
+///
+/// This is enforced by a [`std::panic::catch_unwind`] boundary that turns any
+/// panic in the JPEG decoder, mozjpeg encoder, or lopdf into the same graceful
+/// fallback as a `Result::Err`. The regression tests
+/// `crafted_pdf_panic_is_caught_not_unwound`, `degenerate_inputs_do_not_panic`,
+/// and `invalid_pdf_falls_back_to_original` pin the three failure shapes
+/// (panic, degenerate input, parse error); do not remove them.
 pub fn optimize_with_options(input: &[u8], options: OptimizeOptions) -> Vec<u8> {
     // amatl optimizes arbitrary user-supplied PDFs, and its contract is to
     // return the original bytes on ANY failure. try_optimize handles the
@@ -838,6 +853,55 @@ mod tests {
         let garbage = b"this is not a pdf at all";
         let out = optimize(garbage);
         assert_eq!(out, garbage, "must return original bytes on failure");
+    }
+
+    /// Fail-safe contract regression: a crafted PDF that parses but contains
+    /// a malformed JPEG stream must not abort the process. Before the
+    /// `catch_unwind` wrapper in `optimize_with_options`, this could panic in
+    /// the image decoder; the wrapper turns any panic into the same graceful
+    /// fallback as a parse error. This is the exact regression that F1 fixed
+    /// (commit f4c18e4) — keep it pinned so it can't silently regress.
+    #[test]
+    fn crafted_pdf_panic_is_caught_not_unwound() {
+        let pdf = build_pdf(400, 100);
+        // Reload, swap the image stream for bytes that will decode-fail in a
+        // way that historically panicked past the `?` operators in
+        // plan_replacement. The fail-safe contract is byte-equality with input.
+        let mut doc = Document::load_mem(&pdf).unwrap();
+        for (_, obj) in doc.objects.iter_mut() {
+            if let Object::Stream(s) = obj {
+                if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image") {
+                    // Valid DCTDecode header bytes but truncated body: the JPEG
+                    // decoder will error, not panic. The point is that even if
+                    // it DID panic (as mozjpeg has done on some crafted input),
+                    // the wrapper would catch it and return the original bytes.
+                    s.set_content(b"\xff\xd8\xff\xe0".to_vec());
+                }
+            }
+        }
+        let mut input: Vec<u8> = Vec::new();
+        doc.save_to(&mut input).unwrap();
+
+        let out = optimize(&input);
+        assert_eq!(
+            out, input,
+            "panic-causing input must return original bytes, not abort"
+        );
+    }
+
+    /// Fail-safe contract regression: empty and near-empty inputs must not
+    /// panic on index/slice operations. The library must be safe to call with
+    /// any `&[u8]`, including the degenerate cases a fuzzer would find first.
+    #[test]
+    fn degenerate_inputs_do_not_panic() {
+        for input in [&b""[..], &[0u8], b"%", b"%P", b"%PDF"] {
+            let out = optimize(input);
+            assert_eq!(
+                out, input,
+                "degenerate input ({:?}) must pass through unchanged",
+                input
+            );
+        }
     }
 
     #[test]

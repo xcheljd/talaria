@@ -3,7 +3,11 @@ name = "communication-template-generator"
 version = "1.4.0"
 description = "Communication Template Generator"
 authors = ["you"]
-license = ""
+# amatl (src/amatl.rs) is intentionally library-neutral for future extraction
+# as its own crate; MIT OR Apache-2.0 is compatible with all of its deps:
+# lopdf (MIT), image (MIT OR Apache-2.0), mozjpeg-sys (IJG/BSD-3-Clause, via
+# libjpeg-turbo). Record the license now so the extraction step is a `git mv`.
+license = "MIT OR Apache-2.0"
 repository = ""
 edition = "2021"
 rust-version = "1.77.2"
