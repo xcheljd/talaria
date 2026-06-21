@@ -55,6 +55,14 @@ export const StorageKeys = {
 
   /** Saved email palettes for the promotion theme editor (JSON array) */
   emailPaletteSaved: 'emailPaletteSaved',
+
+  /**
+   * Whether dev mode is enabled. Default false (off). When off, advanced
+   * surfaces are hidden from regular users: the Templates page (route + nav),
+   * the promotion HTML Code tab, and the Email Theme / Accessibility /
+   * Outlook cards. Persists across sessions.
+   */
+  devMode: 'dev.mode',
 } as const;
 
 export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];

@@ -17,6 +17,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ProfileProvider } from '../src/contexts/ProfileProvider';
 import { ThemeProvider } from '../src/contexts/ThemeProvider';
 import { usePromotionStore } from '../src/stores/promotion-store';
+import { StorageKeys } from '../src/lib/storage-keys';
 import {
   generatePromotionEmailHTML,
   type PromotionEmailData,
@@ -294,6 +295,9 @@ describe('VAL-CROSS-004: Theme persists across all pages', () => {
   beforeEach(() => {
     localStorage.clear();
     resetStore();
+    // The "header renders on all pages" test asserts the Templates nav link
+    // is visible, which only happens in dev mode.
+    localStorage.setItem(StorageKeys.devMode, 'true');
   });
 
   it('theme is read from localStorage on app load', () => {

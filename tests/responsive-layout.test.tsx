@@ -20,6 +20,7 @@ import { PromotionPage } from '@/pages/PromotionPage';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
+import { StorageKeys } from '@/lib/storage-keys';
 import { HorizontalStrip, type StripCardInfo } from '@/components/promotion/HorizontalStrip';
 
 
@@ -194,6 +195,9 @@ describe('HorizontalStrip', () => {
 describe('PromotionPage Mobile Layout', () => {
   beforeEach(() => {
     localStorage.clear();
+    // These tests assert on the full 13-icon toolbar, which includes the
+    // dev-only Email Theme / Accessibility / Outlook icons.
+    localStorage.setItem(StorageKeys.devMode, 'true');
   });
 
   // 1. Mobile layout renders IconToolbar at top

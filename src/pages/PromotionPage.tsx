@@ -38,10 +38,11 @@ import { ResizablePanels } from '@/components/ui/resizable-panels';
 
 import { selectEmailDataSource } from '@/components/promotion/email-data-source';
 import {
-  CARD_CONFIGS,
+  getVisibleCardConfigs,
   PromotionCard,
 } from '@/components/promotion/PromotionCards';
 import { PreviewColumn } from '@/components/promotion/PreviewColumn';
+import { useDevMode } from '@/hooks/useDevMode';
 import {
   useAutoSave,
   useSaveStatusToast,
@@ -64,6 +65,8 @@ export function PromotionPage() {
       initializeDefaultItems: s.initializeDefaultItems,
     }))
   );
+  const { devMode } = useDevMode();
+  const visibleCards = useMemo(() => getVisibleCardConfigs(devMode), [devMode]);
 
   // Tracks which card should be force-expanded (from toolbar/strip click)
   const [forceExpandedCardId, setForceExpandedCardId] = useState<
@@ -195,7 +198,9 @@ export function PromotionPage() {
   // Card list shared by both layouts
   const cardList = (
     <div className="space-y-3 p-4">
-      {CARD_CONFIGS.map((config) => {
+      {visibleCards.map((config) => {
+        // Dividers precede subjectCard (always visible) and emailThemeCard
+        // (dev-only — the divider only renders when the card does).
         const showDivider =
           config.id === 'subjectCard' || config.id === 'emailThemeCard';
         return (

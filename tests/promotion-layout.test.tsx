@@ -19,6 +19,7 @@ import { PromotionPage } from '@/pages/PromotionPage';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
+import { StorageKeys } from '@/lib/storage-keys';
 import { SidebarBar, type SidebarCardGroup } from '@/components/promotion/SidebarBar';
 
 
@@ -107,6 +108,9 @@ function renderPromotionPage() {
 describe('PromotionPage Desktop Layout', () => {
   beforeEach(() => {
     localStorage.clear();
+    // The "always renders the preview panel" test asserts the dev-only
+    // HTML Code tab is present.
+    localStorage.setItem(StorageKeys.devMode, 'true');
   });
 
   // 1. Desktop layout renders icon toolbar + all cards + preview

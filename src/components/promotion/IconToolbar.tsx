@@ -27,6 +27,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDevMode } from '@/hooks/useDevMode';
 
 // ===== Card Icon Configuration =====
 
@@ -34,6 +35,8 @@ interface CardIconConfig {
   icon: LucideIcon;
   label: string;
   tooltip: string;
+  /** When true, only render in dev mode. */
+  devOnly?: boolean;
 }
 
 const CARD_ICONS: Record<string, CardIconConfig> = {
@@ -46,6 +49,7 @@ const CARD_ICONS: Record<string, CardIconConfig> = {
     icon: Palette,
     label: 'Theme',
     tooltip: 'Email Theme',
+    devOnly: true,
   },
   newsletterCard: {
     icon: Newspaper,
@@ -78,6 +82,7 @@ const CARD_ICONS: Record<string, CardIconConfig> = {
     icon: ScanEye,
     label: 'A11y',
     tooltip: 'Accessibility Checker',
+    devOnly: true,
   },
   versionHistoryCard: {
     icon: History,
@@ -88,6 +93,7 @@ const CARD_ICONS: Record<string, CardIconConfig> = {
     icon: MonitorCheck,
     label: 'Outlook',
     tooltip: 'Outlook Compatibility',
+    devOnly: true,
   },
   bulkEmailCard: { icon: Mail, label: 'Email', tooltip: 'Bulk Email Tools' },
 };
@@ -121,6 +127,7 @@ export interface IconToolbarProps {
 // ===== Component =====
 
 export function IconToolbar({ activeCardId, onCardClick }: IconToolbarProps) {
+  const { devMode } = useDevMode();
   return (
     <div
       className="flex flex-wrap items-center justify-center gap-1 border-b px-2 py-2"
@@ -131,6 +138,7 @@ export function IconToolbar({ activeCardId, onCardClick }: IconToolbarProps) {
       {TOOLBAR_CARD_ORDER.map((cardId) => {
         const config = CARD_ICONS[cardId];
         if (!config) return null;
+        if (config.devOnly && !devMode) return null;
 
         const Icon = config.icon;
         const isActive = activeCardId === cardId;

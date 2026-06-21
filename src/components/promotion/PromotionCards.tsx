@@ -35,6 +35,8 @@ export interface CardConfig {
   id: string;
   title: string;
   defaultCollapsed: boolean;
+  /** When true, the card is only rendered in dev mode. */
+  devOnly?: boolean;
 }
 
 export const CARD_CONFIGS: CardConfig[] = [
@@ -59,19 +61,38 @@ export const CARD_CONFIGS: CardConfig[] = [
   { id: 'subjectCard', title: 'Subject Lines', defaultCollapsed: true },
   { id: 'pdfCard', title: 'PDF Attachments', defaultCollapsed: true },
   { id: 'bulkEmailCard', title: 'Bulk Email Tools', defaultCollapsed: true },
-  { id: 'emailThemeCard', title: 'Email Theme', defaultCollapsed: true },
+  {
+    id: 'emailThemeCard',
+    title: 'Email Theme',
+    defaultCollapsed: true,
+    devOnly: true,
+  },
   {
     id: 'accessibilityCard',
     title: 'Accessibility Check',
     defaultCollapsed: true,
+    devOnly: true,
   },
   {
     id: 'versionHistoryCard',
     title: 'Version History',
     defaultCollapsed: true,
   },
-  { id: 'outlookCard', title: 'Outlook Compatibility', defaultCollapsed: true },
+  {
+    id: 'outlookCard',
+    title: 'Outlook Compatibility',
+    defaultCollapsed: true,
+    devOnly: true,
+  },
 ];
+
+/**
+ * Returns the visible card configs for the given dev mode state. Dev-only
+ * cards are filtered out when dev mode is off.
+ */
+export function getVisibleCardConfigs(devMode: boolean): CardConfig[] {
+  return CARD_CONFIGS.filter((c) => devMode || !c.devOnly);
+}
 
 // ===== Card Content Components =====
 

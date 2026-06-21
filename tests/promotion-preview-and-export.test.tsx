@@ -30,6 +30,7 @@ import { PromotionPage } from '@/pages/PromotionPage';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
+import { StorageKeys } from '@/lib/storage-keys';
 
 
 /** Helper to create a complete PromotionEmailData with newsletter defaults */
@@ -525,6 +526,8 @@ describe('validateImportConfig', () => {
 describe('PromotionPage Preview and Export', () => {
   beforeEach(() => {
     localStorage.clear();
+    // These tests exercise the dev-only HTML Code tab.
+    localStorage.setItem(StorageKeys.devMode, 'true');
   });
 
   it('renders Preview tab and HTML Code tab', () => {

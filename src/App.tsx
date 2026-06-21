@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { TemplatesPage } from './pages/TemplatesPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -10,9 +10,11 @@ import { ThemeProvider } from './contexts/ThemeProvider';
 import { ProfileProvider } from './contexts/ProfileProvider';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useGlobalDropGuard } from './hooks/useGlobalDropGuard';
+import { useDevMode } from './hooks/useDevMode';
 
 function App() {
   useGlobalDropGuard();
+  const { devMode } = useDevMode();
   return (
     <ThemeProvider>
       <ProfileProvider>
@@ -20,12 +22,18 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route element={<Layout />}>
+                {/* Root redirect: land on /promotion unless dev mode exposes
+                    the in-construction Templates page. */}
                 <Route
                   path="/"
                   element={
-                    <ErrorBoundary level="route" key="route-/">
-                      <TemplatesPage />
-                    </ErrorBoundary>
+                    devMode ? (
+                      <ErrorBoundary level="route" key="route-/">
+                        <TemplatesPage />
+                      </ErrorBoundary>
+                    ) : (
+                      <Navigate to="/promotion" replace />
+                    )
                   }
                 />
                 <Route

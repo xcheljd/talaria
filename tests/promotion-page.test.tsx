@@ -22,6 +22,7 @@ import { SidebarBar } from '@/components/promotion/SidebarBar';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
+import { StorageKeys } from '@/lib/storage-keys';
 
 
 // Mock ResizeObserver for Radix components
@@ -363,6 +364,9 @@ describe('SidebarBar', () => {
 describe('PromotionPage', () => {
   beforeEach(() => {
     localStorage.clear();
+    // These tests assert on the full set of cards/tabs, including the
+    // dev-only HTML Code tab and Email Theme / Accessibility / Outlook cards.
+    localStorage.setItem(StorageKeys.devMode, 'true');
   });
 
   it('redirects to /start when no profile is saved', () => {

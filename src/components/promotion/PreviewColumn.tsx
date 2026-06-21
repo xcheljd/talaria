@@ -70,6 +70,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 import { selectEmailDataSource } from './email-data-source';
+import { useDevMode } from '@/hooks/useDevMode';
 
 // ===== Download Helpers =====
 
@@ -91,6 +92,7 @@ async function downloadBlob(blob: Blob, filename: string): Promise<void> {
 // ===== Preview Column Component =====
 
 export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
+  const { devMode } = useDevMode();
   const store = usePromotionStore(
     useShallow((s) => ({
       ...selectEmailDataSource(s),
@@ -516,13 +518,15 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
             <Eye className="h-3.5 w-3.5" />
             Preview
           </TabsTrigger>
-          <TabsTrigger
-            value="code"
-            className="gap-1.5 rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-          >
-            <Code className="h-3.5 w-3.5" />
-            HTML Code
-          </TabsTrigger>
+          {devMode && (
+            <TabsTrigger
+              value="code"
+              className="gap-1.5 rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
+              <Code className="h-3.5 w-3.5" />
+              HTML Code
+            </TabsTrigger>
+          )}
           {/* Preview Width Toggle */}
           <div className="ml-auto flex items-center gap-0.5 pr-2">
             <button
@@ -632,16 +636,18 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           )}
         </TabsContent>
 
-        <TabsContent value="code" className="flex-1 m-0 overflow-hidden">
-          <div className="h-full p-4">
-            <textarea
-              className="h-full w-full rounded-md border bg-muted/50 p-3 font-mono text-xs"
-              value={emailHTML || ''}
-              placeholder="HTML code will appear here..."
-              readOnly
-            />
-          </div>
-        </TabsContent>
+        {devMode && (
+          <TabsContent value="code" className="flex-1 m-0 overflow-hidden">
+            <div className="h-full p-4">
+              <textarea
+                className="h-full w-full rounded-md border bg-muted/50 p-3 font-mono text-xs"
+                value={emailHTML || ''}
+                placeholder="HTML code will appear here..."
+                readOnly
+              />
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Preview Actions */}
