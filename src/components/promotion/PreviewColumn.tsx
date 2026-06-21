@@ -57,6 +57,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Separator } from '@/components/ui/separator';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -434,6 +442,15 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
     iframe.contentWindow?.print();
   }, [emailHTML]);
 
+  const handleViewportChange = useCallback((v: string) => {
+    if (v === 'desktop' || v === 'mobile') setPreviewWidth(v);
+  }, []);
+
+  const handleThemeChange = useCallback((v: string) => {
+    if (v === 'light') setPreviewDark(false);
+    else if (v === 'dark') setPreviewDark(true);
+  }, []);
+
   return (
     <div className="flex h-full flex-col">
       {/* Hidden file input for import */}
@@ -504,109 +521,122 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
         </div>
       </div>
 
-      {/* Preview Tabs */}
+      {/* Preview Tabs
+       * When dev mode is off there's only one surface (Preview), so the
+       * Preview / HTML Code tabs are hidden. Everything lives on a single
+       * compact toolbar row below the header. */}
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
         className="flex flex-1 flex-col overflow-hidden"
       >
-        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
-          <TabsTrigger
-            value="preview"
-            className="gap-1.5 rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-          >
-            <Eye className="h-3.5 w-3.5" />
-            Preview
-          </TabsTrigger>
-          {devMode && (
-            <TabsTrigger
-              value="code"
-              className="gap-1.5 rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+        {/* Single-row toolbar: tabs (left) + viewport + theme + print (right).
+         * ToggleGroupItems use native title= instead of Radix Tooltip to
+         * avoid the data-state collision between TooltipTrigger and Toggle
+         * (both write data-state on the same DOM node when composed via
+         * asChild, causing the active-state styling to disappear). */}
+        <TooltipProvider delayDuration={200}>
+          <div className="flex items-center gap-1.5 border-b bg-muted/40 px-2 py-1">
+            {/* Preview / HTML Code tabs (dev mode only).
+             * flex-none so they shrink to content width, not fill the row. */}
+            {devMode && (
+              <>
+                <TabsList
+                  variant="toolbar"
+                  className="flex-none gap-0 rounded-md border border-input p-0 shadow-xs"
+                >
+                  <TabsTrigger value="preview">
+                    <Eye className="h-3.5 w-3.5" />
+                    Preview
+                  </TabsTrigger>
+                  <TabsTrigger value="code">
+                    <Code className="h-3.5 w-3.5" />
+                    HTML
+                  </TabsTrigger>
+                </TabsList>
+                <Separator orientation="vertical" className="mx-0.5 h-4" />
+              </>
+            )}
+
+            {/* Viewport: mutually-exclusive segmented control (icon + label) */}
+            <ToggleGroup
+              type="single"
+              value={previewWidth}
+              onValueChange={handleViewportChange}
+              variant="outline"
+              size="sm"
+              spacing={0}
+              colorScheme="primary"
+              aria-label="Preview viewport width"
+              className="shadow-xs"
             >
-              <Code className="h-3.5 w-3.5" />
-              HTML Code
-            </TabsTrigger>
-          )}
-          {/* Preview Width Toggle */}
-          <div className="ml-auto flex items-center gap-0.5 pr-2">
-            <button
-              type="button"
-              onClick={() => setPreviewWidth('desktop')}
-              className={cn(
-                'rounded p-1 transition-colors',
-                previewWidth === 'desktop'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              title="Desktop preview (600px)"
-              aria-label="Desktop preview"
-              aria-pressed={previewWidth === 'desktop'}
+              <ToggleGroupItem
+                value="desktop"
+                aria-label="Desktop preview"
+                title="Desktop width (600px)"
+                className="gap-1.5 px-2 text-xs"
+              >
+                <Monitor className="h-3.5 w-3.5" />
+                Desktop
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="mobile"
+                aria-label="Mobile preview"
+                title="Mobile width (320px)"
+                className="gap-1.5 px-2 text-xs"
+              >
+                <Smartphone className="h-3.5 w-3.5" />
+                Mobile
+              </ToggleGroupItem>
+            </ToggleGroup>
+
+            <Separator orientation="vertical" className="mx-0.5 h-4" />
+
+            {/* Theme: light / dark segmented control */}
+            <ToggleGroup
+              type="single"
+              value={previewDark ? 'dark' : 'light'}
+              onValueChange={handleThemeChange}
+              variant="outline"
+              size="sm"
+              spacing={0}
+              colorScheme="primary"
+              aria-label="Preview color scheme"
+              className="shadow-xs"
             >
-              <Monitor className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreviewWidth('mobile')}
-              className={cn(
-                'rounded p-1 transition-colors',
-                previewWidth === 'mobile'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              title="Mobile preview (320px)"
-              aria-label="Mobile preview"
-              aria-pressed={previewWidth === 'mobile'}
-            >
-              <Smartphone className="h-3.5 w-3.5" />
-            </button>
-            <div className="mx-1 h-4 w-px bg-border" />
-            <button
-              type="button"
-              onClick={() => setPreviewDark((d) => !d)}
-              className={cn(
-                'rounded p-1 transition-colors',
-                previewDark
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              title={previewDark ? 'Light mode preview' : 'Dark mode preview'}
-              aria-label={
-                previewDark
-                  ? 'Switch to light preview'
-                  : 'Switch to dark preview'
-              }
-              aria-pressed={previewDark}
-            >
-              {previewDark ? (
+              <ToggleGroupItem value="light" aria-label="Light preview" title="Light preview">
                 <Sun className="h-3.5 w-3.5" />
-              ) : (
+              </ToggleGroupItem>
+              <ToggleGroupItem value="dark" aria-label="Dark preview" title="Dark preview">
                 <Moon className="h-3.5 w-3.5" />
-              )}
-            </button>
-            <div className="mx-1 h-4 w-px bg-border" />
-            <button
-              type="button"
-              onClick={handlePrint}
-              disabled={!hasContent}
-              className={cn(
-                'rounded p-1 transition-colors',
-                hasContent
-                  ? 'text-muted-foreground hover:text-foreground'
-                  : 'text-muted-foreground/40 cursor-not-allowed'
-              )}
-              title="Print email"
-              aria-label="Print email"
-            >
-              <Printer className="h-3.5 w-3.5" />
-            </button>
+              </ToggleGroupItem>
+            </ToggleGroup>
+
+            {/* Print: standalone ghost button. Radix Tooltip is safe here
+             * because Button has no data-state attribute to collide with. */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  className="ml-auto"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={handlePrint}
+                  disabled={!hasContent}
+                  aria-label="Print email"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Print email</TooltipContent>
+            </Tooltip>
           </div>
-        </TabsList>
+        </TooltipProvider>
 
         <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
           {hasContent ? (
             <div
               className={cn(
-                'h-full mx-auto transition-all duration-200',
+                'h-full mx-auto transition-[width,max-width] duration-200',
                 previewWidth === 'mobile'
                   ? 'max-w-[320px] border-x border-dashed'
                   : 'w-full'
@@ -661,7 +691,9 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           {store.bulkEmailGenerating ? (
             <>
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Generating... {store.bulkEmailProgress}
+              <span className="tabular-nums">
+                Generating... {store.bulkEmailProgress}
+              </span>
             </>
           ) : (
             <>
@@ -711,7 +743,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
               />
               <span className="text-sm">
                 Include bulk email recipients
-                <span className="block text-xs text-muted-foreground">
+                <span className="block text-xs text-muted-foreground text-pretty">
                   Embeds your recipient list (email addresses) in the file. Off
                   by default.
                 </span>
@@ -726,7 +758,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
               />
               <span className="text-sm">
                 Include PDF attachments (files)
-                <span className="block text-xs text-muted-foreground">
+                <span className="block text-xs text-muted-foreground text-pretty">
                   Embeds the actual PDF files so they restore on import.
                   Increases file size. Unchecked exports names only.
                 </span>
@@ -759,7 +791,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
             {generateWarnings.map((w) => (
               <li key={w} className="flex items-start gap-2">
                 <span className="mt-0.5 text-amber-500">⚠</span>
-                <span>{w}</span>
+                <span className="text-pretty">{w}</span>
               </li>
             ))}
           </ul>

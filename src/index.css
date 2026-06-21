@@ -445,6 +445,9 @@ body::before {
 body {
   background-color: var(--background);
   color: var(--foreground);
+  /* Crisper, thinner text on macOS (ignored elsewhere, safe to apply universally) */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   font-family:
     -apple-system,
     BlinkMacSystemFont,

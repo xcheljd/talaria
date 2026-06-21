@@ -413,7 +413,7 @@ describe('PromotionPage', () => {
   it('renders Preview and HTML Code tabs', () => {
     renderPromotionPage({ profile: true });
     const previewTabs = screen.getAllByRole('tab', { name: /preview/i });
-    const codeTabs = screen.getAllByRole('tab', { name: /html code/i });
+    const codeTabs = screen.getAllByRole('tab', { name: /^html$/i });
     expect(previewTabs.length).toBeGreaterThanOrEqual(1);
     expect(codeTabs.length).toBeGreaterThanOrEqual(1);
   });

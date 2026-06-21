@@ -533,7 +533,7 @@ describe('PromotionPage Preview and Export', () => {
   it('renders Preview tab and HTML Code tab', () => {
     renderPromotionPage();
     const previewTabs = screen.getAllByRole('tab', { name: /preview/i });
-    const codeTabs = screen.getAllByRole('tab', { name: /html code/i });
+    const codeTabs = screen.getAllByRole('tab', { name: /^html$/i });
     expect(previewTabs.length).toBeGreaterThanOrEqual(1);
     expect(codeTabs.length).toBeGreaterThanOrEqual(1);
   });
@@ -603,7 +603,7 @@ describe('PromotionPage Preview and Export', () => {
 
     // The preview should now contain generated HTML (in an iframe)
     // We can verify by checking the code tab
-    const codeTabs = screen.getAllByRole('tab', { name: /html code/i });
+    const codeTabs = screen.getAllByRole('tab', { name: /^html$/i });
     expect(codeTabs.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -715,7 +715,7 @@ describe('PromotionPage Preview and Export', () => {
     );
 
     // Click HTML Code tab
-    const codeTabs = screen.getAllByRole('tab', { name: /html code/i });
+    const codeTabs = screen.getAllByRole('tab', { name: /^html$/i });
     await user.click(codeTabs[0]);
 
     // Should show a readonly textarea with HTML code

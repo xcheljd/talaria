@@ -206,8 +206,8 @@ describe('PromotionPage Desktop Layout', () => {
     const previewTabs = screen.getAllByRole('tab', { name: /preview/i });
     expect(previewTabs.length).toBeGreaterThanOrEqual(1);
 
-    // HTML Code tab should also be present
-    const codeTabs = screen.getAllByRole('tab', { name: /html code/i });
+    // HTML tab should also be present
+    const codeTabs = screen.getAllByRole('tab', { name: /^html$/i });
     expect(codeTabs.length).toBeGreaterThanOrEqual(1);
   });
 
