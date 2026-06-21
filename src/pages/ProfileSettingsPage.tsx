@@ -27,6 +27,7 @@ import {
 import { useProfile } from '@/contexts/ProfileProvider';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { useTauri } from '@/hooks/useTauri';
+import { useDevMode } from '@/hooks/useDevMode';
 import {
   profileFormSchema,
   type ProfileFormValues,
@@ -96,6 +97,7 @@ export function ProfileSettingsPage() {
   const { lightPalette, darkPalette, setLightPalette, setDarkPalette } =
     useTheme();
   const { isTauri, openFolderDialog } = useTauri();
+  const { devMode, setDevMode } = useDevMode();
 
   const [downloadFolder, setDownloadFolder] = useState<string>(
     () => localStorage.getItem(StorageKeys.downloadFolderPath) || ''
@@ -292,6 +294,13 @@ export function ProfileSettingsPage() {
     setDownloadSaveAs(checked);
     localStorage.setItem(StorageKeys.downloadSaveAs, String(checked));
   }, []);
+
+  const handleDevModeChange = useCallback(
+    (checked: boolean) => {
+      setDevMode(checked);
+    },
+    [setDevMode]
+  );
 
   // ─── Download Folder Handler ──────────────────────────────────────────────
 
@@ -791,9 +800,7 @@ export function ProfileSettingsPage() {
                   checked={pdfOptimize}
                   onCheckedChange={handlePdfOptimizeChange}
                 />
-                <Label htmlFor="pdf-optimize">
-                  Optimize attached PDFs
-                </Label>
+                <Label htmlFor="pdf-optimize">Optimize attached PDFs</Label>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 Downsamples over-resolution embedded images to reduce file size
@@ -817,6 +824,25 @@ export function ProfileSettingsPage() {
                 additional size reduction. Suitable for visual-only documents
                 such as promotion flyers. Disable if your PDFs contain
                 substantial text for screen-reader users.
+              </p>
+            </div>
+
+            {/* Dev Mode */}
+            <div className="col-span-1 lg:col-span-2">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="dev-mode"
+                  checked={devMode}
+                  onCheckedChange={handleDevModeChange}
+                  data-testid="dev-mode-switch"
+                />
+                <Label htmlFor="dev-mode">Dev mode</Label>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Reveals advanced surfaces still under construction: the
+                Templates page, the promotion HTML Code tab, and the Email
+                Theme, Accessibility Check, and Outlook Compatibility cards.
+                Persists across sessions.
               </p>
             </div>
 

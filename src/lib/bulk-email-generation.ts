@@ -23,7 +23,12 @@ import {
 import { generatePromotionEmailHTML } from '@/lib/promotion-email-html';
 import { buildPromotionEmailData } from '@/lib/newsletter-utils';
 import { getRecommendedFormat } from '@/lib/ui-utils';
-import { saveBlob, getSaveAsDialog, pickFolder, isInTauri } from '@/lib/file-save';
+import {
+  saveBlob,
+  getSaveAsDialog,
+  pickFolder,
+  isInTauri,
+} from '@/lib/file-save';
 import { StorageKeys } from '@/lib/storage-keys';
 
 // ===== Types =====
