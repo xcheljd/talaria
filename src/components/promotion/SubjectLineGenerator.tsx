@@ -121,6 +121,8 @@ export function SubjectLineGenerator() {
     useShallow((s) => ({
       promoDateRange: s.promoDateRange,
       promotionEntries: s.promotionEntries,
+      newsletterHeading: s.newsletterHeading,
+      newsletterBody: s.newsletterBody,
       generatedSubjectLines: s.generatedSubjectLines,
       selectedSubjectLine: s.selectedSubjectLine,
       preheaderText: s.preheaderText,
@@ -131,11 +133,20 @@ export function SubjectLineGenerator() {
     }))
   );
 
-  // Generate subject lines from promotion content
+  // True when there's any content to generate suggestions from. Newsletter copy
+  // counts even with no discount entries (heading + brand-name detection).
+  const hasContent =
+    store.promotionEntries.length > 0 ||
+    !!store.newsletterHeading?.trim() ||
+    !!store.newsletterBody?.replace(/<[^>]*>/g, '').trim();
+
+  // Generate subject lines from promotion + newsletter content
   const handleGenerate = useCallback(() => {
     const lines = generateSubjectLines({
       promoDateRange: store.promoDateRange,
       promotionEntries: store.promotionEntries,
+      newsletterHeading: store.newsletterHeading,
+      newsletterBody: store.newsletterBody,
     });
     store.setGeneratedSubjectLines(lines);
     if (lines.length > 0) {
@@ -218,153 +229,142 @@ export function SubjectLineGenerator() {
 
   return (
     <div className="space-y-4">
-      {store.promotionEntries.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Add discount entries first to generate subject line suggestions.
-        </p>
-      ) : !hasLines ? (
-        <div className="flex flex-col items-center gap-3 py-4">
-          <p className="text-sm text-muted-foreground">
-            Generate subject line suggestions from your promotion content.
-          </p>
-          <Button onClick={handleGenerate} size="sm">
-            Generate Subject Lines
-          </Button>
-        </div>
-      ) : (
-        <>
-          {/* Dropdown header with regenerate */}
-          <div className="flex items-center justify-between gap-2">
-            <label className="text-sm font-medium">
-              Choose a subject line suggestion:
-            </label>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRegenerate}
-              className="gap-1.5 text-xs"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Regenerate
-            </Button>
-          </div>
-
-          {/* Select dropdown */}
-          <Select
-            value={
-              store.generatedSubjectLines.indexOf(
-                store.selectedSubjectLine || ''
-              ) >= 0
-                ? String(
-                    store.generatedSubjectLines.indexOf(
-                      store.selectedSubjectLine || ''
-                    )
-                  )
-                : undefined
-            }
-            onValueChange={handleSelectSubject}
+      {/* Suggestion controls — header + generate/regenerate */}
+      <div className="flex items-center justify-between gap-2">
+        <label className="text-sm font-medium">
+          {hasLines ? 'Choose a subject line suggestion:' : 'Subject line'}
+        </label>
+        {hasContent && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={hasLines ? handleRegenerate : handleGenerate}
+            className="gap-1.5 text-xs"
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a subject line..." />
-            </SelectTrigger>
-            <SelectContent>
-              {store.generatedSubjectLines.map((subject, index) => (
-                <SelectItem key={index} value={String(index)}>
-                  {subject}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <RefreshCw className="h-3.5 w-3.5" />
+            {hasLines ? 'Regenerate' : 'Generate suggestions'}
+          </Button>
+        )}
+      </div>
 
-          {/* Editable selected subject line */}
-          {store.selectedSubjectLine !== null && (
-            <div className="space-y-1.5">
-              <label
-                htmlFor="selected-subject-input"
-                className="text-sm font-medium"
-              >
-                Selected Subject Line (customizable):
-              </label>
-              <ClearableInput
-                id="selected-subject-input"
-                value={store.selectedSubjectLine}
-                onChange={handleSubjectEdit}
-                placeholder="Your subject line..."
-                title="Edit the email subject line. Changes will be reflected in generated emails."
-                className="w-full"
-              />
-              <Badge
-                variant={isOptimal ? 'default' : 'secondary'}
-                className="text-xs"
-              >
-                {charCount} chars{' '}
-                {charCount > 0 && (isOptimal ? '✓' : `(>${OPTIMAL_LENGTH})`)}
-              </Badge>
-            </div>
-          )}
-
-          {/* Preheader Text */}
-          <div className="space-y-1.5">
-            <label htmlFor="preheader-input" className="text-sm font-medium">
-              Preheader Text (preview text):
-            </label>
-            <ClearableInput
-              id="preheader-input"
-              value={store.preheaderText}
-              onChange={(val) => store.setPreheaderText(val)}
-              placeholder="Text shown after subject in inbox..."
-              title="Preview text shown after the subject line in email client inbox views. Keep it under 100 characters."
-              className="w-full"
-            />
-            <div className="flex items-center gap-2">
-              <Badge
-                variant={
-                  store.preheaderText.length > 0 &&
-                  store.preheaderText.length <= 100
-                    ? 'default'
-                    : 'secondary'
-                }
-                className="text-xs"
-              >
-                {store.preheaderText.length} / 100 chars
-              </Badge>
-            </div>
-
-            {/* Preheader suggestions */}
-            {!store.preheaderText.trim() && (
-              <div className="space-y-1">
-                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" />
-                  Suggestions (click to use):
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {preheaderSuggestions.slice(0, 4).map((suggestion, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className="text-left text-[11px] rounded border px-2 py-1 hover:bg-accent transition-colors truncate max-w-full"
-                      onClick={() => store.setPreheaderText(suggestion)}
-                      title={suggestion}
-                    >
-                      {suggestion.length > 60
-                        ? suggestion.slice(0, 60) + '…'
-                        : suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Inbox Preview */}
-          {store.selectedSubjectLine && (
-            <InboxPreview
-              subject={store.selectedSubjectLine}
-              preheader={preheaderDisplay}
-            />
-          )}
-        </>
+      {/* Select dropdown — only after suggestions have been generated */}
+      {hasLines && (
+        <Select
+          value={
+            store.generatedSubjectLines.indexOf(
+              store.selectedSubjectLine || ''
+            ) >= 0
+              ? String(
+                  store.generatedSubjectLines.indexOf(
+                    store.selectedSubjectLine || ''
+                  )
+                )
+              : undefined
+          }
+          onValueChange={handleSelectSubject}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a subject line..." />
+          </SelectTrigger>
+          <SelectContent>
+            {store.generatedSubjectLines.map((subject, index) => (
+              <SelectItem key={index} value={String(index)}>
+                {subject}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
+
+      {/* Hint when there's no content to generate from yet */}
+      {!hasContent && !hasLines && (
+        <p className="text-xs text-muted-foreground">
+          Add discount entries or newsletter content to generate suggestions —
+          or just type your own subject line below.
+        </p>
+      )}
+
+      {/* Editable subject line — always available */}
+      <div className="space-y-1.5">
+        <label htmlFor="selected-subject-input" className="text-sm font-medium">
+          Subject Line (customizable):
+        </label>
+        <ClearableInput
+          id="selected-subject-input"
+          value={store.selectedSubjectLine || ''}
+          onChange={handleSubjectEdit}
+          placeholder="Type your subject line..."
+          title="Edit the email subject line. Changes will be reflected in generated emails."
+          className="w-full"
+        />
+        <Badge
+          variant={isOptimal ? 'default' : 'secondary'}
+          className="text-xs"
+          data-testid="subject-char-count"
+        >
+          {charCount} chars{' '}
+          {charCount > 0 && (isOptimal ? '✓' : `(>${OPTIMAL_LENGTH})`)}
+        </Badge>
+      </div>
+
+      {/* Preheader Text */}
+      <div className="space-y-1.5">
+        <label htmlFor="preheader-input" className="text-sm font-medium">
+          Preheader Text (preview text):
+        </label>
+        <ClearableInput
+          id="preheader-input"
+          value={store.preheaderText}
+          onChange={(val) => store.setPreheaderText(val)}
+          placeholder="Text shown after subject in inbox..."
+          title="Preview text shown after the subject line in email client inbox views. Keep it under 100 characters."
+          className="w-full"
+        />
+        <div className="flex items-center gap-2">
+          <Badge
+            variant={
+              store.preheaderText.length > 0 &&
+              store.preheaderText.length <= 100
+                ? 'default'
+                : 'secondary'
+            }
+            className="text-xs"
+          >
+            {store.preheaderText.length} / 100 chars
+          </Badge>
+        </div>
+
+        {/* Preheader suggestions */}
+        {!store.preheaderText.trim() && (
+          <div className="space-y-1">
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              Suggestions (click to use):
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {preheaderSuggestions.slice(0, 4).map((suggestion, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="text-left text-[11px] rounded border px-2 py-1 hover:bg-accent transition-colors truncate max-w-full"
+                  onClick={() => store.setPreheaderText(suggestion)}
+                  title={suggestion}
+                >
+                  {suggestion.length > 60
+                    ? suggestion.slice(0, 60) + '…'
+                    : suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Inbox Preview — always visible */}
+      <InboxPreview
+        subject={store.selectedSubjectLine || ''}
+        preheader={preheaderDisplay}
+      />
     </div>
   );
 }

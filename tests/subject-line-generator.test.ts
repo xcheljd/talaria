@@ -298,4 +298,65 @@ describe('generateSubjectLines', () => {
     const result = generateSubjectLines(input);
     expect(result.length).toBeGreaterThan(0);
   });
+
+  // ===== Newsletter content (no discount entries) =====
+
+  it('uses the newsletter heading as a candidate', () => {
+    const input: SubjectLineInput = {
+      promoDateRange: '',
+      promotionEntries: [],
+      newsletterHeading: 'A Special Day for Him. Join Us',
+      newsletterBody: '',
+    };
+    const result = generateSubjectLines(input);
+    expect(result).toContain('A Special Day for Him. Join Us');
+  });
+
+  it('extracts brands from the newsletter body', () => {
+    const input: SubjectLineInput = {
+      promoDateRange: '',
+      promotionEntries: [],
+      newsletterHeading: '',
+      newsletterBody:
+        '<p>Shop Citizen, Bulova, and Frederique Constant timepieces.</p>',
+    };
+    const result = generateSubjectLines(input);
+    const hasBrand = result.some((s) => s.includes('Citizen'));
+    expect(hasBrand).toBe(true);
+  });
+
+  it('never mines discount percentages from newsletter prose', () => {
+    // Real-world hazard: the body's actual offer is "10% OFF a Single Item",
+    // but exclusion fine-print mentions 60%, 90-Day, and 25%. A naive regex
+    // would advertise "Up to 90% OFF". The generator must surface NO discount
+    // from prose — discounts come only from structured promotion entries.
+    const input: SubjectLineInput = {
+      promoDateRange: '',
+      promotionEntries: [],
+      newsletterHeading: 'A Special Day for Him. Join Us',
+      newsletterBody:
+        '<p>10% OFF a Single Item. Excludes Promotion (60% Off+), ' +
+        '90-Day No Discount Models, 25% Off.</p>',
+    };
+    const result = generateSubjectLines(input);
+    const advertisesDiscount = result.some((s) => /\d+\s*%/.test(s));
+    expect(advertisesDiscount).toBe(false);
+  });
+
+  it('infers occasion from the date range, not newsletter prose', () => {
+    // "Father's Day" appears nowhere in the copy ("him"/"dads"); occasion is
+    // derived safely from the structured promoDateRange instead.
+    const input: SubjectLineInput = {
+      promoDateRange: 'June 19-20',
+      promotionEntries: [],
+      newsletterHeading: 'A Special Day for Him. Join Us',
+      newsletterBody:
+        '<p>Celebrate the dads in your life with Citizen and Bulova.</p>',
+    };
+    const result = generateSubjectLines(input);
+    const hasFathersDay = result.some((s) =>
+      s.toLowerCase().includes("father's day")
+    );
+    expect(hasFathersDay).toBe(true);
+  });
 });

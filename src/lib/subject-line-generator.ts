@@ -15,6 +15,28 @@ export { generatePromoTitle };
 export interface SubjectLineInput {
   promoDateRange: string;
   promotionEntries: PromotionEntry[];
+  /** Newsletter heading — offered verbatim as a subject-line candidate. */
+  newsletterHeading?: string;
+  /**
+   * Newsletter body (rich HTML). Scanned for brand names ONLY. Never mined for
+   * discount percentages: prose exclusion fine-print (e.g. "Excludes Promotion
+   * (60% Off+)", "90-Day No Discount Models") would otherwise be misread as the
+   * headline offer and advertise a discount you aren't running.
+   */
+  newsletterBody?: string;
+}
+
+/**
+ * Strip HTML tags to plain text for keyword scanning. Pure (no DOM) so the
+ * generator stays portable; good enough for case-insensitive `.includes()`.
+ */
+function stripHtmlToText(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 // ===== Season & Occasion Detection =====
@@ -74,17 +96,32 @@ function getSeasonAndOccasions(referenceDate?: Date): SeasonOccasions {
  * Returns an array of unique, filtered subject lines sorted by optimal length.
  */
 export function generateSubjectLines(input: SubjectLineInput): string[] {
-  const { promoDateRange, promotionEntries } = input;
+  const {
+    promoDateRange,
+    promotionEntries,
+    newsletterHeading,
+    newsletterBody,
+  } = input;
 
-  // Extract brands from promotion lines
+  const headingText = (newsletterHeading || '').trim();
+  const bodyText = newsletterBody ? stripHtmlToText(newsletterBody) : '';
+
+  // Extract brands from promotion lines AND newsletter content (heading + body).
+  // Brand names are safe to read from prose; discount percentages are not (see
+  // the SubjectLineInput.newsletterBody doc), so only `maxDiscount` below stays
+  // scoped to structured promotion entries.
   const brandKeywords = ['Citizen', 'Bulova', 'Alpina', 'Frederique Constant'];
+  const brandCorpus = [
+    ...promotionEntries.map((e) => e.line || ''),
+    headingText,
+    bodyText,
+  ];
   const brands = [
     ...new Set(
-      promotionEntries
-        .map((e) => e.line || '')
-        .flatMap((line) =>
+      brandCorpus
+        .flatMap((text) =>
           brandKeywords.filter((brand) =>
-            line.toLowerCase().includes(brand.toLowerCase())
+            text.toLowerCase().includes(brand.toLowerCase())
           )
         )
         .filter(Boolean)
@@ -140,6 +177,14 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
     discount > 0 ? `Up to ${discount}% OFF` : 'Special Savings';
 
   const subjects: string[] = [];
+
+  // The newsletter heading is human-written copy — offer it verbatim as a
+  // candidate. The length filter at the end drops it if it's over 60 chars.
+  // Skip the bare default placeholder ("Newsletter"), which is never a useful
+  // subject line and is present until the user writes a real heading.
+  if (headingText && headingText.toLowerCase() !== 'newsletter') {
+    subjects.push(headingText);
+  }
 
   // Use the promotion date range to determine season/occasion, not today's date
   const parsedRange = promoDateRange

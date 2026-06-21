@@ -59,6 +59,8 @@ function resetStore() {
     promoDateRange: '',
     promoYear: '',
     promoTitle: '',
+    newsletterHeading: '',
+    newsletterBody: '',
     promotionEntries: [],
     specialHours: [],
     howToShopItems: [],
@@ -92,10 +94,14 @@ describe('SubjectLineGenerator', () => {
     resetStore();
   });
 
-  it('shows prompt when no promotion entries exist', () => {
+  it('shows prompt and editable input when no content exists', () => {
     renderSubjectLineGenerator();
     expect(
-      screen.getByText(/Add discount entries first/)
+      screen.getByText(/Add discount entries or newsletter content/)
+    ).toBeInTheDocument();
+    // The subject input is always available, even with no content
+    expect(
+      screen.getByPlaceholderText('Type your subject line...')
     ).toBeInTheDocument();
   });
 
@@ -106,9 +112,16 @@ describe('SubjectLineGenerator', () => {
       ],
     });
     renderSubjectLineGenerator();
-    expect(
-      screen.getByText('Generate Subject Lines')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Generate suggestions')).toBeInTheDocument();
+  });
+
+  it('shows generate button from newsletter content alone', () => {
+    usePromotionStore.setState({
+      newsletterHeading: 'A Special Day for Him. Join Us',
+      newsletterBody: '<p>Celebrate the dads in your life.</p>',
+    });
+    renderSubjectLineGenerator();
+    expect(screen.getByText('Generate suggestions')).toBeInTheDocument();
   });
 
   it('generates subject lines and shows first one selected', async () => {
@@ -121,7 +134,7 @@ describe('SubjectLineGenerator', () => {
     });
 
     renderSubjectLineGenerator();
-    await user.click(screen.getByText('Generate Subject Lines'));
+    await user.click(screen.getByText('Generate suggestions'));
 
     // Should have generated lines in store
     const state = usePromotionStore.getState();
@@ -139,7 +152,7 @@ describe('SubjectLineGenerator', () => {
     });
 
     renderSubjectLineGenerator();
-    await user.click(screen.getByText('Generate Subject Lines'));
+    await user.click(screen.getByText('Generate suggestions'));
 
     expect(screen.getByTestId('inbox-preview')).toBeInTheDocument();
     expect(screen.getByText('Citizen Watch Company')).toBeInTheDocument();
@@ -154,12 +167,13 @@ describe('SubjectLineGenerator', () => {
     });
 
     renderSubjectLineGenerator();
-    await user.click(screen.getByText('Generate Subject Lines'));
+    await user.click(screen.getByText('Generate suggestions'));
 
-    // Should show character count
+    // Should show character count in the subject badge
     const state = usePromotionStore.getState();
     const len = state.selectedSubjectLine?.length ?? 0;
-    expect(screen.getByText(new RegExp(`${len}`))).toBeInTheDocument();
+    const badge = screen.getByTestId('subject-char-count');
+    expect(badge.textContent).toContain(`${len} chars`);
   });
 
   it('sets manually edited flag when editing subject input', async () => {
@@ -171,7 +185,7 @@ describe('SubjectLineGenerator', () => {
     });
 
     renderSubjectLineGenerator();
-    await user.click(screen.getByText('Generate Subject Lines'));
+    await user.click(screen.getByText('Generate suggestions'));
 
     // Find and edit the subject input
     const input = screen.getByDisplayValue(
@@ -195,7 +209,7 @@ describe('SubjectLineGenerator', () => {
     });
 
     renderSubjectLineGenerator();
-    await user.click(screen.getByText('Generate Subject Lines'));
+    await user.click(screen.getByText('Generate suggestions'));
 
     // Edit the subject
     const input = screen.getByDisplayValue(

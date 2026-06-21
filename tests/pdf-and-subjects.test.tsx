@@ -70,6 +70,8 @@ function resetStore() {
     entryCollapsedStates: {},
     columnState: 'left',
     isInitializing: false,
+    newsletterHeading: '',
+    newsletterBody: '',
   });
 }
 
@@ -352,7 +354,9 @@ describe('SubjectLineGenerator', () => {
 
   it('renders prompt to add discount entries when store is empty', () => {
     renderWithProviders(<SubjectLineGenerator />);
-    expect(screen.getByText(/add discount entries first/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/add discount entries or newsletter content/i)
+    ).toBeInTheDocument();
   });
 
   it('renders generate button when entries exist but no subject lines', () => {
@@ -365,7 +369,7 @@ describe('SubjectLineGenerator', () => {
     renderWithProviders(<SubjectLineGenerator />);
 
     expect(
-      screen.getByRole('button', { name: /generate subject lines/i })
+      screen.getByRole('button', { name: /generate suggestions/i })
     ).toBeInTheDocument();
   });
 
@@ -381,7 +385,7 @@ describe('SubjectLineGenerator', () => {
     renderWithProviders(<SubjectLineGenerator />);
 
     await user.click(
-      screen.getByRole('button', { name: /generate subject lines/i })
+      screen.getByRole('button', { name: /generate suggestions/i })
     );
 
     // Store should now have generated subject lines
@@ -549,7 +553,7 @@ describe('SubjectLineGenerator', () => {
     renderWithProviders(<SubjectLineGenerator />);
 
     expect(
-      screen.getByText('Selected Subject Line (customizable):')
+      screen.getByText('Subject Line (customizable):')
     ).toBeInTheDocument();
   });
 });
