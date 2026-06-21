@@ -47,6 +47,7 @@ import { ClearableTextarea } from '@/components/ui/clearable-textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Collapsible, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 // ===== Format Status Sub-component =====
 
@@ -267,29 +268,35 @@ export function BulkEmailTools() {
       {/* Invalid emails collapsible section */}
       {emailStats.invalid > 0 && (
         <div className="rounded-md border border-destructive/30 bg-destructive/5">
-          <button
-            type="button"
-            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
-            onClick={() => setShowInvalidEmails(!showInvalidEmails)}
-            data-testid="toggle-invalid-emails"
+          <Collapsible
+            open={showInvalidEmails}
+            onOpenChange={setShowInvalidEmails}
           >
-            {showInvalidEmails ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
-            )}
-            {emailStats.invalid} invalid email
-            {emailStats.invalid > 1 ? 's' : ''}
-          </button>
-          {showInvalidEmails && (
-            <div className="border-t border-destructive/20 px-3 py-2">
-              <div className="max-h-[100px] overflow-y-auto font-mono text-xs text-destructive">
-                {emailStats.invalidEmails.map((email, i) => (
-                  <div key={i}>{email}</div>
-                ))}
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                data-testid="toggle-invalid-emails"
+              >
+                {showInvalidEmails ? (
+                  <ChevronDown className="h-3 w-3" />
+                ) : (
+                  <ChevronRight className="h-3 w-3" />
+                )}
+                {emailStats.invalid} invalid email
+                {emailStats.invalid > 1 ? 's' : ''}
+              </button>
+            </CollapsibleTrigger>
+            {showInvalidEmails && (
+              <div className="border-t border-destructive/20 px-3 py-2">
+                <div className="max-h-[100px] overflow-y-auto font-mono text-xs text-destructive">
+                  {emailStats.invalidEmails.map((email, i) => (
+                    <div key={i}>{email}</div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </Collapsible>
         </div>
       )}
 

@@ -21,6 +21,7 @@ import { usePromotionStore } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { StorageKeys } from '@/lib/storage-keys';
 
@@ -292,83 +293,96 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                   isExpanded && 'bg-accent/30'
                 )}
               >
-                {/* Header row */}
-                <button
-                  type="button"
-                  className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left hover:bg-accent/20 transition-colors"
-                  onClick={() => setExpandedId(isExpanded ? null : snapshot.id)}
+                <Collapsible
+                  open={isExpanded}
+                  onOpenChange={(open) =>
+                    setExpandedId(open ? snapshot.id : null)
+                  }
                 >
-                  {isExpanded ? (
-                    <ChevronUp className="h-3 w-3 shrink-0 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-                  )}
-                  <span className="font-medium truncate flex-1">
-                    {snapshot.name}
-                  </span>
-                  {snapshot.auto && (
-                    <Badge variant="secondary" className="text-[9px] px-1 py-0">
-                      auto
-                    </Badge>
-                  )}
-                  <span className="text-[10px] text-muted-foreground shrink-0">
-                    {formatTimestamp(snapshot.timestamp)}
-                  </span>
-                </button>
-
-                {/* Expanded details */}
-                {isExpanded && (
-                  <div className="px-2.5 pb-2 space-y-1.5">
-                    <p className="text-muted-foreground">{snapshot.summary}</p>
-                    <div className="flex gap-1.5">
-                      {isConfirming ? (
-                        <>
-                          <span className="text-[10px] text-amber-600 dark:text-amber-400 self-center">
-                            Restore this snapshot? Current state will be
-                            overwritten.
-                          </span>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="h-6 text-[10px] px-2"
-                            onClick={() => handleRestore(snapshot)}
-                          >
-                            Confirm
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-[10px] px-2"
-                            onClick={() => setConfirmRestoreId(null)}
-                          >
-                            Cancel
-                          </Button>
-                        </>
+                  {/* Header row */}
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left hover:bg-accent/20 transition-colors"
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="h-3 w-3 shrink-0 text-muted-foreground" />
                       ) : (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-6 gap-1 text-[10px] px-2"
-                            onClick={() => setConfirmRestoreId(snapshot.id)}
-                          >
-                            <RotateCcw className="h-2.5 w-2.5" />
-                            Restore
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 gap-1 text-[10px] px-2 text-muted-foreground hover:text-destructive"
-                            onClick={() => handleDelete(snapshot.id)}
-                          >
-                            <Trash2 className="h-2.5 w-2.5" />
-                            Delete
-                          </Button>
-                        </>
+                        <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
                       )}
+                      <span className="font-medium truncate flex-1">
+                        {snapshot.name}
+                      </span>
+                      {snapshot.auto && (
+                        <Badge
+                          variant="secondary"
+                          className="text-[9px] px-1 py-0"
+                        >
+                          auto
+                        </Badge>
+                      )}
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {formatTimestamp(snapshot.timestamp)}
+                      </span>
+                    </button>
+                  </CollapsibleTrigger>
+
+                  {/* Expanded details */}
+                  {isExpanded && (
+                    <div className="px-2.5 pb-2 space-y-1.5">
+                      <p className="text-muted-foreground">
+                        {snapshot.summary}
+                      </p>
+                      <div className="flex gap-1.5">
+                        {isConfirming ? (
+                          <>
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 self-center">
+                              Restore this snapshot? Current state will be
+                              overwritten.
+                            </span>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="h-6 text-[10px] px-2"
+                              onClick={() => handleRestore(snapshot)}
+                            >
+                              Confirm
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-[10px] px-2"
+                              onClick={() => setConfirmRestoreId(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 gap-1 text-[10px] px-2"
+                              onClick={() => setConfirmRestoreId(snapshot.id)}
+                            >
+                              <RotateCcw className="h-2.5 w-2.5" />
+                              Restore
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 gap-1 text-[10px] px-2 text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDelete(snapshot.id)}
+                            >
+                              <Trash2 className="h-2.5 w-2.5" />
+                              Delete
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </Collapsible>
               </div>
             );
           })}

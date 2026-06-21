@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -79,12 +80,7 @@ export class ErrorBoundary extends Component<
             Something went wrong
           </h1>
           <p className="mb-4 text-sm text-muted-foreground">{error.message}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Reload app
-          </button>
+          <Button onClick={() => window.location.reload()}>Reload app</Button>
         </div>
       </div>
     );
@@ -107,18 +103,10 @@ export class ErrorBoundary extends Component<
             </pre>
           </details>
           <div className="flex gap-3">
-            <button
-              onClick={this.resetErrorBoundary}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              Try again
-            </button>
-            <Link
-              to="/"
-              className="inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
-            >
-              Go to home
-            </Link>
+            <Button onClick={this.resetErrorBoundary}>Try again</Button>
+            <Button variant="outline" asChild>
+              <Link to="/">Go to home</Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -129,12 +117,9 @@ export class ErrorBoundary extends Component<
     return (
       <div className="flex items-center gap-2 py-1">
         <p className="text-sm text-muted-foreground">{error.message}</p>
-        <button
-          onClick={this.resetErrorBoundary}
-          className="shrink-0 rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
+        <Button size="sm" onClick={this.resetErrorBoundary}>
           Try again
-        </button>
+        </Button>
       </div>
     );
   }
