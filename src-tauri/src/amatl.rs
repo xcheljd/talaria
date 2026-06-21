@@ -583,6 +583,11 @@ fn pack_and_save(doc: &mut Document) -> Result<Vec<u8>, lopdf::Error> {
 /// `/Type/XRef` stream with `/W[1 4 2]` as the last object) and returns the
 /// bytes unchanged if anything doesn't match — so it can never corrupt a file
 /// it doesn't fully understand.
+///
+/// TODO(lopdf): remove this workaround once we bump lopdf past 0.41. The root
+/// cause (`Xref::size` not updated on insert) was fixed upstream in
+/// J-F-Liu/lopdf#501 (merged 2026-06-20) but is not in a published release yet.
+/// When the dep is bumped, delete this fn + its tests and pack directly.
 fn add_xref_self_entry(bytes: Vec<u8>) -> Vec<u8> {
     try_add_xref_self_entry(&bytes).unwrap_or(bytes)
 }
