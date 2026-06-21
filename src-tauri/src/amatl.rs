@@ -851,7 +851,7 @@ mod tests {
         // A doc with no over-resolution images would normally be a no-op, but
         // strip_accessibility should still produce (smaller) output. Build a
         // tiny PDF with a low-res image and an explicit StructTreeRoot entry.
-        let mut pdf = build_pdf(80, 100); // 80px @ 100pt ≈ 58 DPI, won't downsample
+        let pdf = build_pdf(80, 100); // 80px @ 100pt ≈ 58 DPI, won't downsample
         // Inject a fake structure tree so stripping has something to remove.
         // We reload, add the entries, re-save, then run the optimizer.
         let mut doc = Document::load_mem(&pdf).unwrap();

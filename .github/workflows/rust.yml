@@ -1,0 +1,66 @@
+name: Rust
+
+# Covers the Tauri backend / amatl PDF optimizer, which ci.yml (frontend only)
+# does not build. Path-filtered so it runs only when Rust code changes — keeps
+# CI minutes down for an otherwise frontend-heavy repo.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src-tauri/**'
+      - '.github/workflows/rust.yml'
+  pull_request:
+    paths:
+      - 'src-tauri/**'
+      - '.github/workflows/rust.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install Rust stable
+        # Pinned to a commit SHA — channel must be set explicitly when pinned.
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        with:
+          toolchain: stable
+          components: clippy
+
+      # mozjpeg compiles libjpeg-turbo (needs NASM for x86_64 SIMD); cmake is
+      # already on the runner.
+      - name: Install NASM (for mozjpeg)
+        uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1.5.2
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: src-tauri
+
+      # System libraries the `tauri` crate links against on Linux. Required to
+      # compile the crate even though the amatl tests don't touch the webview.
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      # `tauri::generate_context!()` embeds the frontend dist dir at compile
+      # time. The real bundle isn't needed to test Rust logic — a stub satisfies
+      # the macro without building the whole frontend.
+      - name: Stub frontend dist (for generate_context!)
+        run: |
+          mkdir -p dist
+          printf '<!doctype html><title>ci</title>' > dist/index.html
+
+      - name: Test
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
