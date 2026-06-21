@@ -89,7 +89,7 @@ describe('ProfileSettingsPage', () => {
     expect(screen.getByText('Settings')).toBeTruthy();
     expect(screen.getByText(/Light Mode Color Palette/i)).toBeTruthy();
     expect(screen.getByText(/Dark Mode Color Palette/i)).toBeTruthy();
-    expect(screen.getByText(/Download Folder/i)).toBeTruthy();
+    expect(screen.getByText(/Download Folder \(Desktop app\)/i)).toBeTruthy();
   });
 
   it('renders action buttons', () => {

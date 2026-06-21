@@ -35,7 +35,7 @@ import {
   formatFileSize,
 } from '@/lib/pdf-utils';
 import { StorageKeys } from '@/lib/storage-keys';
-import { saveBlob } from '@/lib/file-save';
+import { saveBlob, getSaveAsDialog } from '@/lib/file-save';
 import { AlertTriangle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -282,7 +282,7 @@ export function PDFAttachments() {
     // Use a Save-As dialog: this is a single user-initiated download, and the
     // attachment is the optimized PDF — silently overwriting a same-named source
     // file in the download folder would be surprising (and lossy vs. the source).
-    await saveBlob(blob, previewPDF.name, { dialog: true });
+    await saveBlob(blob, previewPDF.name, { dialog: getSaveAsDialog() });
   }, [previewPDF]);
 
   return (

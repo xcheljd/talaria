@@ -23,6 +23,9 @@ import { toast } from 'sonner';
 
 vi.mock('../src/lib/file-save', () => ({
   saveBlob: vi.fn().mockResolvedValue(undefined),
+  getSaveAsDialog: vi.fn().mockReturnValue(false),
+  pickFolder: vi.fn().mockResolvedValue('/tmp'),
+  isInTauri: vi.fn().mockReturnValue(false),
 }));
 
 vi.mock('sonner', () => ({

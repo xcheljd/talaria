@@ -137,6 +137,55 @@ fn read_file_as_data_url(path: String) -> Result<String, String> {
     Ok(format!("data:application/pdf;base64,{b64}"))
 }
 
+/// Open a native folder-picker dialog and return the chosen path.
+/// Returns `None` if the user cancels. Does not persist any setting.
+#[tauri::command]
+async fn pick_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let current = get_download_dir(app.clone());
+
+    let folder = app
+        .dialog()
+        .file()
+        .set_directory(&current)
+        .set_title("Choose folder for downloads")
+        .blocking_pick_folder();
+
+    Ok(folder.map(|p| p.to_string()))
+}
+
+/// Save a base64-encoded blob to a caller-supplied directory.
+/// The directory must already exist (obtained from `pick_folder`).
+/// Returns the absolute path of the written file on success.
+#[tauri::command]
+fn save_file_to_path(
+    dir: String,
+    filename: String,
+    data_base64: String,
+) -> Result<String, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+
+    if !is_safe_filename(&filename) {
+        return Err(format!("Refusing to write unsafe filename: {filename}"));
+    }
+
+    let dir_path = PathBuf::from(&dir);
+    if !dir_path.is_dir() {
+        return Err(format!("Not a directory: {dir}"));
+    }
+
+    let bytes = STANDARD
+        .decode(data_base64.as_bytes())
+        .map_err(|e| format!("Invalid base64 payload: {e}"))?;
+
+    let final_path = dir_path.join(&filename);
+    fs::write(&final_path, &bytes)
+        .map_err(|e| format!("Failed to write {}: {e}", final_path.display()))?;
+
+    Ok(final_path.to_string_lossy().to_string())
+}
+
 /// Save a base64-encoded blob to the configured download directory.
 /// Returns the absolute path of the written file on success.
 #[tauri::command]
@@ -274,7 +323,9 @@ pub fn run() {
             choose_download_dir,
             read_file_as_data_url,
             save_file_to_dir,
+            save_file_to_path,
             save_file_as,
+            pick_folder,
             amatl_optimize
         ])
         .run(tauri::generate_context!())

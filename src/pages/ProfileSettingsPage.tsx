@@ -103,6 +103,9 @@ export function ProfileSettingsPage() {
   const [stripAccessibility, setStripAccessibility] = useState<boolean>(
     () => localStorage.getItem(StorageKeys.pdfStripAccessibility) !== 'false'
   );
+  const [downloadSaveAs, setDownloadSaveAs] = useState<boolean>(
+    () => localStorage.getItem(StorageKeys.downloadSaveAs) !== 'false'
+  );
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -275,6 +278,11 @@ export function ProfileSettingsPage() {
   const handleStripAccessibilityChange = useCallback((checked: boolean) => {
     setStripAccessibility(checked);
     localStorage.setItem(StorageKeys.pdfStripAccessibility, String(checked));
+  }, []);
+
+  const handleDownloadSaveAsChange = useCallback((checked: boolean) => {
+    setDownloadSaveAs(checked);
+    localStorage.setItem(StorageKeys.downloadSaveAs, String(checked));
   }, []);
 
   // ─── Download Folder Handler ──────────────────────────────────────────────
@@ -744,6 +752,26 @@ export function ProfileSettingsPage() {
                 Used by the desktop app to save downloaded files (email batches,
                 drafts, exports). In a regular browser, your default Downloads
                 folder is always used.
+              </p>
+            </div>
+
+            {/* Download Behavior */}
+            <div className="col-span-1 lg:col-span-2">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="download-save-as"
+                  checked={downloadSaveAs}
+                  onCheckedChange={handleDownloadSaveAsChange}
+                />
+                <Label htmlFor="download-save-as">
+                  Ask where to save each download
+                </Label>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                When enabled, a Save As dialog appears for every download
+                (drafts, HTML, exports, batch files). When disabled, files save
+                silently to your configured download folder. Only applies in the
+                desktop app.
               </p>
             </div>
 

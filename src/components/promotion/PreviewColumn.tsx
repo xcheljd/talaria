@@ -42,7 +42,7 @@ import {
   resolvePromoSubject,
 } from '@/lib/emailUtils';
 import { getRecommendedFormat } from '@/lib/ui-utils';
-import { saveBlob } from '@/lib/file-save';
+import { saveBlob, getSaveAsDialog } from '@/lib/file-save';
 import { getStoreEmail, getEmployeeName } from '@/lib/profile';
 import {
   generateEmailBatches,
@@ -85,7 +85,7 @@ function promoDraftDateSuffix(dateRange: string): string {
 }
 
 async function downloadBlob(blob: Blob, filename: string): Promise<void> {
-  await saveBlob(blob, filename);
+  await saveBlob(blob, filename, { dialog: getSaveAsDialog() });
 }
 
 // ===== Preview Column Component =====

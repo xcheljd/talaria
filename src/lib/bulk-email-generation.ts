@@ -23,7 +23,7 @@ import {
 import { generatePromotionEmailHTML } from '@/lib/promotion-email-html';
 import { buildPromotionEmailData } from '@/lib/newsletter-utils';
 import { getRecommendedFormat } from '@/lib/ui-utils';
-import { saveBlob } from '@/lib/file-save';
+import { saveBlob, getSaveAsDialog, pickFolder, isInTauri } from '@/lib/file-save';
 import { StorageKeys } from '@/lib/storage-keys';
 
 // ===== Types =====
@@ -137,6 +137,19 @@ export async function generateEmailBatches(): Promise<boolean> {
     setBulkState(true, `0/${batches.length}`);
 
     const emailFormat = getRecommendedFormat();
+    const useDialog = getSaveAsDialog();
+
+    // For individual format with Save As enabled: pick the destination folder
+    // once before generating so the user isn't prompted per-file.
+    let batchFolder: string | null = null;
+    if (useDialog && downloadFormat === 'individual' && isInTauri()) {
+      batchFolder = await pickFolder();
+      if (batchFolder === null) {
+        // User cancelled the folder picker — abort generation.
+        setBulkState(false, '');
+        return false;
+      }
+    }
 
     if (downloadFormat === 'zip') {
       // Create ZIP file with all EML files
@@ -162,7 +175,7 @@ export async function generateEmailBatches(): Promise<boolean> {
       const zipFilename =
         generateZipFilenameFromHTML(htmlContent) ||
         'promotion-email-batches.zip';
-      await saveBlob(zipBlob, zipFilename);
+      await saveBlob(zipBlob, zipFilename, { dialog: useDialog });
     } else {
       // Download individual files
       for (let i = 0; i < batches.length; i++) {
@@ -180,7 +193,11 @@ export async function generateEmailBatches(): Promise<boolean> {
         const blob = new Blob([emlContent.data as BlobPart], {
           type: 'message/rfc822',
         });
-        await saveBlob(blob, emlContent.filename);
+        await saveBlob(
+          blob,
+          emlContent.filename,
+          batchFolder ? { folder: batchFolder } : undefined
+        );
 
         // Small delay between downloads to prevent browser issues
         if (i < batches.length - 1) {

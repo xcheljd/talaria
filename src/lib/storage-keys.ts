@@ -31,6 +31,12 @@ export const StorageKeys = {
   downloadFolderPath: 'downloadFolderPath',
 
   /**
+   * Whether downloads show a native Save As dialog (true) or save silently to
+   * the configured download folder (false). Default true.
+   */
+  downloadSaveAs: 'download.saveAs',
+
+  /**
    * Whether amatl strips accessibility metadata (StructTreeRoot, MarkInfo,
    * Lang) from attached PDFs. Default true — promotion flyers are visual
    * documents for a sighted audience (~18% size reduction). Set to the string
