@@ -546,14 +546,17 @@ fn save_document(
     }
 }
 
-/// Pack eligible non-stream objects into a PDF 1.5 `ObjStm` stream and emit a
-/// binary cross-reference stream. Currently a stub that falls back to the
-/// classic save; see Phase 3+ of the implementation plan in AGENTS.md.
+/// Serialize the document with PDF 1.5 object-stream packing: eligible
+/// non-stream objects are packed into a single `ObjStm` stream and the
+/// cross-reference table is emitted as a binary xref stream. Uses lopdf's own
+/// `save_with_options` (not a hand-rolled writer and not qpdf), then
+/// `add_xref_self_entry` patches the one xref entry lopdf 0.41 omits, so the
+/// output is strictly `qpdf --check`-clean.
 ///
-/// NOTE: this is the placeholder. The real implementation builds the ObjStm,
-/// computes byte-exact offsets in two passes, and writes the xref stream.
-/// Until implemented, callers requesting packing silently get the classic
-/// output — fail-safe, but does not actually pack.
+/// Reached only when `OptimizeOptions.pack_object_streams` is true (the
+/// citizen-communications app enables it). See the "Object-stream packing"
+/// section of `src-tauri/src/AGENTS.md` for the cost/benefit trade-off and the
+/// lopdf workaround rationale.
 fn pack_and_save(doc: &mut Document) -> Result<Vec<u8>, lopdf::Error> {
     // Pack non-stream objects into an ObjStm + cross-reference stream via
     // lopdf's own writer. `renumber_objects()` (done by the caller) clears the
