@@ -25,7 +25,6 @@
 //!   - Any failure (parse, decode, save) falls back to the original bytes.
 
 use std::collections::HashMap;
-use std::hash::{DefaultHasher, Hash, Hasher};
 
 use image::{DynamicImage, ImageFormat};
 use lopdf::content::Content;
@@ -368,13 +367,6 @@ fn serialize_object(obj: &Object) -> Option<Vec<u8>> {
     Some(format!("{obj:?}").into_bytes())
 }
 
-/// Hash a byte slice to a u64 using the standard library hasher.
-fn hash_bytes(bytes: &[u8]) -> u64 {
-    let mut h = DefaultHasher::new();
-    bytes.hash(&mut h);
-    h.finish()
-}
-
 /// Recursively replace all `ObjectId` references in `obj` according to the
 /// `remap` table. Streams are traversed (dict only; content bytes unchanged).
 fn remap_references(obj: &mut Object, remap: &HashMap<ObjectId, ObjectId>) {
@@ -413,19 +405,21 @@ fn remap_references(obj: &mut Object, remap: &HashMap<ObjectId, ObjectId>) {
 /// communications input shape (~32 duplicates out of 217 post-strip objects)
 /// the gain is small; on denser documents it can be more significant.
 fn dedup_objects(doc: &mut Document) {
-    // Collect serialized representations for all non-stream objects.
-    let mut by_hash: HashMap<u64, Vec<ObjectId>> = HashMap::new();
+    // Group non-stream objects by their exact serialized bytes. Keying the map
+    // on the bytes themselves (not a 64-bit hash of them) means only genuinely
+    // identical objects ever share a bucket, so a hash collision can never
+    // cause two different objects to be merged.
+    let mut by_bytes: HashMap<Vec<u8>, Vec<ObjectId>> = HashMap::new();
     for (&id, obj) in doc.objects.iter() {
         if let Some(bytes) = serialize_object(obj) {
-            let h = hash_bytes(&bytes);
-            by_hash.entry(h).or_default().push(id);
+            by_bytes.entry(bytes).or_default().push(id);
         }
     }
 
     // Build a remap table: non-canonical id -> canonical id.
     // Use the smallest id in each group as canonical (stable, deterministic).
     let mut remap: HashMap<ObjectId, ObjectId> = HashMap::new();
-    for (_, mut ids) in by_hash {
+    for (_, mut ids) in by_bytes {
         if ids.len() < 2 {
             continue;
         }
@@ -885,6 +879,51 @@ mod tests {
             catalog.get(b"MarkInfo").is_err(),
             "MarkInfo must be removed"
         );
+    }
+
+    #[test]
+    fn dedup_merges_identical_objects() {
+        // Two structurally identical dictionaries plus an object referencing both.
+        // dedup must collapse them to one and redirect both references to it.
+        let mut doc = Document::with_version("1.5");
+        let a = doc.add_object(dictionary! { "Type" => "ExtGState", "ca" => 1 });
+        let b = doc.add_object(dictionary! { "Type" => "ExtGState", "ca" => 1 });
+        let holder = doc.add_object(dictionary! { "First" => a, "Second" => b });
+
+        let before = doc.objects.len();
+        dedup_objects(&mut doc);
+
+        assert_eq!(
+            doc.objects.len(),
+            before - 1,
+            "exactly one duplicate object should be removed"
+        );
+        let dict = doc.get_object(holder).unwrap().as_dict().unwrap();
+        let first = dict.get(b"First").unwrap();
+        let second = dict.get(b"Second").unwrap();
+        assert_eq!(
+            first, second,
+            "both references must point at the single surviving object"
+        );
+    }
+
+    #[test]
+    fn dedup_keeps_distinct_objects() {
+        // Same shape, but the two dictionaries differ by one value. They must NOT
+        // be merged: distinct content stays distinct.
+        let mut doc = Document::with_version("1.5");
+        let a = doc.add_object(dictionary! { "Type" => "ExtGState", "ca" => 1 });
+        let b = doc.add_object(dictionary! { "Type" => "ExtGState", "ca" => 2 });
+        let holder = doc.add_object(dictionary! { "First" => a, "Second" => b });
+
+        let before = doc.objects.len();
+        dedup_objects(&mut doc);
+
+        assert_eq!(doc.objects.len(), before, "no object should be removed");
+        let dict = doc.get_object(holder).unwrap().as_dict().unwrap();
+        let first = dict.get(b"First").unwrap();
+        let second = dict.get(b"Second").unwrap();
+        assert_ne!(first, second, "distinct objects must keep distinct references");
     }
 
     /// Opt-in real-file check: set CCT_TEST_PDF to a promotion PDF path.
