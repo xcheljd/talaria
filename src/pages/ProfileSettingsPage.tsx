@@ -100,6 +100,9 @@ export function ProfileSettingsPage() {
   const [downloadFolder, setDownloadFolder] = useState<string>(
     () => localStorage.getItem(StorageKeys.downloadFolderPath) || ''
   );
+  const [pdfOptimize, setPdfOptimize] = useState<boolean>(
+    () => localStorage.getItem(StorageKeys.pdfOptimize) !== 'false'
+  );
   const [stripAccessibility, setStripAccessibility] = useState<boolean>(
     () => localStorage.getItem(StorageKeys.pdfStripAccessibility) !== 'false'
   );
@@ -274,6 +277,11 @@ export function ProfileSettingsPage() {
   );
 
   // ─── PDF Settings Handlers ────────────────────────────────────────────────
+
+  const handlePdfOptimizeChange = useCallback((checked: boolean) => {
+    setPdfOptimize(checked);
+    localStorage.setItem(StorageKeys.pdfOptimize, String(checked));
+  }, []);
 
   const handleStripAccessibilityChange = useCallback((checked: boolean) => {
     setStripAccessibility(checked);
@@ -776,6 +784,23 @@ export function ProfileSettingsPage() {
             </div>
 
             {/* PDF Optimization */}
+            <div className="col-span-1 lg:col-span-2">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="pdf-optimize"
+                  checked={pdfOptimize}
+                  onCheckedChange={handlePdfOptimizeChange}
+                />
+                <Label htmlFor="pdf-optimize">
+                  Optimize attached PDFs
+                </Label>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Downsamples over-resolution embedded images to reduce file size
+                when attaching PDFs. Disable to attach PDFs exactly as-is.
+              </p>
+            </div>
+
             <div className="col-span-1 lg:col-span-2">
               <div className="flex items-center gap-3">
                 <Switch

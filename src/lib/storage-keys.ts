@@ -37,6 +37,12 @@ export const StorageKeys = {
   downloadSaveAs: 'download.saveAs',
 
   /**
+   * Whether amatl PDF optimization runs at all when attaching PDFs.
+   * Default true. Set to 'false' to attach PDFs as-is with no processing.
+   */
+  pdfOptimize: 'pdf.optimize',
+
+  /**
    * Whether amatl strips accessibility metadata (StructTreeRoot, MarkInfo,
    * Lang) from attached PDFs. Default true — promotion flyers are visual
    * documents for a sighted audience (~18% size reduction). Set to the string

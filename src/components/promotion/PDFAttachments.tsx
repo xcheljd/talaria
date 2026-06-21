@@ -83,6 +83,8 @@ export function PDFAttachments() {
 
   const processFiles = useCallback(
     async (files: File[]) => {
+      const optimize =
+        localStorage.getItem(StorageKeys.pdfOptimize) !== 'false';
       const stripAccessibility =
         localStorage.getItem(StorageKeys.pdfStripAccessibility) !== 'false';
       let hasErrors = false;
@@ -102,9 +104,11 @@ export function PDFAttachments() {
 
         try {
           const original = await readPDFAsDataURL(file);
-          const data = await amatl.optimize(original, stripAccessibility);
+          const data = optimize
+            ? await amatl.optimize(original, stripAccessibility)
+            : original;
           const size = dataURLByteSize(data);
-          if (size < file.size) {
+          if (optimize && size < file.size) {
             toast.info(
               `${file.name} optimized: ${formatFileSize(file.size)} → ${formatFileSize(size)}`
             );
@@ -194,10 +198,14 @@ export function PDFAttachments() {
                 path: filePath,
               });
               const originalSize = dataURLByteSize(original);
+              const shouldOptimize =
+                localStorage.getItem(StorageKeys.pdfOptimize) !== 'false';
               const stripA =
                 localStorage.getItem(StorageKeys.pdfStripAccessibility) !==
                 'false';
-              const dataUrl = await amatl.optimize(original, stripA);
+              const dataUrl = shouldOptimize
+                ? await amatl.optimize(original, stripA)
+                : original;
               const size = dataURLByteSize(dataUrl);
 
               await persistPDF({
@@ -207,7 +215,7 @@ export function PDFAttachments() {
                 type: 'application/pdf',
                 data: dataUrl,
               });
-              if (size < originalSize) {
+              if (shouldOptimize && size < originalSize) {
                 toast.success(
                   `${name} attached & optimized: ${formatFileSize(originalSize)} → ${formatFileSize(size)}`
                 );
