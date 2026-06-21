@@ -30,6 +30,14 @@ export const StorageKeys = {
   /** User-chosen folder for desktop-app downloads (Tauri) */
   downloadFolderPath: 'downloadFolderPath',
 
+  /**
+   * Whether amatl strips accessibility metadata (StructTreeRoot, MarkInfo,
+   * Lang) from attached PDFs. Default true — promotion flyers are visual
+   * documents for a sighted audience (~18% size reduction). Set to the string
+   * 'false' to preserve screen-reader metadata.
+   */
+  pdfStripAccessibility: 'pdf.stripAccessibility',
+
   /** Last-selected template key on the generator page */
   selectedTemplate: 'selectedTemplate',
 

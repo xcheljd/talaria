@@ -34,6 +34,7 @@ import {
   amatl,
   formatFileSize,
 } from '@/lib/pdf-utils';
+import { StorageKeys } from '@/lib/storage-keys';
 import { saveBlob } from '@/lib/file-save';
 import { AlertTriangle } from 'lucide-react';
 
@@ -82,6 +83,8 @@ export function PDFAttachments() {
 
   const processFiles = useCallback(
     async (files: File[]) => {
+      const stripAccessibility =
+        localStorage.getItem(StorageKeys.pdfStripAccessibility) !== 'false';
       let hasErrors = false;
 
       for (const file of files) {
@@ -99,7 +102,7 @@ export function PDFAttachments() {
 
         try {
           const original = await readPDFAsDataURL(file);
-          const data = await amatl.optimize(original);
+          const data = await amatl.optimize(original, stripAccessibility);
           const size = dataURLByteSize(data);
           if (size < file.size) {
             toast.info(
@@ -191,7 +194,10 @@ export function PDFAttachments() {
                 path: filePath,
               });
               const originalSize = dataURLByteSize(original);
-              const dataUrl = await amatl.optimize(original);
+              const stripA =
+                localStorage.getItem(StorageKeys.pdfStripAccessibility) !==
+                'false';
+              const dataUrl = await amatl.optimize(original, stripA);
               const size = dataURLByteSize(dataUrl);
 
               await persistPDF({

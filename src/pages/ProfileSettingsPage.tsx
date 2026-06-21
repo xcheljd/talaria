@@ -84,6 +84,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -98,6 +99,9 @@ export function ProfileSettingsPage() {
 
   const [downloadFolder, setDownloadFolder] = useState<string>(
     () => localStorage.getItem(StorageKeys.downloadFolderPath) || ''
+  );
+  const [stripAccessibility, setStripAccessibility] = useState<boolean>(
+    () => localStorage.getItem(StorageKeys.pdfStripAccessibility) !== 'false'
   );
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -265,6 +269,13 @@ export function ProfileSettingsPage() {
     },
     [form, setLightPalette, setDarkPalette]
   );
+
+  // ─── PDF Settings Handlers ────────────────────────────────────────────────
+
+  const handleStripAccessibilityChange = useCallback((checked: boolean) => {
+    setStripAccessibility(checked);
+    localStorage.setItem(StorageKeys.pdfStripAccessibility, String(checked));
+  }, []);
 
   // ─── Download Folder Handler ──────────────────────────────────────────────
 
@@ -733,6 +744,26 @@ export function ProfileSettingsPage() {
                 Used by the desktop app to save downloaded files (email batches,
                 drafts, exports). In a regular browser, your default Downloads
                 folder is always used.
+              </p>
+            </div>
+
+            {/* PDF Optimization */}
+            <div className="col-span-1 lg:col-span-2">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="strip-accessibility"
+                  checked={stripAccessibility}
+                  onCheckedChange={handleStripAccessibilityChange}
+                />
+                <Label htmlFor="strip-accessibility">
+                  Strip accessibility metadata from attached PDFs
+                </Label>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Removes screen-reader metadata (StructTreeRoot) for ~18%
+                additional size reduction. Suitable for visual-only documents
+                such as promotion flyers. Disable if your PDFs contain
+                substantial text for screen-reader users.
               </p>
             </div>
 
