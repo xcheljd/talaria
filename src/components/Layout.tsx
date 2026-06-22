@@ -1,5 +1,6 @@
+import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Layers, User } from 'lucide-react';
+import { Layers, User, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useDevMode } from '@/hooks/useDevMode';
@@ -21,8 +22,10 @@ export function Layout() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* Header — solid background on purpose: a translucent `backdrop-blur`
+          here forces WebKit (Tauri's WKWebView) to recompute the blur every
+          frame as the content scrolls beneath it, which jank's scrolling. */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background">
         <div className="container mx-auto flex h-14 items-center px-4">
           <Link
             to={devMode ? '/' : '/promotion'}
@@ -66,9 +69,18 @@ export function Layout() {
         </div>
       </header>
 
-      {/* Main content */}
+      {/* Main content. Routes are code-split (React.lazy), so the header/nav
+          stay painted while the page chunk loads. */}
       <main className="flex-1 overflow-auto">
-        <Outlet />
+        <Suspense
+          fallback={
+            <div className="flex h-full items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

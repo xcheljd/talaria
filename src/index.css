@@ -28,18 +28,93 @@
 
 /* ==========================================================================
    THEME TRANSITIONS
-   Smooth cross-fade when switching palettes
-   ========================================================================== */
+   The light/dark (and palette) swap is animated on the THEME TOKENS themselves,
+   not on each element. ThemeProvider briefly adds `theme-transition` to <html>;
+   while it's there the registered color tokens below interpolate once, on
+   <html>, and every element simply reads the live inherited value. The whole UI
+   therefore changes as a single even frame.
 
-/* Smooth cross-fade on all theme-related properties */
-*,
-*::before,
-*::after {
-  transition:
-    background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+   Why not transition `color` / `background-color` on every element (the obvious
+   approach)? `color` is inherited, so a node that inherits from an animating
+   ancestor AND runs its own color transition chases a moving target and lags
+   it — and that lag compounds with nesting depth. That's why headers, titles,
+   and buttons appeared to start and finish at different times. WebKit (Tauri's
+   WKWebView) shows it plainly; Chromium optimizes it away. Animating the source
+   token once removes the compounding (and the per-element transition churn)
+   entirely, so it's even AND lighter on WebKit.
+   ========================================================================== */
+:root {
+  --theme-transition-duration: 300ms;
+  --theme-transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Register the tokens as real colors so they can be interpolated. An
+   unregistered custom property has no known type, so it animates discretely
+   (i.e. it would just snap at the halfway point). */
+/* prettier-ignore */
+@property --background { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+/* prettier-ignore */
+@property --foreground { syntax: '<color>'; inherits: true; initial-value: #24292f; }
+/* prettier-ignore */
+@property --card { syntax: '<color>'; inherits: true; initial-value: #f6f8fa; }
+/* prettier-ignore */
+@property --card-foreground { syntax: '<color>'; inherits: true; initial-value: #24292f; }
+/* prettier-ignore */
+@property --popover { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+/* prettier-ignore */
+@property --popover-foreground { syntax: '<color>'; inherits: true; initial-value: #24292f; }
+/* prettier-ignore */
+@property --primary { syntax: '<color>'; inherits: true; initial-value: #0969da; }
+/* prettier-ignore */
+@property --primary-foreground { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+/* prettier-ignore */
+@property --secondary { syntax: '<color>'; inherits: true; initial-value: #f6f8fa; }
+/* prettier-ignore */
+@property --secondary-foreground { syntax: '<color>'; inherits: true; initial-value: #24292f; }
+/* prettier-ignore */
+@property --muted { syntax: '<color>'; inherits: true; initial-value: #f6f8fa; }
+/* prettier-ignore */
+@property --muted-foreground { syntax: '<color>'; inherits: true; initial-value: #57606a; }
+/* prettier-ignore */
+@property --accent { syntax: '<color>'; inherits: true; initial-value: #ddf4ff; }
+/* prettier-ignore */
+@property --accent-foreground { syntax: '<color>'; inherits: true; initial-value: #0969da; }
+/* prettier-ignore */
+@property --destructive { syntax: '<color>'; inherits: true; initial-value: #cf222e; }
+/* prettier-ignore */
+@property --destructive-foreground { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+/* prettier-ignore */
+@property --border { syntax: '<color>'; inherits: true; initial-value: #d0d7de; }
+/* prettier-ignore */
+@property --input { syntax: '<color>'; inherits: true; initial-value: #d0d7de; }
+/* prettier-ignore */
+@property --ring { syntax: '<color>'; inherits: true; initial-value: #0969da; }
+
+/* While swapping, interpolate the tokens on <html>; everything inherits them. */
+html.theme-transition {
+  transition-property:
+    --background, --foreground, --card, --card-foreground, --popover,
+    --popover-foreground, --primary, --primary-foreground, --secondary,
+    --secondary-foreground, --muted, --muted-foreground, --accent,
+    --accent-foreground, --destructive, --destructive-foreground, --border,
+    --input, --ring;
+  transition-duration: var(--theme-transition-duration);
+  transition-timing-function: var(--theme-transition-ease);
+}
+
+/* Neutralize per-element color transitions for the length of the swap so
+   nothing fades on its own clock and compounds the token animation. Motion
+   (the theme switch's own thumb) keeps its component timing. */
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition-property: transform, translate !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transition {
+    transition: none;
+  }
 }
 
 /* Pattern overlay gets fade transition */

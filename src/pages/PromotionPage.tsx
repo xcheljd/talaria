@@ -15,7 +15,14 @@
  *   - shared store selector            → email-data-source.ts
  */
 
-import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useCallback,
+  useDeferredValue,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Navigate } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
@@ -88,10 +95,17 @@ export function PromotionPage() {
   // Computed once at page level and passed down to PreviewColumn, so the
   // 1,300-line HTML generation runs once per edit. The useShallow slice
   // above changes identity only when an EmailDataSource field changes.
+  //
+  // Built from a *deferred* copy of that slice: while the user is typing, React
+  // keeps the inputs on the urgent path and lets this build (and the iframe
+  // re-parse it drives) coalesce on a pause instead of running every keystroke.
+  // Exports read this same value but are click-initiated, so it has settled to
+  // the latest content by then.
+  const deferredStore = useDeferredValue(store);
   const emailHTML = useMemo(() => {
-    if (!store.promoDateRange) return '';
-    return generatePromotionEmailHTML(buildPromotionEmailData(store));
-  }, [store]);
+    if (!deferredStore.promoDateRange) return '';
+    return generatePromotionEmailHTML(buildPromotionEmailData(deferredStore));
+  }, [deferredStore]);
 
   // Load persisted state on mount
   useEffect(() => {

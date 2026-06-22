@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react';
 import {
@@ -24,6 +25,13 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+/** Class toggled on <html> only while a theme/palette switch is cross-fading. */
+const THEME_TRANSITION_CLASS = 'theme-transition';
+/** Slightly longer than --theme-transition-duration (300ms) in index.css, so the
+ *  token interpolation finishes before the class — and thus the transition that
+ *  drives it — is removed. */
+const THEME_TRANSITION_MS = 360;
 
 interface ThemeProviderProps {
   children: ReactNode;
@@ -55,9 +63,39 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     return validatePalette(saved, 'dark');
   });
 
-  // Apply theme to DOM whenever state changes
+  // Skip the cross-fade on the very first paint; only animate later switches.
+  const isFirstApply = useRef(true);
+  const transitionTimer = useRef<number | null>(null);
+
+  // Apply theme to DOM whenever state changes. Wrap the change in a brief
+  // `theme-transition` window so every element cross-fades together evenly,
+  // then remove the class so component micro-interactions stay snappy.
   useEffect(() => {
+    const root = document.documentElement;
+    const prefersReducedMotion = window.matchMedia?.(
+      '(prefers-reduced-motion: reduce)'
+    )?.matches;
+
+    if (!isFirstApply.current && !prefersReducedMotion) {
+      root.classList.add(THEME_TRANSITION_CLASS);
+      if (transitionTimer.current !== null) {
+        window.clearTimeout(transitionTimer.current);
+      }
+      transitionTimer.current = window.setTimeout(() => {
+        root.classList.remove(THEME_TRANSITION_CLASS);
+        transitionTimer.current = null;
+      }, THEME_TRANSITION_MS);
+    }
+
     applyThemeToDOM(theme, lightPalette, darkPalette);
+    isFirstApply.current = false;
+
+    return () => {
+      if (transitionTimer.current !== null) {
+        window.clearTimeout(transitionTimer.current);
+        transitionTimer.current = null;
+      }
+    };
   }, [theme, lightPalette, darkPalette]);
 
   // Migrate invalid palettes in localStorage on mount

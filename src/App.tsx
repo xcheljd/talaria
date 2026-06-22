@@ -1,9 +1,25 @@
+import { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { TemplatesPage } from './pages/TemplatesPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { PromotionPage } from './pages/PromotionPage';
-import { ComponentsShowcase } from './pages/ComponentsShowcase';
+
+// Route pages are code-split so the initial bundle stays small and the app
+// shell paints before the heavy page chunks (newsletter editor, email
+// generation, zip/pdf libs) are parsed — a meaningful cold-start win in
+// WebKit/WKWebView. Named exports are mapped to a default for React.lazy.
+const TemplatesPage = lazy(() =>
+  import('./pages/TemplatesPage').then((m) => ({ default: m.TemplatesPage }))
+);
+const ProfilePage = lazy(() =>
+  import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage }))
+);
+const PromotionPage = lazy(() =>
+  import('./pages/PromotionPage').then((m) => ({ default: m.PromotionPage }))
+);
+const ComponentsShowcase = lazy(() =>
+  import('./pages/ComponentsShowcase').then((m) => ({
+    default: m.ComponentsShowcase,
+  }))
+);
 import { Toaster } from './components/ui/sonner';
 import { TooltipProvider } from './components/ui/tooltip';
 import { ThemeProvider } from './contexts/ThemeProvider';

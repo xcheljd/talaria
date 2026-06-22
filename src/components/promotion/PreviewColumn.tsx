@@ -4,7 +4,13 @@
  * import/export/download/print/generate actions. Extracted from PromotionPage.
  */
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useDeferredValue,
+} from 'react';
 import {
   RotateCcw,
   Eye,
@@ -99,6 +105,8 @@ async function downloadBlob(blob: Blob, filename: string): Promise<void> {
 
 // ===== Preview Column Component =====
 
+const PREVIEW_PLACEHOLDER_HTML = `<html><body style="display:flex;align-items:center;justify-content:center;min-height:400px;font-family:system-ui,sans-serif;color:#888;"><p style="text-align:center;">Enter promotion details to see preview</p></body></html>`;
+
 export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
   const { devMode } = useDevMode();
   const store = usePromotionStore(
@@ -140,14 +148,30 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
     setExportDialogOpen(true);
   }, []);
 
-  // Re-render with dark palette; only computed when dark preview is active.
-  // emailHTML captures all store-data changes, so it covers the darkModeHTML deps too.
+  // Dark-mode preview is rebuilt from a deferred copy of the store, so this
+  // (expensive) email-HTML build coalesces while typing instead of running on
+  // every keystroke. The light build is deferred the same way upstream in
+  // PromotionPage, so the `emailHTML` prop here is already coalesced.
+  const deferredStore = useDeferredValue(store);
   const darkModeHTML = useMemo(() => {
     if (!emailHTML || !previewDark) return '';
     return generatePromotionEmailHTML(
-      buildPromotionEmailData(store, buildDarkModePalette(store.emailPalette))
+      buildPromotionEmailData(
+        deferredStore,
+        buildDarkModePalette(deferredStore.emailPalette)
+      )
     );
-  }, [emailHTML, previewDark, store]);
+  }, [emailHTML, previewDark, deferredStore]);
+
+  // The exact document fed to the preview iframe. Because both branches are
+  // built from deferred data, the iframe's srcDoc — and the full-document
+  // re-parse it triggers — changes only when typing pauses, not per keystroke.
+  // Exports read the same coalesced `emailHTML`, settled by the time they click.
+  const previewHTML = emailHTML
+    ? previewDark
+      ? darkModeHTML
+      : emailHTML
+    : PREVIEW_PLACEHOLDER_HTML;
 
   // Download Email Draft (single EML)
   const handleDownloadDraft = useCallback(async () => {
@@ -604,10 +628,18 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
               aria-label="Preview color scheme"
               className="shadow-xs"
             >
-              <ToggleGroupItem value="light" aria-label="Light preview" title="Light preview">
+              <ToggleGroupItem
+                value="light"
+                aria-label="Light preview"
+                title="Light preview"
+              >
                 <Sun className="h-3.5 w-3.5" />
               </ToggleGroupItem>
-              <ToggleGroupItem value="dark" aria-label="Dark preview" title="Dark preview">
+              <ToggleGroupItem
+                value="dark"
+                aria-label="Dark preview"
+                title="Dark preview"
+              >
                 <Moon className="h-3.5 w-3.5" />
               </ToggleGroupItem>
             </ToggleGroup>
@@ -643,13 +675,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
               )}
             >
               <iframe
-                srcDoc={
-                  emailHTML
-                    ? previewDark
-                      ? darkModeHTML
-                      : emailHTML
-                    : `<html><body style="display:flex;align-items:center;justify-content:center;min-height:400px;font-family:system-ui,sans-serif;color:#888;"><p style="text-align:center;">Enter promotion details to see preview</p></body></html>`
-                }
+                srcDoc={previewHTML}
                 className="h-full w-full border-0"
                 title="Email Preview"
                 sandbox="allow-same-origin"
