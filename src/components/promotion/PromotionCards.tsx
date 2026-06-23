@@ -6,7 +6,7 @@
  * from PromotionPage to keep the page focused on layout.
  */
 
-import { memo } from 'react';
+import { lazy, memo, Suspense } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import {
@@ -25,9 +25,18 @@ import { BulkEmailTools } from '@/components/promotion/BulkEmailTools';
 import { AccessibilityChecker } from '@/components/promotion/AccessibilityChecker';
 import { VersionHistory } from '@/components/promotion/VersionHistory';
 import { OutlookChecker } from '@/components/promotion/OutlookChecker';
-import { NewsletterEditor } from '@/components/promotion/NewsletterEditor';
 import { EmailThemeEditor } from '@/components/promotion/EmailThemeEditor';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+// The newsletter editor pulls in TipTap + ~16 extensions (incl. lowlight/
+// highlight.js) — the bulk of this route's JS. Its card is collapsed by
+// default, so load it on demand when the card first opens instead of at
+// startup, keeping it out of the initial parse.
+const NewsletterEditor = lazy(() =>
+  import('@/components/promotion/NewsletterEditor').then((m) => ({
+    default: m.NewsletterEditor,
+  }))
+);
 
 // ===== Card Configuration =====
 
@@ -111,7 +120,15 @@ function getCardContent(
     case 'newsletterCard':
       return (
         <ErrorBoundary level="component">
-          <NewsletterEditor />
+          <Suspense
+            fallback={
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                Loading editor…
+              </div>
+            }
+          >
+            <NewsletterEditor />
+          </Suspense>
         </ErrorBoundary>
       );
     case 'discountEntriesCard':
