@@ -1,77 +1,37 @@
 /**
  * PreviewColumn — the right-hand pane of the promotion builder: live email
- * preview (desktop/mobile, light/dark), HTML source tab, and the
- * import/export/download/print/generate actions. Extracted from PromotionPage.
+ * preview (desktop/mobile, light/dark) and the HTML source tab.
+ *
+ * Presentation + wiring only. The controls row, the two action dialogs, and the
+ * import/export/download/print/generate logic live in sibling modules:
+ *   - PreviewToolbar         (controls row)
+ *   - ExportOptionsDialog    (export options)
+ *   - GenerateWarningDialog  (pre-generate warning)
+ *   - usePreviewActions      (the actions + their dialog state)
  */
 
-import {
-  memo,
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-  useDeferredValue,
-} from 'react';
+import { useState, useCallback, useMemo, useDeferredValue } from 'react';
 import {
   RotateCcw,
-  Eye,
-  Code,
   Mail,
   FileDown,
   FileCode,
   Download,
   Upload,
-  Monitor,
-  Smartphone,
-  Sun,
-  Moon,
-  Printer,
   Loader2,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { toast } from 'sonner';
 
 import { usePromotionStore } from '@/stores/promotion-store';
 import {
   generatePromotionEmailHTML,
   buildDarkModePalette,
 } from '@/lib/promotion-email-html';
-import {
-  buildExportConfig,
-  validateImportConfig,
-} from '@/lib/promotion-config';
 import { buildPromotionEmailData } from '@/lib/newsletter-utils';
-import { prependHeadingIfMissing } from '@/lib/html-utils';
 import { cn } from '@/lib/utils';
-import {
-  createEMLFile,
-  formatDateRangeForFilename,
-  resolvePromoSubject,
-} from '@/lib/emailUtils';
-import { getRecommendedFormat } from '@/lib/ui-utils';
-import { saveBlob, getSaveAsDialog } from '@/lib/file-save';
-import { getStoreEmail, getEmployeeName } from '@/lib/profile';
-import {
-  generateEmailBatches,
-  computeEmailStats,
-} from '@/lib/bulk-email-generation';
-import { StorageKeys } from '@/lib/storage-keys';
-import {
-  saveBulkEmailRecipientsToIndexedDB,
-  clearBulkEmailRecipientsFromIndexedDB,
-} from '@/lib/db';
 
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Separator } from '@/components/ui/separator';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -84,209 +44,27 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-import { selectEmailDataSource } from './email-data-source';
 import { useDevMode } from '@/hooks/useDevMode';
-
-// ===== Download Helpers =====
-
-function promoDraftDateSuffix(dateRange: string): string {
-  if (dateRange) {
-    const formatted = formatDateRangeForFilename(dateRange);
-    if (formatted) return formatted;
-  }
-  const d = new Date();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${mm}-${dd}`;
-}
-
-async function downloadBlob(blob: Blob, filename: string): Promise<void> {
-  await saveBlob(blob, filename, { dialog: getSaveAsDialog() });
-}
+import { PreviewToolbar } from './PreviewToolbar';
+import { ExportOptionsDialog } from './ExportOptionsDialog';
+import { GenerateWarningDialog } from './GenerateWarningDialog';
+import { usePreviewActions, selectPreviewStore } from './usePreviewActions';
 
 // ===== Preview Column Component =====
 
 const PREVIEW_PLACEHOLDER_HTML = `<html><body style="display:flex;align-items:center;justify-content:center;min-height:400px;font-family:system-ui,sans-serif;color:#888;"><p style="text-align:center;">Enter promotion details to see preview</p></body></html>`;
 
-interface PreviewToolbarProps {
-  devMode: boolean;
-  previewWidth: 'desktop' | 'mobile';
-  onViewportChange: (v: string) => void;
-  previewDark: boolean;
-  onThemeChange: (v: string) => void;
-  hasContent: boolean;
-  onPrint: () => void;
-}
-
-/**
- * The preview controls row: Preview/HTML tabs (dev mode), viewport and theme
- * segmented controls, and Print. Extracted and memoized so it doesn't reconcile
- * on every keystroke when PreviewColumn re-renders for edits — all of its props
- * are stable while typing (callbacks are useCallback; hasContent only flips when
- * content appears/disappears). TabsList/TabsTrigger read the Radix Tabs context
- * from the <Tabs> ancestor in PreviewColumn, so this must stay inside it.
- */
-const PreviewToolbar = memo(function PreviewToolbar({
-  devMode,
-  previewWidth,
-  onViewportChange,
-  previewDark,
-  onThemeChange,
-  hasContent,
-  onPrint,
-}: PreviewToolbarProps) {
-  return (
-    <TooltipProvider delayDuration={200}>
-      <div className="flex items-center gap-1.5 border-b bg-muted/40 px-2 py-1">
-        {/* Preview / HTML Code tabs (dev mode only).
-         * flex-none so they shrink to content width, not fill the row. */}
-        {devMode && (
-          <>
-            <TabsList
-              variant="toolbar"
-              className="flex-none gap-0 rounded-md border border-input p-0 shadow-xs"
-            >
-              <TabsTrigger value="preview">
-                <Eye className="h-3.5 w-3.5" />
-                Preview
-              </TabsTrigger>
-              <TabsTrigger value="code">
-                <Code className="h-3.5 w-3.5" />
-                HTML
-              </TabsTrigger>
-            </TabsList>
-            <Separator orientation="vertical" className="mx-0.5 h-4" />
-          </>
-        )}
-
-        {/* Viewport: mutually-exclusive segmented control (icon + label).
-         * ToggleGroupItems use native title= instead of Radix Tooltip to avoid
-         * the data-state collision between TooltipTrigger and Toggle (both write
-         * data-state on the same DOM node when composed via asChild, causing the
-         * active-state styling to disappear). */}
-        <ToggleGroup
-          type="single"
-          value={previewWidth}
-          onValueChange={onViewportChange}
-          variant="outline"
-          size="sm"
-          spacing={0}
-          colorScheme="primary"
-          aria-label="Preview viewport width"
-          className="shadow-xs"
-        >
-          <ToggleGroupItem
-            value="desktop"
-            aria-label="Desktop preview"
-            title="Desktop width (600px)"
-            className="gap-1.5 px-2 text-xs"
-          >
-            <Monitor className="h-3.5 w-3.5" />
-            Desktop
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="mobile"
-            aria-label="Mobile preview"
-            title="Mobile width (320px)"
-            className="gap-1.5 px-2 text-xs"
-          >
-            <Smartphone className="h-3.5 w-3.5" />
-            Mobile
-          </ToggleGroupItem>
-        </ToggleGroup>
-
-        <Separator orientation="vertical" className="mx-0.5 h-4" />
-
-        {/* Theme: light / dark segmented control */}
-        <ToggleGroup
-          type="single"
-          value={previewDark ? 'dark' : 'light'}
-          onValueChange={onThemeChange}
-          variant="outline"
-          size="sm"
-          spacing={0}
-          colorScheme="primary"
-          aria-label="Preview color scheme"
-          className="shadow-xs"
-        >
-          <ToggleGroupItem
-            value="light"
-            aria-label="Light preview"
-            title="Light preview"
-          >
-            <Sun className="h-3.5 w-3.5" />
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="dark"
-            aria-label="Dark preview"
-            title="Dark preview"
-          >
-            <Moon className="h-3.5 w-3.5" />
-          </ToggleGroupItem>
-        </ToggleGroup>
-
-        {/* Print: standalone ghost button. Radix Tooltip is safe here because
-         * Button has no data-state attribute to collide with. */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              className="ml-auto"
-              variant="ghost"
-              size="icon-sm"
-              onClick={onPrint}
-              disabled={!hasContent}
-              aria-label="Print email"
-            >
-              <Printer className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Print email</TooltipContent>
-        </Tooltip>
-      </div>
-    </TooltipProvider>
-  );
-});
-
 export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
   const { devMode } = useDevMode();
-  const store = usePromotionStore(
-    useShallow((s) => ({
-      ...selectEmailDataSource(s),
-      attachedPDFs: s.attachedPDFs,
-      generatedSubjectLines: s.generatedSubjectLines,
-      selectedSubjectLine: s.selectedSubjectLine,
-      bulkEmailGenerating: s.bulkEmailGenerating,
-      bulkEmailProgress: s.bulkEmailProgress,
-      bulkEmailRecipients: s.bulkEmailRecipients,
-      setBulkEmailRecipients: s.setBulkEmailRecipients,
-      addPDF: s.addPDF,
-      clearAllPDFs: s.clearAllPDFs,
-      setPromoDateRange: s.setPromoDateRange,
-      setPromoYear: s.setPromoYear,
-      setPromoTitle: s.setPromoTitle,
-      resetState: s.resetState,
-      initializeDefaultItems: s.initializeDefaultItems,
-    }))
-  );
+  const store = usePromotionStore(useShallow(selectPreviewStore));
+
+  const actions = usePreviewActions(emailHTML, store);
+
   const [activeTab, setActiveTab] = useState('preview');
   const [previewWidth, setPreviewWidth] = useState<'desktop' | 'mobile'>(
     'desktop'
   );
   const [previewDark, setPreviewDark] = useState(false);
-  const [showGenerateWarning, setShowGenerateWarning] = useState(false);
-  const [generateWarnings, setGenerateWarnings] = useState<string[]>([]);
-
-  // Export options dialog (Recipients OFF, PDFs ON; reset to defaults each open)
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [exportIncludeRecipients, setExportIncludeRecipients] = useState(false);
-  const [exportIncludePdfData, setExportIncludePdfData] = useState(true);
-
-  const openExportDialog = useCallback(() => {
-    // Always reset to defaults when opening (no persistence)
-    setExportIncludeRecipients(false);
-    setExportIncludePdfData(true);
-    setExportDialogOpen(true);
-  }, []);
 
   // Dark-mode preview is rebuilt from a deferred copy of the store, so this
   // (expensive) email-HTML build coalesces while typing instead of running on
@@ -313,298 +91,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
       : emailHTML
     : PREVIEW_PLACEHOLDER_HTML;
 
-  // Download Email Draft (single EML)
-  const handleDownloadDraft = useCallback(async () => {
-    if (!emailHTML) {
-      toast.error('No email content to download');
-      return;
-    }
-
-    try {
-      const fromName = getEmployeeName();
-      const fromEmail = getStoreEmail();
-      const subject = resolvePromoSubject(
-        store.selectedSubjectLine,
-        store.promoTitle
-      );
-
-      // Get PDF attachments
-      const attachments = store.attachedPDFs
-        .filter((pdf) => pdf.data)
-        .map((pdf) => ({ name: pdf.name, data: pdf.data }));
-
-      const emlContent = await createEMLFile(
-        fromName,
-        fromEmail,
-        '',
-        '',
-        subject,
-        emailHTML,
-        attachments
-      );
-
-      const blob = new Blob([emlContent], {
-        type: 'message/rfc822',
-      });
-      const suffix = promoDraftDateSuffix(store.promoDateRange);
-      const extension = getRecommendedFormat();
-      await downloadBlob(blob, `promo-email-draft.${suffix}.${extension}`);
-      toast.success('Email draft downloaded');
-    } catch (error) {
-      console.error('Download draft error:', error);
-      toast.error('Failed to download email draft');
-    }
-  }, [
-    emailHTML,
-    store.selectedSubjectLine,
-    store.promoTitle,
-    store.attachedPDFs,
-    store.promoDateRange,
-  ]);
-
-  // Download HTML
-  const handleDownloadHTML = useCallback(async () => {
-    if (!emailHTML) {
-      toast.error('No HTML content to download');
-      return;
-    }
-
-    const blob = new Blob([emailHTML], { type: 'text/html' });
-    const suffix = promoDraftDateSuffix(store.promoDateRange);
-    await downloadBlob(blob, `promo-email-draft.${suffix}.html`);
-    toast.success('HTML file downloaded');
-  }, [emailHTML, store.promoDateRange]);
-
-  // Start Over
-  const handleStartOver = useCallback(() => {
-    store.resetState();
-    store.initializeDefaultItems();
-    localStorage.removeItem(StorageKeys.promotionBuilderState);
-    // resetState clears the in-memory recipients; also drop the persisted copy.
-    void clearBulkEmailRecipientsFromIndexedDB();
-    toast.success('Reset to defaults completed');
-  }, [store]);
-
-  // Export Config — runs with the options chosen in the export dialog
-  const handleExportConfig = useCallback(async () => {
-    setExportDialogOpen(false);
-    try {
-      const data = buildPromotionEmailData(store);
-
-      const config = buildExportConfig(
-        data,
-        store.attachedPDFs,
-        store.generatedSubjectLines,
-        store.selectedSubjectLine,
-        store.newsletterStyle,
-        store.emailPalette,
-        {
-          includeRecipients: exportIncludeRecipients,
-          includePdfData: exportIncludePdfData,
-          bulkEmailRecipients: store.bulkEmailRecipients,
-        }
-      );
-
-      const jsonStr = JSON.stringify(config, null, 2);
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      await downloadBlob(
-        blob,
-        `promotion-template-${new Date().toISOString().split('T')[0]}.json`
-      );
-      toast.success('Config exported successfully');
-    } catch (error) {
-      console.error('Export config error:', error);
-      toast.error('Failed to export config');
-    }
-  }, [store, exportIncludeRecipients, exportIncludePdfData]);
-
-  // Import Config
-  const importInputRef = useRef<HTMLInputElement>(null);
-  const handleImportConfig = useCallback(() => {
-    importInputRef.current?.click();
-  }, []);
-
-  const handleImportFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const raw = JSON.parse(event.target?.result as string);
-          const validation = validateImportConfig(raw);
-
-          if (!validation.ok) {
-            toast.error(`Invalid config: ${validation.reason}`);
-            return;
-          }
-
-          const config = validation.config;
-
-          // Apply imported config to store
-          store.setPromoDateRange(config.dateRange);
-          store.setPromoYear(config.year);
-          store.setPromoTitle(config.title);
-
-          // Migration: if imported body doesn't start with an H2 but has
-          // a heading, prepend the heading as an H2 element in the body
-          const importedHeading = config.newsletterHeading || '';
-          const importedBody = prependHeadingIfMissing(
-            config.newsletterBody || '',
-            importedHeading
-          );
-
-          usePromotionStore.setState({
-            promotionEntries: config.promotionEntries,
-            specialHours: config.specialHours,
-            howToShopItems: config.howToShopItems,
-            importantNotesItems: config.importantNotesItems,
-            howToShopStyle: config.howToShopStyle || {
-              borderColor: null,
-              backgroundColor: null,
-            },
-            importantNotesStyle: config.importantNotesStyle || {
-              borderColor: null,
-              backgroundColor: null,
-            },
-            generatedSubjectLines: config.generatedSubjectLines,
-            selectedSubjectLine: config.selectedSubjectLine,
-            preheaderText: config.preheaderText || '',
-            newsletterHeading: importedHeading,
-            newsletterBody: importedBody,
-            newsletterPosition: config.newsletterPosition,
-            newsletterVisible: config.newsletterVisible ?? false,
-            newsletterStyle: config.newsletterStyle || {
-              borderColor: null,
-              backgroundColor: null,
-              headingColor: null,
-              borderStyle: 'left',
-              headingAlign: 'left',
-            },
-            ...(config.emailPalette
-              ? { emailPalette: config.emailPalette }
-              : {}),
-          });
-
-          // Restore embedded PDF files, if the export included their data.
-          // Replaces current attachments only when the import actually carries
-          // file bytes; metadata-only exports leave existing PDFs untouched.
-          const importedPDFs = (config.attachedPDFs ?? []).filter(
-            (p) => typeof p.data === 'string'
-          );
-          if (importedPDFs.length > 0) {
-            await store.clearAllPDFs();
-            for (const p of importedPDFs) {
-              await store.addPDF({
-                id: p.id,
-                name: p.name,
-                size: p.size,
-                type: p.type,
-                data: p.data,
-              });
-            }
-          }
-
-          // Restore bulk recipients, if the export included them.
-          if (typeof config.bulkEmailRecipients === 'string') {
-            store.setBulkEmailRecipients(config.bulkEmailRecipients);
-            try {
-              await saveBulkEmailRecipientsToIndexedDB(
-                config.bulkEmailRecipients
-              );
-            } catch {
-              // Non-blocking: recipients are in memory even if persistence fails
-            }
-          }
-
-          toast.success('Config imported successfully');
-        } catch (error) {
-          console.error('Import config error:', error);
-          toast.error('Failed to import config — invalid JSON');
-        }
-      };
-      reader.readAsText(file);
-
-      // Reset input so the same file can be re-selected
-      e.target.value = '';
-    },
-    [store]
-  );
-
   const hasContent = !!emailHTML;
-
-  const handleGenerateClick = useCallback(() => {
-    const warnings: string[] = [];
-    const stats = computeEmailStats(store.bulkEmailRecipients);
-    if (stats.invalid > 0) {
-      warnings.push(
-        `${stats.invalid} invalid email${stats.invalid === 1 ? '' : 's'} will be skipped`
-      );
-    }
-    if (stats.duplicates > 0) {
-      warnings.push(
-        `${stats.duplicates} duplicate recipient${stats.duplicates === 1 ? '' : 's'} removed`
-      );
-    }
-    if (!store.selectedSubjectLine?.trim()) {
-      warnings.push(
-        'Subject line is empty — emails will send with "Promotion" as the subject'
-      );
-    }
-    if (!store.preheaderText?.trim()) {
-      warnings.push(
-        'Preheader text is empty — inbox preview will show your email title instead'
-      );
-    }
-    if (store.attachedPDFs.length === 0) {
-      warnings.push(
-        'No PDF attachments — add any flyers or documents if needed'
-      );
-    }
-    if (warnings.length > 0) {
-      setGenerateWarnings(warnings);
-      setShowGenerateWarning(true);
-    } else {
-      generateEmailBatches();
-    }
-  }, [
-    store.bulkEmailRecipients,
-    store.selectedSubjectLine,
-    store.preheaderText,
-    store.attachedPDFs,
-  ]);
-
-  const handlePrint = useCallback(() => {
-    if (!emailHTML) return;
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-9999px';
-    iframe.style.width = '600px';
-    iframe.style.height = '800px';
-    document.body.appendChild(iframe);
-    const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
-    if (!doc) {
-      document.body.removeChild(iframe);
-      return;
-    }
-    doc.open();
-    doc.write(emailHTML);
-    doc.close();
-    const fallback = setTimeout(() => {
-      if (document.body.contains(iframe)) document.body.removeChild(iframe);
-    }, 5000);
-    iframe.contentWindow?.addEventListener(
-      'afterprint',
-      () => {
-        clearTimeout(fallback);
-        if (document.body.contains(iframe)) document.body.removeChild(iframe);
-      },
-      { once: true }
-    );
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-  }, [emailHTML]);
 
   const handleViewportChange = useCallback((v: string) => {
     if (v === 'desktop' || v === 'mobile') setPreviewWidth(v);
@@ -619,11 +106,11 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
     <div className="flex h-full flex-col">
       {/* Hidden file input for import */}
       <input
-        ref={importInputRef}
+        ref={actions.importInputRef}
         type="file"
         accept=".json,application/json"
         className="hidden"
-        onChange={handleImportFileChange}
+        onChange={actions.handleImportFileChange}
         data-testid="import-config-input"
       />
 
@@ -637,7 +124,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
             variant="ghost"
             size="sm"
             className="gap-1.5 text-xs"
-            onClick={handleImportConfig}
+            onClick={actions.handleImportConfig}
             aria-label="Import"
           >
             <Upload className="h-3.5 w-3.5" />
@@ -649,7 +136,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
             variant="ghost"
             size="sm"
             className="gap-1.5 text-xs"
-            onClick={openExportDialog}
+            onClick={actions.openExportDialog}
             disabled={!hasContent}
             aria-label="Export"
           >
@@ -676,7 +163,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleStartOver}>
+                <AlertDialogAction onClick={actions.handleStartOver}>
                   Reset
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -701,7 +188,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           previewDark={previewDark}
           onThemeChange={handleThemeChange}
           hasContent={hasContent}
-          onPrint={handlePrint}
+          onPrint={actions.handlePrint}
         />
 
         <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
@@ -752,7 +239,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           size="sm"
           className="gap-1.5"
           disabled={!hasContent || store.bulkEmailGenerating}
-          onClick={handleGenerateClick}
+          onClick={actions.handleGenerateClick}
         >
           {store.bulkEmailGenerating ? (
             <>
@@ -772,7 +259,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           size="sm"
           variant="outline"
           className="gap-1.5"
-          onClick={handleDownloadDraft}
+          onClick={actions.handleDownloadDraft}
           disabled={!hasContent}
         >
           <FileDown className="h-3.5 w-3.5" />
@@ -782,7 +269,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           size="sm"
           variant="outline"
           className="gap-1.5"
-          onClick={handleDownloadHTML}
+          onClick={actions.handleDownloadHTML}
           disabled={!hasContent}
         >
           <FileCode className="h-3.5 w-3.5" />
@@ -790,85 +277,22 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
         </Button>
       </div>
 
-      {/* Export options dialog */}
-      <AlertDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Export options</AlertDialogTitle>
-            <AlertDialogDescription>
-              Choose what to include in the exported template file.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-3 py-1">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <Checkbox
-                checked={exportIncludeRecipients}
-                onCheckedChange={(c) => setExportIncludeRecipients(c === true)}
-                data-testid="export-include-recipients"
-                className="mt-0.5"
-              />
-              <span className="text-sm">
-                Include bulk email recipients
-                <span className="block text-xs text-muted-foreground text-pretty">
-                  Embeds your recipient list (email addresses) in the file. Off
-                  by default.
-                </span>
-              </span>
-            </label>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <Checkbox
-                checked={exportIncludePdfData}
-                onCheckedChange={(c) => setExportIncludePdfData(c === true)}
-                data-testid="export-include-pdfs"
-                className="mt-0.5"
-              />
-              <span className="text-sm">
-                Include PDF attachments (files)
-                <span className="block text-xs text-muted-foreground text-pretty">
-                  Embeds the actual PDF files so they restore on import.
-                  Increases file size. Unchecked exports names only.
-                </span>
-              </span>
-            </label>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleExportConfig}>
-              Export
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ExportOptionsDialog
+        open={actions.exportDialogOpen}
+        onOpenChange={actions.setExportDialogOpen}
+        includeRecipients={actions.exportIncludeRecipients}
+        onIncludeRecipientsChange={actions.setExportIncludeRecipients}
+        includePdfData={actions.exportIncludePdfData}
+        onIncludePdfDataChange={actions.setExportIncludePdfData}
+        onExport={actions.handleExportConfig}
+      />
 
-      {/* Pre-generate warning dialog */}
-      <AlertDialog
-        open={showGenerateWarning}
-        onOpenChange={setShowGenerateWarning}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Before you generate...</AlertDialogTitle>
-            <AlertDialogDescription>
-              The following fields were left empty. You can go back and fill
-              them in, or generate anyway.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <ul className="space-y-2 text-sm">
-            {generateWarnings.map((w) => (
-              <li key={w} className="flex items-start gap-2">
-                <span className="mt-0.5 text-amber-500">⚠</span>
-                <span className="text-pretty">{w}</span>
-              </li>
-            ))}
-          </ul>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Go Back</AlertDialogCancel>
-            <AlertDialogAction onClick={() => generateEmailBatches()}>
-              Generate Anyway
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <GenerateWarningDialog
+        open={actions.showGenerateWarning}
+        onOpenChange={actions.setShowGenerateWarning}
+        warnings={actions.generateWarnings}
+        onGenerateAnyway={actions.handleGenerateAnyway}
+      />
     </div>
   );
 }
