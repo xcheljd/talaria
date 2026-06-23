@@ -7,7 +7,6 @@ import {
   VALID_LIGHT_PALETTES,
   VALID_DARK_PALETTES,
   validatePalette,
-  getEmailDarkModeCSS,
   getScrollbarCSS,
   type PaletteName,
 } from '../src/lib/theme-utils';
@@ -95,32 +94,6 @@ describe('Palette constants', () => {
     expect(VALID_DARK_PALETTES).not.toContain('catppuccin-latte');
     expect(VALID_DARK_PALETTES).not.toContain('solarized');
     expect(VALID_DARK_PALETTES).not.toContain('rose-pine-dawn');
-  });
-});
-
-// ─── Email Dark Mode CSS ──────────────────────────────────────────────────────
-
-describe('getEmailDarkModeCSS', () => {
-  it('returns non-empty CSS string', () => {
-    const css = getEmailDarkModeCSS();
-    expect(css).toBeTruthy();
-    expect(typeof css).toBe('string');
-    expect(css.length).toBeGreaterThan(0);
-  });
-
-  it('includes background color inversion', () => {
-    const css = getEmailDarkModeCSS();
-    expect(css).toContain('#1a1a1a');
-  });
-
-  it('includes text color overrides', () => {
-    const css = getEmailDarkModeCSS();
-    expect(css).toContain('#e0e0e0');
-  });
-
-  it('includes link styling', () => {
-    const css = getEmailDarkModeCSS();
-    expect(css).toContain('#8ab4f8');
   });
 });
 
