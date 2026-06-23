@@ -6,7 +6,7 @@
  * from PromotionPage to keep the page focused on layout.
  */
 
-import { useMemo } from 'react';
+import { memo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import {
@@ -385,7 +385,7 @@ function getCardHasContent(cardId: string, store: CardContentState): boolean {
 // ===== Individual Card Component =====
 // Subscribes to store to compute hasContent per-card
 
-export function PromotionCard({
+export const PromotionCard = memo(function PromotionCard({
   config,
   forceExpand,
   onToggle,
@@ -396,34 +396,12 @@ export function PromotionCard({
   onToggle?: (cardId: string, isOpen: boolean) => void;
   versionRefreshKey?: number;
 }) {
-  // useShallow keeps the slice referentially stable until one of these
-  // fields actually changes, so this component no longer re-renders on
-  // every store update.
-  const store = usePromotionStore(
-    useShallow(
-      (s): CardContentState => ({
-        promoDateRange: s.promoDateRange,
-        promoYear: s.promoYear,
-        promoTitle: s.promoTitle,
-        promotionEntries: s.promotionEntries,
-        specialHours: s.specialHours,
-        howToShopItems: s.howToShopItems,
-        importantNotesItems: s.importantNotesItems,
-        attachedPDFs: s.attachedPDFs,
-        selectedSubjectLine: s.selectedSubjectLine,
-        generatedSubjectLines: s.generatedSubjectLines,
-        newsletterBody: s.newsletterBody,
-        newsletterVisible: s.newsletterVisible,
-        emailPalette: s.emailPalette,
-        bulkEmailHasRecipients: s.bulkEmailHasRecipients,
-      })
-    )
-  );
-
-  const hasContent = useMemo(
-    () => getCardHasContent(config.id, store),
-    [config.id, store]
-  );
+  // Subscribe to the derived boolean only. The previous slice covered every
+  // card's data, so any keystroke in any field re-rendered every card just to
+  // recompute this indicator. The indicator flips rarely, so reading the
+  // computed value re-renders this card only when its own content appears or
+  // disappears. The editors inside subscribe to their own slices.
+  const hasContent = usePromotionStore((s) => getCardHasContent(config.id, s));
 
   return (
     <CollapsibleCard
@@ -437,4 +415,4 @@ export function PromotionCard({
       {getCardContent(config.id, { versionRefreshKey })}
     </CollapsibleCard>
   );
-}
+});
