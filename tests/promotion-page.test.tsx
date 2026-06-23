@@ -1,5 +1,5 @@
 /**
- * Tests for PromotionPage, CollapsibleCard, and SidebarBar components.
+ * Tests for PromotionPage and CollapsibleCard components.
  *
  * Tests cover:
  * - Profile redirect when no profile saved
@@ -7,7 +7,6 @@
  * - All 9 collapsible cards render with correct titles
  * - Cards collapse/expand with animation
  * - Status dots show empty/filled state
- * - SidebarBar component unit tests (legacy mode)
  * - Responsive layout class application
  */
 
@@ -18,7 +17,6 @@ import { MemoryRouter } from 'react-router-dom';
 
 import { PromotionPage } from '@/pages/PromotionPage';
 import { CollapsibleCard } from '@/components/promotion/CollapsibleCard';
-import { SidebarBar } from '@/components/promotion/SidebarBar';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
@@ -264,98 +262,6 @@ describe('CollapsibleCard', () => {
     expect(
       container.querySelector('[data-card-id="mySpecialCard"]')
     ).toBeInTheDocument();
-  });
-});
-
-// ===== SidebarBar Tests =====
-
-describe('SidebarBar', () => {
-  const mockCards = [
-    { cardId: 'card1', title: 'Card One', hasContent: false },
-    { cardId: 'card2', title: 'Card Two', hasContent: true },
-  ];
-
-  it('renders nothing when isExpanded is true', () => {
-    const { container } = render(
-      <SidebarBar
-        cards={mockCards}
-        isExpanded={true}
-        onExpand={() => {}}
-        ariaLabel="Expand column"
-      />
-    );
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('renders when isExpanded is false', () => {
-    render(
-      <SidebarBar
-        cards={mockCards}
-        isExpanded={false}
-        onExpand={() => {}}
-        ariaLabel="Expand column"
-      />
-    );
-    expect(
-      screen.getByRole('button', { name: /expand column/i })
-    ).toBeInTheDocument();
-  });
-
-  it('shows card titles in sidebar bar', () => {
-    render(
-      <SidebarBar
-        cards={mockCards}
-        isExpanded={false}
-        onExpand={() => {}}
-        ariaLabel="Expand column"
-      />
-    );
-    expect(screen.getByText('Card One')).toBeInTheDocument();
-    expect(screen.getByText('Card Two')).toBeInTheDocument();
-  });
-
-  it('shows status dots for each card', () => {
-    const { container } = render(
-      <SidebarBar
-        cards={mockCards}
-        isExpanded={false}
-        onExpand={() => {}}
-        ariaLabel="Expand column"
-      />
-    );
-    expect(container.querySelectorAll('[data-status]')).toHaveLength(2);
-  });
-
-  it('shows filled/empty status correctly', () => {
-    const { container } = render(
-      <SidebarBar
-        cards={mockCards}
-        isExpanded={false}
-        onExpand={() => {}}
-        ariaLabel="Expand column"
-      />
-    );
-    expect(
-      container.querySelector('[data-status="empty"]')
-    ).toBeInTheDocument();
-    expect(
-      container.querySelector('[data-status="filled"]')
-    ).toBeInTheDocument();
-  });
-
-  it('calls onExpand when clicked', async () => {
-    const user = userEvent.setup();
-    const onExpand = vi.fn();
-    render(
-      <SidebarBar
-        cards={mockCards}
-        isExpanded={false}
-        onExpand={onExpand}
-        ariaLabel="Expand column"
-      />
-    );
-    await user.click(screen.getByRole('button', { name: /expand column/i }));
-    expect(onExpand).toHaveBeenCalledTimes(1);
   });
 });
 

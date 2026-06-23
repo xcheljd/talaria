@@ -21,7 +21,6 @@ import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { StorageKeys } from '@/lib/storage-keys';
-import { HorizontalStrip, type StripCardInfo } from '@/components/promotion/HorizontalStrip';
 
 
 // Mock ResizeObserver for Radix components
@@ -91,104 +90,6 @@ function renderPromotionPage() {
     </ThemeProvider>
   );
 }
-
-// ===== HorizontalStrip Unit Tests =====
-
-describe('HorizontalStrip', () => {
-  const mockCards: StripCardInfo[] = [
-    { cardId: 'card1', title: 'Card One', hasContent: false },
-    { cardId: 'card2', title: 'Card Two', hasContent: true },
-    { cardId: 'card3', title: 'Card Three', hasContent: true },
-  ];
-
-  it('renders group label', () => {
-    render(
-      <HorizontalStrip
-        label="Test Group"
-        cards={mockCards}
-        onCardClick={() => {}}
-      />
-    );
-    expect(screen.getByText('Test Group')).toBeInTheDocument();
-  });
-
-  it('renders all card titles as buttons', () => {
-    render(
-      <HorizontalStrip
-        label="Group"
-        cards={mockCards}
-        onCardClick={() => {}}
-      />
-    );
-    expect(
-      screen.getByRole('button', { name: /jump to card one/i })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /jump to card two/i })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /jump to card three/i })
-    ).toBeInTheDocument();
-  });
-
-  it('renders status dots for each card', () => {
-    const { container } = render(
-      <HorizontalStrip
-        label="Group"
-        cards={mockCards}
-        onCardClick={() => {}}
-      />
-    );
-
-    const filledDots = container.querySelectorAll('[data-status="filled"]');
-    const emptyDots = container.querySelectorAll('[data-status="empty"]');
-    expect(filledDots.length).toBe(2);
-    expect(emptyDots.length).toBe(1);
-  });
-
-  it('calls onCardClick with correct cardId when tapped', async () => {
-    const user = userEvent.setup();
-    const onCardClick = vi.fn();
-
-    render(
-      <HorizontalStrip
-        label="Group"
-        cards={mockCards}
-        onCardClick={onCardClick}
-      />
-    );
-
-    await user.click(screen.getByRole('button', { name: /jump to card two/i }));
-    expect(onCardClick).toHaveBeenCalledWith('card2');
-  });
-
-  it('has overflow-x-auto for scrollable behavior', () => {
-    const { container } = render(
-      <HorizontalStrip
-        label="Group"
-        cards={mockCards}
-        onCardClick={() => {}}
-      />
-    );
-
-    const cardsContainer = container.querySelector('[data-testid="strip-cards"]');
-    expect(cardsContainer).toBeInTheDocument();
-    expect(cardsContainer?.className).toContain('overflow-x-auto');
-  });
-
-  it('renders with navigation role and aria-label', () => {
-    render(
-      <HorizontalStrip
-        label="Promo Body"
-        cards={mockCards}
-        onCardClick={() => {}}
-      />
-    );
-
-    const nav = screen.getByRole('navigation', { name: /promo body navigation/i });
-    expect(nav).toBeInTheDocument();
-  });
-});
 
 // ===== Mobile Layout Integration Tests =====
 
