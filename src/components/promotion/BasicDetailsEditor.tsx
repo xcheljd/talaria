@@ -6,6 +6,7 @@
  * - Title (optional, auto-generates based on date)
  *
  * Date range format:
+ * - Single day (start === end): "Only March 4"
  * - Same month: "March 4 - 10"
  * - Different months: "March 28 - April 2"
  * - Cross-year: "December 30 - January 3" (year auto-derived)
@@ -56,6 +57,15 @@ function formatDateRange(startDate: string, endDate: string): string {
   const endMonth = MONTHS[end.getMonth()];
 
   if (
+    start.getFullYear() === end.getFullYear() &&
+    start.getMonth() === end.getMonth() &&
+    start.getDate() === end.getDate()
+  ) {
+    // Single day (start === end): "Only March 4"
+    return `Only ${startMonth} ${start.getDate()}`;
+  }
+
+  if (
     start.getMonth() === end.getMonth() &&
     start.getFullYear() === end.getFullYear()
   ) {
@@ -83,6 +93,19 @@ function parseDateRange(
   year: string
 ): { start: string; end: string } | null {
   if (!dateRange) return null;
+
+  // Single day: "Only March 4"
+  const singleDay = dateRange.match(/^Only\s+(\w+)\s+(\d{1,2})$/i);
+  if (singleDay) {
+    const monthIdx = MONTHS.findIndex(
+      (m) => m.toLowerCase() === singleDay[1].toLowerCase()
+    );
+    if (monthIdx === -1) return null;
+    const y = parseInt(year, 10) || new Date().getFullYear();
+    const day = parseInt(singleDay[2], 10);
+    const iso = `${y}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return { start: iso, end: iso };
+  }
 
   // Match "Month D - D" or "Month D - Month D"
   const sameMonth = dateRange.match(/^(\w+)\s+(\d{1,2})\s*-\s*(\d{1,2})$/);

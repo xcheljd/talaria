@@ -24,7 +24,10 @@ import {
   type PromotionEmailData,
 } from '@/lib/promotion-email-html';
 import { generatePromoTitle } from '@/lib/holiday-dates';
-import { buildExportConfig, validateImportConfig } from '@/lib/promotion-config';
+import {
+  buildExportConfig,
+  validateImportConfig,
+} from '@/lib/promotion-config';
 
 import { PromotionPage } from '@/pages/PromotionPage';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
@@ -32,9 +35,10 @@ import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { StorageKeys } from '@/lib/storage-keys';
 
-
 /** Helper to create a complete PromotionEmailData with newsletter defaults */
-function makeEmailData(overrides: Partial<PromotionEmailData> = {}): PromotionEmailData {
+function makeEmailData(
+  overrides: Partial<PromotionEmailData> = {}
+): PromotionEmailData {
   return {
     promoDateRange: '',
     promoYear: '',
@@ -136,16 +140,31 @@ describe('generatePromotionEmailHTML', () => {
     promoYear: '2025',
     promoTitle: 'TEST SALE',
     promotionEntries: [
-      { id: 1, line: 'CITIZEN – 20% OFF', collections: 'Corso, Avion', callout: 'Final sale excluded' },
+      {
+        id: 1,
+        line: 'CITIZEN – 20% OFF',
+        collections: 'Corso, Avion',
+        callout: 'Final sale excluded',
+      },
     ],
-    specialHours: [
-      { id: 1, day: 'Black Friday', hours: '6AM-10PM' },
-    ],
+    specialHours: [{ id: 1, day: 'Black Friday', hours: '6AM-10PM' }],
     howToShopItems: [
-      { id: 1, text: 'Visit us in-store', bold: true, italic: false, underline: false },
+      {
+        id: 1,
+        text: 'Visit us in-store',
+        bold: true,
+        italic: false,
+        underline: false,
+      },
     ],
     importantNotesItems: [
-      { id: 1, text: 'While supplies last', bold: false, italic: false, underline: false },
+      {
+        id: 1,
+        text: 'While supplies last',
+        bold: false,
+        italic: false,
+        underline: false,
+      },
     ],
     newsletterHeading: 'Newsletter',
     newsletterBody: '',
@@ -251,7 +270,12 @@ describe('generatePromotionEmailHTML', () => {
     const data: PromotionEmailData = {
       ...baseData,
       promotionEntries: [
-        { id: 1, line: '<script>alert("xss")</script>', collections: '', callout: '' },
+        {
+          id: 1,
+          line: '<script>alert("xss")</script>',
+          collections: '',
+          callout: '',
+        },
       ],
     };
     const html = generatePromotionEmailHTML(data);
@@ -313,7 +337,12 @@ describe('buildExportConfig', () => {
 
   it('includes subject lines in config', () => {
     const data = makeEmailData();
-    const config = buildExportConfig(data, [], ['Subject 1', 'Subject 2'], 'Subject 1');
+    const config = buildExportConfig(
+      data,
+      [],
+      ['Subject 1', 'Subject 2'],
+      'Subject 1'
+    );
     expect(config.generatedSubjectLines).toEqual(['Subject 1', 'Subject 2']);
     expect(config.selectedSubjectLine).toBe('Subject 1');
   });
@@ -321,11 +350,22 @@ describe('buildExportConfig', () => {
   it('strips PDF data from export (metadata only)', () => {
     const data = makeEmailData();
     const pdfs = [
-      { id: '1', name: 'test.pdf', size: 1024, type: 'application/pdf', data: 'data:application/pdf;base64,abc' },
+      {
+        id: '1',
+        name: 'test.pdf',
+        size: 1024,
+        type: 'application/pdf',
+        data: 'data:application/pdf;base64,abc',
+      },
     ];
     const config = buildExportConfig(data, pdfs, [], null);
     // Should not include data property in exported PDFs
-    expect(config.attachedPDFs[0]).toEqual({ id: '1', name: 'test.pdf', size: 1024, type: 'application/pdf' });
+    expect(config.attachedPDFs[0]).toEqual({
+      id: '1',
+      name: 'test.pdf',
+      size: 1024,
+      type: 'application/pdf',
+    });
   });
 
   it('includes newsletter fields in export', () => {
@@ -359,9 +399,17 @@ describe('buildExportConfig', () => {
         data: 'data:application/pdf;base64,abc',
       },
     ];
-    const config = buildExportConfig(data, pdfs, [], null, undefined, undefined, {
-      includePdfData: true,
-    });
+    const config = buildExportConfig(
+      data,
+      pdfs,
+      [],
+      null,
+      undefined,
+      undefined,
+      {
+        includePdfData: true,
+      }
+    );
     expect(config.attachedPDFs[0].data).toBe('data:application/pdf;base64,abc');
   });
 
@@ -515,7 +563,9 @@ describe('validateImportConfig', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.config.newsletterHeading).toBe('Store Updates');
-      expect(result.config.newsletterBody).toBe('<p>Hello <strong>world</strong></p>');
+      expect(result.config.newsletterBody).toBe(
+        '<p>Hello <strong>world</strong></p>'
+      );
       expect(result.config.newsletterPosition).toBe('bottom');
     }
   });
@@ -574,7 +624,9 @@ describe('PromotionPage Preview and Export', () => {
 
   it('shows empty state message when no date range', () => {
     renderPromotionPage();
-    const messages = screen.getAllByText(/enter promotion details to see preview/i);
+    const messages = screen.getAllByText(
+      /enter promotion details to see preview/i
+    );
     expect(messages.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -629,7 +681,9 @@ describe('PromotionPage Preview and Export', () => {
     );
 
     // Click Start Over
-    const startOverBtns = screen.getAllByRole('button', { name: /start over/i });
+    const startOverBtns = screen.getAllByRole('button', {
+      name: /start over/i,
+    });
     await user.click(startOverBtns[0]);
 
     // AlertDialog should appear
@@ -672,7 +726,9 @@ describe('PromotionPage Preview and Export', () => {
     );
 
     // Click Start Over
-    const startOverBtns = screen.getAllByRole('button', { name: /start over/i });
+    const startOverBtns = screen.getAllByRole('button', {
+      name: /start over/i,
+    });
     await user.click(startOverBtns[0]);
 
     // AlertDialog should appear
@@ -750,14 +806,24 @@ describe('Config round-trip', () => {
       promotionEntries: [
         { id: 1, line: 'CITIZEN – 20% OFF', collections: 'Corso', callout: '' },
       ],
-      specialHours: [
-        { id: 1, day: 'Black Friday', hours: '6AM-10PM' },
-      ],
+      specialHours: [{ id: 1, day: 'Black Friday', hours: '6AM-10PM' }],
       howToShopItems: [
-        { id: 1, text: 'Visit us', bold: true, italic: false, underline: false },
+        {
+          id: 1,
+          text: 'Visit us',
+          bold: true,
+          italic: false,
+          underline: false,
+        },
       ],
       importantNotesItems: [
-        { id: 1, text: 'While supplies last', bold: false, italic: false, underline: false },
+        {
+          id: 1,
+          text: 'While supplies last',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
       ],
     });
 
@@ -802,8 +868,12 @@ describe('BasicDetailsEditor', () => {
   it('updates store when date range changes', async () => {
     renderPromotionPage();
 
-    const startInput = screen.getAllByTestId('promo-start-date')[0] as HTMLInputElement;
-    const endInput = screen.getAllByTestId('promo-end-date')[0] as HTMLInputElement;
+    const startInput = screen.getAllByTestId(
+      'promo-start-date'
+    )[0] as HTMLInputElement;
+    const endInput = screen.getAllByTestId(
+      'promo-end-date'
+    )[0] as HTMLInputElement;
 
     // Use fireEvent for native date inputs (userEvent.type doesn't work well with date inputs)
     const { fireEvent } = await import('@testing-library/react');
@@ -818,8 +888,12 @@ describe('BasicDetailsEditor', () => {
   it('formats same-month date range correctly', async () => {
     renderPromotionPage();
 
-    const startInput = screen.getAllByTestId('promo-start-date')[0] as HTMLInputElement;
-    const endInput = screen.getAllByTestId('promo-end-date')[0] as HTMLInputElement;
+    const startInput = screen.getAllByTestId(
+      'promo-start-date'
+    )[0] as HTMLInputElement;
+    const endInput = screen.getAllByTestId(
+      'promo-end-date'
+    )[0] as HTMLInputElement;
 
     const { fireEvent } = await import('@testing-library/react');
     fireEvent.change(startInput, { target: { value: '2025-03-04' } });
@@ -827,6 +901,25 @@ describe('BasicDetailsEditor', () => {
 
     const state = usePromotionStore.getState();
     expect(state.promoDateRange).toBe('March 4 - 10');
+  });
+
+  it('formats a same-day range as "Only <date>"', async () => {
+    renderPromotionPage();
+
+    const startInput = screen.getAllByTestId(
+      'promo-start-date'
+    )[0] as HTMLInputElement;
+    const endInput = screen.getAllByTestId(
+      'promo-end-date'
+    )[0] as HTMLInputElement;
+
+    const { fireEvent } = await import('@testing-library/react');
+    fireEvent.change(startInput, { target: { value: '2026-06-20' } });
+    fireEvent.change(endInput, { target: { value: '2026-06-20' } });
+
+    const state = usePromotionStore.getState();
+    expect(state.promoDateRange).toBe('Only June 20');
+    expect(state.promoYear).toBe('2026');
   });
 
   it('updates store when title changes', async () => {
@@ -859,9 +952,15 @@ describe('BasicDetailsEditor', () => {
       </ThemeProvider>
     );
 
-    const startInput = screen.getAllByTestId('promo-start-date')[0] as HTMLInputElement;
-    const endInput = screen.getAllByTestId('promo-end-date')[0] as HTMLInputElement;
-    const titleInput = screen.getAllByTestId('promo-title')[0] as HTMLInputElement;
+    const startInput = screen.getAllByTestId(
+      'promo-start-date'
+    )[0] as HTMLInputElement;
+    const endInput = screen.getAllByTestId(
+      'promo-end-date'
+    )[0] as HTMLInputElement;
+    const titleInput = screen.getAllByTestId(
+      'promo-title'
+    )[0] as HTMLInputElement;
 
     expect(startInput.value).toBe('2025-12-01');
     expect(endInput.value).toBe('2025-12-07');
@@ -871,7 +970,9 @@ describe('BasicDetailsEditor', () => {
   it('shows title placeholder text', () => {
     renderPromotionPage();
 
-    const titleInputs = screen.getAllByPlaceholderText('Leave blank for auto-generation');
+    const titleInputs = screen.getAllByPlaceholderText(
+      'Leave blank for auto-generation'
+    );
     expect(titleInputs.length).toBeGreaterThanOrEqual(1);
   });
 });
@@ -892,11 +993,14 @@ describe('Import Config Flow', () => {
       year: '2025',
       title: 'Imported Sale',
       promotionEntries: [
-        { id: 1, line: 'Brand A – 30% OFF', collections: 'Collection X', callout: 'Limited' },
+        {
+          id: 1,
+          line: 'Brand A – 30% OFF',
+          collections: 'Collection X',
+          callout: 'Limited',
+        },
       ],
-      specialHours: [
-        { id: 1, day: 'Sunday', hours: '10AM-6PM' },
-      ],
+      specialHours: [{ id: 1, day: 'Sunday', hours: '10AM-6PM' }],
       howToShopItems: [],
       importantNotesItems: [],
       attachedPDFs: [],
