@@ -9,7 +9,7 @@
  * - Click handler to scroll + expand target card
  */
 
-import { Fragment } from 'react';
+import { Fragment, memo } from 'react';
 import {
   FileText,
   Percent,
@@ -126,7 +126,10 @@ export interface IconToolbarProps {
 
 // ===== Component =====
 
-export function IconToolbar({ activeCardId, onCardClick }: IconToolbarProps) {
+export const IconToolbar = memo(function IconToolbar({
+  activeCardId,
+  onCardClick,
+}: IconToolbarProps) {
   const { devMode } = useDevMode();
   return (
     <div
@@ -172,4 +175,4 @@ export function IconToolbar({ activeCardId, onCardClick }: IconToolbarProps) {
       })}
     </div>
   );
-}
+});
