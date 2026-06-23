@@ -117,13 +117,6 @@ html.theme-transition *::after {
   }
 }
 
-/* Pattern overlay gets fade transition */
-body::before {
-  transition:
-    opacity 0.3s ease,
-    background-image 0.3s ease;
-}
-
 /* ==========================================================================
    BASE TOKENS (Default: GitHub Light)
    ========================================================================== */
