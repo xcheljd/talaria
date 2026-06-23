@@ -903,7 +903,7 @@ describe('BasicDetailsEditor', () => {
     expect(state.promoDateRange).toBe('March 4 - 10');
   });
 
-  it('formats a same-day range as "Only <date>"', async () => {
+  it('formats a same-day range as "<weekday>, <month> <ordinal>"', async () => {
     renderPromotionPage();
 
     const startInput = screen.getAllByTestId(
@@ -914,11 +914,12 @@ describe('BasicDetailsEditor', () => {
     )[0] as HTMLInputElement;
 
     const { fireEvent } = await import('@testing-library/react');
+    // June 20, 2026 is a Saturday
     fireEvent.change(startInput, { target: { value: '2026-06-20' } });
     fireEvent.change(endInput, { target: { value: '2026-06-20' } });
 
     const state = usePromotionStore.getState();
-    expect(state.promoDateRange).toBe('Only June 20');
+    expect(state.promoDateRange).toBe('Saturday, June 20th');
     expect(state.promoYear).toBe('2026');
   });
 

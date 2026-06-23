@@ -6,7 +6,7 @@
  * - Title (optional, auto-generates based on date)
  *
  * Date range format:
- * - Single day (start === end): "Only March 4"
+ * - Single day (start === end): "Saturday, March 4th"
  * - Same month: "March 4 - 10"
  * - Different months: "March 28 - April 2"
  * - Cross-year: "December 30 - January 3" (year auto-derived)
@@ -39,6 +39,32 @@ const MONTHS = [
   'December',
 ];
 
+const WEEKDAYS = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+
+/** "20" -> "20th", "21" -> "21st", "22" -> "22nd", "23" -> "23rd". */
+function ordinalDay(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
 function formatDateRange(startDate: string, endDate: string): string {
   if (!startDate) return '';
   const start = new Date(startDate + 'T00:00:00');
@@ -61,8 +87,8 @@ function formatDateRange(startDate: string, endDate: string): string {
     start.getMonth() === end.getMonth() &&
     start.getDate() === end.getDate()
   ) {
-    // Single day (start === end): "Only March 4"
-    return `Only ${startMonth} ${start.getDate()}`;
+    // Single day (start === end): "Saturday, March 4th"
+    return `${WEEKDAYS[start.getDay()]}, ${startMonth} ${ordinalDay(start.getDate())}`;
   }
 
   if (
@@ -94,15 +120,18 @@ function parseDateRange(
 ): { start: string; end: string } | null {
   if (!dateRange) return null;
 
-  // Single day: "Only March 4"
-  const singleDay = dateRange.match(/^Only\s+(\w+)\s+(\d{1,2})$/i);
+  // Single day: "Saturday, March 4th" — the leading weekday + comma distinguish
+  // it from an open-ended start-only "March 4"; ordinal suffix optional.
+  const singleDay = dateRange.match(
+    /^(\w+),\s*(\w+)\s+(\d{1,2})(?:st|nd|rd|th)?$/i
+  );
   if (singleDay) {
     const monthIdx = MONTHS.findIndex(
-      (m) => m.toLowerCase() === singleDay[1].toLowerCase()
+      (m) => m.toLowerCase() === singleDay[2].toLowerCase()
     );
     if (monthIdx === -1) return null;
     const y = parseInt(year, 10) || new Date().getFullYear();
-    const day = parseInt(singleDay[2], 10);
+    const day = parseInt(singleDay[3], 10);
     const iso = `${y}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return { start: iso, end: iso };
   }

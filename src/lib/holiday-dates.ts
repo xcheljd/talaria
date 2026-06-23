@@ -129,7 +129,9 @@ export function parsePromoDateRange(
     const monthMatch = part.match(
       /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i
     );
-    const dayMatch = part.match(/\b(\d{1,2})\b/);
+    // Accept an optional ordinal suffix ("20th", "3rd") — otherwise the
+    // trailing letters break the \b after the digits and the day is lost.
+    const dayMatch = part.match(/\b(\d{1,2})(?:st|nd|rd|th)?\b/i);
 
     let month = fallbackMonth;
     if (monthMatch) {
