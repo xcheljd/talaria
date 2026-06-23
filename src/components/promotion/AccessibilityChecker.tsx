@@ -8,10 +8,12 @@
  * - Very long alt text (>125 chars)
  * - Missing language direction hints
  *
- * Runs on-demand against the current newsletter body HTML.
+ * Manual, on-demand scan: results are a snapshot of the last scan and never
+ * recompute as the user types. When the body changes after a scan the card
+ * flags the results as stale, prompting a re-scan.
  */
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -190,20 +192,19 @@ export function AccessibilityChecker() {
     }))
   );
   const [hasScanned, setHasScanned] = useState(false);
-  const [scanTrigger, setScanTrigger] = useState(0);
-
-  const issues = useMemo(() => {
-    if (!hasScanned) return [];
-    return scanHTML(store.newsletterBody);
-    // scanTrigger is intentionally a dependency: it forces a re-scan when the
-    // user clicks Scan again even if newsletterBody hasn't changed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasScanned, scanTrigger, store.newsletterBody]);
+  // Results are a snapshot from the last manual scan; they intentionally do NOT
+  // recompute as the user edits. `scannedBody` records exactly what was scanned
+  // so we can flag when the content has drifted and a re-scan is warranted.
+  const [issues, setIssues] = useState<A11yIssue[]>([]);
+  const [scannedBody, setScannedBody] = useState('');
 
   const handleScan = () => {
+    setIssues(scanHTML(store.newsletterBody));
+    setScannedBody(store.newsletterBody);
     setHasScanned(true);
-    setScanTrigger((n) => n + 1);
   };
+
+  const isStale = hasScanned && store.newsletterBody !== scannedBody;
 
   const errorCount = issues.filter((i) => i.severity === 'error').length;
   const warningCount = issues.filter((i) => i.severity === 'warning').length;
@@ -236,14 +237,27 @@ export function AccessibilityChecker() {
           {/* Summary badges */}
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
+              variant={isStale ? 'outline' : 'ghost'}
               size="sm"
               onClick={handleScan}
-              className="gap-1.5 text-xs"
+              className={cn(
+                'gap-1.5 text-xs',
+                isStale &&
+                  'border-amber-300 text-amber-700 dark:border-amber-700/50 dark:text-amber-400'
+              )}
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Re-scan
             </Button>
+            {isStale && (
+              <span
+                className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400"
+                data-testid="a11y-stale"
+              >
+                <AlertTriangle className="h-3 w-3 shrink-0" />
+                Edited since last scan
+              </span>
+            )}
             <div className="flex gap-1.5 ml-auto">
               {errorCount > 0 && (
                 <Badge variant="destructive" className="text-xs">

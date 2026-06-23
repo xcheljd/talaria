@@ -10,10 +10,11 @@
  * - Detects long alt text
  * - Shows success when no issues found
  * - Re-scan button after initial scan
+ * - Results are a snapshot; staleness is flagged after edits
  */
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -21,7 +22,6 @@ import { AccessibilityChecker } from '@/components/promotion/AccessibilityChecke
 import { usePromotionStore } from '@/stores/promotion-store';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
-
 
 vi.mock('@/lib/db', () => ({
   initIndexedDB: vi.fn().mockResolvedValue(true),
@@ -93,9 +93,7 @@ describe('AccessibilityChecker', () => {
       newsletterBody: '<p>Hello world</p>',
     });
     renderAccessibilityChecker();
-    expect(
-      screen.getByText('Run Accessibility Scan')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Run Accessibility Scan')).toBeInTheDocument();
   });
 
   it('shows success when content has no issues', async () => {
@@ -185,5 +183,32 @@ describe('AccessibilityChecker', () => {
     await user.click(screen.getByText('Run Accessibility Scan'));
 
     expect(screen.getByText(/ALL CAPS/i)).toBeInTheDocument();
+  });
+
+  it('keeps results as a snapshot and flags staleness after edits', async () => {
+    const user = userEvent.setup();
+    usePromotionStore.setState({
+      newsletterBody: '<p>Text</p><img src="photo.jpg">', // missing alt
+    });
+    renderAccessibilityChecker();
+
+    await user.click(screen.getByText('Run Accessibility Scan'));
+    expect(screen.getByText(/missing alt/i)).toBeInTheDocument();
+    expect(screen.queryByTestId('a11y-stale')).not.toBeInTheDocument();
+
+    // Editing after a scan must NOT recompute results, but should flag staleness.
+    act(() => {
+      usePromotionStore.setState({ newsletterBody: '<p>All fixed now</p>' });
+    });
+    expect(screen.getByTestId('a11y-stale')).toBeInTheDocument();
+    expect(screen.getByText(/missing alt/i)).toBeInTheDocument(); // snapshot intact
+
+    // Re-scanning clears staleness and refreshes results.
+    await user.click(screen.getByText('Re-scan'));
+    expect(screen.queryByTestId('a11y-stale')).not.toBeInTheDocument();
+    expect(screen.queryByText(/missing alt/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/No accessibility issues found/)
+    ).toBeInTheDocument();
   });
 });
