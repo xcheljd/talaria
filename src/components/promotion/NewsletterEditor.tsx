@@ -32,6 +32,7 @@ import {
   ALargeSmall,
   SpellCheck,
   Clock,
+  ClipboardPaste,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -189,6 +190,67 @@ export function NewsletterEditor() {
     },
     [store]
   );
+
+  // ===== Right-click "Paste as plain text" =====
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const handlePastePlainText = useCallback(async () => {
+    const menu = contextMenu;
+    setContextMenu(null);
+    if (!editor || !menu) return;
+
+    let text: string;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      // Clipboard read can be blocked (permissions / unsupported context).
+      return;
+    }
+    if (!text) return;
+
+    // Drop the caret where the user right-clicked, when layout info is
+    // available (it isn't in some environments — guard rather than fail).
+    let chain = editor.chain().focus();
+    try {
+      const coords = editor.view.posAtCoords({ left: menu.x, top: menu.y });
+      if (coords) chain = chain.setTextSelection(coords.pos);
+    } catch {
+      /* no layout — fall back to the current selection */
+    }
+
+    // Insert with all formatting stripped: blank lines become paragraphs,
+    // single newlines a <br>, and any markup in the clipboard is escaped to
+    // literal text.
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const html = text
+      .split(/\r?\n\r?\n+/)
+      .map((para) => `<p>${escapeHtml(para).replace(/\r?\n/g, '<br>')}</p>`)
+      .join('');
+    chain.insertContent(html).run();
+  }, [editor, contextMenu]);
+
+  // Dismiss the context menu on any outside interaction.
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setContextMenu(null);
+    };
+    window.addEventListener('mousedown', close);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', close);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [contextMenu]);
 
   // ===== Find & Replace (#6) =====
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
@@ -391,17 +453,45 @@ export function NewsletterEditor() {
       <NewsletterToolbar editor={editor} />
 
       {/* Editor Content Area */}
-      <div className="rounded-md border bg-transparent dark:bg-input/30 min-h-[200px] overflow-hidden">
+      <div
+        className="rounded-md border bg-transparent dark:bg-input/30 min-h-[200px] overflow-hidden"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setContextMenu({ x: e.clientX, y: e.clientY });
+        }}
+      >
         <EditorContent
           editor={editor}
           className={cn(
-            'newsletter-editor prose prose-sm max-w-none px-3 py-2 min-h-[200px] focus:outline-none [&>.tiptap]:min-h-[200px] [&>.tiptap]:outline-none',
+            'newsletter-editor max-w-none px-3 py-2 min-h-[200px] focus:outline-none [&>.tiptap]:min-h-[200px] [&>.tiptap]:outline-none',
             store.newsletterStyle.headingAlign === 'center'
               ? '[&_h2]:text-center'
               : '[&_h2]:text-left'
           )}
         />
       </div>
+
+      {/* Right-click context menu (rendered outside the overflow-hidden editor
+       * wrapper so it isn't clipped). */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 min-w-[170px] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onMouseDown={(e) => e.stopPropagation()}
+          role="menu"
+          data-testid="newsletter-context-menu"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+            onClick={handlePastePlainText}
+          >
+            <ClipboardPaste className="h-3.5 w-3.5" />
+            Paste as plain text
+          </button>
+        </div>
+      )}
 
       {/* Find & Replace Bar (#6) */}
       {findReplaceOpen && (

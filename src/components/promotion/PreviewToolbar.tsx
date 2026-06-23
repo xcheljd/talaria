@@ -31,6 +31,8 @@ interface PreviewToolbarProps {
   onViewportChange: (v: string) => void;
   previewDark: boolean;
   onThemeChange: (v: string) => void;
+  previewInversion: 'full' | 'partial';
+  onInversionChange: (v: string) => void;
   hasContent: boolean;
   onPrint: () => void;
 }
@@ -48,6 +50,8 @@ export const PreviewToolbar = memo(function PreviewToolbar({
   onViewportChange,
   previewDark,
   onThemeChange,
+  previewInversion,
+  onInversionChange,
   hasContent,
   onPrint,
 }: PreviewToolbarProps) {
@@ -140,6 +144,43 @@ export const PreviewToolbar = memo(function PreviewToolbar({
             <Moon className="h-3.5 w-3.5" />
           </ToggleGroupItem>
         </ToggleGroup>
+
+        {/* Dark-mode inversion model — only meaningful while dark preview is on.
+         * Emulates the two ways real clients handle dark mode (full vs partial
+         * color inversion). */}
+        {previewDark && (
+          <>
+            <Separator orientation="vertical" className="mx-0.5 h-4" />
+            <ToggleGroup
+              type="single"
+              value={previewInversion}
+              onValueChange={onInversionChange}
+              variant="outline"
+              size="sm"
+              spacing={0}
+              colorScheme="primary"
+              aria-label="Dark mode inversion model"
+              className="shadow-xs"
+            >
+              <ToggleGroupItem
+                value="full"
+                aria-label="Full inversion"
+                title="Full inversion — every color flips (Outlook Windows, Gmail iOS)"
+                className="px-2 text-xs"
+              >
+                Full
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="partial"
+                aria-label="Partial inversion"
+                title="Partial inversion — light areas darken, dark areas kept (Gmail mobile, Outlook.com)"
+                className="px-2 text-xs"
+              >
+                Partial
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </>
+        )}
 
         {/* Print: standalone ghost button. Radix Tooltip is safe here because
          * Button has no data-state attribute to collide with. */}

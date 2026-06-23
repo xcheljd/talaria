@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { NewsletterEditor } from '@/components/promotion/NewsletterEditor';
@@ -511,5 +511,83 @@ describe('NewsletterEditor - show in email toggle', () => {
     await user.click(toggle);
 
     expect(mockStore.setNewsletterVisible).toHaveBeenCalledWith(true);
+  });
+});
+
+describe('NewsletterEditor - paste as plain text', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockStore.newsletterHeading = 'Newsletter';
+    mockStore.newsletterBody = '';
+    mockStore.newsletterPosition = 'top';
+  });
+
+  function getEditorArea(): Element {
+    const area = document.querySelector('.tiptap');
+    if (!area) throw new Error('editor area not found');
+    return area;
+  }
+
+  it('opens a context menu with "Paste as plain text" on right click', () => {
+    render(<NewsletterEditor />);
+
+    // No menu until the user right-clicks.
+    expect(
+      screen.queryByTestId('newsletter-context-menu')
+    ).not.toBeInTheDocument();
+
+    fireEvent.contextMenu(getEditorArea());
+
+    expect(screen.getByTestId('newsletter-context-menu')).toBeInTheDocument();
+    expect(screen.getByText('Paste as plain text')).toBeInTheDocument();
+  });
+
+  it('dismisses the menu on Escape', () => {
+    render(<NewsletterEditor />);
+    fireEvent.contextMenu(getEditorArea());
+    expect(screen.getByTestId('newsletter-context-menu')).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(
+      screen.queryByTestId('newsletter-context-menu')
+    ).not.toBeInTheDocument();
+  });
+
+  it('inserts clipboard text with formatting stripped', async () => {
+    const readText = vi.fn().mockResolvedValue('Plain pasted text');
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { readText },
+      configurable: true,
+    });
+
+    render(<NewsletterEditor />);
+    fireEvent.contextMenu(getEditorArea());
+    await userEvent.click(screen.getByText('Paste as plain text'));
+
+    expect(readText).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(getEditorArea().textContent).toContain('Plain pasted text');
+    });
+    // Menu closes after the action.
+    expect(
+      screen.queryByTestId('newsletter-context-menu')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does nothing when the clipboard is empty or unreadable', async () => {
+    const readText = vi.fn().mockResolvedValue('');
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { readText },
+      configurable: true,
+    });
+
+    render(<NewsletterEditor />);
+    fireEvent.contextMenu(getEditorArea());
+    await userEvent.click(screen.getByText('Paste as plain text'));
+
+    expect(readText).toHaveBeenCalled();
+    // The default body had no such text and nothing was inserted.
+    expect(getEditorArea().textContent).not.toContain('Plain pasted text');
   });
 });

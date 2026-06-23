@@ -24,6 +24,10 @@ import {
  *
  * Accepts an optional custom palette; defaults to EMAIL_PALETTE.
  * This is a pure function — no DOM access required.
+ *
+ * Dark-mode preview is handled downstream by inverting the generated HTML's
+ * colors (see applyDarkModePreview), not here — so the same resolved colors
+ * feed both the light preview and the always-light export.
  */
 export function resolveNewsletterColors(
   style: NewsletterStyle,
@@ -63,12 +67,11 @@ export type EmailDataSource = {
   preheaderText: string;
 };
 
-/** Build a PromotionEmailData object from store state. Pass paletteOverride for dark-mode rendering. */
+/** Build a PromotionEmailData object from store state. */
 export function buildPromotionEmailData(
-  source: EmailDataSource,
-  paletteOverride?: EmailPalette
+  source: EmailDataSource
 ): PromotionEmailData {
-  const palette = paletteOverride ?? source.emailPalette;
+  const palette = source.emailPalette;
   const resolved = resolveNewsletterColors(source.newsletterStyle, palette);
   return {
     promoDateRange: source.promoDateRange,

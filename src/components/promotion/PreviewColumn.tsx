@@ -10,7 +10,7 @@
  *   - usePreviewActions      (the actions + their dialog state)
  */
 
-import { useState, useCallback, useMemo, useDeferredValue } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   RotateCcw,
   Mail,
@@ -24,10 +24,9 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { usePromotionStore } from '@/stores/promotion-store';
 import {
-  generatePromotionEmailHTML,
-  buildDarkModePalette,
+  applyDarkModePreview,
+  type DarkModeStyle,
 } from '@/lib/promotion-email-html';
-import { buildPromotionEmailData } from '@/lib/newsletter-utils';
 import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
@@ -65,24 +64,25 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
     'desktop'
   );
   const [previewDark, setPreviewDark] = useState(false);
+  // Which client dark-mode model to emulate: 'full' inverts every color
+  // (Outlook Windows, Gmail iOS); 'partial' only darkens light backgrounds and
+  // lightens dark text/borders, leaving already-dark areas (Gmail mobile,
+  // Outlook.com). See applyDarkModePreview.
+  const [previewInversion, setPreviewInversion] =
+    useState<DarkModeStyle>('full');
 
-  // Dark-mode preview is rebuilt from a deferred copy of the store, so this
-  // (expensive) email-HTML build coalesces while typing instead of running on
-  // every keystroke. The light build is deferred the same way upstream in
-  // PromotionPage, so the `emailHTML` prop here is already coalesced.
-  const deferredStore = useDeferredValue(store);
+  // Dark-mode preview emulates a client-side inversion by transforming the
+  // colors of the already-built (light) `emailHTML` rather than regenerating —
+  // see applyDarkModePreview. It's a cheap string pass and `emailHTML` is
+  // already coalesced upstream in PromotionPage, so it only recomputes when the
+  // light HTML settles, the toggle flips, or the inversion model changes.
   const darkModeHTML = useMemo(() => {
     if (!emailHTML || !previewDark) return '';
-    return generatePromotionEmailHTML(
-      buildPromotionEmailData(
-        deferredStore,
-        buildDarkModePalette(deferredStore.emailPalette)
-      )
-    );
-  }, [emailHTML, previewDark, deferredStore]);
+    return applyDarkModePreview(emailHTML, previewInversion);
+  }, [emailHTML, previewDark, previewInversion]);
 
-  // The exact document fed to the preview iframe. Because both branches are
-  // built from deferred data, the iframe's srcDoc — and the full-document
+  // The exact document fed to the preview iframe. Both branches derive from the
+  // coalesced `emailHTML`, so the iframe's srcDoc — and the full-document
   // re-parse it triggers — changes only when typing pauses, not per keystroke.
   // Exports read the same coalesced `emailHTML`, settled by the time they click.
   const previewHTML = emailHTML
@@ -100,6 +100,10 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
   const handleThemeChange = useCallback((v: string) => {
     if (v === 'light') setPreviewDark(false);
     else if (v === 'dark') setPreviewDark(true);
+  }, []);
+
+  const handleInversionChange = useCallback((v: string) => {
+    if (v === 'full' || v === 'partial') setPreviewInversion(v);
   }, []);
 
   return (
@@ -187,6 +191,8 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           onViewportChange={handleViewportChange}
           previewDark={previewDark}
           onThemeChange={handleThemeChange}
+          previewInversion={previewInversion}
+          onInversionChange={handleInversionChange}
           hasContent={hasContent}
           onPrint={actions.handlePrint}
         />

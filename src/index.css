@@ -567,6 +567,54 @@ body {
   opacity: 0.5;
 }
 
+/* ===== TipTap Typography (editor WYSIWYG) =====
+   The editor content area is tagged with `prose` utility classes, but the
+   Tailwind Typography plugin isn't installed — so without these rules headings
+   and lists fall back to Preflight's resets (heading size/weight inherited,
+   list markers and indentation stripped) and the editor would NOT show the
+   formatting the generated email applies. These mirror the email output so the
+   editor renders its modifiers inline, matching the live preview. */
+.newsletter-editor h1,
+.newsletter-editor h2,
+.newsletter-editor h3 {
+  font-weight: 700;
+  line-height: 1.3;
+}
+.newsletter-editor h2 {
+  font-size: 1.25rem;
+  margin: 0.9rem 0 0.5rem;
+}
+.newsletter-editor h3 {
+  font-size: 1.0625rem;
+  margin: 0.75rem 0 0.4rem;
+}
+.newsletter-editor p {
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
+}
+.newsletter-editor ul,
+.newsletter-editor ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+.newsletter-editor ul {
+  list-style: disc outside;
+}
+.newsletter-editor ol {
+  list-style: decimal outside;
+}
+.newsletter-editor li {
+  margin: 0.125rem 0;
+}
+/* StarterKit wraps list-item content in a <p>; keep those tight. */
+.newsletter-editor li > p {
+  margin: 0;
+}
+.newsletter-editor a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
 /* ===== TipTap Table Styles ===== */
 .newsletter-editor table {
   border-collapse: collapse;

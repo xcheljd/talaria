@@ -57,9 +57,23 @@ export type EmailPalette = {
   [K in keyof typeof EMAIL_PALETTE]: string;
 };
 
-// ===== Dark Mode Palette Transform =====
+// ===== Dark Mode Preview Transform =====
+//
+// The dark-mode toggle in the live preview emulates how real email clients
+// render a (always-light) email in dark mode. The most aggressive clients —
+// Outlook on Windows, the Gmail iOS app — perform a *full* inversion: they flip
+// the lightness of every color (backgrounds, text, borders, and inline/custom
+// colors alike) while keeping hue, so light surfaces go dark, dark text goes
+// light, and brand colors stay recognizable. Because a lightness flip swaps a
+// foreground and its background together, contrast is preserved by
+// construction — there's no separate "readability" pass to keep in sync, and
+// editor-chosen text/highlight colors are handled exactly like palette colors.
+//
+// We model this by inverting the lightness of every color found inside inline
+// `style="…"` attributes of the generated HTML. Export output is never touched;
+// this runs only for the preview's dark branch.
 
-/** Parse a CSS color string to [r, g, b] (0-255). Handles hex, named colors. */
+/** Parse a CSS color string to [r, g, b] (0-255). Handles hex and named colors. */
 function parseColor(color: string): [number, number, number] | null {
   const c = color.trim().toLowerCase();
 
@@ -110,96 +124,190 @@ function toHex(r: number, g: number, b: number): string {
   );
 }
 
-/** Relative luminance (0 = black, 1 = white) per WCAG formula */
-function luminance(r: number, g: number, b: number): number {
-  const [rs, gs, bs] = [r, g, b].map((v) => {
-    const s = v / 255;
-    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+/** Convert RGB (0-255) to HSL with h in [0,360) and s, l in [0,1]. */
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l]; // achromatic (gray)
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h: number;
+  switch (max) {
+    case rn:
+      h = (gn - bn) / d + (gn < bn ? 6 : 0);
+      break;
+    case gn:
+      h = (bn - rn) / d + 2;
+      break;
+    default:
+      h = (rn - gn) / d + 4;
+  }
+  return [h * 60, s, l];
 }
 
-/** Darken a light background for dark mode. Returns a dark version. */
-function darkenBg(rgb: [number, number, number]): string {
-  const lum = luminance(...rgb);
-  if (lum > 0.7) {
-    // Very light (white-ish) → map to dark gray
-    return toHex(26, 26, 26);
+/** Convert HSL (h in [0,360), s, l in [0,1]) back to RGB (0-255). */
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  if (s === 0) {
+    const v = Math.round(l * 255);
+    return [v, v, v];
   }
-  if (lum > 0.3) {
-    // Medium-light → darken significantly, keep hue
-    return toHex(rgb[0] * 0.2, rgb[1] * 0.2, rgb[2] * 0.2);
-  }
-  // Already dark → keep as-is or slightly darken
-  return toHex(rgb[0] * 0.85, rgb[1] * 0.85, rgb[2] * 0.85);
-}
-
-/** Lighten dark text for readability on dark backgrounds. */
-function lightenText(rgb: [number, number, number]): string {
-  const lum = luminance(...rgb);
-  if (lum > 0.5) {
-    // Already light → keep
-    return toHex(...rgb);
-  }
-  if (lum < 0.1) {
-    // Very dark (black-ish) → light gray
-    return '#d4d4d4';
-  }
-  // Medium-dark → lighten by inverting toward white
-  return toHex(
-    255 - (255 - rgb[0]) * 0.3,
-    255 - (255 - rgb[1]) * 0.3,
-    255 - (255 - rgb[2]) * 0.3
-  );
-}
-
-/** Adjust link color for visibility on dark background. */
-function adjustLink(rgb: [number, number, number]): string {
-  const lum = luminance(...rgb);
-  if (lum > 0.3) return toHex(...rgb); // already bright enough
-  // Lighten
-  return toHex(
-    Math.min(255, rgb[0] + 100),
-    Math.min(255, rgb[1] + 100),
-    Math.min(255, rgb[2] + 100)
-  );
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const hk = (((h % 360) + 360) % 360) / 360;
+  const channel = (t: number): number => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  return [
+    Math.round(channel(hk + 1 / 3) * 255),
+    Math.round(channel(hk) * 255),
+    Math.round(channel(hk - 1 / 3) * 255),
+  ];
 }
 
 /**
- * Transform an email palette to simulate dark mode rendering.
- * Mimics how Gmail/Outlook invert colors: light bgs → dark, dark text → light.
+ * Lightness band for inverted colors. Flipping into [0.10, 0.90] rather than
+ * the full [0, 1] keeps backgrounds off pure black (white → ~#1a1a1a, the tone
+ * email clients themselves favor) and dark text off pure white, while leaving
+ * mid-lightness brand colors essentially where they are.
  */
-export function buildDarkModePalette(palette: EmailPalette): EmailPalette {
-  const transform = (
-    color: string,
-    fn: (rgb: [number, number, number]) => string
-  ): string => {
-    const rgb = parseColor(color);
-    return rgb ? fn(rgb) : color;
-  };
+const DARK_L_MIN = 0.1;
+const DARK_L_MAX = 0.9;
 
-  return {
-    bodyBg: transform(palette.bodyBg, darkenBg),
-    sectionBg: transform(palette.sectionBg, darkenBg),
-    unsubscribeBg: transform(palette.unsubscribeBg, darkenBg),
-    footerBg: transform(palette.footerBg, darkenBg),
-    text: transform(palette.text, lightenText),
-    footerText: transform(palette.footerText, lightenText),
-    accent: transform(palette.accent, lightenText),
-    link: transform(palette.link, adjustLink),
-    noteBorder: transform(palette.noteBorder, (rgb) => {
-      const lum = luminance(...rgb);
-      return lum > 0.5
-        ? toHex(rgb[0] * 0.3, rgb[1] * 0.3, rgb[2] * 0.3)
-        : toHex(...rgb);
-    }),
-    headerBorder: transform(palette.headerBorder, (rgb) => {
-      const lum = luminance(...rgb);
-      return lum > 0.5
-        ? toHex(rgb[0] * 0.4, rgb[1] * 0.4, rgb[2] * 0.4)
-        : toHex(...rgb);
-    }),
-  };
+/** Invert a color's lightness, preserving hue and saturation. */
+function invertLightness(
+  rgb: [number, number, number]
+): [number, number, number] {
+  const [h, s, l] = rgbToHsl(...rgb);
+  const nl = DARK_L_MIN + (1 - l) * (DARK_L_MAX - DARK_L_MIN);
+  return hslToRgb(h, s, nl);
+}
+
+/**
+ * Invert a single CSS color value for dark-mode preview. Handles hex (#rgb,
+ * #rrggbb), the named colors the template emits, and rgb()/rgba(). Anything we
+ * can't parse is returned unchanged — matching how a client leaves colors it
+ * doesn't understand alone.
+ */
+export function invertColorForDarkMode(color: string): string {
+  const rgbFn = color.trim().match(/^rgba?\(([^)]*)\)$/i);
+  if (rgbFn) {
+    const parts = rgbFn[1].split(',').map((p) => p.trim());
+    const [r, g, b] = parts.map((p) => parseInt(p, 10));
+    if ([r, g, b].every(Number.isFinite)) {
+      const [nr, ng, nb] = invertLightness([r, g, b]);
+      return parts.length >= 4
+        ? `rgba(${nr}, ${ng}, ${nb}, ${parts[3]})`
+        : `rgb(${nr}, ${ng}, ${nb})`;
+    }
+    return color;
+  }
+  const rgb = parseColor(color);
+  return rgb ? toHex(...invertLightness(rgb)) : color;
+}
+
+/** Parse hex, named, or rgb()/rgba() to [r, g, b] (alpha dropped); null if unrecognized. */
+function parseAnyColor(color: string): [number, number, number] | null {
+  const rgbFn = color.trim().match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (rgbFn) {
+    const rgb = [rgbFn[1], rgbFn[2], rgbFn[3]].map((n) => parseInt(n, 10)) as [
+      number,
+      number,
+      number,
+    ];
+    return rgb.every((n) => n >= 0 && n <= 255) ? rgb : null;
+  }
+  return parseColor(color);
+}
+
+/**
+ * Dark-mode emulation model:
+ *  - 'full':    flip the lightness of every color (Outlook Windows, Gmail iOS).
+ *  - 'partial': only darken light *backgrounds* and lighten dark *foregrounds*
+ *               (text/border), leaving already-dark backgrounds and already-light
+ *               foregrounds alone (Gmail mobile, Outlook.com / Outlook mobile).
+ */
+export type DarkModeStyle = 'full' | 'partial';
+
+/** A color is "light" once its HSL lightness clears the midpoint. */
+const LIGHT_LEVEL = 0.5;
+
+/** Background-bearing CSS properties (vs text/border foreground properties). */
+function isBackgroundProp(prop: string): boolean {
+  const p = prop.trim().toLowerCase();
+  return (
+    p === 'background' || p === 'background-color' || p === 'background-image'
+  );
+}
+
+/** Invert one color value for the chosen model, given its background/foreground role. */
+function invertColorForMode(
+  color: string,
+  isBackground: boolean,
+  mode: DarkModeStyle
+): string {
+  if (mode === 'full') return invertColorForDarkMode(color);
+  const rgb = parseAnyColor(color);
+  if (!rgb) return color;
+  const isLight = rgbToHsl(...rgb)[2] > LIGHT_LEVEL;
+  // Partial inversion flips light backgrounds (→ dark) and dark foregrounds
+  // (→ light); everything else is left as the client found it.
+  const shouldFlip = isBackground ? isLight : !isLight;
+  return shouldFlip ? invertColorForDarkMode(color) : color;
+}
+
+// Color values that can appear inside an inline style declaration: hex (6-digit
+// listed first so it wins over a 3-digit prefix), rgb()/rgba(), and the named
+// colors the generator can emit.
+const COLOR_TOKEN_RE =
+  /#[0-9a-f]{6}\b|#[0-9a-f]{3}\b|rgba?\([^)]*\)|\b(?:white|black|gray|grey|red|green|blue|yellow|orange)\b/gi;
+// One CSS declaration (`prop: value`) anchored at the start of the style value
+// or after a `;`, so a `:` inside a url() value isn't mistaken for a property.
+// The captured separators/whitespace/colon are preserved verbatim on output, so
+// only color tokens within the value can change.
+const DECL_RE = /(^|;)(\s*)([a-z-]+)(\s*:\s*)([^;]*)/gi;
+const STYLE_ATTR_RE = /style="([^"]*)"/g;
+
+/**
+ * Emulate an email client's dark-mode inversion over already-generated (light)
+ * email HTML: rewrite the colors inside inline style attributes — including
+ * editor-chosen text and highlight colors — per the chosen model (see
+ * DarkModeStyle). Role (background vs foreground) is read from each color's CSS
+ * property so partial inversion can treat them differently. Pure — the input is
+ * not mutated, and export output is never passed through here.
+ */
+export function applyDarkModePreview(
+  html: string,
+  mode: DarkModeStyle = 'full'
+): string {
+  return html.replace(STYLE_ATTR_RE, (_match, css: string) => {
+    const inverted = css.replace(
+      DECL_RE,
+      (
+        _decl,
+        sep: string,
+        ws: string,
+        prop: string,
+        colon: string,
+        value: string
+      ) => {
+        const isBackground = isBackgroundProp(prop);
+        const newValue = value.replace(COLOR_TOKEN_RE, (token) =>
+          invertColorForMode(token, isBackground, mode)
+        );
+        return `${sep}${ws}${prop}${colon}${newValue}`;
+      }
+    );
+    return `style="${inverted}"`;
+  });
 }
 
 // ===== Types =====
