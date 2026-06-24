@@ -10,7 +10,7 @@
  *   - usePreviewActions      (the actions + their dialog state)
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import {
   RotateCcw,
   Mail,
@@ -104,6 +104,32 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
 
   const handleInversionChange = useCallback((v: string) => {
     if (v === 'full' || v === 'partial') setPreviewInversion(v);
+  }, []);
+
+  // Preserve the preview's scroll position across srcDoc reloads. Toggling
+  // light/dark or full/partial inversion regenerates the document, which would
+  // otherwise jump the frame back to the top. We track the latest scroll offset
+  // inside the iframe and reapply it once the new document loads.
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const scrollPosRef = useRef(0);
+
+  const handleIframeLoad = useCallback(() => {
+    const win = iframeRef.current?.contentWindow;
+    const doc = iframeRef.current?.contentDocument;
+    if (!win || !doc) return;
+    const scroller = doc.scrollingElement ?? doc.documentElement;
+    // Reapply the saved position to the freshly loaded document.
+    scroller.scrollTop = scrollPosRef.current;
+    // Keep tracking; the listener is discarded with this window on the next
+    // reload, so there's nothing to clean up.
+    win.addEventListener(
+      'scroll',
+      () => {
+        const el = doc.scrollingElement ?? doc.documentElement;
+        scrollPosRef.current = el.scrollTop;
+      },
+      { passive: true }
+    );
   }, []);
 
   return (
@@ -208,7 +234,9 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
               )}
             >
               <iframe
+                ref={iframeRef}
                 srcDoc={previewHTML}
+                onLoad={handleIframeLoad}
                 className="h-full w-full border-0"
                 title="Email Preview"
                 sandbox="allow-same-origin"
