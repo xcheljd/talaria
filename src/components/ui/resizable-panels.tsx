@@ -11,7 +11,10 @@
  * - Keyboard accessibility (role="separator", ARIA attributes, arrow keys, Home/End)
  * - Visual drag handle with hover/active states via Tailwind
  * - user-select: none on document.body during drag
- * - pointer-events: none on iframes during drag
+ * - pointer capture on the handle so a drag keeps tracking when the cursor
+ *   passes over an iframe (e.g. the live email preview) — without disabling the
+ *   iframe's pointer-events, which leaves it unable to scroll until its next
+ *   repaint
  * - Clean event listener cleanup on unmount
  */
 
@@ -195,14 +198,10 @@ export function ResizablePanels({
       setSplitPercent(clamped);
       onSplitChangeRef.current?.(clamped);
 
-      // Restore text selection
+      // Restore text selection (pointer capture is released automatically on
+      // pointerup, so the handle needs no explicit cleanup here).
       document.body.style.userSelect = '';
       document.body.style.webkitUserSelect = '';
-
-      // Restore iframe pointer events
-      document.querySelectorAll('iframe').forEach((iframe) => {
-        iframe.style.pointerEvents = '';
-      });
 
       isDraggingRef.current = false;
 
@@ -221,14 +220,19 @@ export function ResizablePanels({
 
       isDraggingRef.current = true;
 
+      // Capture the pointer on the handle so pointermove/up keep firing even
+      // when the cursor passes over an iframe (the live preview). This replaces
+      // the old trick of disabling iframe pointer-events, which left the iframe
+      // unable to scroll until its next repaint.
+      try {
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+      } catch {
+        // setPointerCapture can throw for an invalid/inactive pointer id.
+      }
+
       // Disable text selection during drag
       document.body.style.userSelect = 'none';
       document.body.style.webkitUserSelect = 'none';
-
-      // Disable pointer events on iframes
-      document.querySelectorAll('iframe').forEach((iframe) => {
-        iframe.style.pointerEvents = 'none';
-      });
 
       // Attach document-level listeners
       document.addEventListener('pointermove', handleDocPointerMove);
@@ -307,10 +311,6 @@ export function ResizablePanels({
       // Restore body styles
       document.body.style.userSelect = '';
       document.body.style.webkitUserSelect = '';
-      // Restore iframe pointer events
-      document.querySelectorAll('iframe').forEach((iframe) => {
-        iframe.style.pointerEvents = '';
-      });
       // Remove document-level listeners
       document.removeEventListener('pointermove', handleDocPointerMove);
       document.removeEventListener('pointerup', handleDocPointerUp);

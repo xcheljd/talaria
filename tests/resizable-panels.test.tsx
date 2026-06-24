@@ -379,9 +379,11 @@ describe('ResizablePanels', () => {
       expect(document.body.style.userSelect).toBe('');
     });
 
-    it('applies pointer-events: none to iframes during drag', () => {
+    it('captures the pointer on the handle and leaves iframes interactive', () => {
       const container = createContainer();
-      // Add an iframe to the body
+      // An iframe (like the live preview) must stay scrollable during/after a
+      // drag, so the handle should capture the pointer rather than disabling
+      // the iframe's pointer-events.
       const iframe = document.createElement('iframe');
       iframe.dataset.testid = 'test-iframe';
       document.body.appendChild(iframe);
@@ -395,6 +397,9 @@ describe('ResizablePanels', () => {
       );
 
       const separator = screen.getByRole('separator');
+      const setPointerCapture = vi.fn();
+      // jsdom doesn't implement setPointerCapture; stub it on the handle.
+      (separator as HTMLElement).setPointerCapture = setPointerCapture;
 
       act(() => {
         separator.dispatchEvent(
@@ -402,9 +407,10 @@ describe('ResizablePanels', () => {
         );
       });
 
-      expect(iframe.style.pointerEvents).toBe('none');
+      // The handle captured the pointer; the iframe was never touched.
+      expect(setPointerCapture).toHaveBeenCalled();
+      expect(iframe.style.pointerEvents).toBe('');
 
-      // Cleanup
       act(() => {
         document.dispatchEvent(
           new PointerEvent('pointerup', { bubbles: true, clientX: 500, clientY: 0, pointerId: 1 })
