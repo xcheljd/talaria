@@ -26,6 +26,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   EMAIL_PALETTE,
   applyDarkModePreview,
+  applyDarkModeToDocument,
   invertColorForDarkMode,
   generatePromotionEmailHTML,
 } from '@/lib/promotion-email-html';
@@ -269,5 +270,58 @@ describe('end-to-end dark-mode email', () => {
     expect(bg).toBeTruthy();
     // Auto heading (a dark color) lightens; its light section bg darkens.
     expect(lightness(heading!) - lightness(bg!)).toBeGreaterThan(0.3);
+  });
+});
+
+describe('applyDarkModeToDocument (in-place, no reload)', () => {
+  function makeDoc(body: string): Document {
+    return new DOMParser().parseFromString(
+      `<!DOCTYPE html><html><body>${body}</body></html>`,
+      'text/html'
+    );
+  }
+  // CSSOM normalizes colors to rgb(); read lightness from there so assertions
+  // don't depend on hex-vs-rgb serialization.
+  function bgLightness(el: HTMLElement): number {
+    const m = el.style.backgroundColor.match(/(\d+),\s*(\d+),\s*(\d+)/);
+    if (!m) return -1;
+    const [r, g, b] = [m[1], m[2], m[3]].map((n) => parseInt(n, 10) / 255);
+    return (Math.max(r, g, b) + Math.min(r, g, b)) / 2;
+  }
+
+  it('inverts a light background in place and stashes the original style', () => {
+    const doc = makeDoc('<div id="a" style="background-color: #ffffff;">x</div>');
+    const el = doc.getElementById('a') as HTMLElement;
+    applyDarkModeToDocument(doc, 'full');
+    expect(bgLightness(el)).toBeLessThan(0.2); // white → dark
+    expect(el.hasAttribute('data-pp-light-style')).toBe(true);
+  });
+
+  it('reverts to the original light style (and clears the stash)', () => {
+    const doc = makeDoc('<div id="a" style="background-color: #ffffff;">x</div>');
+    const el = doc.getElementById('a') as HTMLElement;
+    applyDarkModeToDocument(doc, 'full');
+    applyDarkModeToDocument(doc, 'light');
+    expect(bgLightness(el)).toBeGreaterThan(0.9); // white again
+    expect(el.hasAttribute('data-pp-light-style')).toBe(false);
+  });
+
+  it('re-derives from the original when switching full → partial', () => {
+    // A dark (footer-like) bg: full flips it light, partial keeps it dark.
+    const doc = makeDoc('<div id="f" style="background-color: #2c3e50;">x</div>');
+    const el = doc.getElementById('f') as HTMLElement;
+    applyDarkModeToDocument(doc, 'full');
+    expect(bgLightness(el)).toBeGreaterThan(0.5); // dark → light
+    applyDarkModeToDocument(doc, 'partial');
+    expect(bgLightness(el)).toBeLessThan(0.3); // back to (original) dark
+  });
+
+  it('is idempotent for a given mode', () => {
+    const doc = makeDoc('<div id="a" style="background-color: #ffffff;">x</div>');
+    const el = doc.getElementById('a') as HTMLElement;
+    applyDarkModeToDocument(doc, 'full');
+    const once = el.style.backgroundColor;
+    applyDarkModeToDocument(doc, 'full');
+    expect(el.style.backgroundColor).toBe(once);
   });
 });

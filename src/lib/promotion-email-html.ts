@@ -284,29 +284,70 @@ const STYLE_ATTR_RE = /style="([^"]*)"/g;
  * property so partial inversion can treat them differently. Pure — the input is
  * not mutated, and export output is never passed through here.
  */
+/** Invert the colors inside a single inline-style declaration string. */
+function invertStyleDeclarations(css: string, mode: DarkModeStyle): string {
+  return css.replace(
+    DECL_RE,
+    (
+      _decl,
+      sep: string,
+      ws: string,
+      prop: string,
+      colon: string,
+      value: string
+    ) => {
+      const isBackground = isBackgroundProp(prop);
+      const newValue = value.replace(COLOR_TOKEN_RE, (token) =>
+        invertColorForMode(token, isBackground, mode)
+      );
+      return `${sep}${ws}${prop}${colon}${newValue}`;
+    }
+  );
+}
+
 export function applyDarkModePreview(
   html: string,
   mode: DarkModeStyle = 'full'
 ): string {
-  return html.replace(STYLE_ATTR_RE, (_match, css: string) => {
-    const inverted = css.replace(
-      DECL_RE,
-      (
-        _decl,
-        sep: string,
-        ws: string,
-        prop: string,
-        colon: string,
-        value: string
-      ) => {
-        const isBackground = isBackgroundProp(prop);
-        const newValue = value.replace(COLOR_TOKEN_RE, (token) =>
-          invertColorForMode(token, isBackground, mode)
-        );
-        return `${sep}${ws}${prop}${colon}${newValue}`;
+  return html.replace(
+    STYLE_ATTR_RE,
+    (_match, css: string) => `style="${invertStyleDeclarations(css, mode)}"`
+  );
+}
+
+/** data-attribute that stashes an element's original (light) inline style. */
+const LIGHT_STYLE_ATTR = 'data-pp-light-style';
+
+/**
+ * Apply (or revert) the dark-mode color inversion directly on a live preview
+ * document's inline styles — the same transform as applyDarkModePreview, but
+ * mutating the DOM in place so toggling modes never reloads the iframe (which
+ * would reset its scroll position, most visibly in WebKit/WKWebView).
+ *
+ * The original light style of each element is stashed in a data-attribute the
+ * first time it's inverted, so switching between models (or back to light)
+ * always re-derives from the original rather than re-inverting an inverted
+ * value. Safe to call repeatedly and idempotent for a given mode.
+ */
+export function applyDarkModeToDocument(
+  doc: Document,
+  mode: DarkModeStyle | 'light'
+): void {
+  doc.querySelectorAll<HTMLElement>('[style]').forEach((el) => {
+    const saved = el.getAttribute(LIGHT_STYLE_ATTR);
+    // The element's original light style: the stash if present, else current.
+    const lightStyle = saved ?? el.getAttribute('style') ?? '';
+
+    if (mode === 'light') {
+      if (saved !== null) {
+        el.setAttribute('style', saved);
+        el.removeAttribute(LIGHT_STYLE_ATTR);
       }
-    );
-    return `style="${inverted}"`;
+      return;
+    }
+
+    if (saved === null) el.setAttribute(LIGHT_STYLE_ATTR, lightStyle);
+    el.setAttribute('style', invertStyleDeclarations(lightStyle, mode));
   });
 }
 

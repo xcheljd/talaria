@@ -10,7 +10,7 @@
  *   - usePreviewActions      (the actions + their dialog state)
  */
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   RotateCcw,
   Mail,
@@ -24,7 +24,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { usePromotionStore } from '@/stores/promotion-store';
 import {
-  applyDarkModePreview,
+  applyDarkModeToDocument,
   type DarkModeStyle,
 } from '@/lib/promotion-email-html';
 import { cn } from '@/lib/utils';
@@ -67,29 +67,17 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
   // Which client dark-mode model to emulate: 'full' inverts every color
   // (Outlook Windows, Gmail iOS); 'partial' only darkens light backgrounds and
   // lightens dark text/borders, leaving already-dark areas (Gmail mobile,
-  // Outlook.com). See applyDarkModePreview.
+  // Outlook.com). See applyDarkModeToDocument.
   const [previewInversion, setPreviewInversion] =
     useState<DarkModeStyle>('full');
 
-  // Dark-mode preview emulates a client-side inversion by transforming the
-  // colors of the already-built (light) `emailHTML` rather than regenerating —
-  // see applyDarkModePreview. It's a cheap string pass and `emailHTML` is
-  // already coalesced upstream in PromotionPage, so it only recomputes when the
-  // light HTML settles, the toggle flips, or the inversion model changes.
-  const darkModeHTML = useMemo(() => {
-    if (!emailHTML || !previewDark) return '';
-    return applyDarkModePreview(emailHTML, previewInversion);
-  }, [emailHTML, previewDark, previewInversion]);
-
-  // The exact document fed to the preview iframe. Both branches derive from the
-  // coalesced `emailHTML`, so the iframe's srcDoc — and the full-document
-  // re-parse it triggers — changes only when typing pauses, not per keystroke.
-  // Exports read the same coalesced `emailHTML`, settled by the time they click.
-  const previewHTML = emailHTML
-    ? previewDark
-      ? darkModeHTML
-      : emailHTML
-    : PREVIEW_PLACEHOLDER_HTML;
+  // The iframe always renders the LIGHT html. Dark mode is applied to the live
+  // document in place (see applyMode) rather than by swapping srcDoc, so
+  // toggling light/dark or full/partial never reloads the iframe — which is what
+  // preserves the scroll position (a reload resets it, most visibly in
+  // WebKit/WKWebView). The srcDoc therefore changes only when the email content
+  // itself changes, not on a mode switch.
+  const previewHTML = emailHTML || PREVIEW_PLACEHOLDER_HTML;
 
   const hasContent = !!emailHTML;
 
@@ -106,31 +94,62 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
     if (v === 'full' || v === 'partial') setPreviewInversion(v);
   }, []);
 
-  // Preserve the preview's scroll position across srcDoc reloads. Toggling
-  // light/dark or full/partial inversion regenerates the document, which would
-  // otherwise jump the frame back to the top. We track the latest scroll offset
-  // inside the iframe and reapply it once the new document loads.
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const scrollPosRef = useRef(0);
 
-  const handleIframeLoad = useCallback(() => {
-    const win = iframeRef.current?.contentWindow;
+  // Recolor the live preview document for the active mode, in place. This never
+  // reloads the iframe, so the scroll position is untouched when toggling.
+  const applyMode = useCallback(() => {
     const doc = iframeRef.current?.contentDocument;
-    if (!win || !doc) return;
-    const scroller = doc.scrollingElement ?? doc.documentElement;
-    // Reapply the saved position to the freshly loaded document.
-    scroller.scrollTop = scrollPosRef.current;
+    if (!doc) return;
+    applyDarkModeToDocument(doc, previewDark ? previewInversion : 'light');
+  }, [previewDark, previewInversion]);
+
+  // Re-apply whenever the model changes (no reload → scroll preserved).
+  useEffect(() => {
+    applyMode();
+  }, [applyMode]);
+
+  const handleIframeLoad = useCallback(() => {
+    // A reload (content edit / first mount) brings back the light DOM — re-apply
+    // the active mode, then restore the scroll position.
+    applyMode();
+
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+
+    // Reapply the saved offset to the freshly loaded document, using the
+    // window scroll API (engine-agnostic — avoids scrollingElement/body quirks).
+    // WebKit (Tauri's WKWebView) frequently hasn't laid the new srcDoc out yet
+    // at load time, so a single scrollTo clamps to the top; retry across a few
+    // frames until the scroll range catches up.
+    const target = scrollPosRef.current;
+    if (target > 0) {
+      let attempts = 0;
+      const restore = () => {
+        try {
+          win.scrollTo(0, target);
+        } catch {
+          return;
+        }
+        if (win.scrollY < target - 1 && attempts < 20) {
+          attempts += 1;
+          win.requestAnimationFrame(restore);
+        }
+      };
+      restore();
+    }
+
     // Keep tracking; the listener is discarded with this window on the next
     // reload, so there's nothing to clean up.
     win.addEventListener(
       'scroll',
       () => {
-        const el = doc.scrollingElement ?? doc.documentElement;
-        scrollPosRef.current = el.scrollTop;
+        scrollPosRef.current = win.scrollY;
       },
       { passive: true }
     );
-  }, []);
+  }, [applyMode]);
 
   return (
     <div className="flex h-full flex-col">
