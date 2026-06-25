@@ -75,7 +75,6 @@ afterEach(() => {
   document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: -1 }));
   cleanup();
   document.body.style.userSelect = '';
-  document.body.style.webkitUserSelect = '';
   // Remove any leftover iframes
   document.querySelectorAll('iframe[data-testid]').forEach((el) => el.remove());
   vi.restoreAllMocks();
@@ -367,7 +366,6 @@ describe('ResizablePanels', () => {
       });
 
       expect(document.body.style.userSelect).toBe('none');
-      expect(document.body.style.webkitUserSelect).toBe('none');
 
       // Simulate pointerup on document to end drag
       act(() => {

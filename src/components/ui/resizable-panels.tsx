@@ -201,7 +201,6 @@ export function ResizablePanels({
       // Restore text selection (pointer capture is released automatically on
       // pointerup, so the handle needs no explicit cleanup here).
       document.body.style.userSelect = '';
-      document.body.style.webkitUserSelect = '';
 
       isDraggingRef.current = false;
 
@@ -232,7 +231,6 @@ export function ResizablePanels({
 
       // Disable text selection during drag
       document.body.style.userSelect = 'none';
-      document.body.style.webkitUserSelect = 'none';
 
       // Attach document-level listeners
       document.addEventListener('pointermove', handleDocPointerMove);
@@ -310,7 +308,6 @@ export function ResizablePanels({
       }
       // Restore body styles
       document.body.style.userSelect = '';
-      document.body.style.webkitUserSelect = '';
       // Remove document-level listeners
       document.removeEventListener('pointermove', handleDocPointerMove);
       document.removeEventListener('pointerup', handleDocPointerUp);
