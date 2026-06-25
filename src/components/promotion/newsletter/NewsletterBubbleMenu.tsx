@@ -5,10 +5,9 @@
  * font color & highlight, alignment, bullet/numbered lists, link) right where
  * the user is working, mirroring the full NewsletterToolbar's commands.
  *
- * Color labels are intentionally distinct from the main toolbar's ("Font color"
- * / "Highlight color" vs "Text color" / "Highlight") because ColorInput locates
- * its hidden <input type="color"> by label via querySelector — sharing a label
- * across two on-screen instances would make one trigger the other.
+ * Color controls use labels distinct from the main toolbar's ("Font color" /
+ * "Highlight color" vs "Text color" / "Highlight") so the two on-screen color
+ * pickers keep distinct accessible names.
  */
 
 import { useCallback, useEffect, useState } from 'react';

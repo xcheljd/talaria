@@ -71,6 +71,10 @@ export function ColorInput({
   onChange,
   children,
 }: ColorInputProps) {
+  // The transparent <input type="color"> overlay handles mouse clicks directly;
+  // the button only needs to forward keyboard activation to it, via a ref (no
+  // global lookup, so the same label can appear in more than one toolbar).
+  const inputRef = React.useRef<HTMLInputElement>(null);
   return (
     <div className="relative flex items-center">
       <Button
@@ -79,20 +83,14 @@ export function ColorInput({
         className="h-7 w-7"
         aria-label={label}
         tabIndex={0}
-        onClick={() => {
-          // Trigger the hidden color input
-          const input = document.querySelector(
-            `[data-color-input="${label}"]`
-          ) as HTMLInputElement;
-          input?.click();
-        }}
+        onClick={() => inputRef.current?.click()}
       >
         {children}
       </Button>
       <input
+        ref={inputRef}
         type="color"
         value={color}
-        data-color-input={label}
         className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
         onChange={(e) => onChange(e.target.value)}
         aria-hidden="true"
