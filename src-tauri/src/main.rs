@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    communication_template_generator_lib::run();
+    talaria_lib::run();
 }

@@ -60,8 +60,8 @@ function makeEmailData(
     promotionEntries: [
       {
         id: 1,
-        line: 'CITIZEN – 20% OFF',
-        collections: 'Corso, Avion',
+        line: 'ACME – 20% OFF',
+        collections: 'Aria, Volt',
         callout: '',
       },
     ],

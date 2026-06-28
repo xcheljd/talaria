@@ -200,9 +200,9 @@ export function PromotionPage() {
 
   useScrollSpy(cardsContainerRef, isUserActionRef, setActiveCardId, isDesktop);
 
-  // Profile redirect — if no profile, redirect to /start
+  // Settings redirect — if no profile, redirect to /settings
   if (!hasProfile) {
-    return <Navigate to="/start" replace state={{ from: '/promotion' }} />;
+    return <Navigate to="/settings" replace state={{ from: '/promotion' }} />;
   }
 
   // Only one layout is mounted at a time (driven by matchMedia, not CSS

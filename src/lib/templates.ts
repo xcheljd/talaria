@@ -8,7 +8,13 @@
  */
 
 import { sanitizeTemplateData } from './html-utils';
-import { getStorePhone, getStoreName, getFullStoreLocation } from './profile';
+import {
+  getStorePhone,
+  getStoreName,
+  getFullStoreLocation,
+  getProductNoun,
+  getProductNounPlural,
+} from './profile';
 import { getEmployeeSignature } from './signature';
 
 // Re-export getEmployeeSignature for consumers that need it
@@ -75,7 +81,7 @@ export const templateHelp: TemplateHelpText = {
   'text-thank-you':
     'Post-purchase thank you via text. Keep it brief and friendly.',
   'text-interest-followup':
-    'Follow up on specific watch customer showed interest in. Use after store visit.',
+    'Follow up on a specific product the customer showed interest in. Use after store visit.',
 };
 
 // ─── Field configuration ─────────────────────────────────────────────────────
@@ -85,12 +91,11 @@ export const fieldConfig: Record<string, FieldConfig> = {
   employeeName: { example: 'Your name', required: true },
   yourName: { example: 'Your name', required: true },
   brand: {
-    example: 'Citizen',
+    example: 'Brand name',
     required: true,
-    suggestions: ['Citizen', 'Bulova', 'Frederique Constant'],
   },
-  modelName: { example: 'Eco-Drive Promaster', required: true },
-  modelNumber: { example: 'BN0150-28E', required: false },
+  modelName: { example: 'Model name', required: true },
+  modelNumber: { example: 'SKU-12345', required: false },
   price: { example: '299', required: true, validation: 'currency' },
   discount: {
     example: '20',
@@ -128,16 +133,15 @@ export const fieldConfig: Record<string, FieldConfig> = {
   promoYear: { example: '2024-2025', required: false },
   promoTitle: { example: 'Leave blank for auto-generation', required: false },
   promoBrand: {
-    example: 'Citizen',
+    example: 'Brand name',
     required: true,
-    suggestions: ['Citizen', 'Bulova', 'Alpina', 'Frederique Constant'],
   },
   promoDiscount: { example: '60', required: true, validation: 'number' },
-  promoCollections: { example: 'Corso, Avion, Marine Star', required: false },
+  promoCollections: { example: 'Collection A, Collection B', required: false },
   promoCallout: { example: 'Optional special note', required: false },
-  keyFeature1: { example: 'Eco-Drive technology', required: false },
-  keyFeature2: { example: 'Solar powered', required: false },
-  keyFeature3: { example: 'Water resistant to 200m', required: false },
+  keyFeature1: { example: 'Key feature', required: false },
+  keyFeature2: { example: 'Another feature', required: false },
+  keyFeature3: { example: 'One more feature', required: false },
   limitedDetails: {
     example: 'Limited to 100 pieces worldwide',
     required: true,
@@ -161,16 +165,16 @@ export const fieldConfig: Record<string, FieldConfig> = {
     required: true,
     suggestions: ['Yes', 'No'],
   },
-  fulfillingStore: { example: 'Las Vegas Premium Outlets', required: true },
+  fulfillingStore: { example: 'Downtown Store', required: true },
   recipientStoreName: {
-    example: 'Los Angeles Premium Outlets',
+    example: 'Uptown Store',
     required: true,
   },
-  collectionName: { example: 'Eco-Drive Collection', required: true },
-  model1: { example: 'Eco-Drive Promaster', required: true },
+  collectionName: { example: 'Featured Collection', required: true },
+  model1: { example: 'Model A', required: true },
   price1: { example: '299', required: true, validation: 'currency' },
   original1: { example: '399', required: true, validation: 'currency' },
-  model2: { example: 'Eco-Drive Satellite Wave', required: false },
+  model2: { example: 'Model B', required: false },
   price2: { example: '349', required: false, validation: 'currency' },
   original2: { example: '449', required: false, validation: 'currency' },
 };
@@ -324,11 +328,11 @@ export const templates: Record<string, TemplateDefinition> = {
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
       return {
-        body: `Subject: Welcome to Citizen Company Store - Your VIP Access
+        body: `Subject: Welcome to ${getStoreName()} - Your VIP Access
 
-${generateGreeting(safe.customerName as string)}Thank you for visiting our Citizen Company Store outlet location! It was a pleasure helping you explore our offerings today.
+${generateGreeting(safe.customerName as string)}Thank you for visiting ${getStoreName()}! It was a pleasure helping you explore our offerings today.
 
-I've added you to our VIP email list for weekly promotional updates featuring exclusive outlet pricing on our timepieces.
+I've added you to our VIP email list for weekly promotional updates featuring exclusive pricing on our ${getProductNounPlural()}.
 
 Please don't hesitate to reach out by replying to this email or call the store at ${getStorePhone()}. I would be happy to check availability on any models you're considering.${generateClosing()}`,
         includeSignature: true,
@@ -387,16 +391,15 @@ Looking forward to hearing from you!${generateClosing()}`,
       return {
         body: `Subject: Thank You for Your ${safe.brand} ${safe.modelName} Purchase!
 
-${generateGreeting(safe.customerName as string)}Thank you for your recent purchase of the ${safe.brand} ${safe.modelName}! I hope you're enjoying your new timepiece.
+${generateGreeting(safe.customerName as string)}Thank you for your recent purchase of the ${safe.brand} ${safe.modelName}! I hope you're enjoying your new ${getProductNoun()}.
 
 Warranty Registration & Care Tips:
-• Your watch comes with a ${safe.warrantyYears}-year manufacturer's warranty
+• Your ${getProductNoun()} comes with a ${safe.warrantyYears}-year manufacturer's warranty
 • Register your warranty online at ${(safe.brand as string).toLowerCase()}.com/warranty
 • Keep your receipt and warranty card in a safe place
-• Avoid exposing your watch to extreme temperatures or strong magnetic fields
-• For battery-powered models, replace the battery promptly to prevent leakage
+• Follow the care instructions included with your ${getProductNoun()}
 
-If you have any questions about your watch's features or need help with anything, please don't hesitate to reach out. You can call us at ${getStorePhone()} or reply to this email.
+If you have any questions about your ${getProductNoun()}'s features or need help with anything, please don't hesitate to reach out. You can call us at ${getStorePhone()} or reply to this email.
 
 Thank you for choosing ${getStoreName()}!${generateClosing()}`,
         includeSignature: true,
@@ -436,7 +439,7 @@ ${features}
 
 Current price: ${safe.price}
 
-I'd be happy to set up an appointment to show you all the features of this watch and let you try it on. This model tends to generate a lot of interest, so I wanted to reach out to you first.
+I'd be happy to set up an appointment to show you all the features of this ${getProductNoun()} and let you try it on. This model tends to generate a lot of interest, so I wanted to reach out to you first.
 
 Would you like to schedule a time to see it in person? Please reply to this email or call the store at ${getStorePhone()}.
 
@@ -470,7 +473,7 @@ Hi ${safe.customerName},
 
 I wanted to reach out to you personally because we just received a ${safe.brand} ${safe.modelName} (${safe.modelNumber}) - ${safe.limitedDetails}.
 
-As someone who appreciates fine timepieces and unique additions to your collection, I thought you'd want to know about this immediately.
+As someone who appreciates fine ${getProductNounPlural()} and unique additions to your collection, I thought you'd want to know about this immediately.
 
 Price: ${safe.price}
 Availability: Only ${safe.quantityAvailable} available
@@ -502,21 +505,21 @@ P.S. - Given the limited availability, I'm only reaching out to our most valued 
 
 I was reviewing our VIP client records and noticed it's been a while since your last visit. I wanted to personally reach out because our store has undergone some exciting changes that I think you'll appreciate.
 
-We're now a hybrid store - combining the outlet values you love with access to current season merchandise. This means alongside our clearance deals, you can now find the latest releases and expanded brand offerings.
+We've expanded our selection - combining the great value you love with access to current season merchandise. This means alongside our clearance deals, you can now find the latest releases and expanded brand offerings.
 
-To welcome you back, I'd like to offer you a complimentary watch service visit. Bring in any of your timepieces and I'll:
-- Set and synchronize all your watches
-- Perform atomic time synchronization resets
-- Help with any complicated functions you're having trouble with
-- Show you our new brand offerings and store layout
+To welcome you back, I'd like to invite you in for a complimentary visit. Stop by and I'll:
+- Show you our latest arrivals and current promotions
+- Help you find exactly what you're looking for
+- Answer any questions about our ${getProductNounPlural()}
+- Walk you through our new brand offerings and store layout
 
-No purchase necessary - I just want to reconnect and ensure your watches are working perfectly.
+No purchase necessary - I just want to reconnect and make sure you're getting the most out of what we offer.
 
 Would you have time this week or next to stop by? I'd love to show you how we've evolved while maintaining the exceptional values and service you remember.
 
 Best regards,
 
-P.S. - We now carry everything from current season pieces to discontinued treasures, giving you more options than ever before.`,
+P.S. - We now carry everything from current season pieces to clearance treasures, giving you more options than ever before.`,
         includeSignature: true,
       };
     },
@@ -604,7 +607,7 @@ Thank you for your phone order! This email confirms the following:
 Order Details:
 Item: ${safe.brand} ${safe.modelName}
 Model #: ${safe.modelNumber}
-Price: ${safe.price} (includes ${safe.discount}% outlet discount)
+Price: ${safe.price} (includes ${safe.discount}% discount)
 Shipping: $20 flat-rate ground shipping
 Total: ${safe.totalAmount}
 
@@ -641,7 +644,7 @@ Best regards,`,
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
       return {
-        body: `Subject: Your Watch Order - Tracking Information
+        body: `Subject: Your Order - Tracking Information
 
 Hi ${safe.customerName},
 
@@ -652,15 +655,15 @@ UPS Tracking Number: ${safe.trackingNumber}
 
 You can track your shipment at the link above or visit ups.com and enter your tracking number.
 
-Your package requires an adult signature upon delivery to ensure safe receipt of your timepiece.
+Your package requires an adult signature upon delivery to ensure safe receipt of your ${getProductNoun()}.
 
 Order Details:
-Watch Model: ${safe.modelNumber} - ${safe.modelName}
+Model: ${safe.modelNumber} - ${safe.modelName}
 Shipping Address: ${safe.customerAddress}
 
 If you have any questions about your order or need any assistance, please don't hesitate to reach out. I'm here to help!
 
-We hope you enjoy your new ${safe.brand} timepiece!
+We hope you enjoy your new ${safe.brand} ${getProductNoun()}!
 
 Best regards,`,
         includeSignature: true,
@@ -786,7 +789,7 @@ Best regards,`,
     generate: (data) => {
       const safe = sanitizeTemplateData(data);
       return {
-        body: `Hi ${safe.customerName}! Yes, we have the ${safe.modelName} in stock. Current price is ${safe.price} with our outlet discount. We're open until ${safe.closingTime} today if you'd like to stop by, or I can hold it.`,
+        body: `Hi ${safe.customerName}! Yes, we have the ${safe.modelName} in stock. Current price is ${safe.price} with our discount. We're open until ${safe.closingTime} today if you'd like to stop by, or I can hold it.`,
         includeSignature: false,
       };
     },

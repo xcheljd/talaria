@@ -271,7 +271,7 @@ async fn save_file_as(
 ///
 /// `strip_accessibility` controls whether the PDF's structure tree (the data
 /// screen readers use to navigate the document semantically) is removed for
-/// additional size reduction. The citizen-communications app passes `true`
+/// additional size reduction. The communication-templates app passes `true`
 /// for promotion flyers (visual documents aimed at a sighted retail audience);
 /// this matches the behavior of Ghostscript's `/ebook` and `/screen` presets.
 /// A library consumer of amatl would default to `false` (accessibility-
@@ -279,7 +279,7 @@ async fn save_file_as(
 ///
 /// `pack_object_streams` controls whether eligible non-stream objects are
 /// packed into PDF 1.5 `ObjStm` streams for additional structural compression.
-/// Default `false`; the citizen-communications app leaves this off (post-strip,
+/// Default `false`; the communication-templates app leaves this off (post-strip,
 /// only ~1.5 points remain to pack). Exposed for library consumers and future
 /// product tiers that need the extra compression.
 #[tauri::command]

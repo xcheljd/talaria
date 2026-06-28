@@ -31,8 +31,9 @@ vi.mock('@/lib/db', () => ({
 
 // Mock the profile module
 vi.mock('@/lib/profile', () => ({
-  getStorePhone: vi.fn().mockReturnValue('702-357-8990'),
-  getStoreEmail: vi.fn().mockReturnValue('store@citizenwatchgroup.com'),
+  getStorePhone: vi.fn().mockReturnValue('555-123-4567'),
+  getStoreName: vi.fn().mockReturnValue('Test Store'),
+  getStoreEmail: vi.fn().mockReturnValue('store@example.com'),
   getStoreAddress: vi.fn().mockReturnValue('123 Test St'),
   getStoreHours: vi.fn().mockReturnValue('Mon-Sat 10AM-8PM'),
   getStorePlusCode: vi.fn().mockReturnValue(''),
@@ -62,8 +63,8 @@ function makeEmailData(
     promotionEntries: [
       {
         id: 1,
-        line: 'CITIZEN – 20% OFF',
-        collections: 'Corso, Avion',
+        line: 'ACME – 20% OFF',
+        collections: 'Aria, Volt',
         callout: '',
       },
     ],

@@ -53,9 +53,9 @@ function App() {
                   }
                 />
                 <Route
-                  path="/start"
+                  path="/settings"
                   element={
-                    <ErrorBoundary level="route" key="route-/start">
+                    <ErrorBoundary level="route" key="route-/settings">
                       <ProfilePage />
                     </ErrorBoundary>
                   }

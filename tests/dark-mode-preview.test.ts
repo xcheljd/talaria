@@ -37,8 +37,9 @@ import {
 import { DEFAULT_NEWSLETTER_STYLE } from '@/stores/promotion-store';
 
 vi.mock('@/lib/profile', () => ({
-  getStorePhone: vi.fn().mockReturnValue('702-357-8990'),
-  getStoreEmail: vi.fn().mockReturnValue('store@citizenwatchgroup.com'),
+  getStorePhone: vi.fn().mockReturnValue('555-123-4567'),
+  getStoreName: vi.fn().mockReturnValue('Test Store'),
+  getStoreEmail: vi.fn().mockReturnValue('store@example.com'),
   getStoreAddress: vi.fn().mockReturnValue('123 Test St'),
   getStoreHours: vi.fn().mockReturnValue('Mon-Sat 10AM-8PM'),
   getStorePlusCode: vi.fn().mockReturnValue(''),
@@ -182,7 +183,7 @@ describe('end-to-end dark-mode email', () => {
       promoYear: '2025',
       promoTitle: 'HOLIDAY SALE',
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
       specialHours: [],
       howToShopItems: [],

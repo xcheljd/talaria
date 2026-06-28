@@ -1,5 +1,5 @@
 /**
- * QA Verification — citizen-communication-templates
+ * QA Verification — CometCast (codename Talaria)
  * Commit: 632837a
  *
  * Tests all 8 critical paths from the QA checklist.
@@ -13,7 +13,7 @@ const PROFILE = {
   jobTitle: 'Sales Associate',
   storeName: 'Test Store',
   storeLocation: 'the Test Outlets',
-  storeAddress: '123 Test St, Las Vegas, NV',
+  storeAddress: '123 Test St, Austin, TX',
   storePhone: '702-555-0000',
   storeEmail: 'test@store.com',
   storeHours: 'Mon-Sat: 10AM-8PM',
@@ -684,7 +684,7 @@ test.describe('QA Item 8 — Regression sweep', () => {
 
   test('Profile settings page loads with saved profile', async ({ page }) => {
     await seedProfile(page);
-    await page.goto(`${BASE}/start`);
+    await page.goto(`${BASE}/settings`);
     await page.waitForTimeout(1500);
 
     const content = await page.content();

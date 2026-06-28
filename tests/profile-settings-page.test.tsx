@@ -66,9 +66,9 @@ describe('ProfileSettingsPage', () => {
   it('renders the profile form with all fields', () => {
     renderPage();
 
-    expect(
-      screen.getByText(/Welcome to Communication Template Generator/i)
-    ).toBeTruthy();
+    // Sidebar heading + brand
+    expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy();
+    expect(screen.getByText('CometCast')).toBeTruthy();
 
     // Check all field labels (some appear in multiple elements)
     expect(screen.getAllByText(/Your Name/).length).toBeGreaterThanOrEqual(1);
@@ -83,10 +83,12 @@ describe('ProfileSettingsPage', () => {
     expect(screen.getAllByText(/Store Directions/).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders the settings card with palette selectors', () => {
+  it('renders the preferences section with palette selectors', async () => {
+    const user = userEvent.setup();
     renderPage();
 
-    expect(screen.getByText('Settings')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Preferences' }));
+
     expect(screen.getByText(/Light Mode Color Palette/i)).toBeTruthy();
     expect(screen.getByText(/Dark Mode Color Palette/i)).toBeTruthy();
     expect(screen.getByText(/Download Folder \(Desktop app\)/i)).toBeTruthy();
@@ -166,10 +168,10 @@ describe('ProfileSettingsPage', () => {
     renderPage({
       employeeName: 'John Smith',
       jobTitle: 'Sales Associate',
-      storeName: 'Citizen Company Store - Orlando',
+      storeName: 'Acme Company Store - Orlando',
       storeLocation: 'the Orlando Premium Outlets',
       storePhone: '555-123-4567',
-      storeEmail: 'orlando@citizenwatchgroup.com',
+      storeEmail: 'orlando@example.com',
       storeHours: 'Mon-Sat: 10AM-8PM | Sun: 10AM-7PM',
     });
 
@@ -191,17 +193,20 @@ describe('ProfileSettingsPage', () => {
     const jobTitleTrigger = screen.getByRole('combobox', { name: /Job Title/i });
     await selectOption(user, jobTitleTrigger, 'Sales Associate');
 
-    const storeNameInput = screen.getByPlaceholderText(/Citizen Company Store/i);
-    await user.type(storeNameInput, 'Citizen Store');
+    const companyNameInput = screen.getByPlaceholderText(/Acme Inc\./i);
+    await user.type(companyNameInput, 'Acme Inc.');
 
-    const storeLocationInput = screen.getByPlaceholderText(/the Orlando Premium Outlets/i);
+    const storeNameInput = screen.getByPlaceholderText(/Acme Store - Orlando/i);
+    await user.type(storeNameInput, 'Acme Store');
+
+    const storeLocationInput = screen.getByPlaceholderText(/the Downtown Shopping Center/i);
     await user.type(storeLocationInput, 'the Mall');
 
     const storePhoneInput = screen.getByPlaceholderText(/555-123-4567/i);
     await user.type(storePhoneInput, '5551234567');
 
-    const storeEmailInput = screen.getByPlaceholderText(/store@citizenwatchgroup.com/i);
-    await user.type(storeEmailInput, 'store@citizenwatchgroup.com');
+    const storeEmailInput = screen.getByPlaceholderText(/store@company.com/i);
+    await user.type(storeEmailInput, 'store@acme.com');
 
     // Submit
     const submitButton = screen.getByRole('button', { name: /Save/i });
@@ -214,7 +219,8 @@ describe('ProfileSettingsPage', () => {
     // Check localStorage
     const saved = JSON.parse(localStorage.getItem('userProfile') || '{}');
     expect(saved.employeeName).toBe('Jane Doe');
-    expect(saved.storeName).toBe('Citizen Store');
+    expect(saved.storeName).toBe('Acme Store');
+    expect(saved.companyName).toBe('Acme Inc.');
   });
 
   // Export
@@ -259,19 +265,24 @@ describe('ProfileSettingsPage', () => {
 
   // Download Folder
 
-  it('shows desktop app only message when not in Tauri', () => {
+  it('shows desktop app only message when not in Tauri', async () => {
+    const user = userEvent.setup();
     renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Preferences' }));
 
     expect(screen.getByText(/Desktop app only/i)).toBeTruthy();
   });
 
   // Palette Selectors
 
-  it('renders palette selectors with correct options', () => {
+  it('renders palette selectors with correct options', async () => {
+    const user = userEvent.setup();
     renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Preferences' }));
 
     expect(screen.getByText(/Light Mode Color Palette/i)).toBeTruthy();
     expect(screen.getByText(/Dark Mode Color Palette/i)).toBeTruthy();
-    expect(screen.getByText('Settings')).toBeTruthy();
   });
 });

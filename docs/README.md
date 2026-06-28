@@ -1,4 +1,4 @@
-# Citizen Communication Template Generator
+# Acme CometCast
 
 A modern, secure web application for generating professional communication
 templates for retail/store operations — short customer emails, phone scripts,
@@ -84,8 +84,8 @@ Every localStorage key is enumerated in `src/lib/storage-keys.ts` (`StorageKeys`
 | Theme/palette prefs | localStorage | `src/contexts/ThemeProvider.tsx` |
 | Promotion builder state | localStorage | `src/stores/promotion-store.ts` |
 | Version snapshots | localStorage | `src/components/promotion/VersionHistory.tsx` |
-| PDF blobs | IndexedDB (`CitizenTemplates` → `promotionPDFs`) | `src/lib/db.ts` |
-| Bulk recipients | IndexedDB (`CitizenTemplates` → `bulkEmailRecipients`) | `src/lib/db.ts` |
+| PDF blobs | IndexedDB (`CometCast` → `promotionPDFs`) | `src/lib/db.ts` |
+| Bulk recipients | IndexedDB (`CometCast` → `bulkEmailRecipients`) | `src/lib/db.ts` |
 
 Metadata lives in localStorage; binary file data (PDFs) and recipient lists live
 in IndexedDB.

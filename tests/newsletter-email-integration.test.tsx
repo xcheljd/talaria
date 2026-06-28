@@ -103,7 +103,7 @@ function makeEmailData(overrides: Partial<PromotionEmailData> = {}): PromotionEm
     promoYear: '2025',
     promoTitle: 'TEST SALE',
     promotionEntries: [
-      { id: 1, line: 'CITIZEN – 20% OFF', collections: 'Corso, Avion', callout: '' },
+      { id: 1, line: 'ACME – 20% OFF', collections: 'Aria, Volt', callout: '' },
     ],
     specialHours: [],
     howToShopItems: [

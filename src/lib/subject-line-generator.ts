@@ -24,6 +24,24 @@ export interface SubjectLineInput {
    * headline offer and advertise a discount you aren't running.
    */
   newsletterBody?: string;
+  /**
+   * Brand names to detect in promotion/newsletter copy so they can be featured
+   * in subjects. Supplied from the profile (signature brand links + company
+   * name). Defaults to none.
+   */
+  brandKeywords?: string[];
+  /** Singular product noun used in subject copy (e.g. "watch"). Default "product". */
+  productNoun?: string;
+  /**
+   * Collection names to feature in subjects, supplied from the profile. Merged
+   * with any collections found on the promotion entries. Defaults to none.
+   */
+  collectionKeywords?: string[];
+}
+
+/** Capitalize the first letter for use in title-style subject lines. */
+function capitalizeWord(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
 /**
@@ -103,14 +121,18 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
     newsletterBody,
   } = input;
 
+  // Product noun (singular) capitalized for title-style subjects, e.g. "Watch".
+  const Product = capitalizeWord((input.productNoun || 'product').trim());
+
   const headingText = (newsletterHeading || '').trim();
   const bodyText = newsletterBody ? stripHtmlToText(newsletterBody) : '';
 
   // Extract brands from promotion lines AND newsletter content (heading + body).
   // Brand names are safe to read from prose; discount percentages are not (see
   // the SubjectLineInput.newsletterBody doc), so only `maxDiscount` below stays
-  // scoped to structured promotion entries.
-  const brandKeywords = ['Citizen', 'Bulova', 'Alpina', 'Frederique Constant'];
+  // scoped to structured promotion entries. Brand keywords come from the
+  // profile (signature brand links + company name); empty means none detected.
+  const brandKeywords = input.brandKeywords ?? [];
   const brandCorpus = [
     ...promotionEntries.map((e) => e.line || ''),
     headingText,
@@ -161,6 +183,14 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
       });
     }
   });
+  // Merge profile-configured collection keywords into the pool so they can be
+  // featured even when no promotion entry names them.
+  (input.collectionKeywords ?? []).forEach((c) => {
+    const trimmed = c.trim();
+    if (trimmed && !collections.includes(trimmed)) {
+      collections.push(trimmed);
+    }
+  });
   const topCollections = collections.slice(0, 3);
 
   // Check callouts for scarcity/urgency
@@ -198,7 +228,7 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
   if (occasions.length > 0) {
     const occasion = occasions[0];
     if (occasion.type === 'gift') {
-      subjects.push(`${occasion.name} Watch Gifts`);
+      subjects.push(`${occasion.name} ${Product} Gifts`);
       if (maxDiscount > 0) {
         subjects.push(
           `${occasion.name} Gifts – ${getDiscountPhrase(maxDiscount)}`
@@ -208,7 +238,7 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
         subjects.push(`${occasion.name}: ${brands[0]} Picks`);
       }
     } else if (occasion.type === 'sale') {
-      subjects.push(`${occasion.name} Watch Sale`);
+      subjects.push(`${occasion.name} ${Product} Sale`);
       if (maxDiscount > 0) {
         subjects.push(
           `${occasion.name} Savings – ${getDiscountPhrase(maxDiscount)}`
@@ -225,7 +255,7 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
     const seasonCapitalized = season.charAt(0).toUpperCase() + season.slice(1);
     if (maxDiscount > 0) {
       subjects.push(
-        `${seasonCapitalized} Watch Sale – ${getDiscountPhrase(maxDiscount)}`
+        `${seasonCapitalized} ${Product} Sale – ${getDiscountPhrase(maxDiscount)}`
       );
     }
   }
@@ -253,7 +283,7 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
 
   // TIER 2: Value & Aspiration
   if (maxDiscount >= 30) {
-    subjects.push(`Perfect Watch Gifts – Up to ${maxDiscount}% OFF`);
+    subjects.push(`Perfect ${Product} Gifts – Up to ${maxDiscount}% OFF`);
   }
 
   subjects.push('Elevate Your Style');
@@ -271,9 +301,9 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
   }
 
   // TIER 3: Engagement
-  subjects.push('Your New Watch Awaits');
+  subjects.push(`Your New ${Product} Awaits`);
   if (maxDiscount >= 20) {
-    subjects.push('Ready for a New Watch?');
+    subjects.push(`Ready for a New ${Product}?`);
   }
 
   // Discount-focused
@@ -291,6 +321,17 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
       lowerDate.includes('sun')
     ) {
       subjects.push(`This Weekend: ${getDiscountPhrase(maxDiscount)}`);
+    }
+  }
+
+  // Collection-focused (surfaces collections even without a detected brand)
+  if (topCollections.length > 0) {
+    subjects.push(`New Arrivals: ${topCollections[0]}`);
+    if (topCollections.length > 1) {
+      subjects.push(`Featuring ${topCollections[0]} & ${topCollections[1]}`);
+    }
+    if (maxDiscount > 0) {
+      subjects.push(`${topCollections[0]} – ${getDiscountPhrase(maxDiscount)}`);
     }
   }
 
@@ -313,10 +354,10 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
 
   // TIER 5: Generic
   if (maxDiscount > 0) {
-    subjects.push("Don't Miss These Watch Deals");
+    subjects.push(`Don't Miss These ${Product} Deals`);
   }
   if (brands.length > 0) {
-    subjects.push(`VIP Watch Sale: ${brands[0]} & More`);
+    subjects.push(`VIP ${Product} Sale: ${brands[0]} & More`);
   }
 
   if (subjects.length < 3) {

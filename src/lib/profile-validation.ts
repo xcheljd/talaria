@@ -67,15 +67,12 @@ export function formatPhone(digits: string): string {
  */
 export function validateEmail(email: string): {
   isValid: boolean;
-  isCitizenEmail: boolean;
   error: string | null;
 } {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const citizenRegex = /^[^\s@]+@citizenwatchgroup\.com$/;
 
   return {
     isValid: emailRegex.test(email),
-    isCitizenEmail: citizenRegex.test(email),
     error: !emailRegex.test(email) ? 'Invalid email format' : null,
   };
 }
@@ -129,7 +126,7 @@ export function validatePlusCode(plusCode: string): {
     isValid: plusCodeRegex.test(trimmed),
     formatted: trimmed,
     error: !plusCodeRegex.test(trimmed)
-      ? 'Invalid Plus Code format (e.g., 849VCWC8+R9)'
+      ? 'Invalid Plus Code format (e.g., QXGV+2H)'
       : null,
   };
 }
@@ -153,19 +150,11 @@ export function validateCompanyEmail(
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const citizenRegex = /^[^\s@]+@citizenwatchgroup\.com$/i;
 
   if (!emailRegex.test(email)) {
     return {
       isValid: false,
       error: 'Invalid email format',
-    };
-  }
-
-  if (!citizenRegex.test(email)) {
-    return {
-      isValid: false,
-      error: 'Company email must be @citizenwatchgroup.com',
     };
   }
 
@@ -214,7 +203,7 @@ export const plusCodeSchema = z.string().refine(
     if (!val || val.trim() === '') return true;
     return /^[A-Z0-9]{2,4}\+[A-Z0-9]{2,3}$/i.test(val.trim());
   },
-  { message: 'Invalid Plus Code format (e.g., 849VCWC8+R9)' }
+  { message: 'Invalid Plus Code format (e.g., QXGV+2H)' }
 );
 
 /** Company email validation (conditional) */
@@ -224,11 +213,23 @@ export const companyEmailSchema = z
     message: 'Invalid email format',
   });
 
-export const citizenEmailSchema = z
-  .string()
-  .refine((val) => /^[^\s@]+@citizenwatchgroup\.com$/.test(val), {
-    message: 'Company email must be @citizenwatchgroup.com',
-  });
+/**
+ * A single signature brand/website link. Both fields are permissive strings so
+ * partially-filled rows never block the form; empty rows are dropped on save.
+ * A URL, when present, must start with http:// or https://.
+ */
+export const brandLinkSchema = z
+  .object({
+    name: z.string(),
+    url: z.string(),
+  })
+  .refine(
+    (link) => !link.url.trim() || /^https?:\/\/.+/i.test(link.url.trim()),
+    {
+      message: 'Link URL must start with http:// or https://',
+      path: ['url'],
+    }
+  );
 
 /**
  * Full profile form schema for React Hook Form + Zod validation.
@@ -242,6 +243,7 @@ export const profileFormSchema = z
     employeeName: z.string().min(1, 'Your name is required'),
     jobTitle: z.string().min(1, 'Job title is required'),
     companyEmail: z.string(),
+    companyName: z.string().min(1, 'Company name is required'),
     storeName: z.string().min(1, 'Store name is required'),
     storeLocation: z.string().min(1, 'Store location is required'),
     storeAddress: z.string(),
@@ -250,6 +252,12 @@ export const profileFormSchema = z
     storeEmail: emailSchema,
     storeHours: storeHoursSchema,
     storeDirections: z.string(),
+    productNoun: z.string(),
+    productNounPlural: z.string(),
+    brandLinks: z.array(brandLinkSchema),
+    // Comma-separated in the form; split into arrays when persisted.
+    brandKeywords: z.string(),
+    collectionKeywords: z.string(),
   })
   .refine(
     (data) => {
@@ -259,17 +267,6 @@ export const profileFormSchema = z
     },
     {
       message: 'Company email is required for management positions',
-      path: ['companyEmail'],
-    }
-  )
-  .refine(
-    (data) => {
-      if (!requiresCompanyEmail(data.jobTitle)) return true;
-      if (!data.companyEmail) return false;
-      return /^[^\s@]+@citizenwatchgroup\.com$/.test(data.companyEmail);
-    },
-    {
-      message: 'Company email must be @citizenwatchgroup.com',
       path: ['companyEmail'],
     }
   );

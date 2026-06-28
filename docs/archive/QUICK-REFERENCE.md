@@ -99,7 +99,7 @@ getEmployeeSignature() pulls from:
 1. userProfile.employeeName OR 'Employee Name'
 2. userProfile.jobTitle OR 'Sales Associate'
 3. userProfile.companyEmail OR ''
-4. userProfile.storeName OR 'Citizen Company Store'
+4. userProfile.storeName OR 'Acme Store'
 5. userProfile.storeLocation OR 'Orlando Premium Outlets'
 6. userProfile.storeAddress OR ''
 7. userProfile.storePhone OR '555-123-4567'
@@ -113,7 +113,7 @@ getEmployeeSignature() pulls from:
 ```
 Subject: [User-provided subject]
 Date: [Current UTC date]
-Message-ID: <unique.timestamp.randomid@citizenstore.local>
+Message-ID: <unique.timestamp.randomid@cometcast.local>
 MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary="----=_NextPart_[UNIQUE_BOUNDARY]"
 
@@ -306,7 +306,7 @@ console.log(userProfile)  // Current profile data
 ## Key Constants
 
 - `TOAST_DURATION_MS`: 2500 (notification timeout)
-- `DB_NAME`: 'CitizenTemplates' (IndexedDB)
+- `DB_NAME`: 'CometCast' (IndexedDB)
 - `STORE_NAME`: 'promotionPDFs' (IndexedDB)
 - `BULK_EMAIL_STORE`: 'bulkEmailRecipients' (IndexedDB)
 - `MIME Boundary`: `----=_NextPart_[timestamp]_[randomid]`

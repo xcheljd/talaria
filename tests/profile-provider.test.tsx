@@ -260,13 +260,13 @@ describe('Profile convenience hooks', () => {
   });
 
   describe('useStorePhone', () => {
-    it('returns default when no profile', () => {
+    it('returns empty string when no profile', () => {
       render(
         <ProfileProvider>
           <StorePhoneConsumer />
         </ProfileProvider>
       );
-      expect(screen.getByTestId('phone').textContent).toBe('702-357-8990');
+      expect(screen.getByTestId('phone').textContent).toBe('');
     });
 
     it('returns stored phone', () => {
@@ -305,7 +305,7 @@ describe('Profile convenience hooks', () => {
         </ProfileProvider>
       );
 
-      expect(screen.getByTestId('phone').textContent).toBe('702-357-8990');
+      expect(screen.getByTestId('phone').textContent).toBe('');
 
       await userEvent.click(screen.getByTestId('save-btn'));
 
@@ -314,15 +314,13 @@ describe('Profile convenience hooks', () => {
   });
 
   describe('useStoreName', () => {
-    it('returns default when no profile', () => {
+    it('returns neutral default when no profile', () => {
       render(
         <ProfileProvider>
           <StoreNameConsumer />
         </ProfileProvider>
       );
-      expect(screen.getByTestId('store-name').textContent).toBe(
-        'Citizen Company Store'
-      );
+      expect(screen.getByTestId('store-name').textContent).toBe('Your Store');
     });
 
     it('returns stored name', () => {
@@ -340,15 +338,13 @@ describe('Profile convenience hooks', () => {
   });
 
   describe('useStoreLocation', () => {
-    it('returns default when no profile', () => {
+    it('returns empty string when no profile', () => {
       render(
         <ProfileProvider>
           <StoreLocationConsumer />
         </ProfileProvider>
       );
-      expect(screen.getByTestId('location').textContent).toBe(
-        'the South Premium Outlets'
-      );
+      expect(screen.getByTestId('location').textContent).toBe('');
     });
 
     it('returns stored location', () => {
@@ -440,15 +436,13 @@ describe('Profile convenience hooks', () => {
   });
 
   describe('useStoreEmail', () => {
-    it('returns default when no profile', () => {
+    it('returns empty string when no profile', () => {
       render(
         <ProfileProvider>
           <StoreEmailConsumer />
         </ProfileProvider>
       );
-      expect(screen.getByTestId('store-email').textContent).toBe(
-        'store@citizenwatchgroup.com'
-      );
+      expect(screen.getByTestId('store-email').textContent).toBe('');
     });
 
     it('returns stored email', () => {
@@ -466,7 +460,7 @@ describe('Profile convenience hooks', () => {
       );
     });
 
-    it('derives email from store name when no store email set', () => {
+    it('returns empty string when no store email set', () => {
       localStorage.setItem(
         'userProfile',
         JSON.stringify({ storeName: 'My Store' })
@@ -476,9 +470,7 @@ describe('Profile convenience hooks', () => {
           <StoreEmailConsumer />
         </ProfileProvider>
       );
-      expect(screen.getByTestId('store-email').textContent).toBe(
-        'mystore@citizenwatchgroup.com'
-      );
+      expect(screen.getByTestId('store-email').textContent).toBe('');
     });
   });
 
@@ -576,13 +568,13 @@ describe('All profile hooks together', () => {
     );
 
     // Before save - all defaults
-    expect(screen.getByTestId('phone').textContent).toBe('702-357-8990');
-    expect(screen.getByTestId('store-name').textContent).toBe('Citizen Company Store');
-    expect(screen.getByTestId('location').textContent).toBe('the South Premium Outlets');
+    expect(screen.getByTestId('phone').textContent).toBe('');
+    expect(screen.getByTestId('store-name').textContent).toBe('Your Store');
+    expect(screen.getByTestId('location').textContent).toBe('');
     expect(screen.getByTestId('employee-name').textContent).toBe('Your Name');
     expect(screen.getByTestId('job-title').textContent).toBe('Sales Associate');
     expect(screen.getByTestId('company-email').textContent).toBe('');
-    expect(screen.getByTestId('store-email').textContent).toBe('store@citizenwatchgroup.com');
+    expect(screen.getByTestId('store-email').textContent).toBe('');
     expect(screen.getByTestId('has-profile').textContent).toBe('false');
 
     await userEvent.click(screen.getByTestId('save-btn'));

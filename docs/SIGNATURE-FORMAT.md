@@ -31,11 +31,11 @@ ______________________________________________________________________
 
 ### 3. Company Information
 ```
-Citizen Watch America
-Citizen Company Store - Store Location
+Acme Inc.
+Acme Store - Store Location
 ```
-- "Citizen Watch America" on first line (**bold**)
-- "Citizen Company Store - Store Location" on second line (**bold**)
+- "Acme Inc." on first line (**bold**)
+- "Acme Store - Store Location" on second line (**bold**)
 - Store location from profile (e.g., "the South Premium Outlets")
 - Font: Century Gothic, 8pt, dark gray (#2f2f2f)
 
@@ -50,7 +50,7 @@ Citizen Company Store - Store Location
 
 ### 5. Phone Number
 ```
-Tel/SMS: (702) 357-8990
+Tel/SMS: (702) 555-0190
 ```
 - Phone number from `storePhone` profile field
 - Font: Century Gothic, 8pt, dark gray (#2f2f2f)
@@ -58,7 +58,7 @@ Tel/SMS: (702) 357-8990
 
 ### 6. Email Address
 ```
-Email: vegassouth@citizenwatchgroup.com
+Email: vegassouth@example.com
 ```
 - **Smart Selection Based on Job Title**:
   - If title contains: "Manager", "Director", "Supervisor", or "Assistant Manager"
@@ -72,16 +72,16 @@ Email: vegassouth@citizenwatchgroup.com
 
 ### 7. Brand Links
 ```
-Alpina | Bulova | Citizen | Frederique Constant
+Lumen | Zenith | Acme | Meridian
 ```
 - Four brand links separated by pipes (|)
 - Each brand is a hyperlink in blue (#0000ee) with underline
 - Font: Century Gothic, 8pt
 - **Links**:
-  - Alpina: https://us.alpinawatches.com/
-  - Bulova: https://www.bulova.com/
-  - Citizen: https://www.citizenwatch.com/
-  - Frederique Constant: https://us.frederiqueconstant.com/
+  - Lumen: https://lumen.example.com/
+  - Zenith: https://zenith.example.com/
+  - Acme: https://acme.example.com/
+  - Meridian: https://meridian.example.com/
 
 ### 8. Environment Message
 ```
@@ -122,7 +122,7 @@ The signature pulls data from the user profile saved in the application. Make su
 |-------|------|----------|----------|
 | `employeeName` | Text | Yes | Name in signature |
 | `jobTitle` | Text | Yes | Title in signature; determines email selection |
-| `storeLocation` | Text | Yes | Location after "Citizen Watch America" |
+| `storeLocation` | Text | Yes | Location after "Acme Inc." |
 | `storeAddress` | Text | No | Address line in signature |
 | `storePhone` | Text | Yes | Tel/SMS number |
 | `storeEmail` | Text | No | Email for non-manager staff |
@@ -218,14 +218,14 @@ Tested and verified in:
 ```
 Xchel Dominguez │ General Manager
 ______________________________________________________________________
-Citizen Watch America
-Citizen Company Store - the South Premium Outlets
-7400 S Las Vegas Blvd, St. 231
-Las Vegas, NV 89123
-Tel/SMS: (702) 357-8990
+Acme Inc.
+Acme Store - the South Premium Outlets
+7400 S Austin Blvd, St. 231
+Austin, NV 89123
+Tel/SMS: (702) 555-0190
 
-Email: xdominguez@citizenwatchgroup.com
-Alpina | Bulova | Citizen | Frederique Constant
+Email: xdominguez@example.com
+Lumen | Zenith | Acme | Meridian
 
 Please consider the environment before printing this e-mail
 ```
@@ -267,7 +267,7 @@ Potential improvements for future versions:
 - ✅ Added email tab showing actual HTML code
 - ✅ Fixed preview rendering for plain text templates
 - ✅ Documented signature removal logic for "Best regards," marker
-- ✅ Split company information into two lines (Citizen Watch America, then Citizen Company Store - Location)
+- ✅ Split company information into two lines (Acme Inc., then Acme Store - Location)
 - ✅ Added bold formatting to name, separator line, and company information
 - ✅ Updated management hierarchy: Assistant → Associate → General → Area → Regional → District
 

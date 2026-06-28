@@ -28,8 +28,8 @@ vi.mock('@/lib/db', () => ({
 
 // Mock the profile module (used by initializeDefaultItems)
 vi.mock('@/lib/profile', () => ({
-  getStorePhone: vi.fn().mockReturnValue('702-357-8990'),
-  getStoreEmail: vi.fn().mockReturnValue('store@citizenwatchgroup.com'),
+  getStorePhone: vi.fn().mockReturnValue('702-555-0190'),
+  getStoreEmail: vi.fn().mockReturnValue('store@example.com'),
   getDirections: vi.fn().mockReturnValue(''),
 }));
 
@@ -135,10 +135,10 @@ describe('promotion store', () => {
       store.addPromotionEntry();
       const entryId = getFreshStore().promotionEntries[0].id;
 
-      store.updatePromotionEntry(entryId, 'line', 'CITIZEN – 20% OFF');
+      store.updatePromotionEntry(entryId, 'line', 'ACME – 20% OFF');
 
       const state = getFreshStore();
-      expect(state.promotionEntries[0].line).toBe('CITIZEN – 20% OFF');
+      expect(state.promotionEntries[0].line).toBe('ACME – 20% OFF');
     });
 
     it('updates promotion entry collections field', () => {
@@ -146,10 +146,10 @@ describe('promotion store', () => {
       store.addPromotionEntry();
       const entryId = getFreshStore().promotionEntries[0].id;
 
-      store.updatePromotionEntry(entryId, 'collections', 'Corso, Avion');
+      store.updatePromotionEntry(entryId, 'collections', 'Aria, Volt');
 
       expect(getFreshStore().promotionEntries[0].collections).toBe(
-        'Corso, Avion'
+        'Aria, Volt'
       );
     });
 
@@ -1250,13 +1250,13 @@ describe('promotion store', () => {
         'Visit us in-store for outlet-exclusive deals'
       );
       expect(state.howToShopItems[1].text).toBe(
-        'Call 702-357-8990 for availability'
+        'Call 702-555-0190 for availability'
       );
       expect(state.howToShopItems[2].text).toBe(
         '$20 flat-rate ground shipping in US'
       );
       expect(state.howToShopItems[3].text).toBe(
-        'Email store@citizenwatchgroup.com'
+        'Email store@example.com'
       );
     });
 
@@ -1303,7 +1303,7 @@ describe('promotion store', () => {
     });
 
     it('adds store directions note to Important Notes when available', () => {
-      vi.mocked(getDirections).mockReturnValue('123 Main St, Las Vegas');
+      vi.mocked(getDirections).mockReturnValue('123 Main St, Austin');
 
       const store = getFreshStore();
       store.initializeDefaultItems();
@@ -1311,12 +1311,12 @@ describe('promotion store', () => {
       const state = getFreshStore();
       expect(state.importantNotesItems).toHaveLength(5);
       expect(state.importantNotesItems[4].text).toBe(
-        'Find us at 123 Main St, Las Vegas'
+        'Find us at 123 Main St, Austin'
       );
     });
 
     it('does not add duplicate directions note', () => {
-      vi.mocked(getDirections).mockReturnValue('123 Main St, Las Vegas');
+      vi.mocked(getDirections).mockReturnValue('123 Main St, Austin');
 
       const store = getFreshStore();
       store.initializeDefaultItems();

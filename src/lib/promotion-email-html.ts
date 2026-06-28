@@ -7,6 +7,7 @@
 import { sanitizeHTML, sanitizeRichHTML, escapeAttr } from './html-utils';
 import {
   getStorePhone,
+  getStoreName,
   getStoreAddress,
   getStoreEmail,
   getStoreHours,
@@ -837,6 +838,7 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
   }
 
   // Store info
+  const storeNameFooter = escapeHtml(getStoreName().toUpperCase());
   const rawAddress = getStoreAddress();
   const storeAddress = escapeHtml(rawAddress).replace(/\n/g, '<br>');
   const storeEmailRaw = getStoreEmail();
@@ -844,8 +846,7 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
   const storeHours = escapeHtml(getStoreHours());
   const plusCode = getStorePlusCode();
 
-  let storeMapLink =
-    'https://www.google.com/maps?q=36.05145495363422,-115.16933573536541';
+  let storeMapLink = 'https://www.google.com/maps';
   if (plusCode && plusCode.trim()) {
     storeMapLink = `https://www.google.com/maps?q=${encodeURIComponent(plusCode)}`;
   } else {
@@ -1006,7 +1007,7 @@ ${newsletterBottomHTML}
         <!-- FOOTER -->
         <tr>
             <td class="email-footer" style="background-color: ${pal.footerBg}; padding: 20px; text-align: center;">
-                <h3 style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 18px; margin: 0 0 10px 0;">CITIZEN COMPANY STORE</h3>
+                <h3 style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 18px; margin: 0 0 10px 0;">${storeNameFooter}</h3>
                 <p style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
                     📍 <a href="${storeMapLink}" target="_blank" style="color: ${pal.footerText};">
                     ${storeAddress}</a>

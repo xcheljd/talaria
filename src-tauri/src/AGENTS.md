@@ -74,7 +74,7 @@ MIT/BSD licensed.
 
 **This app's binding (TS):** `amatl.optimize(dataURL)` in
 `src/lib/pdf-utils.ts` calls `optimize_with_options` with
-`strip_accessibility: true`. This is the citizen-communications app's
+`strip_accessibility: true`. This is the CometCast app's
 deliberate choice, hardcoded in the wrapper: promotion flyers are visual
 documents for a sighted retail audience, and the gain matches industry behavior
 (Ghostscript's `/ebook` and `/screen` presets strip the same data silently).

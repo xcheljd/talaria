@@ -17,6 +17,13 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { usePromotionStore } from '@/stores/promotion-store';
 import { generateSubjectLines } from '@/lib/subject-line-generator';
+import {
+  useCompanyName,
+  useProductNoun,
+  useBrandLinks,
+  useBrandKeywords,
+  useCollectionKeywords,
+} from '@/contexts/ProfileProvider';
 
 import { Button } from '@/components/ui/button';
 import { ClearableInput } from '@/components/ui/clearable-input';
@@ -34,9 +41,13 @@ import {
 function InboxPreview({
   subject,
   preheader,
+  senderName,
+  senderInitials,
 }: {
   subject: string;
   preheader: string;
+  senderName: string;
+  senderInitials: string;
 }) {
   // Simulate truncation like real inbox clients
   const maxSubject = 60;
@@ -62,13 +73,15 @@ function InboxPreview({
           <div className="flex items-center gap-2 pt-0.5 shrink-0">
             <Star className="h-3.5 w-3.5 text-muted-foreground/40" />
             <div className="h-7 w-7 rounded-full bg-emerald-600 flex items-center justify-center">
-              <span className="text-[11px] font-bold text-white">CW</span>
+              <span className="text-[11px] font-bold text-white">
+                {senderInitials}
+              </span>
             </div>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-sm font-semibold truncate">
-                Citizen Watch Company
+                {senderName}
               </span>
               <span className="text-[11px] text-muted-foreground shrink-0">
                 10:30 AM
@@ -116,7 +129,43 @@ function InboxPreview({
 
 const OPTIMAL_LENGTH = 50;
 
+/** Derive up-to-two-letter avatar initials from a company name. */
+function deriveInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '✉';
+  const letters = words.slice(0, 2).map((w) => w[0].toUpperCase());
+  return letters.join('');
+}
+
 export function SubjectLineGenerator() {
+  const companyName = useCompanyName();
+  const productNoun = useProductNoun();
+  const brandLinks = useBrandLinks();
+  const profileBrandKeywords = useBrandKeywords();
+  const collectionKeywords = useCollectionKeywords();
+
+  // Brand names to feature in subject lines: the configured brand keywords plus
+  // the company name and any signature brand links.
+  const brandKeywords = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [
+            ...profileBrandKeywords,
+            companyName,
+            ...brandLinks.map((b) => b.name),
+          ]
+            .map((s) => s.trim())
+            .filter(Boolean)
+        )
+      ),
+    [profileBrandKeywords, companyName, brandLinks]
+  );
+  const senderInitials = useMemo(
+    () => deriveInitials(companyName),
+    [companyName]
+  );
+
   const store = usePromotionStore(
     useShallow((s) => ({
       promoDateRange: s.promoDateRange,
@@ -147,13 +196,16 @@ export function SubjectLineGenerator() {
       promotionEntries: store.promotionEntries,
       newsletterHeading: store.newsletterHeading,
       newsletterBody: store.newsletterBody,
+      brandKeywords,
+      productNoun,
+      collectionKeywords,
     });
     store.setGeneratedSubjectLines(lines);
     if (lines.length > 0) {
       store.setSelectedSubjectLine(lines[0]);
     }
     store.setSubjectLineManuallyEdited(false);
-  }, [store]);
+  }, [store, brandKeywords, productNoun, collectionKeywords]);
 
   // Regenerate (clears manual edit flag)
   const handleRegenerate = useCallback(() => {
@@ -364,6 +416,8 @@ export function SubjectLineGenerator() {
       <InboxPreview
         subject={store.selectedSubjectLine || ''}
         preheader={preheaderDisplay}
+        senderName={companyName}
+        senderInitials={senderInitials}
       />
     </div>
   );

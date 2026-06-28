@@ -96,8 +96,8 @@ describe('DiscountEntriesEditor', () => {
     // Should show "Entry 1" label
     expect(screen.getByText('Entry 1')).toBeInTheDocument();
     // Should have 3 input fields
-    expect(screen.getByPlaceholderText(/CITIZEN – ADDITIONAL 20% OFF/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Corso, Avion, Marine Star/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Collection A, Collection B/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Final sale items excluded/i)).toBeInTheDocument();
   });
 
@@ -118,7 +118,7 @@ describe('DiscountEntriesEditor', () => {
 
     await user.click(screen.getByRole('button', { name: /add entry/i }));
 
-    const lineInput = screen.getByPlaceholderText(/CITIZEN – ADDITIONAL 20% OFF/i);
+    const lineInput = screen.getByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i);
     await user.type(lineInput, 'Test Brand – 30% OFF');
 
     expect(lineInput).toHaveValue('Test Brand – 30% OFF');
@@ -155,7 +155,7 @@ describe('DiscountEntriesEditor', () => {
     await user.click(screen.getByRole('button', { name: /add entry/i }));
     await user.click(screen.getByRole('button', { name: /add entry/i }));
 
-    const lineInputs = screen.getAllByPlaceholderText(/CITIZEN – ADDITIONAL 20% OFF/i);
+    const lineInputs = screen.getAllByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i);
     await user.type(lineInputs[0], 'First Entry');
     await user.type(lineInputs[1], 'Second Entry');
 
@@ -176,7 +176,7 @@ describe('DiscountEntriesEditor', () => {
     await user.click(screen.getByRole('button', { name: /add entry/i }));
     await user.click(screen.getByRole('button', { name: /add entry/i }));
 
-    const lineInputs = screen.getAllByPlaceholderText(/CITIZEN – ADDITIONAL 20% OFF/i);
+    const lineInputs = screen.getAllByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i);
     await user.type(lineInputs[0], 'First Entry');
     await user.type(lineInputs[1], 'Second Entry');
 
@@ -216,7 +216,7 @@ describe('DiscountEntriesEditor', () => {
     await user.click(screen.getByRole('button', { name: /add entry/i }));
 
     // Fill in the line field
-    const lineInput = screen.getByPlaceholderText(/CITIZEN – ADDITIONAL 20% OFF/i);
+    const lineInput = screen.getByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i);
     await user.type(lineInput, 'Test Promotion Line');
 
     // Click collapse
@@ -227,7 +227,7 @@ describe('DiscountEntriesEditor', () => {
     expect(screen.getByText('Test Promotion Line')).toBeInTheDocument();
 
     // Input fields should be hidden
-    expect(screen.queryByPlaceholderText(/CITIZEN – ADDITIONAL 20% OFF/i)).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i)).not.toBeInTheDocument();
   });
 
   it('shows "Entry not filled out" summary when collapsed with no data', async () => {
@@ -254,7 +254,7 @@ describe('DiscountEntriesEditor', () => {
 
     // Expand
     await user.click(screen.getByRole('button', { name: /expand entry/i }));
-    expect(screen.getByPlaceholderText(/CITIZEN – ADDITIONAL 20% OFF/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i)).toBeInTheDocument();
   });
 
   it('updates collections and callout fields', async () => {
@@ -263,7 +263,7 @@ describe('DiscountEntriesEditor', () => {
 
     await user.click(screen.getByRole('button', { name: /add entry/i }));
 
-    const collectionsInput = screen.getByPlaceholderText(/Corso, Avion, Marine Star/i);
+    const collectionsInput = screen.getByPlaceholderText(/Collection A, Collection B/i);
     await user.type(collectionsInput, 'Brand1, Brand2');
 
     const calloutInput = screen.getByPlaceholderText(/Final sale items excluded/i);

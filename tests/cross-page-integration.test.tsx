@@ -63,12 +63,12 @@ beforeAll(() => {
 const MANAGEMENT_PROFILE: UserProfile = {
   employeeName: 'Alice Manager',
   jobTitle: 'General Manager',
-  companyEmail: 'alice.manager@citizenwatchgroup.com',
-  storeName: 'Citizen Company Store - Orlando',
+  companyEmail: 'alice.manager@acme.com',
+  storeName: 'Acme Store - Orlando',
   storeLocation: 'the Orlando Premium Outlets',
   storeAddress: '4950 International Dr, Orlando, FL 32819',
   storePhone: '407-555-1234',
-  storeEmail: 'orlando@citizenwatchgroup.com',
+  storeEmail: 'orlando@acme.com',
   storeHours: 'Mon-Sat: 10AM-8PM, Sun: 11AM-7PM',
   storePlusCode: 'ABC123',
   storeDirections: 'Entrance E, near Polo Ralph Lauren',
@@ -77,11 +77,11 @@ const MANAGEMENT_PROFILE: UserProfile = {
 const STAFF_PROFILE: UserProfile = {
   employeeName: 'Bob Associate',
   jobTitle: 'Sales Associate',
-  storeName: 'Citizen Company Store - Vegas',
+  storeName: 'Acme Store - Vegas',
   storeLocation: 'the South Premium Outlets',
-  storeAddress: '7400 Las Vegas Blvd S #46, Las Vegas, NV 89123',
+  storeAddress: '123 Main St, Austin, TX 78701',
   storePhone: '702-555-9999',
-  storeEmail: 'vegas@citizenwatchgroup.com',
+  storeEmail: 'vegas@acme.com',
   storeHours: 'Mon-Sat: 10AM-9PM, Sun: 11AM-7PM',
 };
 
@@ -122,7 +122,7 @@ function renderApp(initialPath: string = '/') {
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<TemplatesPage />} />
-                <Route path="/start" element={<ProfilePage />} />
+                <Route path="/settings" element={<ProfilePage />} />
                 <Route path="/promotion" element={<PromotionPage />} />
               </Route>
             </Routes>
@@ -159,7 +159,7 @@ describe('VAL-CROSS-002: Profile data flows into generated templates', () => {
     // Store phone is included inline in the body
     expect(result.body).toContain('407-555-1234');
     // Store name is referenced via getStoreName in the email subject
-    expect(result.body).toContain('Citizen Company Store');
+    expect(result.body).toContain('Acme Store');
     // Employee name is part of the signature, added via includeSignature
     expect(result.includeSignature).toBe(true);
     // Full output with signature includes employee name
@@ -173,8 +173,8 @@ describe('VAL-CROSS-002: Profile data flows into generated templates', () => {
     // Verify profile helpers return correct data that forms would use
     expect(getEmployeeName()).toBe('Bob Associate');
     expect(getStorePhone()).toBe('702-555-9999');
-    expect(getStoreName()).toBe('Citizen Company Store - Vegas');
-    expect(getStoreEmail()).toBe('vegas@citizenwatchgroup.com');
+    expect(getStoreName()).toBe('Acme Store - Vegas');
+    expect(getStoreEmail()).toBe('vegas@acme.com');
   });
 
   it('different templates use profile data via getStorePhone/getStoreName', () => {
@@ -218,7 +218,7 @@ describe('VAL-CROSS-003: Profile data flows into promotion signature', () => {
 
     const signatureHTML = getEmployeeSignature('html');
     // Management profile should use company email
-    expect(signatureHTML).toContain('alice.manager@citizenwatchgroup.com');
+    expect(signatureHTML).toContain('alice.manager@acme.com');
     expect(signatureHTML).toContain('Alice Manager');
     expect(signatureHTML).toContain('General Manager');
   });
@@ -228,7 +228,7 @@ describe('VAL-CROSS-003: Profile data flows into promotion signature', () => {
 
     const signatureHTML = getEmployeeSignature('html');
     // Staff profile should use store email, not company email
-    expect(signatureHTML).toContain('vegas@citizenwatchgroup.com');
+    expect(signatureHTML).toContain('vegas@acme.com');
     expect(signatureHTML).toContain('Bob Associate');
     expect(signatureHTML).toContain('Sales Associate');
   });
@@ -237,13 +237,13 @@ describe('VAL-CROSS-003: Profile data flows into promotion signature', () => {
     setupProfile(MANAGEMENT_PROFILE);
 
     const signatureText = getEmployeeSignature('text');
-    expect(signatureText).toContain('alice.manager@citizenwatchgroup.com');
+    expect(signatureText).toContain('alice.manager@acme.com');
     expect(signatureText).toContain('Alice Manager');
 
     // Switch to staff profile
     setupProfile(STAFF_PROFILE);
     const staffSignatureText = getEmployeeSignature('text');
-    expect(staffSignatureText).toContain('vegas@citizenwatchgroup.com');
+    expect(staffSignatureText).toContain('vegas@acme.com');
     expect(staffSignatureText).toContain('Bob Associate');
   });
 
@@ -257,8 +257,8 @@ describe('VAL-CROSS-003: Profile data flows into promotion signature', () => {
       promotionEntries: [
         {
           id: 1,
-          line: 'Citizen Eco-Drive',
-          collections: 'Promaster, Field',
+          line: 'Acme Aero',
+          collections: 'Aero, Field',
           callout: 'Great deals!',
         },
       ],
@@ -282,7 +282,7 @@ describe('VAL-CROSS-003: Profile data flows into promotion signature', () => {
 
     // Should include profile store info
     expect(html).toContain('407-555-1234');
-    expect(html).toContain('orlando@citizenwatchgroup.com');
+    expect(html).toContain('orlando@acme.com');
     expect(html).toContain('Mon-Sat: 10AM-8PM');
   });
 });
@@ -346,9 +346,9 @@ describe('VAL-CROSS-004: Theme persists across all pages', () => {
     renderApp();
 
     // Header with navigation links should be present
-    expect(screen.getByText('Template Generator')).toBeTruthy();
+    expect(screen.getByText('CometCast')).toBeTruthy();
     expect(screen.getByText('Templates')).toBeTruthy();
-    expect(screen.getByText('Profile')).toBeTruthy();
+    expect(screen.getByText('Settings')).toBeTruthy();
     expect(screen.getByText('Promotions')).toBeTruthy();
   });
 });
@@ -515,11 +515,11 @@ describe('VAL-CROSS-001: Complete user flow — setup to template generation', (
     const profile: UserProfile = {
       employeeName: 'Jane Smith',
       jobTitle: 'Sales Associate',
-      storeName: 'Citizen Company Store - Test',
+      storeName: 'Acme Store - Test',
       storeLocation: 'the Test Outlet Mall',
       storeAddress: '100 Test St, Test City, TS 12345',
       storePhone: '555-123-4567',
-      storeEmail: 'teststore@citizenwatchgroup.com',
+      storeEmail: 'teststore@acme.com',
       storeHours: 'Mon-Sat: 10AM-8PM',
     };
     saveUserProfile(profile);
@@ -533,8 +533,8 @@ describe('VAL-CROSS-001: Complete user flow — setup to template generation', (
     // Verify profile helpers return correct values for template pre-fill
     expect(getEmployeeName()).toBe('Jane Smith');
     expect(getStorePhone()).toBe('555-123-4567');
-    expect(getStoreName()).toBe('Citizen Company Store - Test');
-    expect(getStoreEmail()).toBe('teststore@citizenwatchgroup.com');
+    expect(getStoreName()).toBe('Acme Store - Test');
+    expect(getStoreEmail()).toBe('teststore@acme.com');
   });
 
   it('template generation produces output with profile phone data', () => {
@@ -546,8 +546,8 @@ describe('VAL-CROSS-001: Complete user flow — setup to template generation', (
 
     const result = template.generate({
       customerName: 'Test Customer',
-      brand: 'Citizen',
-      modelName: 'Promaster Diver',
+      brand: 'Acme',
+      modelName: 'Aero Diver',
       modelNumber: 'BN0150-28E',
       price: '350',
       holdDeadline: 'Friday',
@@ -560,7 +560,7 @@ describe('VAL-CROSS-001: Complete user flow — setup to template generation', (
     expect(result.includeSignature).toBe(true);
     const fullOutput = assembleTemplateOutput(result);
     expect(fullOutput).toContain('Alice Manager');
-    expect(fullOutput).toContain('Citizen Company Store');
+    expect(fullOutput).toContain('Acme Store');
   });
 });
 
@@ -580,7 +580,7 @@ describe('VAL-CROSS-005: Full promotion workflow end-to-end', () => {
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<TemplatesPage />} />
-                <Route path="/start" element={<ProfilePage />} />
+                <Route path="/settings" element={<ProfilePage />} />
                 <Route path="/promotion" element={<PromotionPage />} />
               </Route>
             </Routes>
@@ -605,8 +605,8 @@ describe('VAL-CROSS-005: Full promotion workflow end-to-end', () => {
 
     // Get the generated entry ID and update by that ID
     const entryId = usePromotionStore.getState().promotionEntries[0].id;
-    store.updatePromotionEntry(entryId, 'line', 'Citizen Eco-Drive');
-    store.updatePromotionEntry(entryId, 'collections', 'Promaster, Field');
+    store.updatePromotionEntry(entryId, 'line', 'Acme Aero');
+    store.updatePromotionEntry(entryId, 'collections', 'Aero, Field');
     store.updatePromotionEntry(entryId, 'callout', 'Limited time!');
 
     store.addHowToShopItem();
@@ -621,7 +621,7 @@ describe('VAL-CROSS-005: Full promotion workflow end-to-end', () => {
     expect(state.promoDateRange).toBe('April 1-7, 2026');
     expect(state.promoTitle).toBe('SPRING SALE');
     expect(state.promotionEntries).toHaveLength(1);
-    expect(state.promotionEntries[0].line).toBe('Citizen Eco-Drive');
+    expect(state.promotionEntries[0].line).toBe('Acme Aero');
     expect(state.howToShopItems).toHaveLength(1);
     expect(state.howToShopItems[0].text).toBe('Visit us in-store');
     expect(state.importantNotesItems).toHaveLength(1);
@@ -651,26 +651,26 @@ describe('VAL-CROSS-005: Full promotion workflow end-to-end', () => {
 
     const html = generatePromotionEmailHTML(data);
     expect(html).toContain('SPRING SALE');
-    expect(html).toContain('Citizen Eco-Drive');
+    expect(html).toContain('Acme Aero');
     // Collections are split by comma, each item prefixed with *
-    expect(html).toContain('*Promaster');
+    expect(html).toContain('*Aero');
     expect(html).toContain('*Field');
     expect(html).toContain('Limited time!');
     expect(html).toContain('Visit us in-store');
     expect(html).toContain('While supplies last');
     expect(html).toContain('407-555-1234');
-    expect(html).toContain('orlando@citizenwatchgroup.com');
+    expect(html).toContain('orlando@acme.com');
   });
 
   it('promotion signature uses correct email based on job title', () => {
     // Test management uses company email
     setupProfile(MANAGEMENT_PROFILE);
     let signature = getEmployeeSignature('html');
-    expect(signature).toContain('alice.manager@citizenwatchgroup.com');
+    expect(signature).toContain('alice.manager@acme.com');
 
     // Test staff uses store email
     setupProfile(STAFF_PROFILE);
     signature = getEmployeeSignature('html');
-    expect(signature).toContain('vegas@citizenwatchgroup.com');
+    expect(signature).toContain('vegas@acme.com');
   });
 });

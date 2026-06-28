@@ -142,8 +142,8 @@ describe('generatePromotionEmailHTML', () => {
     promotionEntries: [
       {
         id: 1,
-        line: 'CITIZEN – 20% OFF',
-        collections: 'Corso, Avion',
+        line: 'ACME – 20% OFF',
+        collections: 'Aria, Volt',
         callout: 'Final sale excluded',
       },
     ],
@@ -204,13 +204,13 @@ describe('generatePromotionEmailHTML', () => {
 
   it('includes promotion entry line in HTML', () => {
     const html = generatePromotionEmailHTML(baseData);
-    expect(html).toContain('CITIZEN – 20% OFF');
+    expect(html).toContain('ACME – 20% OFF');
   });
 
   it('includes collections in HTML', () => {
     const html = generatePromotionEmailHTML(baseData);
-    expect(html).toContain('Corso');
-    expect(html).toContain('Avion');
+    expect(html).toContain('Aria');
+    expect(html).toContain('Volt');
   });
 
   it('includes callout in HTML', () => {
@@ -637,7 +637,7 @@ describe('PromotionPage Preview and Export', () => {
       promoYear: '2025',
       promoTitle: 'Test Sale',
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
       isInitializing: false,
     });
@@ -664,7 +664,7 @@ describe('PromotionPage Preview and Export', () => {
     usePromotionStore.setState({
       promoDateRange: 'Nov 28 - Dec 1',
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
       isInitializing: false,
     });
@@ -754,7 +754,7 @@ describe('PromotionPage Preview and Export', () => {
       promoYear: '2025',
       promoTitle: 'Test Sale',
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
       isInitializing: false,
     });
@@ -785,7 +785,7 @@ describe('PromotionPage Preview and Export', () => {
         expect(codeTextarea).toHaveValue();
         const value = (codeTextarea as HTMLTextAreaElement).value;
         expect(value).toContain('<!DOCTYPE html>');
-        expect(value).toContain('CITIZEN – 20% OFF');
+        expect(value).toContain('ACME – 20% OFF');
       }
     });
   });
@@ -804,7 +804,7 @@ describe('Config round-trip', () => {
       promoYear: '2025',
       promoTitle: 'Holiday Sale',
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: 'Corso', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: 'Aria', callout: '' },
       ],
       specialHours: [{ id: 1, day: 'Black Friday', hours: '6AM-10PM' }],
       howToShopItems: [
@@ -835,7 +835,7 @@ describe('Config round-trip', () => {
     if (result.ok) {
       expect(result.config.dateRange).toBe('Nov 28 - Dec 1');
       expect(result.config.promotionEntries).toHaveLength(1);
-      expect(result.config.promotionEntries[0].line).toBe('CITIZEN – 20% OFF');
+      expect(result.config.promotionEntries[0].line).toBe('ACME – 20% OFF');
       expect(result.config.specialHours).toHaveLength(1);
       expect(result.config.howToShopItems).toHaveLength(1);
       expect(result.config.importantNotesItems).toHaveLength(1);

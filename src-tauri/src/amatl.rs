@@ -40,7 +40,7 @@ const DPI_MARGIN: f32 = 1.15;
 
 /// Options for [`optimize_with_options`]. Defaults preserve the input's
 /// accessibility data and use the simpler (non-packed) save path; the
-/// citizen-communications app opts in to stripping.
+/// communication-templates app opts in to stripping.
 ///
 /// As a library, amatl is accessibility-preserving by default. Callers who
 /// know their audience (e.g. sighted-only retail promotions) can opt in to
@@ -51,7 +51,7 @@ const DPI_MARGIN: f32 = 1.15;
 ///
 /// `pack_object_streams` controls whether eligible non-stream objects are
 /// packed into PDF 1.5 `ObjStm` streams with a binary xref stream. Default
-/// `false`. On the citizen-communications input shape (after strip), this buys
+/// `false`. On the communication-templates input shape (after strip), this buys
 /// only ~1.5 percentage points (~9 KB on a 597 KB file) because there are few
 /// objects left to pack; for library consumers with larger/denser documents it
 /// can buy substantially more. Implemented in pure Rust (no native deps) to
@@ -75,7 +75,7 @@ pub struct OptimizeOptions {
 /// the original bytes are returned unchanged. Equivalent to
 /// [`optimize_with_options`] with [`OptimizeOptions::default()`].
 ///
-/// Unused by the citizen-communications app (which opts into stripping), but
+/// Unused by the communication-templates app (which opts into stripping), but
 /// kept as the obvious entry point for library consumers.
 #[allow(dead_code)]
 pub fn optimize(input: &[u8]) -> Vec<u8> {
@@ -422,8 +422,8 @@ fn remap_references(obj: &mut Object, remap: &HashMap<ObjectId, ObjectId>) {
 /// redirected, and the duplicates are removed from the document.
 ///
 /// This is always safe (identical objects produce identical results in all
-/// contexts) and reduces the object count before packing. On the citizen-
-/// communications input shape (~32 duplicates out of 217 post-strip objects)
+/// contexts) and reduces the object count before packing. On the communication-
+/// templates input shape (~32 duplicates out of 217 post-strip objects)
 /// the gain is small; on denser documents it can be more significant.
 fn dedup_objects(doc: &mut Document) {
     // Group non-stream objects by their exact serialized bytes. Keying the map
@@ -569,7 +569,7 @@ fn save_document(
 /// output is strictly `qpdf --check`-clean.
 ///
 /// Reached only when `OptimizeOptions.pack_object_streams` is true (the
-/// citizen-communications app enables it). See the "Object-stream packing"
+/// communication-templates app enables it). See the "Object-stream packing"
 /// section of `src-tauri/src/AGENTS.md` for the cost/benefit trade-off and the
 /// lopdf workaround rationale.
 fn pack_and_save(doc: &mut Document) -> Result<Vec<u8>, lopdf::Error> {
@@ -1000,7 +1000,7 @@ mod tests {
     }
 
     /// Opt-in real-file check: set CCT_TEST_PDF to a promotion PDF path.
-    /// Uses the same options as the citizen-communications app (strip the
+    /// Uses the same options as the communication-templates app (strip the
     /// accessibility tree). Asserts the output is smaller and remains a valid,
     /// loadable PDF.
     #[test]

@@ -19,17 +19,17 @@ Updated template signatures and EML file generation to match the professional fo
 
 #### Signature Structure Updates:
 - Email formatted as hyperlink: `Email: prefix<a href="mailto:...">@domain.com</a>`
-- Store line format: `Citizen Company Store - StoreName` (using dash separator)
+- Store line format: `Acme Store - StoreName` (using dash separator)
 - Name/title separator: `Name │ Title` (pipe character)
-- Brand links: 4 brands (Alpina, Bulova, Citizen, Frederique Constant)
-- Brand link order: Alpina | Bulova | Citizen | Frederique Constant
+- Brand links: 4 brands (Lumen, Zenith, Acme, Meridian)
+- Brand link order: Lumen | Zenith | Acme | Meridian
 
 #### Brand Links (URLs):
 ```
-- Alpina: https://us.alpinawatches.com/
-- Bulova: https://www.bulova.com/
-- Citizen: https://www.citizenwatch.com/
-- Frederique Constant: https://us.frederiqueconstant.com/
+- Lumen: https://lumen.example.com/
+- Zenith: https://zenith.example.com/
+- Acme: https://acme.example.com/
+- Meridian: https://meridian.example.com/
 ```
 
 ### 2. EML File Generation Updates (`app.js:4516-4691`)
@@ -59,7 +59,7 @@ Updated template signatures and EML file generation to match the professional fo
 #### Key Features:
 - **Body Font**: Aptos, Arial, Helvetica (12pt, black)
 - **Encoding**: Proper quoted-printable with 76-character soft line breaks
-- **Boundary Format**: Outlook-style `_000_[timestamp][id]@citizenstore.local`
+- **Boundary Format**: Outlook-style `_000_[timestamp][id]@cometcast.local`
 - **Headers**: Includes Content-Language, X-Mailer, X-Unsent flags
 
 ### 3. Format Specifications

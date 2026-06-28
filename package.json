@@ -1,5 +1,5 @@
 {
-  "name": "citizen-communication-templates",
+  "name": "talaria",
   "version": "1.4.0",
   "type": "module",
   "scripts": {
@@ -24,16 +24,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/xcheljd/citizen-communication-templates.git"
+    "url": "git+https://github.com/xcheljd/talaria.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/xcheljd/citizen-communication-templates/issues"
+    "url": "https://github.com/xcheljd/talaria/issues"
   },
-  "homepage": "https://github.com/xcheljd/citizen-communication-templates#readme",
-  "description": "Communication Template Generator desktop app",
+  "homepage": "https://github.com/xcheljd/talaria#readme",
+  "description": "CometCast — communication template desktop app (codename Talaria)",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.57.0",

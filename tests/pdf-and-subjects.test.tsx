@@ -19,6 +19,7 @@ import userEvent from '@testing-library/user-event';
 import { PDFAttachments } from '@/components/promotion/PDFAttachments';
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
+import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 
 
@@ -76,7 +77,11 @@ function resetStore() {
 }
 
 function renderWithProviders(ui: React.ReactElement) {
-  return render(<ThemeProvider>{ui}</ThemeProvider>);
+  return render(
+    <ThemeProvider>
+      <ProfileProvider>{ui}</ProfileProvider>
+    </ThemeProvider>
+  );
 }
 
 // ===== PDFAttachments Tests =====
@@ -362,7 +367,7 @@ describe('SubjectLineGenerator', () => {
   it('renders generate button when entries exist but no subject lines', () => {
     usePromotionStore.setState({
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
     });
 
@@ -378,7 +383,7 @@ describe('SubjectLineGenerator', () => {
 
     usePromotionStore.setState({
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
     });
 
@@ -397,14 +402,14 @@ describe('SubjectLineGenerator', () => {
   it('renders regenerate button when lines are generated', () => {
     usePromotionStore.setState({
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
       generatedSubjectLines: [
-        'Citizen: Up to 20% OFF',
+        'Acme: Up to 20% OFF',
         'Elevate Your Style',
         'Time for an Upgrade',
       ],
-      selectedSubjectLine: 'Citizen: Up to 20% OFF',
+      selectedSubjectLine: 'Acme: Up to 20% OFF',
     });
 
     renderWithProviders(<SubjectLineGenerator />);
@@ -417,10 +422,10 @@ describe('SubjectLineGenerator', () => {
   it('renders subject line dropdown when lines are generated', () => {
     usePromotionStore.setState({
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
-      generatedSubjectLines: ['Citizen: Up to 20% OFF', 'Elevate Your Style'],
-      selectedSubjectLine: 'Citizen: Up to 20% OFF',
+      generatedSubjectLines: ['Acme: Up to 20% OFF', 'Elevate Your Style'],
+      selectedSubjectLine: 'Acme: Up to 20% OFF',
     });
 
     renderWithProviders(<SubjectLineGenerator />);
@@ -434,16 +439,16 @@ describe('SubjectLineGenerator', () => {
   it('renders editable input with selected subject', () => {
     usePromotionStore.setState({
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
-      generatedSubjectLines: ['Citizen: Up to 20% OFF'],
-      selectedSubjectLine: 'Citizen: Up to 20% OFF',
+      generatedSubjectLines: ['Acme: Up to 20% OFF'],
+      selectedSubjectLine: 'Acme: Up to 20% OFF',
     });
 
     renderWithProviders(<SubjectLineGenerator />);
 
     const input = screen.getByDisplayValue(
-      'Citizen: Up to 20% OFF'
+      'Acme: Up to 20% OFF'
     ) as HTMLInputElement;
     expect(input).toBeInTheDocument();
   });
@@ -451,10 +456,10 @@ describe('SubjectLineGenerator', () => {
   it('shows character count badge', () => {
     usePromotionStore.setState({
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
-      generatedSubjectLines: ['Citizen: Up to 20% OFF'],
-      selectedSubjectLine: 'Citizen: Up to 20% OFF',
+      generatedSubjectLines: ['Acme: Up to 20% OFF'],
+      selectedSubjectLine: 'Acme: Up to 20% OFF',
     });
 
     renderWithProviders(<SubjectLineGenerator />);
@@ -468,10 +473,10 @@ describe('SubjectLineGenerator', () => {
   it('shows optimal indicator for short subject lines', () => {
     usePromotionStore.setState({
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
-      generatedSubjectLines: ['Citizen: Up to 20% OFF'],
-      selectedSubjectLine: 'Citizen: Up to 20% OFF',
+      generatedSubjectLines: ['Acme: Up to 20% OFF'],
+      selectedSubjectLine: 'Acme: Up to 20% OFF',
     });
 
     renderWithProviders(<SubjectLineGenerator />);
@@ -485,7 +490,7 @@ describe('SubjectLineGenerator', () => {
     const longSubject = 'A'.repeat(55);
     usePromotionStore.setState({
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
       generatedSubjectLines: [longSubject],
       selectedSubjectLine: longSubject,
@@ -501,15 +506,15 @@ describe('SubjectLineGenerator', () => {
 
     usePromotionStore.setState({
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
-      generatedSubjectLines: ['Citizen: Up to 20% OFF'],
-      selectedSubjectLine: 'Citizen: Up to 20% OFF',
+      generatedSubjectLines: ['Acme: Up to 20% OFF'],
+      selectedSubjectLine: 'Acme: Up to 20% OFF',
     });
 
     renderWithProviders(<SubjectLineGenerator />);
 
-    const input = screen.getByDisplayValue('Citizen: Up to 20% OFF');
+    const input = screen.getByDisplayValue('Acme: Up to 20% OFF');
     await user.clear(input);
     await user.type(input, 'My Custom Subject');
 
@@ -524,7 +529,7 @@ describe('SubjectLineGenerator', () => {
 
     usePromotionStore.setState({
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
       generatedSubjectLines: ['Old Subject'],
       selectedSubjectLine: 'Old Subject',
@@ -544,10 +549,10 @@ describe('SubjectLineGenerator', () => {
   it('shows customizable label when subject line is selected', () => {
     usePromotionStore.setState({
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
-      generatedSubjectLines: ['Citizen: Up to 20% OFF'],
-      selectedSubjectLine: 'Citizen: Up to 20% OFF',
+      generatedSubjectLines: ['Acme: Up to 20% OFF'],
+      selectedSubjectLine: 'Acme: Up to 20% OFF',
     });
 
     renderWithProviders(<SubjectLineGenerator />);

@@ -11,7 +11,7 @@ import { templates, isHTMLContent, type TemplateResult } from '@/lib/templates';
 import { createEMLFile } from '@/lib/emailUtils';
 import { getEmployeeSignature } from '@/lib/signature';
 import { plainTextToPreviewHTML } from '@/lib/emailPreviewUtils';
-import { getUserProfile } from '@/lib/profile';
+import { getUserProfile, getStoreName } from '@/lib/profile';
 import { getRecommendedFormat } from '@/lib/ui-utils';
 import { saveBlob } from '@/lib/file-save';
 
@@ -124,8 +124,8 @@ ${htmlSignature}
     }
 
     const profile = getUserProfile();
-    const fromName = profile?.employeeName || 'Citizen Company Store';
-    const fromEmail = profile?.storeEmail || 'store@citizenwatchgroup.com';
+    const fromName = profile?.employeeName || getStoreName();
+    const fromEmail = profile?.storeEmail || 'store@example.com';
 
     try {
       const emlContent = await createEMLFile(

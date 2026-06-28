@@ -24,7 +24,7 @@
 
 ## Executive Summary
 
-This document provides a comprehensive implementation plan for three integrated features that enhance the Communication Template Generator application:
+This document provides a comprehensive implementation plan for three integrated features that enhance the CometCast application:
 
 ### Features Overview
 
@@ -665,7 +665,7 @@ Enhance EML/EMLTPL file generation to include:
 ### Target Outcome
 - Multipart/alternative EML with both text and HTML
 - HTML signature with Century Gothic font
-- Clickable brand links (Alpina, Bulova, Citizen, Frederique Constant)
+- Clickable brand links (Lumen, Zenith, Acme, Meridian)
 - Clickable Google Maps Plus Code link
 - RFC 2045/2046 compliant
 
@@ -714,17 +714,17 @@ function createGenericEMLFile(subject, body, attachments = [], format = 'eml') {
 function getEmployeeSignature() {
     const name = userProfile?.employeeName || 'Employee Name';
     const title = userProfile?.jobTitle || 'Sales Associate';
-    const storeName = userProfile?.storeName || 'Citizen Company Store';
+    const storeName = userProfile?.storeName || 'Acme Store';
     const phone = userProfile?.storePhone || '555-123-4567';
     const address = userProfile?.storeAddress || '';
 
     return `${name} │ ${title}
 ______________________________________________________________________
-Citizen Watch America - ${storeName}
+Acme Inc. - ${storeName}
 ${address ? address.replace(/\n/g, '\n') : ''}
 Tel/SMS: ${phone}
 
-Alpina | Bulova | Citizen | Frederique Constant
+Lumen | Zenith | Acme | Meridian
 
 Please consider the environment before printing this e-mail`;
 }
@@ -752,17 +752,17 @@ function getEmployeeSignature(format = 'text') {
     // Get profile data with fallbacks
     const name = userProfile?.employeeName || 'Employee Name';
     const title = userProfile?.jobTitle || 'Sales Associate';
-    const storeName = userProfile?.storeName || 'Citizen Company Store';
+    const storeName = userProfile?.storeName || 'Acme Store';
     const phone = userProfile?.storePhone || '555-123-4567';
     const address = userProfile?.storeAddress || '';
     const plusCode = userProfile?.storePlusCode || '';
-    const email = userProfile?.storeEmail || 'store@citizenwatchgroup.com';
+    const email = userProfile?.storeEmail || 'store@example.com';
 
     if (format === 'html') {
         // Split email for partial hyperlink formatting
         const emailParts = email.split('@');
         const emailPrefix = emailParts[0] || 'store';
-        const emailDomain = emailParts[1] || 'citizenwatchgroup.com';
+        const emailDomain = emailParts[1] || 'example.com';
 
         return `<div style="font-family: 'Century Gothic', Aptos, Arial, sans-serif; font-size: 9pt; color: #000000;">
     <p style="margin: 0; padding: 0;">
@@ -772,7 +772,7 @@ function getEmployeeSignature(format = 'text') {
         ______________________________________________________________________
     </p>
     <p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
-        <strong>Citizen Watch America</strong> - ${sanitizeHTML(storeName)}
+        <strong>Acme Inc.</strong> - ${sanitizeHTML(storeName)}
     </p>
     ${address ? `<p style="margin: 0; padding: 0; font-size: 8pt; color: #2f2f2f;">
         ${sanitizeHTML(address).replace(/\n/g, '<br>')}
@@ -791,10 +791,10 @@ function getEmployeeSignature(format = 'text') {
               style="color: #0000ee; text-decoration: underline; font-size: 8pt;">@${sanitizeHTML(emailDomain)}</a>
     </p>
     <p style="margin: 4px 0; padding: 0; font-size: 8pt;">
-        <a href="https://us.alpinawatches.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Alpina</a> |
-        <a href="https://www.bulova.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Bulova</a> |
-        <a href="https://www.citizenwatch.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Citizen</a> |
-        <a href="https://us.frederiqueconstant.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Frederique Constant</a>
+        <a href="https://lumen.example.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Lumen</a> |
+        <a href="https://zenith.example.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Zenith</a> |
+        <a href="https://acme.example.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Acme</a> |
+        <a href="https://meridian.example.com/" style="color: #0000ee; text-decoration: underline; font-size: 8pt;">Meridian</a>
     </p>
     <p style="margin: 4px 0; padding: 0; font-size: 8pt; color: #0c8822;">
         <strong>Please consider the environment before printing this e-mail</strong>
@@ -805,11 +805,11 @@ function getEmployeeSignature(format = 'text') {
     // Default: plain text format
     return `${name} │ ${title}
 ______________________________________________________________________
-Citizen Watch America - ${storeName}
+Acme Inc. - ${storeName}
 ${address ? address.replace(/\n/g, '\n') : ''}
 Tel/SMS: ${phone}
 
-Alpina | Bulova | Citizen | Frederique Constant
+Lumen | Zenith | Acme | Meridian
 
 Please consider the environment before printing this e-mail`;
 }
@@ -964,12 +964,12 @@ function createGenericEMLFile(subject, body, attachments = [], format = 'eml') {
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substr(2, 9);
     const boundary = '----=_NextPart_' + timestamp + '_' + randomId;
-    const messageId = `<single.${timestamp}.${randomId}@citizenstore.local>`;
+    const messageId = `<single.${timestamp}.${randomId}@cometcast.local>`;
     const date = new Date().toUTCString();
 
     // Get user profile for sender information
-    const senderName = userProfile?.storeName || 'Citizen Company Store';
-    const senderEmail = userProfile?.storeEmail || 'store@citizenwatchgroup.com';
+    const senderName = userProfile?.storeName || 'Acme Store';
+    const senderEmail = userProfile?.storeEmail || 'store@example.com';
 
     // Create EML headers
     let eml = '';
@@ -1070,7 +1070,7 @@ test('getEmployeeSignature("html") returns HTML', () => {
     const sig = getEmployeeSignature('html');
     expect(sig).toContain('<div');
     expect(sig).toContain('</div>');
-    expect(sig).toContain('href="https://www.bulova.com/"');
+    expect(sig).toContain('href="https://zenith.example.com/"');
 });
 
 // Test text-to-HTML conversion
@@ -2224,10 +2224,10 @@ eml += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n`;
 
 ### Official Brand Websites
 
-- **Alpina**: https://us.alpinawatches.com/
-- **Bulova**: https://www.bulova.com/
-- **Citizen**: https://www.citizenwatch.com/
-- **Frederique Constant**: https://us.frederiqueconstant.com/
+- **Lumen**: https://lumen.example.com/
+- **Zenith**: https://zenith.example.com/
+- **Acme**: https://acme.example.com/
+- **Meridian**: https://meridian.example.com/
 
 ### Google Maps Plus Codes
 

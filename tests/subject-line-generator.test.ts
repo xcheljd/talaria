@@ -136,19 +136,31 @@ describe('generateSubjectLines', () => {
       promotionEntries: [
         {
           id: 1,
-          line: 'CITIZEN – ADDITIONAL 20% OFF',
-          collections: 'Corso, Avion',
+          line: 'ACME – ADDITIONAL 20% OFF',
+          collections: 'Aria, Volt',
           callout: '',
         },
       ],
+      brandKeywords: ['Acme', 'Zenith'],
     };
     const result = generateSubjectLines(input);
     expect(result.length).toBeGreaterThan(0);
-    // Should contain Citizen-related subjects
-    const hasCitizen = result.some((s) =>
-      s.toLowerCase().includes('citizen')
-    );
-    expect(hasCitizen).toBe(true);
+    // Should contain Acme-related subjects
+    const hasBrand = result.some((s) => s.toLowerCase().includes('acme'));
+    expect(hasBrand).toBe(true);
+  });
+
+  it('features profile collection keywords in subjects', () => {
+    const input: SubjectLineInput = {
+      promoDateRange: '',
+      promotionEntries: [
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
+      ],
+      collectionKeywords: ['Aria', 'Volt'],
+    };
+    const result = generateSubjectLines(input);
+    const hasCollection = result.some((s) => s.includes('Aria'));
+    expect(hasCollection).toBe(true);
   });
 
   it('generates discount-focused subjects', () => {
@@ -157,7 +169,7 @@ describe('generateSubjectLines', () => {
       promotionEntries: [
         {
           id: 1,
-          line: 'BULOVA – 50% OFF',
+          line: 'ZENITH – 50% OFF',
           collections: '',
           callout: '',
         },
@@ -174,7 +186,7 @@ describe('generateSubjectLines', () => {
       promotionEntries: [
         {
           id: 1,
-          line: 'CITIZEN – 30% OFF',
+          line: 'ACME – 30% OFF',
           collections: '',
           callout: 'Limited stock available',
         },
@@ -193,7 +205,7 @@ describe('generateSubjectLines', () => {
       promotionEntries: [
         {
           id: 1,
-          line: 'CITIZEN – 40% OFF',
+          line: 'ACME – 40% OFF',
           collections: '',
           callout: 'Final sale items excluded',
         },
@@ -210,7 +222,7 @@ describe('generateSubjectLines', () => {
     const input: SubjectLineInput = {
       promoDateRange: 'Nov 15-22',
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 20% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 20% OFF', collections: '', callout: '' },
       ],
     };
     const result = generateSubjectLines(input);
@@ -224,21 +236,22 @@ describe('generateSubjectLines', () => {
       promotionEntries: [
         {
           id: 1,
-          line: 'CITIZEN – 20% OFF',
-          collections: 'Corso',
+          line: 'ACME – 20% OFF',
+          collections: 'Aria',
           callout: '',
         },
         {
           id: 2,
-          line: 'BULOVA – 30% OFF',
-          collections: 'Marine Star',
+          line: 'ZENITH – 30% OFF',
+          collections: 'Tide',
           callout: '',
         },
       ],
+      brandKeywords: ['Acme', 'Zenith'],
     };
     const result = generateSubjectLines(input);
     const hasMultiBrand = result.some(
-      (s) => s.includes('Citizen') && s.includes('Bulova')
+      (s) => s.includes('Acme') && s.includes('Zenith')
     );
     expect(hasMultiBrand).toBe(true);
   });
@@ -249,7 +262,7 @@ describe('generateSubjectLines', () => {
       promotionEntries: [
         {
           id: 1,
-          line: 'CITIZEN – 20% OFF',
+          line: 'ACME – 20% OFF',
           collections: 'A very long collection name that might make subjects too long',
           callout: '',
         },
@@ -266,7 +279,7 @@ describe('generateSubjectLines', () => {
     const input: SubjectLineInput = {
       promoDateRange: '',
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 30% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 30% OFF', collections: '', callout: '' },
       ],
     };
     const result = generateSubjectLines(input);
@@ -278,7 +291,7 @@ describe('generateSubjectLines', () => {
     const input: SubjectLineInput = {
       promoDateRange: '',
       promotionEntries: [
-        { id: 1, line: 'CITIZEN – 30% OFF', collections: '', callout: '' },
+        { id: 1, line: 'ACME – 30% OFF', collections: '', callout: '' },
       ],
     };
     const result = generateSubjectLines(input);
@@ -318,10 +331,11 @@ describe('generateSubjectLines', () => {
       promotionEntries: [],
       newsletterHeading: '',
       newsletterBody:
-        '<p>Shop Citizen, Bulova, and Frederique Constant timepieces.</p>',
+        '<p>Shop Acme, Zenith, and Meridian timepieces.</p>',
+      brandKeywords: ['Acme', 'Zenith', 'Meridian'],
     };
     const result = generateSubjectLines(input);
-    const hasBrand = result.some((s) => s.includes('Citizen'));
+    const hasBrand = result.some((s) => s.includes('Acme'));
     expect(hasBrand).toBe(true);
   });
 
@@ -351,7 +365,7 @@ describe('generateSubjectLines', () => {
       promotionEntries: [],
       newsletterHeading: 'A Special Day for Him. Join Us',
       newsletterBody:
-        '<p>Celebrate the dads in your life with Citizen and Bulova.</p>',
+        '<p>Celebrate the dads in your life with Acme and Zenith.</p>',
     };
     const result = generateSubjectLines(input);
     const hasFathersDay = result.some((s) =>

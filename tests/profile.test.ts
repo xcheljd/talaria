@@ -56,8 +56,8 @@ describe('profile', () => {
       expect(getStorePhone()).toBe('555-9999');
     });
 
-    it('returns default when no profile', () => {
-      expect(getStorePhone()).toBe('702-357-8990');
+    it('returns empty string when no profile', () => {
+      expect(getStorePhone()).toBe('');
     });
   });
 
@@ -67,8 +67,8 @@ describe('profile', () => {
       expect(getStoreName()).toBe('Test Store');
     });
 
-    it('returns default when no profile', () => {
-      expect(getStoreName()).toBe('Citizen Company Store');
+    it('returns neutral default when no profile', () => {
+      expect(getStoreName()).toBe('Your Store');
     });
   });
 
@@ -78,15 +78,20 @@ describe('profile', () => {
       expect(getStoreLocation()).toBe('the North Premium Outlets');
     });
 
-    it('returns default when no profile', () => {
-      expect(getStoreLocation()).toBe('the South Premium Outlets');
+    it('returns empty string when no profile', () => {
+      expect(getStoreLocation()).toBe('');
     });
   });
 
   describe('getFullStoreLocation', () => {
-    it('returns full location with prefix', () => {
-      saveUserProfile({ storeLocation: 'the Mall' });
-      expect(getFullStoreLocation()).toBe('Citizen Company Store at the Mall');
+    it('returns "<store name> at <location>"', () => {
+      saveUserProfile({ storeName: 'My Store', storeLocation: 'the Mall' });
+      expect(getFullStoreLocation()).toBe('My Store at the Mall');
+    });
+
+    it('falls back to just the store name when no location', () => {
+      saveUserProfile({ storeName: 'My Store' });
+      expect(getFullStoreLocation()).toBe('My Store');
     });
   });
 
@@ -96,10 +101,8 @@ describe('profile', () => {
       expect(getStoreAddress()).toBe('123 Main St');
     });
 
-    it('returns default when no profile', () => {
-      expect(getStoreAddress()).toBe(
-        '7400 Las Vegas Blvd S #46, Las Vegas, NV 89123'
-      );
+    it('returns empty string when no profile', () => {
+      expect(getStoreAddress()).toBe('');
     });
   });
 
@@ -109,13 +112,13 @@ describe('profile', () => {
       expect(getStoreEmail()).toBe('test@store.com');
     });
 
-    it('derives email from store name when no email set', () => {
+    it('returns empty string when no store email set', () => {
       saveUserProfile({ storeName: 'My Store' });
-      expect(getStoreEmail()).toBe('mystore@citizenwatchgroup.com');
+      expect(getStoreEmail()).toBe('');
     });
 
-    it('returns default when no profile', () => {
-      expect(getStoreEmail()).toBe('store@citizenwatchgroup.com');
+    it('returns empty string when no profile', () => {
+      expect(getStoreEmail()).toBe('');
     });
   });
 
@@ -147,8 +150,8 @@ describe('profile', () => {
       expect(getStorePlusCode()).toBe('ABC123');
     });
 
-    it('returns default when no profile', () => {
-      expect(getStorePlusCode()).toBe('8CQQ9C3P+85');
+    it('returns empty string when no profile', () => {
+      expect(getStorePlusCode()).toBe('');
     });
   });
 

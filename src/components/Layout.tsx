@@ -1,18 +1,18 @@
 import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Layers, User, Loader2 } from 'lucide-react';
+import { Layers, Settings as SettingsIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useDevMode } from '@/hooks/useDevMode';
 
 const navLinks = [
   { to: '/', label: 'Templates', icon: Layers },
-  { to: '/start', label: 'Profile', icon: User },
+  { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ] as const;
 
 // nav entries visible to regular users (dev mode off)
 const regularNavLinks = [
-  { to: '/start', label: 'Profile', icon: User },
+  { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ] as const;
 
 export function Layout() {
@@ -32,7 +32,7 @@ export function Layout() {
             className="mr-6 flex items-center space-x-2"
           >
             <Layers className="h-5 w-5" />
-            <span className="font-bold">Template Generator</span>
+            <span className="font-bold">CometCast</span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             {links.map(({ to, label, icon: Icon }) => (

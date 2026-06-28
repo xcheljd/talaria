@@ -1,4 +1,4 @@
-# Communication Template Generator
+# CometCast
 
 Single-page React app for customer communications (email, text, phone). Built with Vite 7, React 19, TypeScript, Tailwind CSS v4, and shadcn/ui, with an optional Tauri desktop shell.
 
@@ -30,7 +30,7 @@ npm run dev          # Start dev server on http://localhost:5173
 | Page | Route | Description |
 |---|---|---|
 | Templates landing | `/` | Pick a template category |
-| Template generator | `/templates` | Main communication template generator |
+| Template generator | `/templates` | Main template generator |
 | Promotions | `/promotion` | Promotion email generator with collapsible editors |
 | Profile (read-only) | `/profile` | View current profile |
 | Profile settings | `/profile/settings` | Edit profile + app settings |

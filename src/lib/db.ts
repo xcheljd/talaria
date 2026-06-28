@@ -18,7 +18,10 @@ export interface BulkEmailRecord {
   savedAt: string;
 }
 
-export const DB_NAME = 'CitizenTemplates';
+// IndexedDB store name for the app's PDFs and bulk-email recipients. Renamed as
+// part of the CometCast rebrand; installs created before the rename keep their
+// data under the old name and start fresh here (acceptable for the rebrand).
+export const DB_NAME = 'CometCast';
 export const DB_VERSION = 2;
 export const STORE_NAME = 'promotionPDFs';
 export const BULK_EMAIL_STORE = 'bulkEmailRecipients';

@@ -155,7 +155,8 @@ describe('SubjectLineGenerator', () => {
     await user.click(screen.getByText('Generate suggestions'));
 
     expect(screen.getByTestId('inbox-preview')).toBeInTheDocument();
-    expect(screen.getByText('Citizen Watch Company')).toBeInTheDocument();
+    // Sender name defaults to the neutral company-name placeholder
+    expect(screen.getByText('Your Company')).toBeInTheDocument();
   });
 
   it('shows character count badge', async () => {

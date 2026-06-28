@@ -1,7 +1,7 @@
 [package]
-name = "communication-template-generator"
+name = "talaria"
 version = "1.4.0"
-description = "Communication Template Generator"
+description = "CometCast (codename Talaria)"
 authors = ["you"]
 # amatl (src/amatl.rs) is intentionally library-neutral for future extraction
 # as its own crate; MIT OR Apache-2.0 is compatible with all of its deps:
@@ -13,7 +13,7 @@ edition = "2021"
 rust-version = "1.77.2"
 
 [lib]
-name = "communication_template_generator_lib"
+name = "talaria_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

@@ -1,4 +1,4 @@
-# Citizen Communication Template Generator - Codebase Analysis
+# Acme CometCast - Codebase Analysis
 
 ## Executive Summary
 
@@ -8,7 +8,7 @@ This is a professional web application for generating communication templates fo
 
 ## 1. SIGNATURE FUNCTIONALITY
 
-### Location: `/Users/home/Documents/citizen-communication-templates/app.js` (Lines 325-367)
+### Location: `/Users/home/Documents/talaria/app.js` (Lines 325-367)
 
 ### Function: `getEmployeeSignature(format = 'text')`
 
@@ -18,7 +18,7 @@ This function generates two different signature formats based on the template co
 - **Font**: Century Gothic, sans-serif, 8-9pt
 - **Layout**: Structured with name, title, company info, address, phone, email, and brand links
 - **Styling**: Outlook-compatible with inline CSS styling
-- **Links**: Includes links to brand websites (Alpina, Bulova, Citizen, Frederique Constant)
+- **Links**: Includes links to brand websites (Lumen, Zenith, Acme, Meridian)
 - **ID**: Uses `ms-outlook-mobile-signature` for mobile compatibility
 - **Components**:
   - Name and title with separator bar
@@ -51,7 +51,7 @@ Falls back to hardcoded defaults if profile data unavailable:
 ```javascript
 const name = 'Employee Name'
 const title = 'Sales Associate'
-const storeName = 'Citizen Company Store'
+const storeName = 'Acme Store'
 const storeLocation = 'Orlando Premium Outlets'
 const phone = '555-123-4567'
 ```
@@ -321,7 +321,7 @@ userProfile = {
 ```
 Subject: Your Subject Line
 Date: Mon, 02 Nov 2025 20:30:00 GMT
-Message-ID: <single.1730572200000.abc123de@citizenstore.local>
+Message-ID: <single.1730572200000.abc123de@cometcast.local>
 MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary="----=_NextPart_1730572200000_abc123de"
 X-Unsent: 1
@@ -529,14 +529,14 @@ function escapeAttr(str) {
 
 | File | Purpose | Key Content |
 |------|---------|-------------|
-| `/Users/home/Documents/citizen-communication-templates/app.js` | Main application logic (5304 lines) | Signature functions, EML creation, template system, UI handlers |
-| `/Users/home/Documents/citizen-communication-templates/index.html` | Main application interface | Form fields, output area, buttons |
-| `/Users/home/Documents/citizen-communication-templates/start.html` | User profile configuration | Employee info, store details for signature |
-| `/Users/home/Documents/citizen-communication-templates/styles.css` | Complete styling | Theme system, signature styling, form layout |
-| `/Users/home/Documents/citizen-communication-templates/README.md` | User documentation | Features, quick start, architecture overview |
-| `/Users/home/Documents/citizen-communication-templates/TEMPLATE-UPDATES.md` | Implementation details | Feature sharing plan, technical details |
-| `/Users/home/Documents/citizen-communication-templates/CHANGELOG.md` | Version history | All changes and improvements |
-| `/Users/home/Documents/citizen-communication-templates/DEPLOYMENT-READY.md` | Deployment checklist | Testing results, deployment instructions |
+| `/Users/home/Documents/talaria/app.js` | Main application logic (5304 lines) | Signature functions, EML creation, template system, UI handlers |
+| `/Users/home/Documents/talaria/index.html` | Main application interface | Form fields, output area, buttons |
+| `/Users/home/Documents/talaria/start.html` | User profile configuration | Employee info, store details for signature |
+| `/Users/home/Documents/talaria/styles.css` | Complete styling | Theme system, signature styling, form layout |
+| `/Users/home/Documents/talaria/README.md` | User documentation | Features, quick start, architecture overview |
+| `/Users/home/Documents/talaria/TEMPLATE-UPDATES.md` | Implementation details | Feature sharing plan, technical details |
+| `/Users/home/Documents/talaria/CHANGELOG.md` | Version history | All changes and improvements |
+| `/Users/home/Documents/talaria/DEPLOYMENT-READY.md` | Deployment checklist | Testing results, deployment instructions |
 
 ---
 
@@ -578,7 +578,7 @@ function escapeAttr(str) {
 
 ## CONCLUSION
 
-The Citizen Communication Template Generator implements a sophisticated email signature and EML file system that:
+The Acme CometCast implements a sophisticated email signature and EML file system that:
 
 1. **Generates Professional Signatures**: Two formats (HTML for EML, plain text for simple emails)
 2. **Creates RFC-Compliant EML Files**: Proper MIME encoding, line endings, and attachments

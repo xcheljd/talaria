@@ -5,7 +5,7 @@
  */
 
 import { extractSignatureData } from './profile';
-import type { SignatureData } from './profile';
+import type { SignatureData, BrandLink } from './profile';
 import { sanitizeHTML } from './html-utils';
 import { isIframePreviewDarkMode } from './theme-utils';
 
@@ -13,10 +13,7 @@ import { isIframePreviewDarkMode } from './theme-utils';
 // TYPES
 // ============================================================================
 
-export interface BrandLink {
-  name: string;
-  url: string;
-}
+export type { BrandLink };
 
 export interface SignatureColors {
   primary: string;
@@ -33,11 +30,6 @@ export interface SignatureStyleConfig {
   };
 }
 
-export interface CompanyInfo {
-  companyName: string;
-  storeName: string;
-}
-
 export interface SignatureOptions {
   forPreview?: boolean;
 }
@@ -46,17 +38,8 @@ export interface SignatureOptions {
 // CONFIGURATION CONSTANTS
 // ============================================================================
 
-export const COMPANY_INFO: CompanyInfo = {
-  companyName: 'Citizen Watch America',
-  storeName: 'Citizen Company Store',
-};
-
-export const BRAND_LINKS: readonly BrandLink[] = [
-  { name: 'Alpina', url: 'https://us.alpinawatches.com/' },
-  { name: 'Bulova', url: 'https://www.bulova.com/' },
-  { name: 'Citizen', url: 'https://www.citizenwatch.com/' },
-  { name: 'Frederique Constant', url: 'https://us.frederiqueconstant.com/' },
-];
+// Company name, store name, and brand links are read per-install from the
+// saved profile (see extractSignatureData) so the signature works for any brand.
 
 export const MANAGER_TITLES: readonly string[] = [
   'manager',
@@ -156,15 +139,19 @@ function renderCompanyInfo(
   format: 'text' | 'html',
   colors: SignatureColors
 ): string {
+  const storeLine = data.location
+    ? `${data.storeName} - ${data.location}`
+    : data.storeName;
+
   if (format === 'html') {
     return `<p style="margin: 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${colors.secondary};">
-        <strong>${COMPANY_INFO.companyName}</strong>
+        <strong>${sanitizeHTML(data.companyName)}</strong>
     </p>
     <p style="margin: 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details}; color: ${colors.secondary};">
-        <strong>${COMPANY_INFO.storeName} - ${sanitizeHTML(data.location)}</strong>
+        <strong>${sanitizeHTML(storeLine)}</strong>
     </p>`;
   }
-  return `${COMPANY_INFO.companyName}\n${COMPANY_INFO.storeName} - ${data.location}`;
+  return `${data.companyName}\n${storeLine}`;
 }
 
 /**
@@ -226,24 +213,33 @@ function renderEmail(
 }
 
 /**
- * Render brand links.
+ * Render brand links. Returns an empty string when no links are configured so
+ * the signature has no empty placeholder row.
  */
 function renderBrandLinks(
+  brandLinks: BrandLink[],
   format: 'text' | 'html',
   colors: SignatureColors
 ): string {
+  const links = brandLinks.filter((b) => b.name.trim() && b.url.trim());
+  if (links.length === 0) {
+    return '';
+  }
+
   if (format === 'html') {
-    const links = BRAND_LINKS.map(
-      (brand) =>
-        `<a href="${brand.url}" style="color: ${colors.link}; text-decoration: underline; font-size: ${SIGNATURE_STYLES.fontSize.details};">${brand.name}</a>`
-    ).join(` <span style="color: ${colors.secondary};">|</span> `);
+    const rendered = links
+      .map(
+        (brand) =>
+          `<a href="${sanitizeHTML(brand.url)}" style="color: ${colors.link}; text-decoration: underline; font-size: ${SIGNATURE_STYLES.fontSize.details};">${sanitizeHTML(brand.name)}</a>`
+      )
+      .join(` <span style="color: ${colors.secondary};">|</span> `);
 
     return `<p style="margin: 4px 0; padding: 0; font-size: ${SIGNATURE_STYLES.fontSize.details};">
-        ${links}
+        ${rendered}
     </p>`;
   }
 
-  return BRAND_LINKS.map((b) => b.name).join(' | ');
+  return links.map((b) => b.name).join(' | ');
 }
 
 /**
@@ -292,7 +288,7 @@ export function getEmployeeSignature(
     ${renderAddress(data, format, colors)}
     ${renderPhone(data, format, colors)}
     ${renderEmail(email, format, colors)}
-    ${renderBrandLinks(format, colors)}
+    ${renderBrandLinks(data.brandLinks, format, colors)}
 
     ${renderEnvironmentMessage(format, colors)}
 </div>`;
@@ -301,12 +297,13 @@ export function getEmployeeSignature(
   // Plain text format
   const addressLine = data.address ? `${data.address}\n` : '';
   const emailLine = email ? `\nEmail: ${email}\n` : '\n';
+  const brandLinksText = renderBrandLinks(data.brandLinks, format, colors);
+  const brandLinksLine = brandLinksText ? `${brandLinksText}\n` : '';
 
   return `${renderNameTitle(data, format)}
 ${renderSeparator(format, colors)}
 ${renderCompanyInfo(data, format, colors)}
 ${addressLine}${renderPhone(data, format, colors)}
-${emailLine}${renderBrandLinks(format, colors)}
-
+${emailLine}${brandLinksLine}
 ${renderEnvironmentMessage(format, colors)}`;
 }

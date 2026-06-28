@@ -1,8 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   getEmployeeSignature,
-  COMPANY_INFO,
-  BRAND_LINKS,
   MANAGER_TITLES,
   ENVIRONMENT_MESSAGE,
 } from '../src/lib/signature';
@@ -13,24 +11,35 @@ describe('signature', () => {
     localStorage.clear();
   });
 
+  const brandLinks = [
+    { name: 'Acme', url: 'https://acme.example.com/' },
+    { name: 'Zenith', url: 'https://zenith.example.com/' },
+  ];
+
   const managerProfile: UserProfile = {
     employeeName: 'Jane Smith',
     jobTitle: 'General Manager',
+    companyName: 'Acme Watch Co.',
+    storeName: 'Acme Downtown',
     storeLocation: 'the South Premium Outlets',
-    storeAddress: '7400 Las Vegas Blvd S',
+    storeAddress: '7400 Main St',
     storePhone: '702-555-1234',
-    companyEmail: 'jane.smith@citizenwatch.com',
-    storeEmail: 'southstore@citizenwatchgroup.com',
+    companyEmail: 'jane.smith@acme.com',
+    storeEmail: 'southstore@acme.com',
+    brandLinks,
   };
 
   const staffProfile: UserProfile = {
     employeeName: 'Bob Jones',
     jobTitle: 'Sales Associate',
+    companyName: 'Acme Watch Co.',
+    storeName: 'Acme North',
     storeLocation: 'the North Outlets',
     storeAddress: '456 North Ave',
     storePhone: '702-555-5678',
     companyEmail: '',
-    storeEmail: 'northstore@citizenwatchgroup.com',
+    storeEmail: 'northstore@acme.com',
+    brandLinks,
   };
 
   describe('getEmployeeSignature (text format)', () => {
@@ -44,8 +53,8 @@ describe('signature', () => {
     it('includes company info', () => {
       saveUserProfile(managerProfile);
       const sig = getEmployeeSignature('text');
-      expect(sig).toContain(COMPANY_INFO.companyName);
-      expect(sig).toContain(COMPANY_INFO.storeName);
+      expect(sig).toContain(managerProfile.companyName);
+      expect(sig).toContain(managerProfile.storeName);
     });
 
     it('includes phone number', () => {
@@ -58,13 +67,13 @@ describe('signature', () => {
     it('uses company email for management titles', () => {
       saveUserProfile(managerProfile);
       const sig = getEmployeeSignature('text');
-      expect(sig).toContain('jane.smith@citizenwatch.com');
+      expect(sig).toContain('jane.smith@acme.com');
     });
 
     it('uses store email for non-management titles', () => {
       saveUserProfile(staffProfile);
       const sig = getEmployeeSignature('text');
-      expect(sig).toContain('northstore@citizenwatchgroup.com');
+      expect(sig).toContain('northstore@acme.com');
     });
 
     it('includes environment message', () => {
@@ -76,9 +85,16 @@ describe('signature', () => {
     it('includes brand links as text', () => {
       saveUserProfile(managerProfile);
       const sig = getEmployeeSignature('text');
-      BRAND_LINKS.forEach((brand) => {
+      brandLinks.forEach((brand) => {
         expect(sig).toContain(brand.name);
       });
+    });
+
+    it('omits brand links when none are configured', () => {
+      saveUserProfile({ ...managerProfile, brandLinks: [] });
+      const sig = getEmployeeSignature('text');
+      expect(sig).not.toContain('Acme |');
+      expect(sig).toContain('Jane Smith');
     });
 
     it('handles missing address', () => {
@@ -109,13 +125,13 @@ describe('signature', () => {
       saveUserProfile(managerProfile);
       const sig = getEmployeeSignature('html');
       expect(sig).toContain('mailto:');
-      expect(sig).toContain('jane.smith@citizenwatch.com');
+      expect(sig).toContain('jane.smith@acme.com');
     });
 
     it('includes brand link hrefs', () => {
       saveUserProfile(managerProfile);
       const sig = getEmployeeSignature('html');
-      BRAND_LINKS.forEach((brand) => {
+      brandLinks.forEach((brand) => {
         expect(sig).toContain(brand.url);
         expect(sig).toContain(brand.name);
       });

@@ -173,7 +173,7 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
                 id={`entry-${entry.id}-line`}
                 value={entry.line}
                 onChange={handleChange('line')}
-                placeholder="CITIZEN – ADDITIONAL 20% OFF"
+                placeholder="BRAND – ADDITIONAL 20% OFF"
                 data-field="line"
               />
             </div>
@@ -188,7 +188,7 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
                 id={`entry-${entry.id}-collections`}
                 value={entry.collections}
                 onChange={handleChange('collections')}
-                placeholder="Corso, Avion, Marine Star"
+                placeholder="Collection A, Collection B"
                 data-field="collections"
               />
             </div>

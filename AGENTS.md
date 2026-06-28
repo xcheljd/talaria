@@ -6,8 +6,9 @@ For the Rust/Tauri backend specifically, see [src-tauri/src/AGENTS.md](src-tauri
 
 ## What this is
 
-A **React 19 + TypeScript (strict) single-page app** that generates citizen /
-store communication templates — short customer emails, phone scripts, and a
+A **React 19 + TypeScript (strict) single-page app** (CometCast, codename
+Talaria) that generates brand / store communication templates — short customer
+emails, phone scripts, and a
 full promotion-email builder with bulk BCC batch export. It ships both as a web
 app and as a **Tauri 2 desktop app** (Windows `.exe` + macOS) built in CI.
 

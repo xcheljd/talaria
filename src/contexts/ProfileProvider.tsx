@@ -16,8 +16,19 @@ import {
   getJobTitle as getJobTitleUtil,
   getCompanyEmail as getCompanyEmailUtil,
   getStoreEmail as getStoreEmailUtil,
+  getCompanyName as getCompanyNameUtil,
+  getProductNoun as getProductNounUtil,
+  getProductNounPlural as getProductNounPluralUtil,
+  getBrandLinks as getBrandLinksUtil,
+  getBrandKeywords as getBrandKeywordsUtil,
+  getCollectionKeywords as getCollectionKeywordsUtil,
   hasProfile as hasProfileUtil,
+  DEFAULT_COMPANY_NAME,
+  DEFAULT_STORE_NAME,
+  DEFAULT_PRODUCT_NOUN,
+  DEFAULT_PRODUCT_NOUN_PLURAL,
   type UserProfile,
+  type BrandLink,
 } from '@/lib/profile';
 
 // ─── Context Value Interface ──────────────────────────────────────────────────
@@ -89,27 +100,75 @@ export function useProfile(): ProfileContextValue {
 }
 
 /**
- * Get store phone number with fallback default.
+ * Get store phone number (empty when unset).
  */
 export function useStorePhone(): string {
   const { profile } = useProfileContext();
-  return profile?.storePhone || '702-357-8990';
+  return profile?.storePhone || '';
 }
 
 /**
- * Get store name with fallback default.
+ * Get company / brand name with neutral fallback default.
+ */
+export function useCompanyName(): string {
+  const { profile } = useProfileContext();
+  return profile?.companyName || DEFAULT_COMPANY_NAME;
+}
+
+/**
+ * Get store name with neutral fallback default.
  */
 export function useStoreName(): string {
   const { profile } = useProfileContext();
-  return profile?.storeName || 'Citizen Company Store';
+  return profile?.storeName || DEFAULT_STORE_NAME;
 }
 
 /**
- * Get store location with fallback default.
+ * Get store location (empty when unset).
  */
 export function useStoreLocation(): string {
   const { profile } = useProfileContext();
-  return profile?.storeLocation || 'the South Premium Outlets';
+  return profile?.storeLocation || '';
+}
+
+/**
+ * Get the singular product noun with neutral fallback (e.g. "watch").
+ */
+export function useProductNoun(): string {
+  const { profile } = useProfileContext();
+  return profile?.productNoun?.trim() || DEFAULT_PRODUCT_NOUN;
+}
+
+/**
+ * Get the plural product noun with neutral fallback (e.g. "watches").
+ */
+export function useProductNounPlural(): string {
+  const { profile } = useProfileContext();
+  return profile?.productNounPlural?.trim() || DEFAULT_PRODUCT_NOUN_PLURAL;
+}
+
+/**
+ * Get the configured signature brand links (empty when none set).
+ */
+export function useBrandLinks(): BrandLink[] {
+  const { profile } = useProfileContext();
+  return profile?.brandLinks ?? [];
+}
+
+/**
+ * Get the brand keywords featured in subject-line suggestions.
+ */
+export function useBrandKeywords(): string[] {
+  const { profile } = useProfileContext();
+  return profile?.brandKeywords ?? [];
+}
+
+/**
+ * Get the collection keywords featured in subject-line suggestions.
+ */
+export function useCollectionKeywords(): string[] {
+  const { profile } = useProfileContext();
+  return profile?.collectionKeywords ?? [];
 }
 
 /**
@@ -137,18 +196,11 @@ export function useCompanyEmail(): string {
 }
 
 /**
- * Get store email with fallback derivation logic.
+ * Get store email (empty when unset).
  */
 export function useStoreEmail(): string {
   const { profile } = useProfileContext();
-  if (profile?.storeEmail) {
-    return profile.storeEmail;
-  } else if (profile?.storeName) {
-    const emailPrefix = profile.storeName.toLowerCase().replace(/\s+/g, '');
-    return `${emailPrefix}@citizenwatchgroup.com`;
-  } else {
-    return 'store@citizenwatchgroup.com';
-  }
+  return profile?.storeEmail || '';
 }
 
 /**
@@ -168,5 +220,11 @@ export {
   getJobTitleUtil as getJobTitle,
   getCompanyEmailUtil as getCompanyEmail,
   getStoreEmailUtil as getStoreEmail,
+  getCompanyNameUtil as getCompanyName,
+  getProductNounUtil as getProductNoun,
+  getProductNounPluralUtil as getProductNounPlural,
+  getBrandLinksUtil as getBrandLinks,
+  getBrandKeywordsUtil as getBrandKeywords,
+  getCollectionKeywordsUtil as getCollectionKeywords,
   hasProfileUtil as hasProfile,
 };

@@ -1,5 +1,5 @@
 /**
- * Tests for the Template Generator page and related components.
+ * Tests for the CometCast template page and related components.
  *
  * Covers:
  * - templates.ts pure functions (template definitions, helpers)
@@ -37,10 +37,11 @@ beforeAll(() => {
 const TEST_PROFILE = {
   employeeName: 'Jane Smith',
   jobTitle: 'Sales Associate',
-  storeName: 'Citizen Company Store - Orlando',
+  companyName: 'Acme Inc.',
+  storeName: 'Acme Store - Orlando',
   storeLocation: 'the Orlando Premium Outlets',
   storePhone: '407-555-1234',
-  storeEmail: 'orlando@citizenwatchgroup.com',
+  storeEmail: 'orlando@acme.com',
   storeAddress: '4950 International Dr, Orlando, FL 32819',
   storeHours: 'Mon-Sat: 10AM-8PM, Sun: 11AM-7PM',
 };
@@ -141,13 +142,13 @@ describe('templates.ts', () => {
   it('text-availability generates correct output without signature', () => {
     const result = templates.templates['text-availability'].generate({
       customerName: 'John',
-      modelName: 'Eco-Drive',
+      modelName: 'Aero',
       price: '299',
       closingTime: '9 PM',
     });
 
     expect(result.body).toContain('John');
-    expect(result.body).toContain('Eco-Drive');
+    expect(result.body).toContain('Aero');
     expect(result.body).toContain('299');
     expect(result.includeSignature).toBe(false);
   });
@@ -156,7 +157,7 @@ describe('templates.ts', () => {
     const result = templates.templates['text-interest-followup'].generate({
       customerName: 'John',
       employeeName: 'Jane',
-      modelName: 'Eco-Drive Promaster',
+      modelName: 'Aero Summit',
       discount: '25',
       msrp: '400',
       endDate: 'Friday',
@@ -252,12 +253,14 @@ describe('templates.ts', () => {
     expect(specific[0].key).toBe('new-customer-welcome');
   });
 
-  it('getFieldSuggestions returns correct suggestions', () => {
-    expect(templates.getFieldSuggestions('brand')).toEqual([
-      'Citizen',
-      'Bulova',
-      'Frederique Constant',
+  it('getFieldSuggestions returns suggestions when configured', () => {
+    // Brand suggestions are no longer hardcoded to specific watch brands.
+    expect(templates.getFieldSuggestions('carrier')).toEqual([
+      'UPS',
+      'FedEx',
+      'USPS',
     ]);
+    expect(templates.getFieldSuggestions('brand')).toEqual([]);
     expect(templates.getFieldSuggestions('customerName')).toEqual([]);
   });
 
@@ -723,13 +726,13 @@ describe('Full template generation flow', () => {
     // Verify body contains expected content
     expect(result.body).toContain('John Doe');
     expect(result.body).toContain('Subject:');
-    expect(result.body).toContain('Welcome to Citizen Company Store');
+    expect(result.body).toContain('Welcome to Acme Store - Orlando');
 
     // Extract and verify subject
     const subjectMatch = result.body.match(/^Subject:\s*(.+)/m);
     expect(subjectMatch).toBeTruthy();
     expect(subjectMatch![1]).toBe(
-      'Welcome to Citizen Company Store - Your VIP Access'
+      'Welcome to Acme Store - Orlando - Your VIP Access'
     );
 
     // Verify signature inclusion
@@ -749,8 +752,8 @@ describe('Full template generation flow', () => {
       },
       'back-in-stock': {
         customerName: 'John',
-        brand: 'Citizen',
-        modelName: 'Eco-Drive',
+        brand: 'Acme',
+        modelName: 'Aero',
         modelNumber: 'BN0150',
         price: '299',
         holdDeadline: 'Friday 5PM',
@@ -758,16 +761,16 @@ describe('Full template generation flow', () => {
       },
       'thank-you-warranty': {
         customerName: 'John',
-        brand: 'Citizen',
-        modelName: 'Eco-Drive',
+        brand: 'Acme',
+        modelName: 'Aero',
         warrantyYears: '5',
         price: '299',
         employeeName: 'Jane',
       },
       'new-model-arrival': {
         customerName: 'John',
-        brand: 'Citizen',
-        modelName: 'Eco-Drive',
+        brand: 'Acme',
+        modelName: 'Aero',
         modelNumber: 'BN0150',
         keyFeature1: 'Solar',
         keyFeature2: '200m WR',
@@ -777,8 +780,8 @@ describe('Full template generation flow', () => {
       },
       'limited-edition': {
         customerName: 'John',
-        brand: 'Citizen',
-        modelName: 'Promaster',
+        brand: 'Acme',
+        modelName: 'Summit',
         modelNumber: 'BN0150',
         limitedDetails: '100 pieces',
         price: '599',
@@ -791,10 +794,10 @@ describe('Full template generation flow', () => {
       },
       'weekly-sale': {
         customerName: 'John',
-        collectionName: 'Eco-Drive',
+        collectionName: 'Aero',
         discount: '20',
-        brand: 'Citizen',
-        model1: 'Promaster',
+        brand: 'Acme',
+        model1: 'Summit',
         price1: '299',
         original1: '399',
         model2: '',
@@ -805,8 +808,8 @@ describe('Full template generation flow', () => {
       },
       'phone-confirmation': {
         customerName: 'John',
-        brand: 'Citizen',
-        modelName: 'Eco-Drive',
+        brand: 'Acme',
+        modelName: 'Aero',
         modelNumber: 'BN0150',
         price: '299',
         discount: '20',
@@ -818,8 +821,8 @@ describe('Full template generation flow', () => {
       },
       'phone-shipped': {
         customerName: 'John',
-        brand: 'Citizen',
-        modelName: 'Eco-Drive',
+        brand: 'Acme',
+        modelName: 'Aero',
         modelNumber: 'BN0150',
         trackingNumber: '1Z999',
         customerAddress: '123 Main St',
@@ -853,20 +856,20 @@ describe('Full template generation flow', () => {
       },
       'text-availability': {
         customerName: 'John',
-        modelName: 'Eco-Drive',
+        modelName: 'Aero',
         price: '299',
         closingTime: '9 PM',
       },
       'text-thank-you': {
         customerName: 'John',
-        modelName: 'Eco-Drive',
+        modelName: 'Aero',
         warrantyLength: '5-year',
-        brand: 'Citizen',
+        brand: 'Acme',
       },
       'text-interest-followup': {
         customerName: 'John',
         employeeName: 'Jane',
-        modelName: 'Eco-Drive',
+        modelName: 'Aero',
         discount: '25',
         msrp: '400',
         endDate: 'Friday',

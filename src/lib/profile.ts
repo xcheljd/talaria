@@ -5,11 +5,19 @@
 
 import { StorageKeys } from '@/lib/storage-keys';
 
+/** A single brand/website link shown in the email signature footer. */
+export interface BrandLink {
+  name: string;
+  url: string;
+}
+
 /** User profile shape */
 export interface UserProfile {
   employeeName?: string;
   jobTitle?: string;
   companyEmail?: string;
+  /** Parent company / brand name shown in signatures (e.g. "Acme Inc."). */
+  companyName?: string;
   storeName?: string;
   storeLocation?: string;
   storeAddress?: string;
@@ -18,19 +26,41 @@ export interface UserProfile {
   storeEmail?: string;
   storeHours?: string;
   storeDirections?: string;
+  /** Brand/website links rendered in the signature footer. */
+  brandLinks?: BrandLink[];
+  /** What the brand sells, singular (e.g. "watch", "candle"). Default "product". */
+  productNoun?: string;
+  /** Plural product noun (e.g. "watches"). Default "products". */
+  productNounPlural?: string;
+  /** Brand names featured in generated subject lines (e.g. "Acme", "Zenith"). */
+  brandKeywords?: string[];
+  /** Collection names featured in generated subject lines (e.g. "Aria", "Volt"). */
+  collectionKeywords?: string[];
 }
 
 /** Signature data extracted from profile */
 export interface SignatureData {
   name: string;
   title: string;
+  companyName: string;
+  storeName: string;
   location: string;
   address: string;
   phone: string;
   jobTitle: string;
   companyEmail: string;
   storeEmail: string;
+  brandLinks: BrandLink[];
 }
+
+// ─── Neutral defaults ───────────────────────────────────────────────────────
+// These fallbacks are intentionally brand-agnostic so the app ships ready for
+// any company. Real values come from the profile saved on the Settings page.
+
+export const DEFAULT_COMPANY_NAME = 'Your Company';
+export const DEFAULT_STORE_NAME = 'Your Store';
+export const DEFAULT_PRODUCT_NOUN = 'product';
+export const DEFAULT_PRODUCT_NOUN_PLURAL = 'products';
 
 /**
  * Get the complete user profile from localStorage.
@@ -55,60 +85,61 @@ export function saveUserProfile(profile: UserProfile): void {
 }
 
 /**
- * Get store phone number with fallback default.
+ * Get store phone number (empty when unset).
  */
 export function getStorePhone(): string {
   const profile = getUserProfile();
-  return profile?.storePhone || '702-357-8990';
+  return profile?.storePhone || '';
 }
 
 /**
- * Get store name with fallback default.
+ * Get company / brand name with neutral fallback default.
+ */
+export function getCompanyName(): string {
+  const profile = getUserProfile();
+  return profile?.companyName || DEFAULT_COMPANY_NAME;
+}
+
+/**
+ * Get store name with neutral fallback default.
  */
 export function getStoreName(): string {
   const profile = getUserProfile();
-  return profile?.storeName || 'Citizen Company Store';
+  return profile?.storeName || DEFAULT_STORE_NAME;
 }
 
 /**
- * Get store location with fallback default.
+ * Get store location (empty when unset).
  */
 export function getStoreLocation(): string {
   const profile = getUserProfile();
-  return profile?.storeLocation || 'the South Premium Outlets';
+  return profile?.storeLocation || '';
 }
 
 /**
- * Get full store location (with "Citizen Company Store at" prefix).
+ * Get full store location ("<Store Name> at <location>"). Falls back to just
+ * the store name when no location has been provided.
  */
 export function getFullStoreLocation(): string {
-  return `Citizen Company Store at ${getStoreLocation()}`;
+  const location = getStoreLocation();
+  const storeName = getStoreName();
+  return location ? `${storeName} at ${location}` : storeName;
 }
 
 /**
- * Get store address with fallback default.
+ * Get store address (empty when unset).
  */
 export function getStoreAddress(): string {
   const profile = getUserProfile();
-  return (
-    profile?.storeAddress || '7400 Las Vegas Blvd S #46, Las Vegas, NV 89123'
-  );
+  return profile?.storeAddress || '';
 }
 
 /**
- * Get store email with fallback default.
- * If no store email is set, derives from store name.
+ * Get store email (empty when unset).
  */
 export function getStoreEmail(): string {
   const profile = getUserProfile();
-  if (profile?.storeEmail) {
-    return profile.storeEmail;
-  } else if (profile?.storeName) {
-    const emailPrefix = profile.storeName.toLowerCase().replace(/\s+/g, '');
-    return `${emailPrefix}@citizenwatchgroup.com`;
-  } else {
-    return 'store@citizenwatchgroup.com';
-  }
+  return profile?.storeEmail || '';
 }
 
 /**
@@ -120,7 +151,7 @@ export function getCompanyEmail(): string {
 }
 
 /**
- * Get store hours with fallback default.
+ * Get store hours with generic fallback default.
  */
 export function getStoreHours(): string {
   const profile = getUserProfile();
@@ -128,11 +159,51 @@ export function getStoreHours(): string {
 }
 
 /**
- * Get store Plus Code with fallback default.
+ * Get store Plus Code (empty when unset).
  */
 export function getStorePlusCode(): string {
   const profile = getUserProfile();
-  return profile?.storePlusCode || '8CQQ9C3P+85';
+  return profile?.storePlusCode || '';
+}
+
+/**
+ * Get the singular product noun with neutral fallback (e.g. "watch").
+ */
+export function getProductNoun(): string {
+  const profile = getUserProfile();
+  return profile?.productNoun?.trim() || DEFAULT_PRODUCT_NOUN;
+}
+
+/**
+ * Get the plural product noun with neutral fallback (e.g. "watches").
+ */
+export function getProductNounPlural(): string {
+  const profile = getUserProfile();
+  return profile?.productNounPlural?.trim() || DEFAULT_PRODUCT_NOUN_PLURAL;
+}
+
+/**
+ * Get the configured signature brand links (empty when none set).
+ */
+export function getBrandLinks(): BrandLink[] {
+  const profile = getUserProfile();
+  return profile?.brandLinks ?? [];
+}
+
+/**
+ * Get the brand keywords featured in subject-line suggestions.
+ */
+export function getBrandKeywords(): string[] {
+  const profile = getUserProfile();
+  return profile?.brandKeywords ?? [];
+}
+
+/**
+ * Get the collection keywords featured in subject-line suggestions.
+ */
+export function getCollectionKeywords(): string[] {
+  const profile = getUserProfile();
+  return profile?.collectionKeywords ?? [];
 }
 
 /**
@@ -169,12 +240,15 @@ export function extractSignatureData(): SignatureData {
   return {
     name: profile.employeeName || 'Employee Name',
     title: profile.jobTitle || 'Sales Associate',
-    location: profile.storeLocation || 'the South Premium Outlets',
+    companyName: profile.companyName || DEFAULT_COMPANY_NAME,
+    storeName: profile.storeName || DEFAULT_STORE_NAME,
+    location: profile.storeLocation || '',
     address: profile.storeAddress || '',
-    phone: profile.storePhone || '702-357-8990',
+    phone: profile.storePhone || '',
     jobTitle: (profile.jobTitle || '').toLowerCase(),
     companyEmail: profile.companyEmail || '',
     storeEmail: profile.storeEmail || '',
+    brandLinks: profile.brandLinks ?? [],
   };
 }
 

@@ -78,10 +78,9 @@ describe('validateEmail', () => {
     expect(result.error).toBeNull();
   });
 
-  it('returns valid for citizen email', () => {
-    const result = validateEmail('name@citizenwatchgroup.com');
-    expect(result.isValid).toBe(true);
-    expect(result.isCitizenEmail).toBe(true);
+  it('returns valid for any well-formed email domain', () => {
+    expect(validateEmail('name@acme.com').isValid).toBe(true);
+    expect(validateEmail('user@gmail.com').isValid).toBe(true);
   });
 
   it('returns invalid for malformed email', () => {
@@ -99,12 +98,6 @@ describe('validateEmail', () => {
     const result = validateEmail('');
     expect(result.isValid).toBe(false);
     expect(result.error).toBe('Invalid email format');
-  });
-
-  it('detects non-citizen email', () => {
-    const result = validateEmail('user@gmail.com');
-    expect(result.isValid).toBe(true);
-    expect(result.isCitizenEmail).toBe(false);
   });
 });
 
@@ -157,20 +150,20 @@ describe('validatePlusCode', () => {
   });
 
   it('returns valid for short plus code format', () => {
-    const result = validatePlusCode('CWC8+R9');
+    const result = validatePlusCode('QXGV+2H');
     expect(result.isValid).toBe(true);
-    expect(result.formatted).toBe('CWC8+R9');
+    expect(result.formatted).toBe('QXGV+2H');
   });
 
   it('uppercases the plus code', () => {
-    const result = validatePlusCode('cwc8+r9');
+    const result = validatePlusCode('qxgv+2h');
     expect(result.isValid).toBe(true);
-    expect(result.formatted).toBe('CWC8+R9');
+    expect(result.formatted).toBe('QXGV+2H');
   });
 
   it('returns invalid for full plus code (8+3 chars)', () => {
-    // Full format like 849VCWC8+R9 has 8 chars before +, regex only allows 2-4
-    const result = validatePlusCode('849VCWC8+R9');
+    // Full format like 849VQXGV+2H has 8 chars before +, regex only allows 2-4
+    const result = validatePlusCode('849VQXGV+2H');
     expect(result.isValid).toBe(false);
     expect(result.error).toContain('Invalid Plus Code format');
   });
@@ -202,16 +195,13 @@ describe('validateCompanyEmail', () => {
     expect(result.error).toBe('Company email is required for management positions');
   });
 
-  it('returns invalid when management title and non-citizen email', () => {
-    const result = validateCompanyEmail('personal@gmail.com', 'General Manager');
-    expect(result.isValid).toBe(false);
-    expect(result.error).toBe('Company email must be @citizenwatchgroup.com');
-  });
-
-  it('returns valid when management title and citizen email', () => {
-    const result = validateCompanyEmail('name@citizenwatchgroup.com', 'General Manager');
-    expect(result.isValid).toBe(true);
-    expect(result.error).toBeNull();
+  it('returns valid for management title with any valid email domain', () => {
+    expect(
+      validateCompanyEmail('name@acme.com', 'General Manager').isValid
+    ).toBe(true);
+    expect(
+      validateCompanyEmail('personal@gmail.com', 'General Manager').isValid
+    ).toBe(true);
   });
 
   it('returns invalid for malformed email with management title', () => {
@@ -254,14 +244,20 @@ describe('profileFormSchema', () => {
     employeeName: 'John Smith',
     jobTitle: 'Sales Associate',
     companyEmail: '',
-    storeName: 'Citizen Company Store',
-    storeLocation: 'the Orlando Premium Outlets',
+    companyName: 'Acme Inc.',
+    storeName: 'Acme Downtown',
+    storeLocation: 'the Downtown Shopping Center',
     storeAddress: '123 Main St',
-    storePlusCode: 'CWC8+R9',
+    storePlusCode: 'QXGV+2H',
     storePhone: '5551234567',
-    storeEmail: 'store@citizenwatchgroup.com',
+    storeEmail: 'store@acme.com',
     storeHours: 'Mon–Sat: 10AM–8PM | Sun: 10AM–7PM',
     storeDirections: 'Entrance E',
+    productNoun: 'watch',
+    productNounPlural: 'watches',
+    brandLinks: [],
+    brandKeywords: '',
+    collectionKeywords: '',
   };
 
   it('validates a complete valid profile', () => {
@@ -342,20 +338,52 @@ describe('profileFormSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('requires citizen email for management company email', () => {
+  it('rejects malformed company email for management', () => {
     const result = profileFormSchema.safeParse({
       ...validData,
       jobTitle: 'General Manager',
-      companyEmail: 'personal@gmail.com',
+      companyEmail: 'not-an-email',
     });
     expect(result.success).toBe(false);
   });
 
-  it('accepts valid company email for management', () => {
+  it('accepts any valid company email domain for management', () => {
+    expect(
+      profileFormSchema.safeParse({
+        ...validData,
+        jobTitle: 'General Manager',
+        companyEmail: 'name@acme.com',
+      }).success
+    ).toBe(true);
+    expect(
+      profileFormSchema.safeParse({
+        ...validData,
+        jobTitle: 'General Manager',
+        companyEmail: 'name@gmail.com',
+      }).success
+    ).toBe(true);
+  });
+
+  it('rejects missing company name', () => {
     const result = profileFormSchema.safeParse({
       ...validData,
-      jobTitle: 'General Manager',
-      companyEmail: 'name@citizenwatchgroup.com',
+      companyName: '',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a brand link with a non-http URL', () => {
+    const result = profileFormSchema.safeParse({
+      ...validData,
+      brandLinks: [{ name: 'Acme', url: 'not-a-url' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts brand links with http(s) URLs', () => {
+    const result = profileFormSchema.safeParse({
+      ...validData,
+      brandLinks: [{ name: 'Acme', url: 'https://acme.example.com/' }],
     });
     expect(result.success).toBe(true);
   });

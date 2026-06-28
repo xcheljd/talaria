@@ -15,7 +15,7 @@ Comprehensive testing of template signatures after EML file creation has been co
 - ✓ **NEW**: EML files match example.eml format exactly (fonts, sizes, structure)
 - ✓ **NEW**: Signatures use Century Gothic 9pt name line, 8pt details
 - ✓ **NEW**: HTML wrapper uses Aptos 12pt body text (example.eml standard)
-- ✓ **NEW**: All brand links present (Accutron, Alpina, Bulova, Citizen, Frederique Constant)
+- ✓ **NEW**: All brand links present (Accutron, Lumen, Zenith, Acme, Meridian)
 
 ---
 
@@ -52,7 +52,7 @@ Comprehensive testing of template signatures after EML file creation has been co
 
 2. **HTML Signature Generation** (7 tests)
    - Outlook-compatible formatting with CSS styling
-   - Brand links (Alpina, Bulova, Citizen, Frederique Constant)
+   - Brand links (Lumen, Zenith, Acme, Meridian)
    - Professional layout verification
 
 3. **Plain Text Template Integration** (3 tests)
@@ -174,12 +174,12 @@ Comprehensive testing of template signatures after EML file creation has been co
 ```
 John Smith │ Sales Manager
 ______________________________________________________________________
-Citizen Watch America - Downtown Store
+Acme Inc. - Downtown Store
 123 Main Street
 Downtown, USA 12345
 Tel/SMS: (555) 123-4567
 Email: john.smith@company.com
-Alpina | Bulova | Citizen | Frederique Constant
+Lumen | Zenith | Acme | Meridian
 
 Please consider the environment before printing this e-mail
 ```
@@ -339,7 +339,7 @@ Please consider the environment before printing this e-mail
    - Proper <html>, <head>, <meta>, <body> tags
    - Aptos 12pt body text (example.eml standard)
    - multipart/alternative MIME type (not multipart/mixed)
-4. **Brand Links**: All 5 brands included (Accutron, Alpina, Bulova, Citizen, Frederique Constant)
+4. **Brand Links**: All 5 brands included (Accutron, Lumen, Zenith, Acme, Meridian)
 5. **Encoding**: Proper quoted-printable encoding with soft line breaks
 
 ### Conclusion
@@ -355,4 +355,4 @@ The template signature system after EML creation is fully functional, production
 **Test Report Generated**: November 2, 2025
 **Test Framework**: Custom Node.js Test Suite
 **Environment**: macOS (Darwin 25.0.0)
-**Model**: Citizen Communication Templates v1.3.1
+**Model**: Acme Communication Templates v1.3.1

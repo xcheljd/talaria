@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Communication Template Generator",
+  "productName": "CometCast",
   "version": "1.4.0",
-  "identifier": "com.citizen.communicationtemplates",
+  "identifier": "com.talaria.cometcast",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Communication Template Generator",
+        "title": "CometCast",
         "width": 1280,
         "height": 800,
         "minWidth": 1024,
