@@ -27,6 +27,7 @@ import {
   applyDarkModeToDocument,
   type DarkModeStyle,
 } from '@/lib/promotion-email-html';
+import { StorageKeys } from '@/lib/storage-keys';
 import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
@@ -63,13 +64,21 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
   const [previewWidth, setPreviewWidth] = useState<'desktop' | 'mobile'>(
     'desktop'
   );
-  const [previewDark, setPreviewDark] = useState(false);
+  // Light/dark and full/partial are persisted (see StorageKeys.preview*) so the
+  // chosen preview mode is remembered across app sessions; lazily seeded from
+  // localStorage and written back in the change handlers below.
+  const [previewDark, setPreviewDark] = useState(
+    () => localStorage.getItem(StorageKeys.previewDark) === 'true'
+  );
   // Which client dark-mode model to emulate: 'full' inverts every color
   // (Outlook Windows, Gmail iOS); 'partial' only darkens light backgrounds and
   // lightens dark text/borders, leaving already-dark areas (Gmail mobile,
   // Outlook.com). See applyDarkModeToDocument.
-  const [previewInversion, setPreviewInversion] =
-    useState<DarkModeStyle>('full');
+  const [previewInversion, setPreviewInversion] = useState<DarkModeStyle>(() =>
+    localStorage.getItem(StorageKeys.previewInversion) === 'partial'
+      ? 'partial'
+      : 'full'
+  );
 
   // The iframe always renders the LIGHT html. Dark mode is applied to the live
   // document in place (see applyMode) rather than by swapping srcDoc, so
@@ -86,12 +95,16 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
   }, []);
 
   const handleThemeChange = useCallback((v: string) => {
-    if (v === 'light') setPreviewDark(false);
-    else if (v === 'dark') setPreviewDark(true);
+    if (v !== 'light' && v !== 'dark') return;
+    const dark = v === 'dark';
+    setPreviewDark(dark);
+    localStorage.setItem(StorageKeys.previewDark, String(dark));
   }, []);
 
   const handleInversionChange = useCallback((v: string) => {
-    if (v === 'full' || v === 'partial') setPreviewInversion(v);
+    if (v !== 'full' && v !== 'partial') return;
+    setPreviewInversion(v);
+    localStorage.setItem(StorageKeys.previewInversion, v);
   }, []);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);

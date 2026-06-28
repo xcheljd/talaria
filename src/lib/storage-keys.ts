@@ -50,6 +50,19 @@ export const StorageKeys = {
    */
   pdfStripAccessibility: 'pdf.stripAccessibility',
 
+  /**
+   * Whether the live email preview is showing dark mode. 'true' | 'false'.
+   * Default false (light). Persists so the chosen preview theme survives
+   * app restarts.
+   */
+  previewDark: 'preview.dark',
+  /**
+   * Which client dark-mode model the preview emulates: 'full' | 'partial'.
+   * Only meaningful while the dark preview is on. Default 'full'. Persists
+   * alongside previewDark.
+   */
+  previewInversion: 'preview.inversion',
+
   /** Last-selected template key on the generator page */
   selectedTemplate: 'selectedTemplate',
 
