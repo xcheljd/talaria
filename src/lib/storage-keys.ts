@@ -53,9 +53,17 @@ export const StorageKeys = {
   /**
    * Whether the live email preview is showing dark mode. 'true' | 'false'.
    * Default false (light). Persists so the chosen preview theme survives
-   * app restarts.
+   * app restarts. Ignored while `previewSyncTheme` is on — then the preview
+   * follows the app theme instead.
    */
   previewDark: 'preview.dark',
+  /**
+   * Whether the live email preview's light/dark follows the app theme.
+   * 'true' | 'false'. Default true (linked). When on, switching the app's
+   * light/dark toggle switches the preview too, and vice-versa. Set to 'false'
+   * to keep the preview's own light/dark toggle independent (uses previewDark).
+   */
+  previewSyncTheme: 'preview.syncTheme',
   /**
    * Which client dark-mode model the preview emulates: 'full' | 'partial'.
    * Only meaningful while the dark preview is on. Default 'full'. Persists

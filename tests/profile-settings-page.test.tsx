@@ -285,4 +285,41 @@ describe('ProfileSettingsPage', () => {
     expect(screen.getByText(/Light Mode Color Palette/i)).toBeTruthy();
     expect(screen.getByText(/Dark Mode Color Palette/i)).toBeTruthy();
   });
+
+  // Sync email preview with app theme
+
+  it('sync-preview-theme switch defaults to on (linked)', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Preferences' }));
+
+    const sw = screen.getByTestId('sync-preview-theme-switch');
+    expect(sw).toBeChecked();
+  });
+
+  it('toggling sync-preview-theme persists the choice to localStorage', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Preferences' }));
+
+    const sw = screen.getByTestId('sync-preview-theme-switch');
+    await user.click(sw);
+
+    await waitFor(() => {
+      expect(localStorage.getItem('preview.syncTheme')).toBe('false');
+    });
+    expect(sw).not.toBeChecked();
+  });
+
+  it('reflects a saved opt-out (off) on mount', async () => {
+    localStorage.setItem('preview.syncTheme', 'false');
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Preferences' }));
+
+    expect(screen.getByTestId('sync-preview-theme-switch')).not.toBeChecked();
+  });
 });

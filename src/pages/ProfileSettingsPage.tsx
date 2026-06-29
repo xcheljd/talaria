@@ -34,6 +34,7 @@ import { useProfile } from '@/contexts/ProfileProvider';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { useTauri } from '@/hooks/useTauri';
 import { useDevMode } from '@/hooks/useDevMode';
+import { usePreviewThemeSync } from '@/hooks/usePreviewThemeSync';
 import {
   profileFormSchema,
   type ProfileFormValues,
@@ -128,6 +129,7 @@ export function ProfileSettingsPage() {
     useTheme();
   const { isTauri, openFolderDialog } = useTauri();
   const { devMode, setDevMode } = useDevMode();
+  const { syncPreviewTheme, setSyncPreviewTheme } = usePreviewThemeSync();
 
   const [downloadFolder, setDownloadFolder] = useState<string>(
     () => localStorage.getItem(StorageKeys.downloadFolderPath) || ''
@@ -1217,6 +1219,27 @@ export function ProfileSettingsPage() {
                       Templates page, the promotion HTML Code tab, and the Email
                       Theme, Accessibility Check, and Outlook Compatibility
                       cards. Persists across sessions.
+                    </p>
+                  </div>
+
+                  {/* Sync email preview with app theme */}
+                  <div className="col-span-1 lg:col-span-2">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        id="sync-preview-theme"
+                        checked={syncPreviewTheme}
+                        onCheckedChange={setSyncPreviewTheme}
+                        data-testid="sync-preview-theme-switch"
+                      />
+                      <Label htmlFor="sync-preview-theme">
+                        Sync email preview with app theme
+                      </Label>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      When on, the live email preview follows the app's
+                      light/dark mode — switching one switches the other. Turn
+                      off to keep the preview's own light/dark toggle
+                      independent of the app theme.
                     </p>
                   </div>
 

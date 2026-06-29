@@ -28,6 +28,8 @@ import {
   type DarkModeStyle,
 } from '@/lib/promotion-email-html';
 import { StorageKeys } from '@/lib/storage-keys';
+import { useTheme } from '@/contexts/ThemeProvider';
+import { usePreviewThemeSync } from '@/hooks/usePreviewThemeSync';
 import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
@@ -60,6 +62,13 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
 
   const actions = usePreviewActions(emailHTML, store);
 
+  // App theme + the per-user "follow the app theme" preference. When syncing is
+  // on, the preview's light/dark is driven by `theme` (single source of truth)
+  // and the preview toggle flips the app theme so the two move together; when
+  // off, the preview uses its own persisted `previewDark` below.
+  const { theme, setTheme } = useTheme();
+  const { syncPreviewTheme } = usePreviewThemeSync();
+
   const [activeTab, setActiveTab] = useState('preview');
   const [previewWidth, setPreviewWidth] = useState<'desktop' | 'mobile'>(
     'desktop'
@@ -70,6 +79,9 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
   const [previewDark, setPreviewDark] = useState(
     () => localStorage.getItem(StorageKeys.previewDark) === 'true'
   );
+  // What the preview actually renders: the app theme while linked, else the
+  // preview's own toggle.
+  const effectiveDark = syncPreviewTheme ? theme === 'dark' : previewDark;
   // Which client dark-mode model to emulate: 'full' inverts every color
   // (Outlook Windows, Gmail iOS); 'partial' only darkens light backgrounds and
   // lightens dark text/borders, leaving already-dark areas (Gmail mobile,
@@ -94,12 +106,32 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
     if (v === 'desktop' || v === 'mobile') setPreviewWidth(v);
   }, []);
 
-  const handleThemeChange = useCallback((v: string) => {
-    if (v !== 'light' && v !== 'dark') return;
-    const dark = v === 'dark';
+  const handleThemeChange = useCallback(
+    (v: string) => {
+      if (v !== 'light' && v !== 'dark') return;
+      const dark = v === 'dark';
+      if (syncPreviewTheme) {
+        // While linked, the toggle is really an app-theme switch — drive it so
+        // the app and preview move together (effectiveDark follows `theme`, and
+        // the effect below mirrors it into the persisted independent value).
+        setTheme(dark ? 'dark' : 'light');
+      } else {
+        setPreviewDark(dark);
+        localStorage.setItem(StorageKeys.previewDark, String(dark));
+      }
+    },
+    [syncPreviewTheme, setTheme]
+  );
+
+  // While linked, mirror the app theme into the persisted independent value so
+  // that turning sync off later (in Settings) leaves the preview exactly where
+  // it is on screen, rather than snapping to a stale previewDark.
+  useEffect(() => {
+    if (!syncPreviewTheme) return;
+    const dark = theme === 'dark';
     setPreviewDark(dark);
     localStorage.setItem(StorageKeys.previewDark, String(dark));
-  }, []);
+  }, [syncPreviewTheme, theme]);
 
   const handleInversionChange = useCallback((v: string) => {
     if (v !== 'full' && v !== 'partial') return;
@@ -115,8 +147,8 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
   const applyMode = useCallback(() => {
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return;
-    applyDarkModeToDocument(doc, previewDark ? previewInversion : 'light');
-  }, [previewDark, previewInversion]);
+    applyDarkModeToDocument(doc, effectiveDark ? previewInversion : 'light');
+  }, [effectiveDark, previewInversion]);
 
   // Re-apply whenever the model changes (no reload → scroll preserved).
   useEffect(() => {
@@ -247,7 +279,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           devMode={devMode}
           previewWidth={previewWidth}
           onViewportChange={handleViewportChange}
-          previewDark={previewDark}
+          previewDark={effectiveDark}
           onThemeChange={handleThemeChange}
           previewInversion={previewInversion}
           onInversionChange={handleInversionChange}
