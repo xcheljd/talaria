@@ -1603,6 +1603,73 @@ describe('promotion store', () => {
         'Reach the team at hello@acme.com anytime'
       );
     });
+
+    it('omits the Email/Call defaults when the profile fields are empty', () => {
+      vi.mocked(getStoreEmail).mockReturnValue('');
+      vi.mocked(getStorePhone).mockReturnValue('');
+      const store = getFreshStore();
+      store.initializeDefaultItems();
+      const items = getFreshStore().howToShopItems;
+      // Only the two non-contact defaults remain; no blank Email/Call line.
+      expect(items).toHaveLength(2);
+      expect(items.some((i) => i.autoField)).toBe(false);
+      // Restore non-empty defaults so later tests see a populated profile.
+      vi.mocked(getStoreEmail).mockReturnValue('store@example.com');
+      vi.mocked(getStorePhone).mockReturnValue('702-555-0190');
+    });
+
+    it('drops auto lines whose profile field is empty on refresh', () => {
+      vi.mocked(getStoreEmail).mockReturnValue('');
+      const items: HowToShopItem[] = [
+        {
+          id: 1,
+          text: 'Keep me',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+        {
+          id: 2,
+          text: 'Email old@stale.com',
+          bold: false,
+          italic: false,
+          underline: false,
+          autoField: 'storeEmail',
+        },
+      ];
+      const out = refreshAutoHowToShop(items);
+      expect(out).toHaveLength(1);
+      expect(out[0].text).toBe('Keep me');
+      vi.mocked(getStoreEmail).mockReturnValue('store@example.com');
+    });
+
+    it('drops a stale email line on load when the profile email is empty', async () => {
+      vi.mocked(getStoreEmail).mockReturnValue('');
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [
+          {
+            id: 1,
+            text: 'Email store@citizenwatchgroup.com',
+            bold: false,
+            italic: false,
+            underline: false,
+          },
+        ],
+        importantNotesItems: [],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      expect(getFreshStore().howToShopItems).toHaveLength(0);
+      vi.mocked(getStoreEmail).mockReturnValue('store@example.com');
+    });
   });
 
   // ===== Newsletter Actions =====

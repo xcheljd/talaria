@@ -380,11 +380,20 @@ export function adoptLegacyAutoHowToShop(
   });
 }
 
-/** Regenerate every auto-managed line's text from the current profile. */
+/**
+ * Regenerate every auto-managed line's text from the current profile, and DROP
+ * any auto-managed line whose profile field is empty — an unset store
+ * email/phone produces no blank "Email"/"Call" entry. Untagged lines (manual
+ * edits, other defaults) pass through untouched.
+ */
 export function refreshAutoHowToShop(items: HowToShopItem[]): HowToShopItem[] {
-  return items.map((item) =>
-    item.autoField ? { ...item, text: autoHowToShopText(item.autoField) } : item
-  );
+  return items.flatMap((item) => {
+    if (!item.autoField) return [item];
+    const value =
+      item.autoField === 'storeEmail' ? getStoreEmail() : getStorePhone();
+    if (!value.trim()) return [];
+    return [{ ...item, text: autoHowToShopText(item.autoField) }];
+  });
 }
 
 function reorderItems<T>(items: T[], oldIndex: number, newIndex: number): T[] {
@@ -747,7 +756,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
     const updates: Partial<PromotionState> = {};
 
     if (state.howToShopItems.length === 0) {
-      updates.howToShopItems = [
+      const howToShopDefaults: HowToShopItem[] = [
         {
           id: generateId(),
           text: 'Visit us in-store for outlet-exclusive deals',
@@ -755,30 +764,37 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
           italic: false,
           underline: false,
         },
-        {
+      ];
+      // Auto-managed contact lines are seeded only when their profile field is
+      // set, so an unset store phone/email never produces a blank entry.
+      if (getStorePhone().trim()) {
+        howToShopDefaults.push({
           id: generateId(),
           text: autoHowToShopText('storePhone'),
           bold: false,
           italic: false,
           underline: false,
           autoField: 'storePhone',
-        },
-        {
-          id: generateId(),
-          text: '$20 flat-rate ground shipping in US',
-          bold: false,
-          italic: false,
-          underline: false,
-        },
-        {
+        });
+      }
+      howToShopDefaults.push({
+        id: generateId(),
+        text: '$20 flat-rate ground shipping in US',
+        bold: false,
+        italic: false,
+        underline: false,
+      });
+      if (getStoreEmail().trim()) {
+        howToShopDefaults.push({
           id: generateId(),
           text: autoHowToShopText('storeEmail'),
           bold: false,
           italic: false,
           underline: false,
           autoField: 'storeEmail',
-        },
-      ];
+        });
+      }
+      updates.howToShopItems = howToShopDefaults;
     }
 
     if (state.importantNotesItems.length === 0) {
