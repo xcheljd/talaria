@@ -4,6 +4,10 @@
  * CARD_CONFIGS drives the order/titles of the editor cards; PromotionCard wires
  * one config to its content component and the filled/empty status dot. Extracted
  * from PromotionPage to keep the page focused on layout.
+ *
+ * Only one card shows at a time (the tool selected in the IconToolbar), so the
+ * card is static — title + status dot header above always-visible content, no
+ * collapse affordance.
  */
 
 import { lazy, memo, Suspense } from 'react';
@@ -14,7 +18,7 @@ import {
   DEFAULT_EMAIL_PALETTE,
   type PromotionState,
 } from '@/stores/promotion-store';
-import { CollapsibleCard } from '@/components/promotion/CollapsibleCard';
+import { cn } from '@/lib/utils';
 import { BasicDetailsEditor } from '@/components/promotion/BasicDetailsEditor';
 import { DiscountEntriesEditor } from '@/components/promotion/DiscountEntriesEditor';
 import { FormattableItemEditor } from '@/components/promotion/FormattableItemEditor';
@@ -43,56 +47,24 @@ const NewsletterEditor = lazy(() =>
 export interface CardConfig {
   id: string;
   title: string;
-  defaultCollapsed: boolean;
   /** When true, the card is only rendered in dev mode. */
   devOnly?: boolean;
 }
 
 export const CARD_CONFIGS: CardConfig[] = [
-  { id: 'basicDetailsCard', title: 'Basic Details', defaultCollapsed: false },
-  {
-    id: 'newsletterCard',
-    title: 'Newsletter',
-    defaultCollapsed: true,
-  },
-  {
-    id: 'discountEntriesCard',
-    title: 'Discount Entries',
-    defaultCollapsed: true,
-  },
-  { id: 'howToShopCard', title: 'How to Shop', defaultCollapsed: true },
-  {
-    id: 'importantNotesCard',
-    title: 'Important Notes',
-    defaultCollapsed: true,
-  },
-  { id: 'specialHoursCard', title: 'Special Hours', defaultCollapsed: true },
-  { id: 'subjectCard', title: 'Subject Lines', defaultCollapsed: true },
-  { id: 'pdfCard', title: 'PDF Attachments', defaultCollapsed: true },
-  { id: 'bulkEmailCard', title: 'Bulk Email Tools', defaultCollapsed: true },
-  {
-    id: 'emailThemeCard',
-    title: 'Email Theme',
-    defaultCollapsed: true,
-    devOnly: true,
-  },
-  {
-    id: 'accessibilityCard',
-    title: 'Accessibility Check',
-    defaultCollapsed: true,
-    devOnly: true,
-  },
-  {
-    id: 'versionHistoryCard',
-    title: 'Version History',
-    defaultCollapsed: true,
-  },
-  {
-    id: 'outlookCard',
-    title: 'Outlook Compatibility',
-    defaultCollapsed: true,
-    devOnly: true,
-  },
+  { id: 'basicDetailsCard', title: 'Basic Details' },
+  { id: 'newsletterCard', title: 'Newsletter' },
+  { id: 'discountEntriesCard', title: 'Discount Entries' },
+  { id: 'howToShopCard', title: 'How to Shop' },
+  { id: 'importantNotesCard', title: 'Important Notes' },
+  { id: 'specialHoursCard', title: 'Special Hours' },
+  { id: 'subjectCard', title: 'Subject Lines' },
+  { id: 'pdfCard', title: 'PDF Attachments' },
+  { id: 'bulkEmailCard', title: 'Bulk Email Tools' },
+  { id: 'emailThemeCard', title: 'Email Theme', devOnly: true },
+  { id: 'accessibilityCard', title: 'Accessibility Check', devOnly: true },
+  { id: 'versionHistoryCard', title: 'Version History' },
+  { id: 'outlookCard', title: 'Outlook Compatibility', devOnly: true },
 ];
 
 /**
@@ -404,13 +376,9 @@ function getCardHasContent(cardId: string, store: CardContentState): boolean {
 
 export const PromotionCard = memo(function PromotionCard({
   config,
-  forceExpand,
-  onToggle,
   versionRefreshKey,
 }: {
   config: CardConfig;
-  forceExpand?: boolean;
-  onToggle?: (cardId: string, isOpen: boolean) => void;
   versionRefreshKey?: number;
 }) {
   // Subscribe to the derived boolean only. The previous slice covered every
@@ -421,15 +389,25 @@ export const PromotionCard = memo(function PromotionCard({
   const hasContent = usePromotionStore((s) => getCardHasContent(config.id, s));
 
   return (
-    <CollapsibleCard
-      cardId={config.id}
-      title={config.title}
-      hasContent={hasContent}
-      defaultCollapsed={config.defaultCollapsed}
-      forceExpand={forceExpand}
-      onToggle={onToggle}
+    <div
+      data-card-id={config.id}
+      className="rounded-xl border bg-card text-card-foreground shadow-sm"
     >
-      {getCardContent(config.id, { versionRefreshKey })}
-    </CollapsibleCard>
+      {/* Header — status dot + title (no collapse: one card shows at a time) */}
+      <div className="flex items-center gap-2 px-4 py-3">
+        <span
+          className={cn(
+            'inline-block h-2.5 w-2.5 rounded-full transition-colors',
+            hasContent ? 'bg-primary' : 'bg-muted-foreground/30'
+          )}
+          data-status={hasContent ? 'filled' : 'empty'}
+          aria-hidden="true"
+        />
+        <h2 className="text-sm font-semibold leading-none">{config.title}</h2>
+      </div>
+      <div className="border-t px-4 py-4">
+        {getCardContent(config.id, { versionRefreshKey })}
+      </div>
+    </div>
   );
 });

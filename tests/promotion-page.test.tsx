@@ -288,26 +288,22 @@ describe('PromotionPage', () => {
     expect(previews.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders all 9 collapsible card titles', () => {
-    renderPromotionPage({ profile: true });
+  it('shows the Basic Details card by default and swaps when a tool is picked', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPromotionPage({ profile: true });
 
-    const expectedTitles = [
-      'Basic Details',
-      'Newsletter',
-      'Discount Entries',
-      'How to Shop',
-      'Important Notes',
-      'Special Hours',
-      'PDF Attachments',
-      'Subject Lines',
-      'Bulk Email Tools',
-    ];
+    // Only the selected tool's card renders — Basic Details on first open.
+    expect(screen.getByText('Basic Details')).toBeInTheDocument();
+    expect(screen.queryByText('Special Hours')).not.toBeInTheDocument();
 
-    // Each title appears twice (desktop + mobile layout)
-    for (const title of expectedTitles) {
-      const elements = screen.getAllByText(title);
-      expect(elements.length).toBeGreaterThanOrEqual(1);
-    }
+    // Picking another tool swaps the visible card in the same slot.
+    const hoursIcon = container.querySelector(
+      '[data-testid="toolbar-icon-specialHoursCard"]'
+    ) as HTMLElement;
+    await user.click(hoursIcon);
+
+    expect(screen.getByText('Special Hours')).toBeInTheDocument();
+    expect(screen.queryByText('Basic Details')).not.toBeInTheDocument();
   });
 
   it('renders the Email Preview column', () => {
@@ -346,21 +342,16 @@ describe('PromotionPage', () => {
     expect(buttons.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows status dots on cards (empty by default)', () => {
+  it('shows an empty status dot on the selected card by default', () => {
     const { container } = renderPromotionPage({ profile: true });
-    // All cards should have empty status dots by default
+    // Only the selected card renders, so just its (empty) dot is present.
     const emptyDots = container.querySelectorAll('[data-status="empty"]');
-    // 9 cards × 2 (desktop + mobile) = 18 empty dots
-    expect(emptyDots.length).toBeGreaterThanOrEqual(9);
+    expect(emptyDots.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows filled status dots when store has data', () => {
-    // Pre-populate store with data
-    usePromotionStore.setState({
-      promotionEntries: [
-        { id: 1, line: 'Test Entry', collections: '', callout: '' },
-      ],
-    });
+  it('shows a filled status dot when the selected card has data', () => {
+    // Basic Details is the default card; give it content.
+    usePromotionStore.setState({ promoTitle: 'Summer Sale' });
     localStorage.setItem('userProfile', JSON.stringify(MOCK_PROFILE));
 
     const { container } = render(
@@ -373,30 +364,11 @@ describe('PromotionPage', () => {
       </ThemeProvider>
     );
 
-    // At least one card should have a filled dot
     const filledDots = container.querySelectorAll('[data-status="filled"]');
     expect(filledDots.length).toBeGreaterThanOrEqual(1);
-  });
 
-  it('collapsible cards can be collapsed and expanded', async () => {
-    const user = userEvent.setup();
-    renderPromotionPage({ profile: true });
-
-    // Find the "Basic Details" card (there are multiple due to desktop+mobile)
-    const collapseBtns = screen.getAllByRole('button', {
-      name: /collapse basic details/i,
-    });
-    // Use the first one (desktop)
-    await user.click(collapseBtns[0]);
-
-    // Now find the expand button
-    const expandBtns = screen.getAllByRole('button', {
-      name: /expand basic details/i,
-    });
-    expect(expandBtns.length).toBeGreaterThanOrEqual(1);
-
-    // Click to expand
-    await user.click(expandBtns[0]);
+    // Avoid leaking content into later tests that assert the empty state.
+    usePromotionStore.setState({ promoTitle: '' });
   });
 
   it('renders only the mobile layout by default (matchMedia matches: false)', () => {

@@ -2,10 +2,10 @@
  * Tests for PromotionPage desktop layout refactor with ResizablePanels.
  *
  * Covers:
- * 1. Desktop layout renders icon toolbar + all cards + preview
- * 2. All 9 cards always visible in desktop scrollable column
+ * 1. Desktop layout renders icon toolbar + selected card + preview
+ * 2. Only the selected tool's card is shown in the column
  * 3. Icon toolbar renders all 9 icon buttons
- * 4. Icon toolbar click force-expands and scrolls to card
+ * 4. Clicking a toolbar icon shows that tool's card
  * 5. Preview panel always visible
  * 6. ResizablePanels used with correct props (orientation, minPx)
  */
@@ -127,27 +127,15 @@ describe('PromotionPage Desktop Layout', () => {
     expect(container.querySelector('[data-testid="resizable-panels"]')).toBeInTheDocument();
   });
 
-  // 2. All 9 cards always visible in desktop scrollable column
-  it('shows all 9 cards in the desktop scrollable column', () => {
-    renderPromotionPage();
+  // 2. Only the selected tool's card is shown in the column
+  it('shows only the selected tool card in the column', () => {
+    const { container } = renderPromotionPage();
 
-    const allCardTitles = [
-      'Basic Details',
-      'Newsletter',
-      'Discount Entries',
-      'How to Shop',
-      'Important Notes',
-      'Special Hours',
-      'PDF Attachments',
-      'Subject Lines',
-      'Bulk Email Tools',
-    ];
-
-    for (const title of allCardTitles) {
-      const elements = screen.getAllByText(title);
-      // Should appear in desktop + mobile (both render all cards now)
-      expect(elements.length).toBeGreaterThanOrEqual(1);
-    }
+    // Basic Details is selected on open — its card is the only one mounted.
+    const mounted = container.querySelectorAll('[data-card-id]');
+    expect(mounted.length).toBe(1);
+    expect(mounted[0]).toHaveAttribute('data-card-id', 'basicDetailsCard');
+    expect(screen.getByText('Basic Details')).toBeInTheDocument();
   });
 
   // 3. Icon toolbar renders all 9 icon buttons
@@ -172,29 +160,29 @@ describe('PromotionPage Desktop Layout', () => {
     }
   });
 
-  // 4. Icon toolbar click force-expands card
-  it('force-expands card when clicking icon toolbar button', async () => {
+  // 4. Icon toolbar click shows the picked tool's card
+  it('shows the picked tool card when clicking its icon toolbar button', async () => {
     const user = userEvent.setup();
     const { container } = renderPromotionPage();
 
-    // Click "How to Shop" icon button (defaultCollapsed: true)
+    // Click the "How to Shop" tool.
     const howToShopBtn = container.querySelector('[data-testid="toolbar-icon-howToShopCard"]');
     expect(howToShopBtn).toBeInTheDocument();
 
     await user.click(howToShopBtn!);
 
-    // Wait for state updates and rAF
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
     });
 
-    // Card should be expanded — find the card's collapse button in the desktop layout
-    const howToShopCards = container.querySelectorAll('[data-card-id="howToShopCard"]');
-    const desktopCard = howToShopCards[0];
-    expect(desktopCard).toBeInTheDocument();
-
-    const collapseBtn = desktopCard.querySelector('[aria-label="Collapse How to Shop"]');
-    expect(collapseBtn).toBeInTheDocument();
+    // Its card is now the one mounted, and Basic Details is gone.
+    expect(
+      container.querySelector('[data-card-id="howToShopCard"]')
+    ).toBeInTheDocument();
+    expect(screen.getByText('How to Shop')).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-card-id="basicDetailsCard"]')
+    ).not.toBeInTheDocument();
   });
 
   // 5. Preview panel always visible
@@ -235,52 +223,43 @@ describe('PromotionPage Desktop Layout', () => {
     expect(secondPanels.length).toBeGreaterThanOrEqual(1);
   });
 
-  // Re-click bug fix: clicking the same icon twice re-expands a collapsed card
-  it('re-expands a collapsed card when clicking the same icon toolbar button twice', async () => {
+  // Selection model: exactly one card is mounted; switching tools swaps it.
+  it('keeps a single card mounted as tools are switched', async () => {
     const user = userEvent.setup();
     const { container } = renderPromotionPage();
 
-    // Click "How to Shop" icon button to force-expand it
-    const howToShopBtn = container.querySelector('[data-testid="toolbar-icon-howToShopCard"]');
-    expect(howToShopBtn).toBeInTheDocument();
+    const oneCardMounted = () =>
+      container.querySelectorAll('[data-card-id]').length;
 
-    await user.click(howToShopBtn!);
+    // Default: only Basic Details.
+    expect(oneCardMounted()).toBe(1);
+    expect(
+      container.querySelector('[data-card-id="basicDetailsCard"]')
+    ).toBeInTheDocument();
 
-    // Wait for state updates and rAF
+    // Switch to How to Shop — still exactly one card, now that one.
+    await user.click(
+      container.querySelector('[data-testid="toolbar-icon-howToShopCard"]')!
+    );
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
     });
+    expect(oneCardMounted()).toBe(1);
+    expect(
+      container.querySelector('[data-card-id="howToShopCard"]')
+    ).toBeInTheDocument();
 
-    // Card should be expanded
-    const howToShopCards = container.querySelectorAll('[data-card-id="howToShopCard"]');
-    const desktopCard = howToShopCards[0];
-    expect(desktopCard).toBeInTheDocument();
-
-    const collapseBtn = desktopCard.querySelector('[aria-label="Collapse How to Shop"]');
-    expect(collapseBtn).toBeInTheDocument();
-
-    // Manually collapse the card by clicking the collapse button
-    await user.click(collapseBtn!);
-
+    // Switch back to Basic Details.
+    await user.click(
+      container.querySelector('[data-testid="toolbar-icon-basicDetailsCard"]')!
+    );
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
     });
-
-    // Card should now be collapsed
-    const expandBtn = desktopCard.querySelector('[aria-label="Expand How to Shop"]');
-    expect(expandBtn).toBeInTheDocument();
-
-    // Click the same icon button again — this should re-expand it
-    await user.click(howToShopBtn!);
-
-    // Need to flush the requestAnimationFrame that resets then re-sets forceExpandedCardId
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 50));
-    });
-
-    // Card should be expanded again
-    const collapseBtnAfter = desktopCard.querySelector('[aria-label="Collapse How to Shop"]');
-    expect(collapseBtnAfter).toBeInTheDocument();
+    expect(oneCardMounted()).toBe(1);
+    expect(
+      container.querySelector('[data-card-id="basicDetailsCard"]')
+    ).toBeInTheDocument();
   });
 
   // No desktop sidebar in new architecture

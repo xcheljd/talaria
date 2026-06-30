@@ -4,9 +4,9 @@
  * Covers:
  * 1. Mobile layout renders IconToolbar at top
  * 2. IconToolbar shows all 9 card icons
- * 3. All 9 cards visible in scrollable list
+ * 3. Only the selected tool's card is shown in the card area
  * 4. Preview at bottom with horizontal ResizablePanels
- * 5. Tapping toolbar icon sets forceExpandedCardId and scrolls
+ * 5. Tapping a toolbar icon shows that tool's card
  * 6. No vertical sidebar rendered on mobile
  * 7. Min heights enforced on panels (via minPx prop)
  */
@@ -139,30 +139,16 @@ describe('PromotionPage Mobile Layout', () => {
     }
   });
 
-  // 3. All 9 cards visible in scrollable list
-  it('renders all 9 cards in the card list area', () => {
+  // 3. Only the selected tool's card is shown in the card area
+  it('renders only the selected tool card in the card area', () => {
     const { container } = renderPromotionPage();
 
-    const allCardIds = [
-      'basicDetailsCard',
-      'newsletterCard',
-      'discountEntriesCard',
-      'howToShopCard',
-      'importantNotesCard',
-      'specialHoursCard',
-      'pdfCard',
-      'subjectCard',
-      'bulkEmailCard',
-    ];
-
-    for (const cardId of allCardIds) {
-      // Cards are rendered via CollapsibleCard which sets data-card-id
-      const cardElements = container.querySelectorAll(
-        `[data-card-id="${cardId}"]`
-      );
-      // Should appear in mobile layout
-      expect(cardElements.length).toBeGreaterThanOrEqual(1);
-    }
+    // Basic Details is selected on open — the only mounted card.
+    const mounted = container.querySelectorAll('[data-card-id]');
+    expect(mounted.length).toBe(1);
+    expect(
+      container.querySelector('[data-card-id="basicDetailsCard"]')
+    ).toBeInTheDocument();
   });
 
   // 4. Preview at bottom with horizontal ResizablePanels
@@ -186,33 +172,30 @@ describe('PromotionPage Mobile Layout', () => {
     expect(previews.length).toBeGreaterThanOrEqual(1);
   });
 
-  // 5. Tapping toolbar icon sets forceExpandedCardId and scrolls
-  it('force-expands card when toolbar icon is clicked', async () => {
-    const scrollSpy = vi.fn();
-    const originalScrollIntoView = Element.prototype.scrollIntoView;
-    Element.prototype.scrollIntoView = scrollSpy;
+  // 5. Tapping a toolbar icon shows that tool's card
+  it('shows the picked tool card when its toolbar icon is clicked', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPromotionPage();
 
-    try {
-      const user = userEvent.setup();
-      const { container } = renderPromotionPage();
+    // Click "How to Shop" toolbar icon
+    const howToShopIcon = container.querySelector(
+      '[data-testid="toolbar-icon-howToShopCard"]'
+    );
+    expect(howToShopIcon).toBeInTheDocument();
 
-      // Click "How to Shop" toolbar icon
-      const howToShopIcon = container.querySelector(
-        '[data-testid="toolbar-icon-howToShopCard"]'
-      );
-      expect(howToShopIcon).toBeInTheDocument();
+    await user.click(howToShopIcon!);
 
-      await user.click(howToShopIcon!);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
 
-      // scrollIntoView should have been called after the double rAF
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 50));
-      });
-
-      expect(scrollSpy).toHaveBeenCalled();
-    } finally {
-      Element.prototype.scrollIntoView = originalScrollIntoView;
-    }
+    // Its card replaces Basic Details as the single mounted card.
+    expect(
+      container.querySelector('[data-card-id="howToShopCard"]')
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-card-id="basicDetailsCard"]')
+    ).not.toBeInTheDocument();
   });
 
   // 6. Mobile section renders its own IconToolbar (desktop layout not mounted)
@@ -275,36 +258,34 @@ describe('PromotionPage Mobile Layout', () => {
 
     for (const btn of toolbarIcons) {
       expect(btn).toHaveAttribute('aria-label');
-      expect(btn.getAttribute('aria-label')).toMatch(/^Jump to /);
+      expect(btn.getAttribute('aria-label')).toMatch(/^Show /);
     }
   });
 
-  // Additional: Cards in mobile layout respect forceExpand
-  it('cards in mobile layout receive forceExpand prop correctly', async () => {
-    const scrollSpy = vi.fn();
-    const originalScrollIntoView = Element.prototype.scrollIntoView;
-    Element.prototype.scrollIntoView = scrollSpy;
+  // Additional: the selected tool's icon reflects the active (pressed) state
+  it('marks the selected tool icon as pressed', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPromotionPage();
 
-    try {
-      const user = userEvent.setup();
-      const { container } = renderPromotionPage();
+    const basicIcon = container.querySelector(
+      '[data-testid="toolbar-icon-basicDetailsCard"]'
+    )!;
+    const hoursIcon = container.querySelector(
+      '[data-testid="toolbar-icon-specialHoursCard"]'
+    )!;
 
-      // Click a toolbar icon
-      const basicDetailsIcon = container.querySelector(
-        '[data-testid="toolbar-icon-basicDetailsCard"]'
-      );
-      await user.click(basicDetailsIcon!);
+    // Basic Details is selected on open.
+    expect(basicIcon).toHaveAttribute('aria-pressed', 'true');
+    expect(hoursIcon).toHaveAttribute('aria-pressed', 'false');
 
-      // Wait for rAF callbacks
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 50));
-      });
+    // Selecting Special Hours moves the pressed state.
+    await user.click(hoursIcon);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
 
-      // The card should be force-expanded and scrolled to
-      expect(scrollSpy).toHaveBeenCalled();
-    } finally {
-      Element.prototype.scrollIntoView = originalScrollIntoView;
-    }
+    expect(hoursIcon).toHaveAttribute('aria-pressed', 'true');
+    expect(basicIcon).toHaveAttribute('aria-pressed', 'false');
   });
 
   // Additional: Toolbar icons have proper pressed state when active
@@ -325,59 +306,42 @@ describe('PromotionPage Mobile Layout', () => {
     }
   });
 
-  // Re-click bug fix: clicking the same toolbar icon twice re-expands a collapsed card
-  it('re-expands a collapsed card when clicking the same toolbar icon twice', async () => {
-    const originalScrollIntoView = Element.prototype.scrollIntoView;
-    Element.prototype.scrollIntoView = vi.fn();
+  // Selection model: exactly one card is mounted; switching tools swaps it.
+  it('keeps a single card mounted as tools are switched on mobile', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPromotionPage();
 
-    try {
-      const user = userEvent.setup();
-      const { container } = renderPromotionPage();
+    const mountedCount = () =>
+      container.querySelectorAll('[data-card-id]').length;
 
-      // Click "How to Shop" toolbar icon to force-expand it
-      const howToShopIcon = container.querySelector(
-        '[data-testid="toolbar-icon-howToShopCard"]'
-      );
-      expect(howToShopIcon).toBeInTheDocument();
+    // Default: only Basic Details.
+    expect(mountedCount()).toBe(1);
+    expect(
+      container.querySelector('[data-card-id="basicDetailsCard"]')
+    ).toBeInTheDocument();
 
-      await user.click(howToShopIcon!);
+    // Switch to How to Shop — still exactly one card.
+    await user.click(
+      container.querySelector('[data-testid="toolbar-icon-howToShopCard"]')!
+    );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(mountedCount()).toBe(1);
+    expect(
+      container.querySelector('[data-card-id="howToShopCard"]')
+    ).toBeInTheDocument();
 
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 50));
-      });
-
-      // Card should be expanded in mobile layout
-      const howToShopCards = container.querySelectorAll('[data-card-id="howToShopCard"]');
-      const mobileCard = howToShopCards[0];
-      expect(mobileCard).toBeInTheDocument();
-
-      const collapseBtn = mobileCard.querySelector('[aria-label="Collapse How to Shop"]');
-      expect(collapseBtn).toBeInTheDocument();
-
-      // Manually collapse the card
-      await user.click(collapseBtn!);
-
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 50));
-      });
-
-      // Card should now be collapsed
-      const expandBtn = mobileCard.querySelector('[aria-label="Expand How to Shop"]');
-      expect(expandBtn).toBeInTheDocument();
-
-      // Click the same toolbar icon again — should re-expand
-      await user.click(howToShopIcon!);
-
-      // Flush the requestAnimationFrame that resets then re-sets forceExpandedCardId
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 50));
-      });
-
-      // Card should be expanded again
-      const collapseBtnAfter = mobileCard.querySelector('[aria-label="Collapse How to Shop"]');
-      expect(collapseBtnAfter).toBeInTheDocument();
-    } finally {
-      Element.prototype.scrollIntoView = originalScrollIntoView;
-    }
+    // Switch back to Basic Details.
+    await user.click(
+      container.querySelector('[data-testid="toolbar-icon-basicDetailsCard"]')!
+    );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(mountedCount()).toBe(1);
+    expect(
+      container.querySelector('[data-card-id="basicDetailsCard"]')
+    ).toBeInTheDocument();
   });
 });

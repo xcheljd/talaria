@@ -1,12 +1,13 @@
 /**
- * IconToolbar — Horizontal row of icon buttons for navigating promotion cards.
+ * IconToolbar — Horizontal row of icon buttons for selecting which promotion
+ * tool's card is shown. Exactly one tool is active at a time; clicking one
+ * swaps the card displayed in the left column.
  *
- * Displays 8 icon buttons (one per card) with:
+ * Each button (one per card) has:
  * - Lucide SVG icon
  * - Short text label underneath
  * - Tooltip via native title attribute
- * - Active state highlighting via activeCardId prop
- * - Click handler to scroll + expand target card
+ * - Active state highlighting via activeCardId prop (aria-pressed)
  */
 
 import { Fragment, memo } from 'react';
@@ -136,7 +137,7 @@ export const IconToolbar = memo(function IconToolbar({
       className="flex flex-wrap items-center justify-center gap-1 border-b px-2 py-2"
       data-testid="icon-toolbar"
       role="toolbar"
-      aria-label="Card navigation"
+      aria-label="Tool selection"
     >
       {TOOLBAR_CARD_ORDER.map((cardId) => {
         const config = CARD_ICONS[cardId];
@@ -162,7 +163,7 @@ export const IconToolbar = memo(function IconToolbar({
                   : 'text-muted-foreground hover:bg-accent/50'
               )}
               onClick={() => onCardClick(cardId)}
-              aria-label={`Jump to ${config.tooltip}`}
+              aria-label={`Show ${config.tooltip}`}
               aria-pressed={isActive}
             >
               <Icon className="h-5 w-5" />

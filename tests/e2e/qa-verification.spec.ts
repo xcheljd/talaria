@@ -56,19 +56,10 @@ async function fillBasics(page: Page) {
 }
 
 async function clickToolbarIcon(page: Page, cardId: string) {
+  // The toolbar is a selector: clicking an icon shows that tool's card as the
+  // single card in the left column.
   await page.locator(`[data-testid="toolbar-icon-${cardId}"]`).click();
   await page.waitForTimeout(400);
-}
-
-async function expandCard(page: Page, cardId: string) {
-  // Check if already expanded
-  const card = page.locator(`[data-card-id="${cardId}"]`);
-  const chevron = card.locator('.rotate-180');
-  if (!(await chevron.isVisible({ timeout: 500 }).catch(() => false))) {
-    // Click the card header to expand
-    await card.locator('[role="button"]').first().click();
-    await page.waitForTimeout(400);
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -123,13 +114,12 @@ test.describe('QA Item 1 — Layout switching', () => {
     }
   });
 
-  test('icon toolbar works — click icon expands and scrolls card', async ({ page }) => {
+  test('icon toolbar works — clicking an icon shows that tool card', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.waitForTimeout(500);
 
-    // The discountEntries card starts collapsed. Click its toolbar icon.
+    // Click the Discounts tool — its card becomes the visible one.
     await clickToolbarIcon(page, 'discountEntriesCard');
-    // Card should expand showing "Add Entry" button
     const addEntryBtn = page.locator('[data-card-id="discountEntriesCard"] button:has-text("Add Entry")');
     await expect(addEntryBtn).toBeVisible({ timeout: 5000 });
 
@@ -139,22 +129,19 @@ test.describe('QA Item 1 — Layout switching', () => {
     await expect(page.locator('[data-testid="icon-toolbar"]')).toBeVisible();
   });
 
-  test('double-click same toolbar icon re-expands card after collapse', async ({ page }) => {
+  test('selecting a different toolbar icon swaps the visible card', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.waitForTimeout(500);
 
     await clickToolbarIcon(page, 'howToShopCard');
-    // Verify expanded — should show "Add Item" button
     const addItemBtn = page.locator('[data-card-id="howToShopCard"] button:has-text("Add Item")');
     await expect(addItemBtn).toBeVisible({ timeout: 5000 });
 
-    // Collapse via card header
-    await page.locator('[data-card-id="howToShopCard"] [role="button"]').first().click();
-    await page.waitForTimeout(300);
-
-    // Click toolbar icon again → re-expands
-    await clickToolbarIcon(page, 'howToShopCard');
-    await expect(addItemBtn).toBeVisible({ timeout: 5000 });
+    // Picking another tool replaces the card — How to Shop unmounts.
+    await clickToolbarIcon(page, 'discountEntriesCard');
+    const addEntryBtn = page.locator('[data-card-id="discountEntriesCard"] button:has-text("Add Entry")');
+    await expect(addEntryBtn).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('[data-card-id="howToShopCard"]')).toHaveCount(0);
   });
 });
 
@@ -214,11 +201,6 @@ test.describe('QA Item 2 — Auto-save completeness', () => {
 
   test('email theme color persists across reload', async ({ page }) => {
     await clickToolbarIcon(page, 'emailThemeCard');
-    const picker = page.locator('[data-testid="theme-picker-headerBg"]');
-    if (!(await picker.isVisible({ timeout: 1000 }).catch(() => false))) {
-      // Might be inside a collapsed area
-      await expandCard(page, 'emailThemeCard');
-    }
     await page.waitForTimeout(300);
     const visiblePicker = page.locator('[data-testid="theme-picker-headerBg"]');
     if (await visiblePicker.isVisible({ timeout: 1000 }).catch(() => false)) {

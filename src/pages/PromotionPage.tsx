@@ -2,10 +2,14 @@
  * PromotionPage — React migration of promotion.html
  *
  * Desktop layout (>=1024px): ResizablePanels 50/50 split
- *   Left panel  → Icon toolbar + all cards in single scrollable column
+ *   Left panel  → Icon toolbar + the selected tool's card
  *   Right panel → Sticky live preview (iframe)
  *
- * Mobile layout (<1024px): IconToolbar + all cards stacked + preview
+ * Mobile layout (<1024px): IconToolbar + selected tool's card + preview
+ *
+ * The toolbar acts as a selector: exactly one card is shown at a time — the one
+ * whose tool is active in the toolbar (Basic Details on first open). Picking a
+ * different tool swaps the card in the same left-column slot.
  *
  * This file is the page shell: profile guard, mount/init, the desktop/mobile
  * layouts, and card-navigation wiring. The pieces live alongside it:
@@ -20,7 +24,6 @@ import {
   useCallback,
   useDeferredValue,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import { Navigate } from 'react-router-dom';
@@ -40,7 +43,6 @@ import {
 import { StorageKeys } from '@/lib/storage-keys';
 import { generatePromotionEmailHTML } from '@/lib/promotion-email-html';
 import { buildPromotionEmailData } from '@/lib/newsletter-utils';
-import { getScrollBehavior } from '@/lib/ui-utils';
 import { ResizablePanels } from '@/components/ui/resizable-panels';
 
 import { selectEmailDataSource } from '@/components/promotion/email-data-source';
@@ -54,7 +56,6 @@ import {
   useAutoSave,
   useSaveStatusToast,
   usePdfRestoreToast,
-  useScrollSpy,
 } from '@/components/promotion/promotion-page-hooks';
 
 // VersionHistory is rendered via the card registry, but the page owns the
@@ -75,22 +76,19 @@ export function PromotionPage() {
   const { devMode } = useDevMode();
   const visibleCards = useMemo(() => getVisibleCardConfigs(devMode), [devMode]);
 
-  // Tracks which card should be force-expanded (from toolbar/strip click)
-  const [forceExpandedCardId, setForceExpandedCardId] = useState<
-    string | undefined
-  >(undefined);
-
-  // Active card ID for scroll spy highlighting
-  const [activeCardId, setActiveCardId] = useState<string | undefined>(
-    undefined
+  // The toolbar is a selector: this is the single card currently shown in the
+  // left column. Basic Details is first, so it's what greets the user on open.
+  const [selectedCardId, setSelectedCardId] = useState<string>(
+    () => getVisibleCardConfigs(devMode)[0]?.id ?? 'basicDetailsCard'
   );
 
-  // True when highlight came from click/expand; false when from scroll
-  const isUserActionRef = useRef(false);
-
-  // Ref to the scrollable card container of whichever layout is mounted
-  // (only one layout renders at a time)
-  const cardsContainerRef = useRef<HTMLDivElement>(null);
+  // Keep the selection valid when the visible set changes (e.g. dev mode turns
+  // off while a dev-only tool is selected) — fall back to the first card.
+  useEffect(() => {
+    if (!visibleCards.some((c) => c.id === selectedCardId)) {
+      setSelectedCardId(visibleCards[0]?.id ?? 'basicDetailsCard');
+    }
+  }, [visibleCards, selectedCardId]);
 
   // Computed once at page level and passed down to PreviewColumn, so the
   // 1,300-line HTML generation runs once per edit. The useShallow slice
@@ -158,47 +156,10 @@ export function PromotionPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Icon toolbar click handler (shared by both layouts — only one mounts)
-  const handleIconClick = useCallback(
-    (cardId: string) => {
-      // Highlight the clicked icon and lock it
-      setActiveCardId(cardId);
-      isUserActionRef.current = true;
-
-      // Force expand if not already (re-trigger via undefined when re-clicked)
-      if (forceExpandedCardId === cardId) {
-        setForceExpandedCardId(undefined);
-        requestAnimationFrame(() => {
-          setForceExpandedCardId(cardId);
-        });
-      } else {
-        setForceExpandedCardId(cardId);
-      }
-
-      // Scroll the card into view after the expand has rendered
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const cardEl = cardsContainerRef.current?.querySelector(
-            `[data-card-id="${cardId}"]`
-          );
-          cardEl?.scrollIntoView({
-            behavior: getScrollBehavior(),
-            block: 'nearest',
-          });
-        });
-      });
-    },
-    [forceExpandedCardId]
-  );
-
-  // Handle card expand/collapse via title — lock highlight to that card
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleCardToggle = useCallback((cardId: string, _isOpen: boolean) => {
-    setActiveCardId(cardId);
-    isUserActionRef.current = true;
+  // Toolbar selection — show the picked tool's card in the left column.
+  const handleIconClick = useCallback((cardId: string) => {
+    setSelectedCardId(cardId);
   }, []);
-
-  useScrollSpy(cardsContainerRef, isUserActionRef, setActiveCardId, isDesktop);
 
   // Settings redirect — if no profile, redirect to /settings
   if (!hasProfile) {
@@ -209,26 +170,19 @@ export function PromotionPage() {
   // hiding) — previously both rendered, doubling every card, editor, and
   // preview iframe.
 
-  // Card list shared by both layouts
-  const cardList = (
-    <div className="space-y-3 p-4">
-      {visibleCards.map((config) => {
-        // Dividers precede subjectCard (always visible) and emailThemeCard
-        // (dev-only — the divider only renders when the card does).
-        const showDivider =
-          config.id === 'subjectCard' || config.id === 'emailThemeCard';
-        return (
-          <div key={config.id}>
-            {showDivider && <div className="h-px bg-border mb-3" />}
-            <PromotionCard
-              config={config}
-              forceExpand={forceExpandedCardId === config.id}
-              onToggle={handleCardToggle}
-              versionRefreshKey={versionRefreshKey}
-            />
-          </div>
-        );
-      })}
+  // The selected tool's card — the only one shown, shared by both layouts.
+  // Keyed by id so swapping tools remounts cleanly (fresh editor state, no
+  // stale scroll position carried between unrelated cards).
+  const selectedCard = visibleCards.find((c) => c.id === selectedCardId);
+  const activeCard = (
+    <div className="p-4">
+      {selectedCard && (
+        <PromotionCard
+          key={selectedCard.id}
+          config={selectedCard}
+          versionRefreshKey={versionRefreshKey}
+        />
+      )}
     </div>
   );
 
@@ -240,18 +194,13 @@ export function PromotionPage() {
           defaultSplit={50}
           minPx={[280, 280]}
         >
-          {/* Left panel: Icon toolbar + all cards */}
+          {/* Left panel: Icon toolbar + the selected tool's card */}
           <div className="flex h-full min-w-0 flex-col">
             <IconToolbar
-              activeCardId={activeCardId}
+              activeCardId={selectedCardId}
               onCardClick={handleIconClick}
             />
-            <div
-              className="flex-1 overflow-y-auto min-w-0"
-              ref={cardsContainerRef}
-            >
-              {cardList}
-            </div>
+            <div className="flex-1 overflow-y-auto min-w-0">{activeCard}</div>
           </div>
 
           {/* Right panel: Email Preview */}
@@ -261,22 +210,23 @@ export function PromotionPage() {
     );
   }
 
-  // ===== Mobile Layout (<1024px): IconToolbar + all cards + preview =====
+  // ===== Mobile Layout (<1024px): IconToolbar + selected card + preview =====
   return (
     <div className="flex flex-col h-full" data-testid="mobile-layout">
-      {/* Icon toolbar for mobile navigation */}
-      <IconToolbar activeCardId={activeCardId} onCardClick={handleIconClick} />
+      {/* Icon toolbar for tool selection */}
+      <IconToolbar
+        activeCardId={selectedCardId}
+        onCardClick={handleIconClick}
+      />
 
-      {/* Resizable split: cards on top, preview on bottom */}
+      {/* Resizable split: selected card on top, preview on bottom */}
       <ResizablePanels
         orientation="horizontal"
         defaultSplit={60}
         minPx={[200, 150]}
       >
-        {/* All cards */}
-        <div className="overflow-y-auto h-full" ref={cardsContainerRef}>
-          {cardList}
-        </div>
+        {/* Selected tool's card */}
+        <div className="overflow-y-auto h-full">{activeCard}</div>
 
         {/* Email preview */}
         <PreviewColumn emailHTML={emailHTML} />
