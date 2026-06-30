@@ -168,6 +168,17 @@ export function utf8ToBase64(str: string): string {
 }
 
 /**
+ * Make an unstructured header value (e.g. Subject) safe to interpolate into a
+ * MIME header: collapse any CR/LF runs to a single space so a crafted value
+ * cannot inject additional headers or split the header block. RFC 2047 encoding
+ * (encodeSubject) does NOT cover this for ASCII subjects, which it returns
+ * verbatim — so callers must sanitize before encoding.
+ */
+export function sanitizeHeaderText(value: string): string {
+  return value.replace(/[\r\n]+/g, ' ');
+}
+
+/**
  * Make a filename safe for interpolation into a quoted MIME header
  * parameter: strips CR/LF (header injection) and replaces double quotes
  * (which would terminate the quoted-string early).
@@ -241,7 +252,7 @@ export async function createEMLFile(
 
   const hasAttachments = attachments && attachments.length > 0;
 
-  let eml = `Subject: ${encodeSubject(subject)}\r\n`;
+  let eml = `Subject: ${encodeSubject(sanitizeHeaderText(subject))}\r\n`;
   eml += `Content-Language: en-US\r\n`;
   eml += `MIME-Version: 1.0\r\n`;
   eml += `X-Unsent: 1\r\n`; // Mark as draft
@@ -418,7 +429,7 @@ export function createBCCBatchEML(
     '_' +
     Math.random().toString(36).substring(2, 11);
   let emlContent = '';
-  emlContent += `Subject: ${encodeSubject(subject)}\r\n`;
+  emlContent += `Subject: ${encodeSubject(sanitizeHeaderText(subject))}\r\n`;
 
   // Add Date header with slight offset per batch to ensure uniqueness
   const now = new Date(Date.now() + batchNumber * 1000);

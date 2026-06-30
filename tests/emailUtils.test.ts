@@ -3,6 +3,7 @@ import {
   extractPlainText,
   encodeQuotedPrintable,
   encodeSubject,
+  sanitizeHeaderText,
   utf8ToBase64,
   encodeFilename,
   isValidEmail,
@@ -69,6 +70,19 @@ describe('emailUtils', () => {
       const result = encodeSubject('日本語 Subject');
       expect(result).toContain('=?UTF-8?B?');
       expect(result).toContain('?=');
+    });
+  });
+
+  describe('sanitizeHeaderText', () => {
+    it('returns a plain subject unchanged', () => {
+      expect(sanitizeHeaderText('Summer Sale 2025')).toBe('Summer Sale 2025');
+    });
+
+    it('collapses CR/LF runs so a crafted subject cannot inject headers', () => {
+      const result = sanitizeHeaderText('Sale\r\nBcc: evil@example.com');
+      expect(result).not.toContain('\r');
+      expect(result).not.toContain('\n');
+      expect(result).toBe('Sale Bcc: evil@example.com');
     });
   });
 
@@ -209,6 +223,18 @@ describe('emailUtils', () => {
       expect(eml).toContain('multipart/mixed');
       expect(eml).toContain('application/pdf');
       expect(eml).toContain('test.pdf');
+    });
+
+    it('does not let a CR/LF subject inject an extra header', async () => {
+      const eml = await createEMLFile(
+        '',
+        '',
+        '',
+        '',
+        'Promo\r\nBcc: evil@example.com',
+        '<p>Body</p>'
+      );
+      expect(eml).not.toContain('\r\nBcc: evil@example.com');
     });
   });
 
@@ -358,6 +384,19 @@ describe('emailUtils', () => {
       const text = new TextDecoder().decode(result.data);
       expect(text).toContain('promo.pdf');
       expect(text).toContain('application/pdf');
+    });
+
+    it('does not let a CR/LF subject inject an extra header', () => {
+      const result = createBCCBatchEML(
+        'Promo\r\nBcc: evil@example.com',
+        '<p>Hello</p>',
+        ['a@test.com'],
+        [],
+        'eml',
+        1
+      );
+      const text = new TextDecoder().decode(result.data);
+      expect(text).not.toContain('\r\nBcc: evil@example.com');
     });
   });
 });
