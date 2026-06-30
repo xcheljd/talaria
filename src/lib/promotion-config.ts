@@ -17,6 +17,7 @@ import {
   parseNewsletterStyle,
   parseEmailPalette,
   parseStringArray,
+  parseAttachedPDFs,
 } from './promotion-config-schema';
 import type {
   EmailPalette,
@@ -170,8 +171,7 @@ export function validateImportConfig(
       importantNotesItems: parseFormattableItems(config.importantNotesItems),
       howToShopStyle: parseSectionBoxStyle(config.howToShopStyle),
       importantNotesStyle: parseSectionBoxStyle(config.importantNotesStyle),
-      attachedPDFs:
-        (config.attachedPDFs as PromotionConfigForExport['attachedPDFs']) || [],
+      attachedPDFs: parseAttachedPDFs(config.attachedPDFs),
       generatedSubjectLines: parseStringArray(config.generatedSubjectLines),
       selectedSubjectLine: asString(config.selectedSubjectLine) || null,
       preheaderText: asString(config.preheaderText),

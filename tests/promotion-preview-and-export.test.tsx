@@ -523,6 +523,71 @@ describe('validateImportConfig', () => {
     }
   });
 
+  it('round-trips valid attachedPDFs entries', () => {
+    const result = validateImportConfig({
+      promotionEntries: [],
+      specialHours: [],
+      attachedPDFs: [
+        { id: 'a1', name: 'flyer.pdf', size: 2048, type: 'application/pdf' },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.attachedPDFs).toHaveLength(1);
+      expect(result.config.attachedPDFs[0]).toMatchObject({
+        id: 'a1',
+        name: 'flyer.pdf',
+        size: 2048,
+        type: 'application/pdf',
+      });
+    }
+  });
+
+  it('drops imported PDF entries with no usable id', () => {
+    const result = validateImportConfig({
+      promotionEntries: [],
+      specialHours: [],
+      attachedPDFs: [
+        { name: 'no-id.pdf', size: 1, type: 'application/pdf' },
+        { id: 'keep', name: 'ok.pdf', size: 1, type: 'application/pdf' },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.attachedPDFs).toHaveLength(1);
+      expect(result.config.attachedPDFs[0].id).toBe('keep');
+    }
+  });
+
+  it('coerces malformed PDF scalar fields to safe defaults', () => {
+    const result = validateImportConfig({
+      promotionEntries: [],
+      specialHours: [],
+      // name is not a string and type is null — each field falls back
+      // independently instead of discarding the whole entry.
+      attachedPDFs: [{ id: 'x', name: 123, type: null, size: 10 }],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const pdf = result.config.attachedPDFs[0];
+      expect(pdf.id).toBe('x');
+      expect(pdf.name).toBe('');
+      expect(pdf.type).toBe('application/pdf');
+    }
+  });
+
+  it('treats a non-array attachedPDFs as empty (still ok)', () => {
+    const result = validateImportConfig({
+      promotionEntries: [],
+      specialHours: [],
+      attachedPDFs: 'not-an-array',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.attachedPDFs).toEqual([]);
+    }
+  });
+
   it('handles legacy field names (promoDateRange → dateRange)', () => {
     const result = validateImportConfig({
       promotionEntries: [],

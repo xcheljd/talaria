@@ -159,3 +159,35 @@ export function parseEmailPalette(
 export function parseStringArray(raw: unknown): string[] {
   return stringArraySchema.parse(raw);
 }
+
+// ===== Attached PDF schema =====
+
+/**
+ * Lenient schema for an imported PDF attachment entry. Note: PDF ids are
+ * **strings** (unlike the numeric item ids), so this does NOT go through
+ * normalizeIds. Bad scalar fields fall back to defaults; a non-string `data`
+ * field is dropped rather than discarding the whole entry. Entries with no
+ * usable id are removed by parseAttachedPDFs (an id-less attachment can't be
+ * matched to its IndexedDB blob).
+ */
+const attachedPDFSchema = z
+  .object({
+    id: z.string().catch(''),
+    name: z.string().catch(''),
+    size: z.coerce.number().catch(0),
+    type: z.string().catch('application/pdf'),
+    data: z.string().optional().catch(undefined),
+  })
+  .catch({ id: '', name: '', size: 0, type: 'application/pdf' });
+
+const attachedPDFsSchema = z.array(attachedPDFSchema).catch([]);
+
+export function parseAttachedPDFs(raw: unknown): Array<{
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  data?: string;
+}> {
+  return attachedPDFsSchema.parse(raw).filter((p) => p.id !== '');
+}
