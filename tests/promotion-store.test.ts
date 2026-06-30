@@ -5,8 +5,14 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { usePromotionStore, _resetIdCounter } from '@/stores/promotion-store';
-import type { AttachedPDF } from '@/stores/promotion-store';
+import {
+  usePromotionStore,
+  _resetIdCounter,
+  autoHowToShopText,
+  adoptLegacyAutoHowToShop,
+  refreshAutoHowToShop,
+} from '@/stores/promotion-store';
+import type { AttachedPDF, HowToShopItem } from '@/stores/promotion-store';
 import {
   savePDFToIndexedDB,
   deletePDFFromIndexedDB,
@@ -1443,6 +1449,159 @@ describe('promotion store', () => {
         expect(item.italic).toBe(false);
         expect(item.underline).toBe(false);
       }
+    });
+  });
+
+  describe('auto-managed How-to-Shop contact lines', () => {
+    it('autoHowToShopText derives Email/Call text from the profile', () => {
+      vi.mocked(getStoreEmail).mockReturnValue('store@acme.com');
+      vi.mocked(getStorePhone).mockReturnValue('555-0100');
+      expect(autoHowToShopText('storeEmail')).toBe('Email store@acme.com');
+      expect(autoHowToShopText('storePhone')).toBe(
+        'Call 555-0100 for availability'
+      );
+    });
+
+    it('tags the generated Email and Call default lines', () => {
+      const store = getFreshStore();
+      store.initializeDefaultItems();
+      const items = getFreshStore().howToShopItems;
+      expect(items[1].autoField).toBe('storePhone');
+      expect(items[3].autoField).toBe('storeEmail');
+      // Non-contact defaults stay untagged.
+      expect(items[0].autoField).toBeUndefined();
+      expect(items[2].autoField).toBeUndefined();
+    });
+
+    it('clears the tag when a line is manually edited', () => {
+      const store = getFreshStore();
+      store.initializeDefaultItems();
+      const emailId = getFreshStore().howToShopItems[3].id;
+      store.updateHowToShopItem(emailId, 'Email me anytime');
+      const edited = getFreshStore().howToShopItems[3];
+      expect(edited.text).toBe('Email me anytime');
+      expect(edited.autoField).toBeUndefined();
+    });
+
+    it('refreshAutoHowToShop rewrites tagged lines and leaves untagged alone', () => {
+      vi.mocked(getStoreEmail).mockReturnValue('new@acme.com');
+      const items: HowToShopItem[] = [
+        {
+          id: 1,
+          text: 'Visit us',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+        {
+          id: 2,
+          text: 'Email old@stale.com',
+          bold: false,
+          italic: false,
+          underline: false,
+          autoField: 'storeEmail',
+        },
+      ];
+      const out = refreshAutoHowToShop(items);
+      expect(out[0].text).toBe('Visit us');
+      expect(out[1].text).toBe('Email new@acme.com');
+    });
+
+    it('adoptLegacyAutoHowToShop tags only canonical contact lines', () => {
+      const items: HowToShopItem[] = [
+        {
+          id: 1,
+          text: 'Visit us in-store',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+        {
+          id: 2,
+          text: 'Email store@old.com',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+        {
+          id: 3,
+          text: 'Call 702-555-0190 for availability',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+        {
+          id: 4,
+          text: 'Call us for availability',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+      ];
+      const out = adoptLegacyAutoHowToShop(items);
+      expect(out[0].autoField).toBeUndefined();
+      expect(out[1].autoField).toBe('storeEmail');
+      expect(out[2].autoField).toBe('storePhone');
+      // No digits → not the phone default → left untouched.
+      expect(out[3].autoField).toBeUndefined();
+    });
+
+    it('refreshes a stale persisted email line to the current profile on load', async () => {
+      vi.mocked(getStoreEmail).mockReturnValue('current@acme.com');
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [
+          {
+            id: 1,
+            text: 'Email store@citizenwatchgroup.com',
+            bold: false,
+            italic: false,
+            underline: false,
+          },
+        ],
+        importantNotesItems: [],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      const item = getFreshStore().howToShopItems[0];
+      expect(item.text).toBe('Email current@acme.com');
+      expect(item.autoField).toBe('storeEmail');
+    });
+
+    it('leaves a non-canonical contact line untouched on load', async () => {
+      vi.mocked(getStoreEmail).mockReturnValue('current@acme.com');
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [
+          {
+            id: 1,
+            text: 'Reach the team at hello@acme.com anytime',
+            bold: false,
+            italic: false,
+            underline: false,
+          },
+        ],
+        importantNotesItems: [],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      const store = getFreshStore();
+      await store.loadFromIndexedDB();
+
+      expect(getFreshStore().howToShopItems[0].text).toBe(
+        'Reach the team at hello@acme.com anytime'
+      );
     });
   });
 

@@ -41,6 +41,13 @@ export interface HowToShopItem {
   bold: boolean;
   italic: boolean;
   underline: boolean;
+  /**
+   * When set, this line is auto-managed from the profile: its text is
+   * regenerated from the named profile field every time the builder loads
+   * (see `refreshAutoHowToShop`). The tag is cleared the moment the user edits
+   * the line (`updateHowToShopItem`), so manual edits are never overwritten.
+   */
+  autoField?: 'storeEmail' | 'storePhone';
 }
 
 export interface ImportantNotesItem {
@@ -340,6 +347,46 @@ export function _resetIdCounter(): void {
   _idCounter = 0;
 }
 
+/**
+ * Canonical text for an auto-managed How-to-Shop contact line, derived live
+ * from the current profile. Single source of truth shared by the default
+ * seeding and the on-load refresh so the two can never drift.
+ */
+export function autoHowToShopText(field: 'storeEmail' | 'storePhone'): string {
+  return field === 'storeEmail'
+    ? `Email ${getStoreEmail()}`
+    : `Call ${getStorePhone()} for availability`;
+}
+
+/**
+ * One-time migration: tag How-to-Shop lines that match the canonical
+ * auto-generated contact templates (created before auto-managed tagging
+ * existed) so they can follow the profile. Deliberately conservative — only
+ * lines that look like the app's own Email/Call defaults are adopted, so a
+ * hand-written line is very unlikely to be captured.
+ */
+export function adoptLegacyAutoHowToShop(
+  items: HowToShopItem[]
+): HowToShopItem[] {
+  return items.map((item) => {
+    if (item.autoField) return item;
+    if (/^Email\s+\S+@\S+\.\S+\s*$/.test(item.text)) {
+      return { ...item, autoField: 'storeEmail' as const };
+    }
+    if (/^Call\s+.*\d.*\s+for availability\s*$/.test(item.text)) {
+      return { ...item, autoField: 'storePhone' as const };
+    }
+    return item;
+  });
+}
+
+/** Regenerate every auto-managed line's text from the current profile. */
+export function refreshAutoHowToShop(items: HowToShopItem[]): HowToShopItem[] {
+  return items.map((item) =>
+    item.autoField ? { ...item, text: autoHowToShopText(item.autoField) } : item
+  );
+}
+
 function reorderItems<T>(items: T[], oldIndex: number, newIndex: number): T[] {
   if (oldIndex === newIndex) return items;
   const result = [...items];
@@ -523,7 +570,8 @@ function createPromotionListActions(set: StoreSet): PromotionListActions {
 
     addHowToShopItem: howToShop.add,
     removeHowToShopItem: howToShop.remove,
-    updateHowToShopItem: (id, text) => howToShop.update(id, { text }),
+    updateHowToShopItem: (id, text) =>
+      howToShop.update(id, { text, autoField: undefined }),
     moveHowToShopItemUp: howToShop.moveUp,
     moveHowToShopItemDown: howToShop.moveDown,
     reorderHowToShopItems: howToShop.reorder,
@@ -699,9 +747,6 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
     const updates: Partial<PromotionState> = {};
 
     if (state.howToShopItems.length === 0) {
-      const storePhone = getStorePhone();
-      const storeEmail = getStoreEmail();
-
       updates.howToShopItems = [
         {
           id: generateId(),
@@ -712,10 +757,11 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         },
         {
           id: generateId(),
-          text: `Call ${storePhone} for availability`,
+          text: autoHowToShopText('storePhone'),
           bold: false,
           italic: false,
           underline: false,
+          autoField: 'storePhone',
         },
         {
           id: generateId(),
@@ -726,10 +772,11 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         },
         {
           id: generateId(),
-          text: `Email ${storeEmail}`,
+          text: autoHowToShopText('storeEmail'),
           bold: false,
           italic: false,
           underline: false,
+          autoField: 'storeEmail',
         },
       ];
     }
@@ -935,10 +982,18 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         loadedBody = prependHeadingIfMissing(loadedBody, loadedHeading);
       }
 
+      // Auto-managed How-to-Shop contact lines (Email/Call) follow the profile:
+      // adopt any legacy lines that match the default templates, then refresh
+      // every tagged line from the current profile. Manually edited lines are
+      // untagged (see updateHowToShopItem) and therefore left untouched.
+      const loadedHowToShop = refreshAutoHowToShop(
+        adoptLegacyAutoHowToShop(parsed.howToShopItems || [])
+      );
+
       set({
         promotionEntries: parsed.promotionEntries || [],
         specialHours: parsed.specialHours || [],
-        howToShopItems: parsed.howToShopItems || [],
+        howToShopItems: loadedHowToShop,
         importantNotesItems: parsed.importantNotesItems || [],
         howToShopStyle: parsed.howToShopStyle || {
           ...DEFAULT_HOW_TO_SHOP_STYLE,
