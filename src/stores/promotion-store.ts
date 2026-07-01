@@ -348,14 +348,33 @@ export function _resetIdCounter(): void {
 }
 
 /**
+ * Config for the auto-managed How-to-Shop contact lines: each profile field
+ * maps to how its value is read and how it renders as a line. Single source of
+ * truth shared by seeding, the on-load refresh, and `autoHowToShopText`, so
+ * they can never disagree about a getter or a template. Add a line by adding a
+ * key here (and to the `autoField` union).
+ */
+const AUTO_LINE_CONFIG: Record<
+  'storeEmail' | 'storePhone',
+  { getValue: () => string; render: (value: string) => string }
+> = {
+  storePhone: {
+    getValue: getStorePhone,
+    render: (value) => `Call ${value} for availability`,
+  },
+  storeEmail: {
+    getValue: getStoreEmail,
+    render: (value) => `Email ${value}`,
+  },
+};
+
+/**
  * Canonical text for an auto-managed How-to-Shop contact line, derived live
- * from the current profile. Single source of truth shared by the default
- * seeding and the on-load refresh so the two can never drift.
+ * from the current profile.
  */
 export function autoHowToShopText(field: 'storeEmail' | 'storePhone'): string {
-  return field === 'storeEmail'
-    ? `Email ${getStoreEmail()}`
-    : `Call ${getStorePhone()} for availability`;
+  const { getValue, render } = AUTO_LINE_CONFIG[field];
+  return render(getValue());
 }
 
 /**
@@ -389,10 +408,10 @@ export function adoptLegacyAutoHowToShop(
 export function refreshAutoHowToShop(items: HowToShopItem[]): HowToShopItem[] {
   return items.flatMap((item) => {
     if (!item.autoField) return [item];
-    const value =
-      item.autoField === 'storeEmail' ? getStoreEmail() : getStorePhone();
+    const { getValue, render } = AUTO_LINE_CONFIG[item.autoField];
+    const value = getValue();
     if (!value.trim()) return [];
-    return [{ ...item, text: autoHowToShopText(item.autoField) }];
+    return [{ ...item, text: render(value) }];
   });
 }
 
@@ -756,45 +775,31 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
     const updates: Partial<PromotionState> = {};
 
     if (state.howToShopItems.length === 0) {
-      const howToShopDefaults: HowToShopItem[] = [
-        {
-          id: generateId(),
-          text: 'Visit us in-store for outlet-exclusive deals',
-          bold: false,
-          italic: false,
-          underline: false,
-        },
+      // Fixed seed order; auto lines carry an `autoField` and are dropped when
+      // their profile field is empty, so an unset store phone/email never
+      // produces a blank entry.
+      const seed: Array<
+        { text: string } | { autoField: 'storeEmail' | 'storePhone' }
+      > = [
+        { text: 'Visit us in-store for outlet-exclusive deals' },
+        { autoField: 'storePhone' },
+        { text: '$20 flat-rate ground shipping in US' },
+        { autoField: 'storeEmail' },
       ];
-      // Auto-managed contact lines are seeded only when their profile field is
-      // set, so an unset store phone/email never produces a blank entry.
-      if (getStorePhone().trim()) {
-        howToShopDefaults.push({
+
+      updates.howToShopItems = seed.flatMap((entry) => {
+        const base = {
           id: generateId(),
-          text: autoHowToShopText('storePhone'),
           bold: false,
           italic: false,
           underline: false,
-          autoField: 'storePhone',
-        });
-      }
-      howToShopDefaults.push({
-        id: generateId(),
-        text: '$20 flat-rate ground shipping in US',
-        bold: false,
-        italic: false,
-        underline: false,
+        };
+        if ('text' in entry) return [{ ...base, text: entry.text }];
+        const { getValue, render } = AUTO_LINE_CONFIG[entry.autoField];
+        const value = getValue();
+        if (!value.trim()) return [];
+        return [{ ...base, text: render(value), autoField: entry.autoField }];
       });
-      if (getStoreEmail().trim()) {
-        howToShopDefaults.push({
-          id: generateId(),
-          text: autoHowToShopText('storeEmail'),
-          bold: false,
-          italic: false,
-          underline: false,
-          autoField: 'storeEmail',
-        });
-      }
-      updates.howToShopItems = howToShopDefaults;
     }
 
     if (state.importantNotesItems.length === 0) {
