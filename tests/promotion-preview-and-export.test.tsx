@@ -429,6 +429,31 @@ describe('buildExportConfig', () => {
     });
     expect(config.bulkEmailRecipients).toBe('a@x.com, b@x.com');
   });
+
+  it('carries the autoField tag on export, omitting it for untagged lines', () => {
+    const data = makeEmailData({
+      howToShopItems: [
+        {
+          id: 1,
+          text: 'Email test@store.com',
+          bold: false,
+          italic: false,
+          underline: false,
+          autoField: 'storeEmail',
+        },
+        {
+          id: 2,
+          text: 'Visit us in-store',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
+      ],
+    });
+    const config = buildExportConfig(data, [], [], null);
+    expect(config.howToShopItems[0].autoField).toBe('storeEmail');
+    expect(config.howToShopItems[1]).not.toHaveProperty('autoField');
+  });
 });
 
 describe('validateImportConfig', () => {
@@ -483,6 +508,48 @@ describe('validateImportConfig', () => {
     if (result.ok) {
       expect(result.config.dateRange).toBe('Nov 28 - Dec 1');
       expect(result.config.promotionEntries).toHaveLength(1);
+    }
+  });
+
+  it('preserves the autoField tag through import (migration stays one-time)', () => {
+    const result = validateImportConfig({
+      promotionEntries: [],
+      specialHours: [],
+      howToShopItems: [
+        {
+          id: 1,
+          text: 'Email a@b.com',
+          bold: false,
+          italic: false,
+          underline: false,
+          autoField: 'storeEmail',
+        },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.howToShopItems[0].autoField).toBe('storeEmail');
+    }
+  });
+
+  it('drops an invalid autoField value on import', () => {
+    const result = validateImportConfig({
+      promotionEntries: [],
+      specialHours: [],
+      howToShopItems: [
+        {
+          id: 1,
+          text: 'x',
+          bold: false,
+          italic: false,
+          underline: false,
+          autoField: 'bogus',
+        },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.howToShopItems[0].autoField).toBeUndefined();
     }
   });
 

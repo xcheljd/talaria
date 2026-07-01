@@ -83,6 +83,10 @@ export function buildExportConfig(
       bold: i.bold,
       italic: i.italic,
       underline: i.underline,
+      // Carry the auto-managed tag so a round-trip keeps profile-driven lines
+      // tracking the profile (rather than losing the tag and relying on the
+      // legacy regex re-adoption on next load).
+      ...(i.autoField ? { autoField: i.autoField } : {}),
     })),
     importantNotesItems: data.importantNotesItems.map((i) => ({
       id: i.id,
