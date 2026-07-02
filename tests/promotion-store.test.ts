@@ -8,9 +8,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   usePromotionStore,
   _resetIdCounter,
-  autoHowToShopText,
-  adoptLegacyAutoHowToShop,
-  refreshAutoHowToShop,
+  autoLineText,
+  adoptLegacyAutoLines,
+  refreshAutoLines,
 } from '@/stores/promotion-store';
 import type { AttachedPDF, HowToShopItem } from '@/stores/promotion-store';
 import {
@@ -1453,11 +1453,11 @@ describe('promotion store', () => {
   });
 
   describe('auto-managed How-to-Shop contact lines', () => {
-    it('autoHowToShopText derives Email/Call text from the profile', () => {
+    it('autoLineText derives Email/Call text from the profile', () => {
       vi.mocked(getStoreEmail).mockReturnValue('store@acme.com');
       vi.mocked(getStorePhone).mockReturnValue('555-0100');
-      expect(autoHowToShopText('storeEmail')).toBe('Email store@acme.com');
-      expect(autoHowToShopText('storePhone')).toBe(
+      expect(autoLineText('storeEmail')).toBe('Email store@acme.com');
+      expect(autoLineText('storePhone')).toBe(
         'Call 555-0100 for availability'
       );
     });
@@ -1483,7 +1483,7 @@ describe('promotion store', () => {
       expect(edited.autoField).toBeUndefined();
     });
 
-    it('refreshAutoHowToShop rewrites tagged lines and leaves untagged alone', () => {
+    it('refreshAutoLines rewrites tagged lines and leaves untagged alone', () => {
       vi.mocked(getStoreEmail).mockReturnValue('new@acme.com');
       const items: HowToShopItem[] = [
         {
@@ -1502,12 +1502,12 @@ describe('promotion store', () => {
           autoField: 'storeEmail',
         },
       ];
-      const out = refreshAutoHowToShop(items);
+      const out = refreshAutoLines(items);
       expect(out[0].text).toBe('Visit us');
       expect(out[1].text).toBe('Email new@acme.com');
     });
 
-    it('adoptLegacyAutoHowToShop tags only canonical contact lines', () => {
+    it('adoptLegacyAutoLines tags only canonical contact lines', () => {
       const items: HowToShopItem[] = [
         {
           id: 1,
@@ -1538,7 +1538,7 @@ describe('promotion store', () => {
           underline: false,
         },
       ];
-      const out = adoptLegacyAutoHowToShop(items);
+      const out = adoptLegacyAutoLines(items, ['storeEmail', 'storePhone']);
       expect(out[0].autoField).toBeUndefined();
       expect(out[1].autoField).toBe('storeEmail');
       expect(out[2].autoField).toBe('storePhone');
@@ -1637,7 +1637,7 @@ describe('promotion store', () => {
           autoField: 'storeEmail',
         },
       ];
-      const out = refreshAutoHowToShop(items);
+      const out = refreshAutoLines(items);
       expect(out).toHaveLength(1);
       expect(out[0].text).toBe('Keep me');
       vi.mocked(getStoreEmail).mockReturnValue('store@example.com');
@@ -1669,6 +1669,104 @@ describe('promotion store', () => {
 
       expect(getFreshStore().howToShopItems).toHaveLength(0);
       vi.mocked(getStoreEmail).mockReturnValue('store@example.com');
+    });
+  });
+
+  describe('auto-managed Important Notes directions line', () => {
+    it("autoLineText('storeDirections') derives the Find us at text", () => {
+      vi.mocked(getDirections).mockReturnValue('123 Main St');
+      expect(autoLineText('storeDirections')).toBe('Find us at 123 Main St');
+      vi.mocked(getDirections).mockReturnValue('');
+    });
+
+    it('tags the seeded directions note storeDirections', () => {
+      vi.mocked(getDirections).mockReturnValue('123 Main St, Austin');
+      const store = getFreshStore();
+      store.initializeDefaultItems();
+      const note = getFreshStore().importantNotesItems.find(
+        (n) => n.autoField === 'storeDirections'
+      );
+      expect(note?.text).toBe('Find us at 123 Main St, Austin');
+      vi.mocked(getDirections).mockReturnValue('');
+    });
+
+    it('does not seed a directions note when the profile field is empty', () => {
+      vi.mocked(getDirections).mockReturnValue('');
+      const store = getFreshStore();
+      store.initializeDefaultItems();
+      const notes = getFreshStore().importantNotesItems;
+      expect(notes).toHaveLength(4);
+      expect(notes.some((n) => n.autoField)).toBe(false);
+    });
+
+    it('clears the tag when the directions note is manually edited', () => {
+      vi.mocked(getDirections).mockReturnValue('123 Main St');
+      const store = getFreshStore();
+      store.initializeDefaultItems();
+      const noteId = getFreshStore().importantNotesItems.find(
+        (n) => n.autoField === 'storeDirections'
+      )!.id;
+      store.updateImportantNotesItem(noteId, 'Find us behind the mall');
+      const edited = getFreshStore().importantNotesItems.find(
+        (n) => n.id === noteId
+      );
+      expect(edited?.text).toBe('Find us behind the mall');
+      expect(edited?.autoField).toBeUndefined();
+      vi.mocked(getDirections).mockReturnValue('');
+    });
+
+    it('adopts and refreshes a legacy directions note on load', async () => {
+      vi.mocked(getDirections).mockReturnValue('New Location Ave');
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [
+          {
+            id: 1,
+            text: 'Find us at Old Address Rd',
+            bold: false,
+            italic: false,
+            underline: false,
+          },
+        ],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+      const store = getFreshStore();
+      await store.restoreState();
+      const note = getFreshStore().importantNotesItems[0];
+      expect(note.text).toBe('Find us at New Location Ave');
+      expect(note.autoField).toBe('storeDirections');
+      vi.mocked(getDirections).mockReturnValue('');
+    });
+
+    it('drops a stale directions note on load when the field is empty', async () => {
+      vi.mocked(getDirections).mockReturnValue('');
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [
+          {
+            id: 1,
+            text: 'Find us at Old Address Rd',
+            bold: false,
+            italic: false,
+            underline: false,
+            autoField: 'storeDirections',
+          },
+        ],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+      const store = getFreshStore();
+      await store.restoreState();
+      expect(getFreshStore().importantNotesItems).toHaveLength(0);
     });
   });
 

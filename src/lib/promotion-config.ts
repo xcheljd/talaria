@@ -94,6 +94,9 @@ export function buildExportConfig(
       bold: i.bold,
       italic: i.italic,
       underline: i.underline,
+      // Carry the auto-managed tag (e.g. the "Find us at" directions line) so a
+      // round-trip keeps profile-driven lines tracking the profile.
+      ...(i.autoField ? { autoField: i.autoField } : {}),
     })),
     howToShopStyle: data.howToShopStyle,
     importantNotesStyle: data.importantNotesStyle,

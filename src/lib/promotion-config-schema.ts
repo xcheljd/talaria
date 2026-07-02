@@ -63,7 +63,10 @@ const formattableItemSchema = z
     underline: z.boolean().catch(false),
     // Only How-to-Shop contact lines set this; it round-trips so the one-time
     // legacy adoption never has to re-run. Inert on Important Notes items.
-    autoField: z.enum(['storeEmail', 'storePhone']).optional().catch(undefined),
+    autoField: z
+      .enum(['storeEmail', 'storePhone', 'storeDirections'])
+      .optional()
+      .catch(undefined),
   })
   .catch({ id: 0, text: '', bold: false, italic: false, underline: false });
 

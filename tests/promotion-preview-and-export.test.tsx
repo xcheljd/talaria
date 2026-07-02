@@ -454,6 +454,23 @@ describe('buildExportConfig', () => {
     expect(config.howToShopItems[0].autoField).toBe('storeEmail');
     expect(config.howToShopItems[1]).not.toHaveProperty('autoField');
   });
+
+  it('carries the autoField tag on Important Notes lines too', () => {
+    const data = makeEmailData({
+      importantNotesItems: [
+        {
+          id: 1,
+          text: 'Find us at 123 Main',
+          bold: false,
+          italic: false,
+          underline: false,
+          autoField: 'storeDirections',
+        },
+      ],
+    });
+    const config = buildExportConfig(data, [], [], null);
+    expect(config.importantNotesItems[0].autoField).toBe('storeDirections');
+  });
 });
 
 describe('validateImportConfig', () => {

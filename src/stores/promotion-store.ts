@@ -36,19 +36,23 @@ export interface SpecialHour {
   hours: string;
 }
 
+/**
+ * Marks a seeded contact/info line as auto-managed from the profile: its text
+ * is regenerated from the named profile field every time the builder loads
+ * (see `refreshAutoLines`), and the tag is cleared the moment the user edits
+ * the line, so manual edits are never overwritten. How-to-Shop uses
+ * `storeEmail`/`storePhone`; Important Notes uses `storeDirections`.
+ */
+export type AutoField = 'storeEmail' | 'storePhone' | 'storeDirections';
+
 export interface HowToShopItem {
   id: number;
   text: string;
   bold: boolean;
   italic: boolean;
   underline: boolean;
-  /**
-   * When set, this line is auto-managed from the profile: its text is
-   * regenerated from the named profile field every time the builder loads
-   * (see `refreshAutoHowToShop`). The tag is cleared the moment the user edits
-   * the line (`updateHowToShopItem`), so manual edits are never overwritten.
-   */
-  autoField?: 'storeEmail' | 'storePhone';
+  /** When set, this line is auto-managed from the profile — see {@link AutoField}. */
+  autoField?: AutoField;
 }
 
 export interface ImportantNotesItem {
@@ -57,6 +61,8 @@ export interface ImportantNotesItem {
   bold: boolean;
   italic: boolean;
   underline: boolean;
+  /** When set, this line is auto-managed from the profile — see {@link AutoField}. */
+  autoField?: AutoField;
 }
 
 export interface AttachedPDF {
@@ -349,64 +355,79 @@ export function _resetIdCounter(): void {
 }
 
 /**
- * Config for the auto-managed How-to-Shop contact lines: each profile field
- * maps to how its value is read and how it renders as a line. Single source of
- * truth shared by seeding, the on-load refresh, and `autoHowToShopText`, so
- * they can never disagree about a getter or a template. Add a line by adding a
- * key here (and to the `autoField` union).
+ * Config for the auto-managed profile-driven lines (How-to-Shop Email/Call,
+ * Important Notes "Find us at"): each field maps to how its value is read, how
+ * it renders, and the legacy template used to adopt pre-tagging lines. Single
+ * source of truth shared by seeding, the on-load refresh, and `autoLineText`,
+ * so they can never disagree. Add a line by adding a key here and to the
+ * `AutoField` union.
  */
 const AUTO_LINE_CONFIG: Record<
-  'storeEmail' | 'storePhone',
-  { getValue: () => string; render: (value: string) => string }
+  AutoField,
+  {
+    getValue: () => string;
+    render: (value: string) => string;
+    /** Matches the app's own default template, for one-time legacy adoption. */
+    legacyPattern: RegExp;
+  }
 > = {
   storePhone: {
     getValue: getStorePhone,
     render: (value) => `Call ${value} for availability`,
+    legacyPattern: /^Call\s+.*\d.*\s+for availability\s*$/,
   },
   storeEmail: {
     getValue: getStoreEmail,
     render: (value) => `Email ${value}`,
+    legacyPattern: /^Email\s+\S+@\S+\.\S+\s*$/,
+  },
+  storeDirections: {
+    getValue: getDirections,
+    render: (value) => `Find us at ${value}`,
+    legacyPattern: /^Find us at\s+\S.*$/,
   },
 };
 
+/** An item that may be auto-managed from the profile. */
+type AutoManaged = { text: string; autoField?: AutoField };
+
 /**
- * Canonical text for an auto-managed How-to-Shop contact line, derived live
- * from the current profile.
+ * Canonical text for an auto-managed line, derived live from the current
+ * profile via {@link AUTO_LINE_CONFIG}.
  */
-export function autoHowToShopText(field: 'storeEmail' | 'storePhone'): string {
+export function autoLineText(field: AutoField): string {
   const { getValue, render } = AUTO_LINE_CONFIG[field];
   return render(getValue());
 }
 
 /**
- * One-time migration: tag How-to-Shop lines that match the canonical
- * auto-generated contact templates (created before auto-managed tagging
- * existed) so they can follow the profile. Deliberately conservative — only
- * lines that look like the app's own Email/Call defaults are adopted, so a
- * hand-written line is very unlikely to be captured.
+ * One-time migration: tag lines matching one of `fields`' canonical default
+ * templates (created before auto-managed tagging existed) so they can follow
+ * the profile. Deliberately conservative — only lines that look like the app's
+ * own defaults are adopted, so a hand-written line is very unlikely to be
+ * captured. Callers pass the fields valid for that list (email/phone for
+ * How-to-Shop, directions for Important Notes).
  */
-export function adoptLegacyAutoHowToShop(
-  items: HowToShopItem[]
-): HowToShopItem[] {
+export function adoptLegacyAutoLines<T extends AutoManaged>(
+  items: T[],
+  fields: AutoField[]
+): T[] {
   return items.map((item) => {
     if (item.autoField) return item;
-    if (/^Email\s+\S+@\S+\.\S+\s*$/.test(item.text)) {
-      return { ...item, autoField: 'storeEmail' as const };
-    }
-    if (/^Call\s+.*\d.*\s+for availability\s*$/.test(item.text)) {
-      return { ...item, autoField: 'storePhone' as const };
-    }
-    return item;
+    const match = fields.find((f) =>
+      AUTO_LINE_CONFIG[f].legacyPattern.test(item.text)
+    );
+    return match ? { ...item, autoField: match } : item;
   });
 }
 
 /**
  * Regenerate every auto-managed line's text from the current profile, and DROP
- * any auto-managed line whose profile field is empty — an unset store
- * email/phone produces no blank "Email"/"Call" entry. Untagged lines (manual
- * edits, other defaults) pass through untouched.
+ * any auto-managed line whose profile field is empty — an unset field produces
+ * no blank entry. Untagged lines (manual edits, other defaults) pass through
+ * untouched.
  */
-export function refreshAutoHowToShop(items: HowToShopItem[]): HowToShopItem[] {
+export function refreshAutoLines<T extends AutoManaged>(items: T[]): T[] {
   return items.flatMap((item) => {
     if (!item.autoField) return [item];
     const { getValue, render } = AUTO_LINE_CONFIG[item.autoField];
@@ -611,7 +632,8 @@ function createPromotionListActions(set: StoreSet): PromotionListActions {
 
     addImportantNotesItem: notes.add,
     removeImportantNotesItem: notes.remove,
-    updateImportantNotesItem: (id, text) => notes.update(id, { text }),
+    updateImportantNotesItem: (id, text) =>
+      notes.update(id, { text, autoField: undefined }),
     moveImportantNotesItemUp: notes.moveUp,
     moveImportantNotesItemDown: notes.moveDown,
     reorderImportantNotesItems: notes.reorder,
@@ -835,7 +857,8 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         },
       ];
 
-      // Add store directions note if available
+      // Add store directions note if available. Tagged storeDirections so it
+      // follows the profile like the How-to-Shop contact lines do.
       const directions = getDirections().trim();
       if (directions) {
         const directionsLower = directions.toLowerCase();
@@ -849,10 +872,11 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         if (!hasDirectionsNote) {
           defaultNotes.push({
             id: generateId(),
-            text: `Find us at ${directions}`,
+            text: autoLineText('storeDirections'),
             bold: false,
             italic: false,
             underline: false,
+            autoField: 'storeDirections',
           });
         }
       }
@@ -1004,19 +1028,28 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         loadedBody = prependHeadingIfMissing(loadedBody, loadedHeading);
       }
 
-      // Auto-managed How-to-Shop contact lines (Email/Call) follow the profile:
-      // adopt any legacy lines that match the default templates, then refresh
-      // every tagged line from the current profile. Manually edited lines are
-      // untagged (see updateHowToShopItem) and therefore left untouched.
-      const loadedHowToShop = refreshAutoHowToShop(
-        adoptLegacyAutoHowToShop(parsed.howToShopItems || [])
+      // Auto-managed lines follow the profile: adopt any legacy lines that
+      // match the default templates, then refresh every tagged line from the
+      // current profile. Manually edited lines are untagged (see the update
+      // actions) and therefore left untouched. How-to-Shop carries the
+      // Email/Call lines; Important Notes carries the "Find us at" line.
+      const loadedHowToShop = refreshAutoLines(
+        adoptLegacyAutoLines(parsed.howToShopItems || [], [
+          'storeEmail',
+          'storePhone',
+        ])
+      );
+      const loadedImportantNotes = refreshAutoLines(
+        adoptLegacyAutoLines(parsed.importantNotesItems || [], [
+          'storeDirections',
+        ])
       );
 
       set({
         promotionEntries: parsed.promotionEntries || [],
         specialHours: parsed.specialHours || [],
         howToShopItems: loadedHowToShop,
-        importantNotesItems: parsed.importantNotesItems || [],
+        importantNotesItems: loadedImportantNotes,
         howToShopStyle: parsed.howToShopStyle || {
           ...DEFAULT_HOW_TO_SHOP_STYLE,
         },
