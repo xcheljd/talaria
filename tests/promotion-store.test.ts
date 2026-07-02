@@ -778,7 +778,7 @@ describe('promotion store', () => {
         'Friday'
       );
 
-      await store.saveToIndexedDB();
+      await store.persistState();
 
       const saved = localStorage.getItem('promotionBuilderState');
       expect(saved).not.toBeNull();
@@ -794,7 +794,7 @@ describe('promotion store', () => {
       store.setGeneratedSubjectLines(['Line 1', 'Line 2']);
       store.setSelectedSubjectLine('Line 1');
 
-      await store.saveToIndexedDB();
+      await store.persistState();
 
       const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.generatedSubjectLines).toEqual(['Line 1', 'Line 2']);
@@ -811,7 +811,7 @@ describe('promotion store', () => {
         data: 'data:application/pdf;base64,abc',
       });
 
-      await store.saveToIndexedDB();
+      await store.persistState();
 
       const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.attachedPDFs).toHaveLength(1);
@@ -858,7 +858,7 @@ describe('promotion store', () => {
       };
       localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       const state = getFreshStore();
       expect(state.promotionEntries).toHaveLength(1);
@@ -875,7 +875,7 @@ describe('promotion store', () => {
 
     it('handles empty localStorage gracefully', async () => {
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       const state = getFreshStore();
       expect(state.promotionEntries).toEqual([]);
@@ -886,7 +886,7 @@ describe('promotion store', () => {
       localStorage.setItem('promotionBuilderState', 'not-valid-json');
       const store = getFreshStore();
 
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       const state = getFreshStore();
       expect(state.promotionEntries).toEqual([]);
@@ -925,7 +925,7 @@ describe('promotion store', () => {
       });
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       const state = getFreshStore();
       expect(state.attachedPDFs).toHaveLength(1);
@@ -957,7 +957,7 @@ describe('promotion store', () => {
       }));
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       const state = getFreshStore();
       expect(state.attachedPDFs).toHaveLength(2);
@@ -988,7 +988,7 @@ describe('promotion store', () => {
       });
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       const state = getFreshStore();
       expect(state.attachedPDFs).toHaveLength(1);
@@ -1013,7 +1013,7 @@ describe('promotion store', () => {
       vi.mocked(getPDFFromIndexedDB).mockResolvedValue(null);
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
       expect(getFreshStore().pdfRestoreWarning).toBe(true);
 
       getFreshStore().clearPdfRestoreWarning();
@@ -1045,7 +1045,7 @@ describe('promotion store', () => {
       );
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       const state = getFreshStore();
       expect(state.attachedPDFs).toHaveLength(1);
@@ -1396,7 +1396,7 @@ describe('promotion store', () => {
       localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
       store.initializeDefaultItems();
 
       const state = getFreshStore();
@@ -1414,7 +1414,7 @@ describe('promotion store', () => {
 
       // Empty localStorage = no saved state
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       // After load, arrays are empty - defaults should populate
       store.initializeDefaultItems();
@@ -1568,7 +1568,7 @@ describe('promotion store', () => {
       localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       const item = getFreshStore().howToShopItems[0];
       expect(item.text).toBe('Email current@acme.com');
@@ -1597,7 +1597,7 @@ describe('promotion store', () => {
       localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       expect(getFreshStore().howToShopItems[0].text).toBe(
         'Reach the team at hello@acme.com anytime'
@@ -1665,7 +1665,7 @@ describe('promotion store', () => {
       localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       expect(getFreshStore().howToShopItems).toHaveLength(0);
       vi.mocked(getStoreEmail).mockReturnValue('store@example.com');
@@ -1747,7 +1747,7 @@ describe('promotion store', () => {
       store.setNewsletterBody('<p>Body</p>');
       store.setNewsletterPosition('bottom');
 
-      await store.saveToIndexedDB();
+      await store.persistState();
 
       const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.newsletterHeading).toBe('My Heading');
@@ -1771,7 +1771,7 @@ describe('promotion store', () => {
       localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       const state = getFreshStore();
       expect(state.newsletterHeading).toBe('Loaded Heading');
@@ -1796,7 +1796,7 @@ describe('promotion store', () => {
       localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       const state = getFreshStore();
       expect(state.newsletterHeading).toBe('Newsletter');
@@ -1843,7 +1843,7 @@ describe('promotion store', () => {
     it('saves newsletterVisible to localStorage', async () => {
       const store = getFreshStore();
       store.setNewsletterVisible(true);
-      await store.saveToIndexedDB();
+      await store.persistState();
 
       const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.newsletterVisible).toBe(true);
@@ -1863,7 +1863,7 @@ describe('promotion store', () => {
       localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       expect(getFreshStore().newsletterVisible).toBe(true);
     });
@@ -1881,7 +1881,7 @@ describe('promotion store', () => {
       localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       expect(getFreshStore().newsletterVisible).toBe(false);
     });
@@ -1915,7 +1915,7 @@ describe('promotion store', () => {
       });
       // ...so by the time auto-save writes the metadata reference, the blob
       // already exists — metadata never points at an unpersisted blob.
-      await store.saveToIndexedDB();
+      await store.persistState();
 
       expect(callOrder).toEqual(['indexeddb', 'localstorage']);
       setItemSpy.mockRestore();
@@ -1931,7 +1931,7 @@ describe('promotion store', () => {
         data: 'data:application/pdf;base64,' + 'x'.repeat(5 * 1024 * 1024),
       });
 
-      await store.saveToIndexedDB();
+      await store.persistState();
 
       const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.attachedPDFs).toHaveLength(1);
@@ -1955,7 +1955,7 @@ describe('promotion store', () => {
       });
 
       // Should not throw — data is stripped from localStorage
-      await expect(store.saveToIndexedDB()).resolves.toBeUndefined();
+      await expect(store.persistState()).resolves.toBeUndefined();
 
       const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.attachedPDFs[0]).not.toHaveProperty('data');
@@ -1989,7 +1989,7 @@ describe('promotion store', () => {
       expect(savePDFToIndexedDB).toHaveBeenCalledTimes(3);
 
       // Auto-save does NOT re-write the blobs — only the metadata JSON.
-      await store.saveToIndexedDB();
+      await store.persistState();
       expect(savePDFToIndexedDB).toHaveBeenCalledTimes(3);
 
       const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
@@ -2005,7 +2005,7 @@ describe('promotion store', () => {
       const store = getFreshStore();
       // No PDFs added
 
-      await store.saveToIndexedDB();
+      await store.persistState();
 
       expect(savePDFToIndexedDB).not.toHaveBeenCalled();
       const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
@@ -2027,7 +2027,7 @@ describe('promotion store', () => {
         throw new DOMException('QuotaExceededError', 'QuotaExceededError');
       });
 
-      await store.saveToIndexedDB();
+      await store.persistState();
 
       setItemSpy.mockRestore();
       expect(getFreshStore().saveStatus).toBe('warning');
@@ -2048,11 +2048,11 @@ describe('promotion store', () => {
       setItemSpy.mockImplementationOnce(() => {
         throw new DOMException('QuotaExceededError', 'QuotaExceededError');
       });
-      await store.saveToIndexedDB();
+      await store.persistState();
       expect(getFreshStore().saveStatus).toBe('warning');
 
       // Second save succeeds (mockImplementationOnce used above, so this call goes to real localStorage)
-      await store.saveToIndexedDB();
+      await store.persistState();
       setItemSpy.mockRestore();
       expect(getFreshStore().saveStatus).toBe('ok');
     });
@@ -2091,7 +2091,7 @@ describe('promotion store', () => {
       }
 
       // Save
-      await store.saveToIndexedDB();
+      await store.persistState();
 
       // Mock IndexedDB to return data for each PDF
       vi.mocked(getPDFFromIndexedDB).mockImplementation(async (id) => {
@@ -2103,7 +2103,7 @@ describe('promotion store', () => {
 
       // Reset and load
       store.resetState();
-      await getFreshStore().loadFromIndexedDB();
+      await getFreshStore().restoreState();
 
       const state = getFreshStore();
       expect(state.attachedPDFs).toHaveLength(3);
@@ -2130,7 +2130,7 @@ describe('promotion store', () => {
       localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       expect(getPDFFromIndexedDB).not.toHaveBeenCalled();
     });
@@ -2163,7 +2163,7 @@ describe('promotion store', () => {
       });
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       const state = getFreshStore();
       expect(state.attachedPDFs).toHaveLength(1);
@@ -2200,7 +2200,7 @@ describe('promotion store', () => {
       });
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       const state = getFreshStore();
       expect(state.attachedPDFs).toHaveLength(1);
@@ -2220,7 +2220,7 @@ describe('promotion store', () => {
       localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       expect(getFreshStore().saveStatus).toBe('ok');
     });
@@ -2228,7 +2228,7 @@ describe('promotion store', () => {
     it('saveStatus is ok after load even with corrupted localStorage', async () => {
       localStorage.setItem('promotionBuilderState', 'not-valid-json');
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       expect(getFreshStore().saveStatus).toBe('ok');
     });
@@ -2312,7 +2312,7 @@ describe('promotion store', () => {
       ]);
 
       const store = getFreshStore();
-      await store.loadFromIndexedDB();
+      await store.restoreState();
 
       expect(deletePDFFromIndexedDB).toHaveBeenCalledWith('pdf-orphan');
       expect(deletePDFFromIndexedDB).not.toHaveBeenCalledWith('pdf-1');
@@ -2367,7 +2367,7 @@ describe('promotion store', () => {
 
       // First save succeeds (State A)
       store.setPromoTitle('State A');
-      await store.saveToIndexedDB();
+      await store.persistState();
       expect(getFreshStore().saveStatus).toBe('ok');
 
       // Verify State A is in localStorage
@@ -2380,7 +2380,7 @@ describe('promotion store', () => {
       setItemSpy.mockImplementation(() => {
         throw new DOMException('QuotaExceededError', 'QuotaExceededError');
       });
-      await store.saveToIndexedDB();
+      await store.persistState();
       setItemSpy.mockRestore();
       expect(getFreshStore().saveStatus).toBe('warning');
 
@@ -2392,7 +2392,7 @@ describe('promotion store', () => {
 
       // Reload — should get state A
       store.resetState();
-      await getFreshStore().loadFromIndexedDB();
+      await getFreshStore().restoreState();
 
       expect(getFreshStore().promoTitle).toBe('State A');
     });
@@ -2401,17 +2401,17 @@ describe('promotion store', () => {
       const store = getFreshStore();
 
       store.setPromoTitle('State 1');
-      const save1 = store.saveToIndexedDB();
+      const save1 = store.persistState();
       store.setPromoTitle('State 2');
-      const save2 = store.saveToIndexedDB();
+      const save2 = store.persistState();
       store.setPromoTitle('State 3');
-      const save3 = store.saveToIndexedDB();
+      const save3 = store.persistState();
 
       await Promise.all([save1, save2, save3]);
 
       // Reload
       store.resetState();
-      await getFreshStore().loadFromIndexedDB();
+      await getFreshStore().restoreState();
 
       const title = getFreshStore().promoTitle;
       expect(['State 1', 'State 2', 'State 3']).toContain(title);

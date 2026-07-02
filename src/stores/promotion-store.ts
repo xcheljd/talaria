@@ -2,7 +2,8 @@
  * Zustand store for promotion page state.
  * Manages all promotion builder data: entries, special hours,
  * how-to-shop items, important notes, PDFs, subject lines,
- * column collapse state, and auto-save to IndexedDB.
+ * column collapse state, and auto-save to localStorage (PDF blobs go to
+ * IndexedDB separately, at attach time).
  */
 
 import { create } from 'zustand';
@@ -80,7 +81,7 @@ export interface SubjectLine {
 
 export type ColumnState = 'left' | 'center';
 
-/** Serialized state for IndexedDB persistence */
+/** Serialized state for localStorage persistence */
 export type NewsletterPosition = 'top' | 'bottom';
 
 export interface NewsletterStyle {
@@ -323,8 +324,8 @@ export interface PromotionState {
   initializeDefaultItems: () => void;
 
   // Auto-save / persistence
-  saveToIndexedDB: () => Promise<void>;
-  loadFromIndexedDB: () => Promise<void>;
+  persistState: () => Promise<void>;
+  restoreState: () => Promise<void>;
   resetState: () => void;
 }
 
@@ -866,7 +867,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
 
   // ===== Auto-Save / Persistence =====
 
-  saveToIndexedDB: async () => {
+  persistState: async () => {
     const state = get();
     const persistData: PromotionPersistedState = {
       promoDateRange: state.promoDateRange,
@@ -910,7 +911,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
     }
   },
 
-  loadFromIndexedDB: async () => {
+  restoreState: async () => {
     try {
       await initIndexedDB();
 

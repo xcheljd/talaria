@@ -104,7 +104,7 @@ export function BulkEmailTools() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fallback restore from IndexedDB on mount, for contexts where the
-  // page-level loadFromIndexedDB hasn't populated the store (e.g. tests,
+  // page-level restoreState hasn't populated the store (e.g. tests,
   // standalone mounts). Skipped when the store already has text.
   useEffect(() => {
     if (usePromotionStore.getState().bulkEmailRecipients) return;

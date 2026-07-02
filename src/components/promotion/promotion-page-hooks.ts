@@ -23,7 +23,7 @@ export function useAutoSave() {
       generatedSubjectLines: s.generatedSubjectLines,
       selectedSubjectLine: s.selectedSubjectLine,
       isInitializing: s.isInitializing,
-      saveToIndexedDB: s.saveToIndexedDB,
+      persistState: s.persistState,
     }))
   );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,7 +38,7 @@ export function useAutoSave() {
     }
 
     timerRef.current = setTimeout(() => {
-      store.saveToIndexedDB();
+      store.persistState();
     }, 500);
 
     return () => {

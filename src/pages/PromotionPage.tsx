@@ -69,7 +69,7 @@ export function PromotionPage() {
   const store = usePromotionStore(
     useShallow((s) => ({
       ...selectEmailDataSource(s),
-      loadFromIndexedDB: s.loadFromIndexedDB,
+      restoreState: s.restoreState,
       initializeDefaultItems: s.initializeDefaultItems,
     }))
   );
@@ -108,7 +108,7 @@ export function PromotionPage() {
   // Load persisted state on mount
   useEffect(() => {
     const init = async () => {
-      await store.loadFromIndexedDB();
+      await store.restoreState();
       // Populate defaults only when arrays are empty (fresh state)
       store.initializeDefaultItems();
     };

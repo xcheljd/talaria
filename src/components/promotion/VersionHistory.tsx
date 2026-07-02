@@ -116,7 +116,7 @@ function formatTimestamp(iso: string): string {
 export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
   const store = usePromotionStore(
     useShallow((s) => ({
-      loadFromIndexedDB: s.loadFromIndexedDB,
+      restoreState: s.restoreState,
     }))
   );
   const [snapshots, setSnapshots] = useState<Snapshot[]>(loadSnapshots);
@@ -164,7 +164,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
     // Flush the debounced auto-save first so the snapshot captures edits
     // made within the last ~500ms, not the stale localStorage copy.
     try {
-      await usePromotionStore.getState().saveToIndexedDB();
+      await usePromotionStore.getState().persistState();
     } catch {
       // Snapshot still proceeds with the last persisted state
     }
@@ -186,7 +186,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
     const previous = localStorage.getItem(StorageKeys.promotionBuilderState);
     try {
       localStorage.setItem(StorageKeys.promotionBuilderState, snapshot.data);
-      await store.loadFromIndexedDB();
+      await store.restoreState();
       setConfirmRestoreId(null);
     } catch (err) {
       // Roll back localStorage so it stays in sync with the in-memory state.

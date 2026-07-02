@@ -193,7 +193,7 @@ describe('newsletter style - store actions', () => {
       borderStyle: 'full',
     });
 
-    await store.saveToIndexedDB();
+    await store.persistState();
 
     const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
     expect(saved.newsletterStyle.borderColor).toBe('#ff0000');
@@ -224,7 +224,7 @@ describe('newsletter style - store actions', () => {
     );
 
     const store = getFreshStore();
-    await store.loadFromIndexedDB();
+    await store.restoreState();
 
     const state = getFreshStore();
     expect(state.newsletterStyle.borderColor).toBe('#ff0000');
@@ -250,7 +250,7 @@ describe('newsletter style - store actions', () => {
     );
 
     const store = getFreshStore();
-    await store.loadFromIndexedDB();
+    await store.restoreState();
 
     expect(getFreshStore().newsletterStyle).toEqual(DEFAULT_NEWSLETTER_STYLE);
   });
