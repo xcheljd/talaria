@@ -66,7 +66,14 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: windows-build
-          path: src-tauri/target/release/communication-template-generator.exe
+          # Fail loudly if the installers move/rename — the previous path
+          # silently matched nothing (default if-no-files-found is "warn").
+          if-no-files-found: error
+          # Tauri emits the MSI and NSIS installers under bundle/; globs keep
+          # this stable across the productName/version in the filenames.
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*-setup.exe
 
       - name: Upload macOS artifacts (ARM)
         if: matrix.platform == 'macos-latest' && contains(matrix.args, 'aarch64')
