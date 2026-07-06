@@ -61,6 +61,13 @@ jobs:
         with:
           args: ${{ matrix.args }}
 
+      - name: Locate Windows installers (diagnostic)
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: |
+          echo "workspace: $GITHUB_WORKSPACE"
+          find src-tauri/target -maxdepth 7 -type f \( -name '*.msi' -o -name '*-setup.exe' \) -print || true
+
       - name: Upload Windows artifacts
         if: matrix.platform == 'windows-latest'
         uses: actions/upload-artifact@v7
@@ -69,11 +76,11 @@ jobs:
           # Fail loudly if the installers move/rename — the previous path
           # silently matched nothing (default if-no-files-found is "warn").
           if-no-files-found: error
-          # Tauri emits the MSI and NSIS installers under bundle/; globs keep
-          # this stable across the productName/version in the filenames.
+          # Recursive globs so this is stable whether or not the build uses a
+          # target-triple subdir, and across the productName/version in names.
           path: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*-setup.exe
+            src-tauri/target/**/bundle/msi/*.msi
+            src-tauri/target/**/bundle/nsis/*-setup.exe
 
       - name: Upload macOS artifacts (ARM)
         if: matrix.platform == 'macos-latest' && contains(matrix.args, 'aarch64')
