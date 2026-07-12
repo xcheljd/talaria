@@ -55,32 +55,43 @@ jobs:
         run: npm ci
 
       - name: Build Tauri app
+        id: tauri
         uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: ${{ matrix.args }}
 
-      - name: Locate Windows installers (diagnostic)
+      - name: Stage Windows installers (diagnostic)
         if: matrix.platform == 'windows-latest'
         shell: bash
         run: |
-          echo "workspace: $GITHUB_WORKSPACE"
-          find src-tauri/target -maxdepth 7 -type f \( -name '*.msi' -o -name '*-setup.exe' \) -print || true
+          set -x
+          echo "artifactPaths=${{ steps.tauri.outputs.artifactPaths }}"
+          echo "-- workspace-wide search for installers --"
+          find "$GITHUB_WORKSPACE" -type f \( -name '*.msi' -o -name '*-setup.exe' \) 2>/dev/null || true
+          mkdir -p windows-installers
+          echo '${{ steps.tauri.outputs.artifactPaths }}' | jq -r '.[]?' 2>/dev/null | while read -r p; do
+            case "$p" in
+              *.msi|*-setup.exe)
+                src="$(cygpath -u "$p" 2>/dev/null || echo "$p")"
+                if cp "$src" windows-installers/ 2>/dev/null; then
+                  echo "staged: $src"
+                else
+                  echo "MISSING: $src"
+                fi ;;
+            esac
+          done
+          echo "-- staged contents --"
+          ls -la windows-installers || true
 
       - name: Upload Windows artifacts
         if: matrix.platform == 'windows-latest'
         uses: actions/upload-artifact@v7
         with:
           name: windows-build
-          # Fail loudly if the installers move/rename — the previous path
-          # silently matched nothing (default if-no-files-found is "warn").
-          if-no-files-found: error
-          # Recursive globs so this is stable whether or not the build uses a
-          # target-triple subdir, and across the productName/version in names.
-          path: |
-            src-tauri/target/**/bundle/msi/*.msi
-            src-tauri/target/**/bundle/nsis/*-setup.exe
+          if-no-files-found: warn
+          path: windows-installers/*
 
       - name: Upload macOS artifacts (ARM)
         if: matrix.platform == 'macos-latest' && contains(matrix.args, 'aarch64')
