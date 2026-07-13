@@ -775,7 +775,7 @@ mod tests {
 
     fn image_dims(pdf: &[u8]) -> (i64, i64) {
         let doc = Document::load_mem(pdf).unwrap();
-        for (_, obj) in doc.objects.iter() {
+        for obj in doc.objects.values() {
             if let Object::Stream(s) = obj {
                 if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image") {
                     let w = s.dict.get(b"Width").unwrap().as_i64().unwrap();
@@ -868,7 +868,7 @@ mod tests {
         // way that historically panicked past the `?` operators in
         // plan_replacement. The fail-safe contract is byte-equality with input.
         let mut doc = Document::load_mem(&pdf).unwrap();
-        for (_, obj) in doc.objects.iter_mut() {
+        for obj in doc.objects.values_mut() {
             if let Object::Stream(s) = obj {
                 if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image") {
                     // Valid DCTDecode header bytes but truncated body: the JPEG
