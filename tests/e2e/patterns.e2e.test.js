@@ -63,7 +63,14 @@ test.describe('CSS Variables', () => {
         .trim();
     });
 
-    expect(borderColor).toMatch(/^#[a-fA-F0-9]{6}$/);
+    // --border is registered via @property with syntax: '<color>' (src/index.css),
+    // so the browser resolves it to a computed color and getPropertyValue returns
+    // the serialized form (e.g. "rgb(216, 222, 233)"), not the authored hex
+    // literal. Accept either serialization rather than pinning to one browser's
+    // format.
+    expect(borderColor).toMatch(
+      /^(#[a-fA-F0-9]{6}|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\))$/
+    );
   });
 
   test('reads --primary color variable', async ({ page }) => {
@@ -75,6 +82,9 @@ test.describe('CSS Variables', () => {
         .trim();
     });
 
-    expect(primaryColor).toMatch(/^#[a-fA-F0-9]{6}$/);
+    // See note above: --primary is also registered via @property as '<color>'.
+    expect(primaryColor).toMatch(
+      /^(#[a-fA-F0-9]{6}|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\))$/
+    );
   });
 });

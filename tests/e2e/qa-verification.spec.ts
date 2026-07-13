@@ -39,6 +39,12 @@ async function goToPromotion(page: Page) {
       localStorage.setItem('userProfile', JSON.stringify(profile));
     }
   }, PROFILE);
+  // Dev mode gates the Email Theme / Accessibility / Outlook cards (see
+  // useDevMode.ts); QA Item 8's regression sweep exercises those cards, so
+  // this suite always needs it on. No test here asserts the gated-off state.
+  await page.evaluate(() => {
+    localStorage.setItem('dev.mode', 'true');
+  });
   await page.goto(`${BASE}/promotion`);
   await page.waitForSelector('[data-testid="icon-toolbar"]', { timeout: 20000 });
 }
