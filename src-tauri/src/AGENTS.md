@@ -132,23 +132,25 @@ use_xref_streams)` — not a hand-rolled writer and not qpdf. See `pack_and_save
 
 It is **strictly `qpdf --check`-clean** (exit 0, zero warnings) across the whole
 promo archive, all images intact — no sidecar, no qpdf, no hand-rolled writer.
-Getting there took two findings about lopdf 0.41:
+Getting there took two findings about lopdf:
 
 1. **`renumber_objects()` before save** (done by the caller) clears the hard
    "supposed object stream N is not a stream" errors an earlier attempt hit —
    those were a symptom of a non-contiguous id space, not a real packer bug.
-2. **lopdf omits the xref stream's own self-entry.** Its `create_xref_steam`
-   loops to a stale `xref.size` captured *before* the ObjStm/CRS object ids are
-   assigned, so the highest id is skipped, leaving qpdf's benign warning
-   "xref entry for the xref stream itself is missing". `pack_and_save` works
-   around it: it pins `max_objects_per_stream` very high so there is exactly
-   **one** object stream (making the *only* skipped id deterministically the CRS
-   itself), then `add_xref_self_entry` appends that one type-1 entry to the
-   (uncompressed) xref stream and patches `/Index` + `/Length`. That post-pass
-   is narrow and fail-safe — it only edits lopdf's exact output shape and
-   returns the bytes unchanged otherwise, so it cannot corrupt a file. The
-   proper long-term fix is upstream (one line: refresh `xref.size` before
-   `create_xref_steam`); this workaround can be dropped if/when lopdf fixes it.
+   Still required.
+2. **lopdf ≤ 0.41 omitted the xref stream's own self-entry** — `create_xref_steam`
+   looped to a stale `xref.size` captured *before* the ObjStm/CRS object ids were
+   assigned, so the highest id was skipped, leaving qpdf's benign warning
+   "xref entry for the xref stream itself is missing". This needed a narrow
+   byte-patching post-pass (`add_xref_self_entry`). **Fixed upstream in
+   J-F-Liu/lopdf#501 and released in 0.42**, so the post-pass was deleted when
+   the dep was bumped — `pack_and_save` now packs and saves directly. Verified:
+   raw lopdf 0.42 packed output is `qpdf --check` exit 0 with zero warnings.
+
+**Version ceiling.** lopdf is pinned at **0.42**. 0.43 and 0.44 do not compile
+against current `time` (their `datetime.rs` calls `FormatItem::StringLiteral`,
+which no longer exists in `time` 0.3.47 — the error is inside lopdf itself, not
+our code). Re-test the bump when lopdf publishes a release that fixes this.
 
 **Gain.** Post-strip the file is ~217 objects and only **1.9% of bytes** are
 packable dict/scalar text:
@@ -185,7 +187,7 @@ against ongoing cross-platform native-build/maintenance cost.
 
 ### lopdf save caveat (why `renumber_objects()` is required)
 
-`lopdf` 0.41's classic save emits a benign xref inconsistency (`/Size` slightly
+`lopdf`'s classic save emits a benign xref inconsistency (`/Size` slightly
 higher than highest object number + 1) that trips `qpdf --check`. It's harmless
 (`/Size` is an allocation hint; too-high just over-allocates), but
 `renumber_objects()` before save makes the id space contiguous so `/Size` is
@@ -212,9 +214,9 @@ Verify on real promo PDFs:
   the packed (`save_with_options`) paths depend on a contiguous id space.
   Without it the classic save warns on `/Size` and the packed save emits
   *invalid* object streams.
-- If you touch `pack_and_save`, keep `max_objects_per_stream` very high — the
-  single-object-stream invariant is what makes `add_xref_self_entry`'s
-  one-entry fix sufficient (see the packing section). Don't "fix" it to a small
-  value without also generalizing the self-entry pass to every omitted id.
+- Don't bump `lopdf` past 0.42 without checking it compiles — 0.43/0.44 fail to
+  build against current `time` (see "Version ceiling" in the packing section).
+  The `add_xref_self_entry` post-pass that used to be required is gone as of
+  0.42; don't reintroduce it.
 - Keep the optimizer fail-safe: any error or non-smaller result returns the
   original bytes unchanged.

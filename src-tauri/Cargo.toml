@@ -28,6 +28,6 @@ serde_json = "1"
 dirs = "5"
 log = "0.4"
 base64 = "0.22"
-lopdf = "0.41"
+lopdf = "0.42"
 image = { version = "0.25", default-features = false, features = ["jpeg"] }
 mozjpeg = "0.10"

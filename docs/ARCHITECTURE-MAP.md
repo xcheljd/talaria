@@ -296,10 +296,10 @@ Located in `src/lib/`:
   `false` (accessibility-preserving, classic save). Fully permissive-licensed.
   Ghostscript was rejected (AGPL + RCE surface for ~4 marginal points).
   Object-stream packing is **strictly `qpdf --check`-clean** (lopdf's own
-  object/xref-stream save, made valid by `renumber_objects()` plus a fail-safe
-  post-pass that adds the xref stream's self-entry lopdf omits). See
-  `src-tauri/src/AGENTS.md` for the accessibility decision, the packing finding,
-  and cost/benefit math.
+  object/xref-stream save, made valid by `renumber_objects()`). The byte-patching
+  post-pass this used to need was removed when lopdf was bumped to 0.42, which
+  carries the upstream xref fix. See `src-tauri/src/AGENTS.md` for the
+  accessibility decision, the packing finding, and cost/benefit math.
 
 `src/hooks/useTauri.ts` exposes `isTauri`, `invoke`, and `openFolderDialog`.
 
