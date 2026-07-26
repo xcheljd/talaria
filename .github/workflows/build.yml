@@ -61,22 +61,20 @@ jobs:
         with:
           args: ${{ matrix.args }}
 
-      - name: List Windows installers (diagnostic)
-        if: matrix.platform == 'windows-latest'
-        shell: bash
-        run: find "$GITHUB_WORKSPACE" -type f \( -name '*.msi' -o -name '*-setup.exe' \) 2>/dev/null || true
-
+      # Windows ships as a PORTABLE .exe, not an installer (see features.md and
+      # commit 2eb4993) — hence bundle.targets ["app"] in tauri.conf.json, which
+      # skips the MSI/NSIS bundlers. This is the raw binary cargo produces; its
+      # name follows the Cargo package name (src-tauri/Cargo.toml → "talaria").
+      # if-no-files-found: error so a future package rename fails the build
+      # instead of silently uploading nothing, which is what happened when the
+      # Talaria rebrand left this path pointing at the old binary name.
       - name: Upload Windows artifacts
         if: matrix.platform == 'windows-latest'
         uses: actions/upload-artifact@v7
         with:
           name: windows-build
-          # Fail loudly if the installers move/rename rather than silently
-          # uploading nothing (default if-no-files-found is "warn").
           if-no-files-found: error
-          path: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*-setup.exe
+          path: src-tauri/target/release/talaria.exe
 
       - name: Upload macOS artifacts (ARM)
         if: matrix.platform == 'macos-latest' && contains(matrix.args, 'aarch64')
