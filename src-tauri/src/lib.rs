@@ -301,6 +301,7 @@ fn amatl_optimize(
     let options = amatl::OptimizeOptions {
         strip_accessibility,
         pack_object_streams,
+        ..Default::default()
     };
     let optimized = amatl::optimize_with_options(&bytes, options);
 

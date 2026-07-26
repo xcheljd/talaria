@@ -56,8 +56,24 @@ const DPI_MARGIN: f32 = 1.15;
 /// objects left to pack; for library consumers with larger/denser documents it
 /// can buy substantially more. Implemented in pure Rust (no native deps) to
 /// avoid the qpdf-bundling cost — see AGENTS.md for rationale.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy)]
 pub struct OptimizeOptions {
+    /// Target resolution for downsampled images, in dots per inch. Images
+    /// whose effective on-page DPI exceeds this (by `dpi_margin`) are
+    /// downsampled to it. Values <= 0 disable downsampling entirely.
+    /// Default: 130.0 (a measured visual-lossless sweet spot for business
+    /// documents).
+    pub target_dpi: f32,
+
+    /// JPEG quality (1-100) for re-encoded images. Clamped to [1, 100] at
+    /// use. Default: 78 (matches Ghostscript's image payload within ~0.01%).
+    pub jpeg_quality: u8,
+
+    /// Only downsample when the effective DPI exceeds `target_dpi` by this
+    /// factor, so images already near the target are not churned. Clamped to
+    /// a minimum of 1.0 at use. Default: 1.15.
+    pub dpi_margin: f32,
+
     /// If true, remove the PDF's structure tree (accessibility metadata) for
     /// additional size reduction. Visually lossless; accessibility-lossy.
     /// Default: `false`.
@@ -68,6 +84,22 @@ pub struct OptimizeOptions {
     /// compression). Default: `false`. See struct doc for the cost/benefit
     /// trade-off on different input shapes.
     pub pack_object_streams: bool,
+}
+
+/// Written by hand, NOT derived: a derived `Default` would zero the numeric
+/// fields, making `target_dpi` 0.0 and collapsing every image toward 1px. The
+/// module consts are the single source of truth for the measured sweet spot.
+/// `default_options_match_documented_sweet_spot` pins these values.
+impl Default for OptimizeOptions {
+    fn default() -> Self {
+        Self {
+            target_dpi: TARGET_DPI,
+            jpeg_quality: JPEG_QUALITY,
+            dpi_margin: DPI_MARGIN,
+            strip_accessibility: false,
+            pack_object_streams: false,
+        }
+    }
 }
 
 /// Optimize a PDF with default options (accessibility data preserved), returning
@@ -291,11 +323,25 @@ fn is_dct_only(doc: &Document, filter: &Object) -> bool {
 
 /// Decode, resize, and re-encode one image if it's an over-resolution JPEG.
 /// Returns `None` to leave the image untouched.
-fn plan_replacement(doc: &Document, id: ObjectId, rendered: (f32, f32)) -> Option<Replacement> {
+fn plan_replacement(
+    doc: &Document,
+    id: ObjectId,
+    rendered: (f32, f32),
+    options: OptimizeOptions,
+) -> Option<Replacement> {
     let (rendered_w_pts, rendered_h_pts) = rendered;
     if rendered_w_pts <= 0.0 || rendered_h_pts <= 0.0 {
         return None;
     }
+
+    // Defensive: a non-positive target DPI means "do not downsample".
+    // Without this guard, target_w/target_h below would collapse toward 1px.
+    let target_dpi = options.target_dpi;
+    if target_dpi <= 0.0 {
+        return None;
+    }
+    let dpi_margin = options.dpi_margin.max(1.0);
+    let quality = options.jpeg_quality.clamp(1, 100);
 
     let stream = doc.get_object(id).ok()?.as_stream().ok()?;
     let dict = &stream.dict;
@@ -321,12 +367,12 @@ fn plan_replacement(doc: &Document, id: ObjectId, rendered: (f32, f32)) -> Optio
 
     // Effective DPI = pixels / inches displayed. Skip if already near target.
     let eff_dpi = px_w as f32 / (rendered_w_pts / 72.0);
-    if eff_dpi <= TARGET_DPI * DPI_MARGIN {
+    if eff_dpi <= target_dpi * dpi_margin {
         return None;
     }
 
-    let target_w = ((rendered_w_pts / 72.0) * TARGET_DPI).round().max(1.0) as u32;
-    let target_h = ((rendered_h_pts / 72.0) * TARGET_DPI).round().max(1.0) as u32;
+    let target_w = ((rendered_w_pts / 72.0) * target_dpi).round().max(1.0) as u32;
+    let target_h = ((rendered_h_pts / 72.0) * target_dpi).round().max(1.0) as u32;
     if target_w >= px_w || target_h >= px_h {
         return None;
     }
@@ -340,7 +386,7 @@ fn plan_replacement(doc: &Document, id: ObjectId, rendered: (f32, f32)) -> Optio
 
     // Preserve the original component count so the PDF /ColorSpace (which we
     // leave unchanged) still matches: gray -> 1 channel, else RGB -> 3.
-    let out = encode_jpeg(&resized, is_gray, JPEG_QUALITY)?;
+    let out = encode_jpeg(&resized, is_gray, quality)?;
 
     if out.len() >= stream.content.len() {
         return None;
@@ -489,7 +535,7 @@ fn try_optimize(
     let placements = collect_placements(&doc);
     let mut replacements: Vec<Replacement> = Vec::new();
     for (id, rendered) in placements {
-        if let Some(plan) = plan_replacement(&doc, id, rendered) {
+        if let Some(plan) = plan_replacement(&doc, id, rendered, options) {
             replacements.push(plan);
         }
     }
@@ -691,12 +737,13 @@ mod tests {
     fn pack_object_streams_produces_loadable_output() {
         // With packing on, the output must still be a valid, loadable PDF whose
         // image survives. (Strict qpdf-cleanliness is validated separately via
-        // the real-file/archive runs; lopdf's packed xref carries one benign
-        // "xref stream self-entry" warning that qpdf tolerates.)
+        // the real-file/archive runs. As of lopdf 0.42 the packed xref is
+        // complete, so qpdf --check reports no warnings.)
         let pdf = build_pdf(400, 100);
         let opts = OptimizeOptions {
             strip_accessibility: false,
             pack_object_streams: true,
+            ..Default::default()
         };
         let out = optimize_with_options(&pdf, opts);
 
@@ -721,6 +768,49 @@ mod tests {
         assert_eq!(w, h, "aspect ratio should be preserved");
         // Output must still be a loadable PDF.
         assert!(Document::load_mem(&out).is_ok());
+    }
+
+    #[test]
+    fn default_options_match_documented_sweet_spot() {
+        // Pins the manual Default impl: adding numeric fields must NOT regress
+        // the measured 130 DPI / Q78 / 1.15 sweet spot the desktop app depends
+        // on. A derived Default would zero these and collapse images to ~1px.
+        let d = OptimizeOptions::default();
+        assert_eq!(d.target_dpi, 130.0);
+        assert_eq!(d.jpeg_quality, 78);
+        assert_eq!(d.dpi_margin, 1.15);
+        assert!(!d.strip_accessibility);
+        assert!(!d.pack_object_streams);
+    }
+
+    #[test]
+    fn custom_target_dpi_downsamples_more_aggressively() {
+        // Same input, lower target DPI => smaller downsampled pixel dimensions.
+        // 400px drawn into a 100pt box is ~288 DPI, above both targets.
+        let pdf = build_pdf(400, 100);
+
+        let at_130 = optimize_with_options(&pdf, OptimizeOptions::default());
+        let opts_72 = OptimizeOptions { target_dpi: 72.0, ..Default::default() };
+        let at_72 = optimize_with_options(&pdf, opts_72);
+
+        let (w130, _) = image_dims(&at_130);
+        let (w72, _) = image_dims(&at_72);
+        assert!(w72 < w130, "lower target DPI must yield fewer pixels: {w72} !< {w130}");
+        // 100pt / 72 * 72 DPI = 100px target.
+        assert!((90..=110).contains(&w72), "unexpected 72-DPI width: {w72}");
+    }
+
+    #[test]
+    fn zero_target_dpi_leaves_images_untouched() {
+        // Defensive-clamp regression: target_dpi <= 0 must mean "no
+        // downsampling", NOT "downsample to ~1px".
+        let pdf = build_pdf(400, 100);
+        let opts = OptimizeOptions { target_dpi: 0.0, ..Default::default() };
+        let out = optimize_with_options(&pdf, opts);
+
+        // No image work and no strip => fail-safe path returns the original bytes.
+        let (w, h) = image_dims(&out);
+        assert_eq!((w, h), (400, 400), "zero target DPI must not resize the image");
     }
 
     #[test]
@@ -898,6 +988,7 @@ mod tests {
             strip_accessibility: true,
             // Opt in to object-stream packing for this run via CCT_TEST_PACK=1.
             pack_object_streams: std::env::var("CCT_TEST_PACK").is_ok(),
+            ..Default::default()
         };
         let out = optimize_with_options(&input, opts);
         println!(
