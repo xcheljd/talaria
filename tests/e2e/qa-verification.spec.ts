@@ -1,5 +1,5 @@
 /**
- * QA Verification — CometCast (codename Talaria)
+ * QA Verification — Talaria
  * Commit: 632837a
  *
  * Tests all 8 critical paths from the QA checklist.

@@ -18,10 +18,13 @@ export interface BulkEmailRecord {
   savedAt: string;
 }
 
-// IndexedDB store name for the app's PDFs and bulk-email recipients. Renamed as
-// part of the CometCast rebrand; installs created before the rename keep their
-// data under the old name and start fresh here (acceptable for the rebrand).
-export const DB_NAME = 'CometCast';
+// IndexedDB database name for the app's PDFs and bulk-email recipients.
+// Renamed twice as the app was rebranded (communication-template-generator →
+// CometCast → Talaria). Each rename starts a fresh database: installs created
+// before a rename keep their PDFs and recipient lists under the old name and
+// are not migrated. Accepted as part of the rebrand — the data is
+// re-creatable (re-attach PDFs, re-paste recipients).
+export const DB_NAME = 'Talaria';
 export const DB_VERSION = 2;
 export const STORE_NAME = 'promotionPDFs';
 export const BULK_EMAIL_STORE = 'bulkEmailRecipients';

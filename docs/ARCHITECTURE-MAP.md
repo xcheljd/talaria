@@ -188,8 +188,8 @@ typing string literals at call sites.
 | Saved palettes | localStorage | `emailPaletteSaved`                                                       | `src/components/promotion/EmailThemeEditor.tsx`|
 | Last template | localStorage  | `selectedTemplate`                                                        | `src/pages/TemplateGeneratorPage.tsx`          |
 | Download folder | localStorage + Tauri config | `downloadFolderPath` + `downloads-config.json`                | `src/pages/ProfileSettingsPage.tsx`            |
-| PDF blobs     | IndexedDB     | DB `CometCast`, store `promotionPDFs`                              | `src/lib/db.ts`                                |
-| Bulk recipients | IndexedDB   | DB `CometCast`, store `bulkEmailRecipients`                        | `src/lib/db.ts`                                |
+| PDF blobs     | IndexedDB     | DB `Talaria`, store `promotionPDFs`                              | `src/lib/db.ts`                                |
+| Bulk recipients | IndexedDB   | DB `Talaria`, store `bulkEmailRecipients`                        | `src/lib/db.ts`                                |
 
 The whole localStorage key surface is also enumerated in
 `src/lib/storage-keys.ts`.

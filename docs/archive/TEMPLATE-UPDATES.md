@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the enhancement plan to share advanced features from the promotion email template with other email templates in the Acme CometCast. The goal is to provide consistent professional functionality across all email templates while maintaining their simplicity.
+This document outlines the enhancement plan to share advanced features from the promotion email template with other email templates in the Talaria. The goal is to provide consistent professional functionality across all email templates while maintaining their simplicity.
 
 ## Current State Analysis
 

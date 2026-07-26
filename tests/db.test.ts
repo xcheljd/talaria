@@ -150,7 +150,7 @@ describe('db', () => {
 
   describe('constants', () => {
     it('exports correct DB name', () => {
-      expect(DB_NAME).toBe('CometCast');
+      expect(DB_NAME).toBe('Talaria');
     });
 
     it('exports correct DB version', () => {

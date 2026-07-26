@@ -1,4 +1,4 @@
-# Acme CometCast - Codebase Analysis
+# Talaria - Codebase Analysis
 
 ## Executive Summary
 
@@ -321,7 +321,7 @@ userProfile = {
 ```
 Subject: Your Subject Line
 Date: Mon, 02 Nov 2025 20:30:00 GMT
-Message-ID: <single.1730572200000.abc123de@cometcast.local>
+Message-ID: <single.1730572200000.abc123de@talaria.local>
 MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary="----=_NextPart_1730572200000_abc123de"
 X-Unsent: 1
@@ -578,7 +578,7 @@ function escapeAttr(str) {
 
 ## CONCLUSION
 
-The Acme CometCast implements a sophisticated email signature and EML file system that:
+The Talaria implements a sophisticated email signature and EML file system that:
 
 1. **Generates Professional Signatures**: Two formats (HTML for EML, plain text for simple emails)
 2. **Creates RFC-Compliant EML Files**: Proper MIME encoding, line endings, and attachments

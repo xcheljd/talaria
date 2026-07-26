@@ -412,7 +412,7 @@ export function ProfileSettingsPage() {
         {/* Sidebar */}
         <aside className="lg:w-56 lg:shrink-0">
           <h1 className="mb-1 text-2xl font-semibold">Settings</h1>
-          <p className="mb-4 text-sm text-muted-foreground">CometCast</p>
+          <p className="mb-4 text-sm text-muted-foreground">Talaria</p>
           <nav className="flex gap-1 overflow-x-auto pb-1 lg:flex-col">
             {SECTIONS.map((s) => {
               const Icon = s.icon;

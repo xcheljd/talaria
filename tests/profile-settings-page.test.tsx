@@ -68,7 +68,7 @@ describe('ProfileSettingsPage', () => {
 
     // Sidebar heading + brand
     expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy();
-    expect(screen.getByText('CometCast')).toBeTruthy();
+    expect(screen.getByText('Talaria')).toBeTruthy();
 
     // Check all field labels (some appear in multiple elements)
     expect(screen.getAllByText(/Your Name/).length).toBeGreaterThanOrEqual(1);

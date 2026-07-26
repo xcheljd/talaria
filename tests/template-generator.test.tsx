@@ -1,5 +1,5 @@
 /**
- * Tests for the CometCast template page and related components.
+ * Tests for the Talaria template page and related components.
  *
  * Covers:
  * - templates.ts pure functions (template definitions, helpers)

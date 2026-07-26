@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the CometCast will be documented in this file.
+All notable changes to the Talaria will be documented in this file.
 
 ## [1.4.0] - 2026-06-19
 
@@ -116,7 +116,7 @@ audit. No breaking changes to existing templates or saved data.
 ## [1.0.0] - 2025-10-21
 
 ### Added
-- Initial release of CometCast
+- Initial release of Talaria
 - 15 communication templates across 4 categories
 - Real-time form validation
 - Clear buttons (×) for all input fields

@@ -24,7 +24,7 @@
 
 ## Executive Summary
 
-This document provides a comprehensive implementation plan for three integrated features that enhance the CometCast application:
+This document provides a comprehensive implementation plan for three integrated features that enhance the Talaria application:
 
 ### Features Overview
 
@@ -964,7 +964,7 @@ function createGenericEMLFile(subject, body, attachments = [], format = 'eml') {
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substr(2, 9);
     const boundary = '----=_NextPart_' + timestamp + '_' + randomId;
-    const messageId = `<single.${timestamp}.${randomId}@cometcast.local>`;
+    const messageId = `<single.${timestamp}.${randomId}@talaria.local>`;
     const date = new Date().toUTCString();
 
     // Get user profile for sender information

@@ -32,7 +32,7 @@ export function Layout() {
             className="mr-6 flex items-center space-x-2"
           >
             <Layers className="h-5 w-5" />
-            <span className="font-bold">CometCast</span>
+            <span className="font-bold">Talaria</span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             {links.map(({ to, label, icon: Icon }) => (

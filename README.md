@@ -1,6 +1,6 @@
-# CometCast
+# Talaria
 
-CometCast is a campaign email and customer-communication template generator that any brand can make its own. Set your company, store, products, and branding once on the Settings page, then generate promotion campaigns, newsletters, and email/text/phone templates — there are no hardcoded brand assumptions, so it works for any store or company out of the box.
+Talaria is a campaign email and customer-communication template generator that any brand can make its own. Set your company, store, products, and branding once on the Settings page, then generate promotion campaigns, newsletters, and email/text/phone templates — there are no hardcoded brand assumptions, so it works for any store or company out of the box.
 
 It's a single-page React app built with Vite 7, React 19, TypeScript, Tailwind CSS v4, and shadcn/ui, with an optional Tauri desktop shell.
 

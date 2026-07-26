@@ -346,7 +346,7 @@ describe('VAL-CROSS-004: Theme persists across all pages', () => {
     renderApp();
 
     // Header with navigation links should be present
-    expect(screen.getByText('CometCast')).toBeTruthy();
+    expect(screen.getByText('Talaria')).toBeTruthy();
     expect(screen.getByText('Templates')).toBeTruthy();
     expect(screen.getByText('Settings')).toBeTruthy();
     expect(screen.getByText('Promotions')).toBeTruthy();

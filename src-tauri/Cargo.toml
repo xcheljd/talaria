@@ -1,7 +1,7 @@
 [package]
 name = "talaria"
 version = "1.4.0"
-description = "CometCast (codename Talaria)"
+description = "Talaria — campaign email and communication template generator"
 authors = ["you"]
 # amatl (src/amatl.rs) is intentionally library-neutral for future extraction
 # as its own crate; MIT OR Apache-2.0 is compatible with all of its deps:

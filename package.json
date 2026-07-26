@@ -33,7 +33,7 @@
     "url": "https://github.com/xcheljd/talaria/issues"
   },
   "homepage": "https://github.com/xcheljd/talaria#readme",
-  "description": "CometCast — communication template desktop app (codename Talaria)",
+  "description": "Talaria — campaign email and communication template desktop app",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.57.0",

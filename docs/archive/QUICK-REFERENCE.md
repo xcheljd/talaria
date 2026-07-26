@@ -113,7 +113,7 @@ getEmployeeSignature() pulls from:
 ```
 Subject: [User-provided subject]
 Date: [Current UTC date]
-Message-ID: <unique.timestamp.randomid@cometcast.local>
+Message-ID: <unique.timestamp.randomid@talaria.local>
 MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary="----=_NextPart_[UNIQUE_BOUNDARY]"
 
@@ -306,7 +306,7 @@ console.log(userProfile)  // Current profile data
 ## Key Constants
 
 - `TOAST_DURATION_MS`: 2500 (notification timeout)
-- `DB_NAME`: 'CometCast' (IndexedDB)
+- `DB_NAME`: 'Talaria' (IndexedDB)
 - `STORE_NAME`: 'promotionPDFs' (IndexedDB)
 - `BULK_EMAIL_STORE`: 'bulkEmailRecipients' (IndexedDB)
 - `MIME Boundary`: `----=_NextPart_[timestamp]_[randomid]`

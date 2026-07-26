@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "CometCast",
+  "productName": "Talaria",
   "version": "1.4.0",
-  "identifier": "com.talaria.cometcast",
+  "identifier": "com.talaria.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "CometCast",
+        "title": "Talaria",
         "width": 1280,
         "height": 800,
         "minWidth": 1024,

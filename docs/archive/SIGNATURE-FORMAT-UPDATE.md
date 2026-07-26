@@ -59,7 +59,7 @@ Updated template signatures and EML file generation to match the professional fo
 #### Key Features:
 - **Body Font**: Aptos, Arial, Helvetica (12pt, black)
 - **Encoding**: Proper quoted-printable with 76-character soft line breaks
-- **Boundary Format**: Outlook-style `_000_[timestamp][id]@cometcast.local`
+- **Boundary Format**: Outlook-style `_000_[timestamp][id]@talaria.local`
 - **Headers**: Includes Content-Language, X-Mailer, X-Unsent flags
 
 ### 3. Format Specifications

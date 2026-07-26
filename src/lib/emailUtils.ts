@@ -438,7 +438,7 @@ export function createBCCBatchEML(
   // Add unique Message-ID to prevent Outlook from treating files as duplicates
   const messageId = `<batch${batchNumber}.${Date.now()}.${Math.random()
     .toString(36)
-    .substring(2, 11)}@cometcast.local>`;
+    .substring(2, 11)}@talaria.local>`;
   emlContent += `Message-ID: ${messageId}\r\n`;
 
   // Add BCC recipients with RFC 822 compliant header folding
