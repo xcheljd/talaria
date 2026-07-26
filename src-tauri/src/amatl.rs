@@ -56,7 +56,23 @@ const DPI_MARGIN: f32 = 1.15;
 /// objects left to pack; for library consumers with larger/denser documents it
 /// can buy substantially more. Implemented in pure Rust (no native deps) to
 /// avoid the qpdf-bundling cost — see AGENTS.md for rationale.
+///
+/// # Example
+///
+/// ```ignore
+/// // (ignored: `amatl` is a private module in this app. It becomes a
+/// // compiled doctest once the crate is extracted and the module is public.)
+/// use talaria_lib::amatl::OptimizeOptions;
+/// let opts = OptimizeOptions::default()
+///     .with_strip_accessibility(true)
+///     .with_target_dpi(110.0);
+/// ```
+///
+/// `#[non_exhaustive]`: construct via [`OptimizeOptions::default()`] plus the
+/// `with_*` setters, never a struct literal. This lets future options ship in a
+/// *minor* release instead of a breaking one once amatl is published.
 #[derive(Debug, Clone, Copy)]
+#[non_exhaustive]
 pub struct OptimizeOptions {
     /// Target resolution for downsampled images, in dots per inch. Images
     /// whose effective on-page DPI exceeds this (by `dpi_margin`) are
@@ -99,6 +115,54 @@ impl Default for OptimizeOptions {
             strip_accessibility: false,
             pack_object_streams: false,
         }
+    }
+}
+
+/// Chainable setters. Because the struct is `#[non_exhaustive]`, these are the
+/// only way an external crate can configure it — which is what keeps adding a
+/// future option a non-breaking (minor) release. `Copy`, so taking `self` by
+/// value is cheap.
+///
+/// `allow(dead_code)`: the desktop app only sets the two booleans and ships the
+/// measured DPI/quality sweet spot, so the numeric setters have no in-crate
+/// caller. They are public API for library consumers and the future CLI — the
+/// same rationale as [`optimize()`] above. Remove this attribute once amatl is
+/// its own crate and these are reachable from outside.
+#[allow(dead_code)]
+impl OptimizeOptions {
+    /// Set the target downsampling resolution in DPI. See the field docs.
+    #[must_use]
+    pub fn with_target_dpi(mut self, dpi: f32) -> Self {
+        self.target_dpi = dpi;
+        self
+    }
+
+    /// Set the JPEG quality (1-100) for re-encoded images.
+    #[must_use]
+    pub fn with_jpeg_quality(mut self, quality: u8) -> Self {
+        self.jpeg_quality = quality;
+        self
+    }
+
+    /// Set the over-resolution margin factor (minimum 1.0 at use).
+    #[must_use]
+    pub fn with_dpi_margin(mut self, margin: f32) -> Self {
+        self.dpi_margin = margin;
+        self
+    }
+
+    /// Enable/disable stripping the PDF structure tree (accessibility metadata).
+    #[must_use]
+    pub fn with_strip_accessibility(mut self, strip: bool) -> Self {
+        self.strip_accessibility = strip;
+        self
+    }
+
+    /// Enable/disable PDF 1.5 object-stream packing.
+    #[must_use]
+    pub fn with_pack_object_streams(mut self, pack: bool) -> Self {
+        self.pack_object_streams = pack;
+        self
     }
 }
 
@@ -740,11 +804,7 @@ mod tests {
         // the real-file/archive runs. As of lopdf 0.42 the packed xref is
         // complete, so qpdf --check reports no warnings.)
         let pdf = build_pdf(400, 100);
-        let opts = OptimizeOptions {
-            strip_accessibility: false,
-            pack_object_streams: true,
-            ..Default::default()
-        };
+        let opts = OptimizeOptions::default().with_pack_object_streams(true);
         let out = optimize_with_options(&pdf, opts);
 
         let doc = Document::load_mem(&out).expect("packed output must load");
@@ -784,13 +844,28 @@ mod tests {
     }
 
     #[test]
+    fn builder_methods_set_each_field() {
+        let o = OptimizeOptions::default()
+            .with_target_dpi(96.0)
+            .with_jpeg_quality(60)
+            .with_dpi_margin(1.5)
+            .with_strip_accessibility(true)
+            .with_pack_object_streams(true);
+        assert_eq!(o.target_dpi, 96.0);
+        assert_eq!(o.jpeg_quality, 60);
+        assert_eq!(o.dpi_margin, 1.5);
+        assert!(o.strip_accessibility);
+        assert!(o.pack_object_streams);
+    }
+
+    #[test]
     fn custom_target_dpi_downsamples_more_aggressively() {
         // Same input, lower target DPI => smaller downsampled pixel dimensions.
         // 400px drawn into a 100pt box is ~288 DPI, above both targets.
         let pdf = build_pdf(400, 100);
 
         let at_130 = optimize_with_options(&pdf, OptimizeOptions::default());
-        let opts_72 = OptimizeOptions { target_dpi: 72.0, ..Default::default() };
+        let opts_72 = OptimizeOptions::default().with_target_dpi(72.0);
         let at_72 = optimize_with_options(&pdf, opts_72);
 
         let (w130, _) = image_dims(&at_130);
@@ -805,7 +880,7 @@ mod tests {
         // Defensive-clamp regression: target_dpi <= 0 must mean "no
         // downsampling", NOT "downsample to ~1px".
         let pdf = build_pdf(400, 100);
-        let opts = OptimizeOptions { target_dpi: 0.0, ..Default::default() };
+        let opts = OptimizeOptions::default().with_target_dpi(0.0);
         let out = optimize_with_options(&pdf, opts);
 
         // No image work and no strip => fail-safe path returns the original bytes.
@@ -908,10 +983,7 @@ mod tests {
         let mut reencoded: Vec<u8> = Vec::new();
         doc.save_to(&mut reencoded).unwrap();
 
-        let opts = OptimizeOptions {
-            strip_accessibility: true,
-            ..Default::default()
-        };
+        let opts = OptimizeOptions::default().with_strip_accessibility(true);
         let out = optimize_with_options(&reencoded, opts);
         assert!(
             out.len() < reencoded.len(),
@@ -984,12 +1056,10 @@ mod tests {
             return;
         };
         let input = std::fs::read(&path).expect("failed to read CCT_TEST_PDF");
-        let opts = OptimizeOptions {
-            strip_accessibility: true,
-            // Opt in to object-stream packing for this run via CCT_TEST_PACK=1.
-            pack_object_streams: std::env::var("CCT_TEST_PACK").is_ok(),
-            ..Default::default()
-        };
+        // Opt in to object-stream packing for this run via CCT_TEST_PACK=1.
+        let opts = OptimizeOptions::default()
+            .with_strip_accessibility(true)
+            .with_pack_object_streams(std::env::var("CCT_TEST_PACK").is_ok());
         let out = optimize_with_options(&input, opts);
         println!(
             "CCT_TEST_PDF: {} -> {} bytes ({}%)",

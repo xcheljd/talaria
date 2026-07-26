@@ -298,11 +298,9 @@ fn amatl_optimize(
         .decode(b64.as_bytes())
         .map_err(|e| format!("Invalid base64 payload: {e}"))?;
 
-    let options = amatl::OptimizeOptions {
-        strip_accessibility,
-        pack_object_streams,
-        ..Default::default()
-    };
+    let options = amatl::OptimizeOptions::default()
+        .with_strip_accessibility(strip_accessibility)
+        .with_pack_object_streams(pack_object_streams);
     let optimized = amatl::optimize_with_options(&bytes, options);
 
     // Reuse the original (already-valid) data URL when nothing was saved.
