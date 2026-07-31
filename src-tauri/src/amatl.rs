@@ -653,20 +653,13 @@ fn dedup_objects(doc: &mut Document) {
     }
 
     // Rewrite all references throughout the document.
-    let all_ids: Vec<ObjectId> = doc.objects.keys().copied().collect();
-    for id in all_ids {
-        if let Some(obj) = doc.objects.get_mut(&id) {
-            remap_references(obj, &remap);
-        }
+    for obj in doc.objects.values_mut() {
+        remap_references(obj, &remap);
     }
 
     // Also fix any references in the trailer dict.
-    let trailer_keys: Vec<Vec<u8>> =
-        doc.trailer.iter().map(|(k, _)| k.clone()).collect();
-    for key in trailer_keys {
-        if let Ok(val) = doc.trailer.get_mut(&key) {
-            remap_references(val, &remap);
-        }
+    for (_, val) in doc.trailer.iter_mut() {
+        remap_references(val, &remap);
     }
 
     // Remove the now-redundant duplicate objects. prune_objects() would also
