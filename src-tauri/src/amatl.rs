@@ -205,7 +205,10 @@ pub fn optimize_with_options(input: &[u8], options: OptimizeOptions) -> Vec<u8> 
     // here so a panic becomes the same graceful fallback as any other failure.
     let result = std::panic::catch_unwind(|| try_optimize(input, options));
     match result {
-        Ok(Ok(out)) if out.len() < input.len() => out,
+        // A rewritten document that actually got smaller. Everything else —
+        // Ok(None) (nothing to do), a lopdf error, or a caught panic — falls
+        // through to returning the input unchanged.
+        Ok(Ok(Some(out))) if out.len() < input.len() => out,
         _ => input.to_vec(),
     }
 }
@@ -742,10 +745,13 @@ fn dedup_streams(doc: &mut Document) -> bool {
     true
 }
 
+/// Returns `Ok(None)` when there was genuinely nothing to do, so the caller can
+/// hand back the original bytes without anyone allocating a throwaway copy of
+/// them. `Ok(Some(bytes))` is a real, rewritten document.
 fn try_optimize(
     input: &[u8],
     options: OptimizeOptions,
-) -> Result<Vec<u8>, lopdf::Error> {
+) -> Result<Option<Vec<u8>>, lopdf::Error> {
     let mut doc = Document::load_mem(input)?;
 
     // Collapse repeated images first: every downstream step (placement
@@ -772,7 +778,7 @@ fn try_optimize(
     // images even when nothing needed downsampling, and discarding that would
     // throw away a real size win.
     if replacements.is_empty() && !options.strip_accessibility && !merged_streams {
-        return Ok(input.to_vec());
+        return Ok(None);
     }
 
     for r in replacements {
@@ -814,7 +820,7 @@ fn try_optimize(
     // we want strictly clean output for email recipients / strict readers).
     doc.renumber_objects();
 
-    save_document(&mut doc, options)
+    save_document(&mut doc, options).map(Some)
 }
 
 /// Serialize the document, optionally using PDF 1.5 object-stream packing when
