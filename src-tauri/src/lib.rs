@@ -137,8 +137,40 @@ fn read_file_as_data_url(path: String) -> Result<String, String> {
     Ok(format!("data:application/pdf;base64,{b64}"))
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Saving downloads — three commands, three deliberate modes
+//
+// The frontend picks one in `saveBlob` (`src/lib/file-save.ts`), driven by the
+// Settings toggle **"Ask where to save each download"**
+// (`StorageKeys.downloadSaveAs` = `download.saveAs`, default ON):
+//
+//   Ask ON, single file   -> `save_file_as`
+//                            Native Save As dialog per file; the OS handles
+//                            overwrite confirmation.
+//   Ask ON, batch export  -> `pick_folder` ONCE, then `save_file_to_path` per
+//                            file, so the user isn't prompted N times for an
+//                            N-file batch (see `bulk-email-generation.ts`).
+//   Ask OFF               -> `save_file_to_dir`
+//                            Writes to the folder configured in Settings.
+//
+// The guards differ ON PURPOSE — do not "unify" them:
+//
+//   * `save_file_to_path` requires the directory to already exist, because it
+//     came from a folder picker the user just used. Silently creating it would
+//     mask a bad argument.
+//   * `save_file_to_dir` creates the directory, because it comes from persisted
+//     settings and may have been deleted or moved since it was chosen.
+//   * `save_file_as` does NOT call `is_safe_filename`, because the user chose
+//     the entire destination path through the OS dialog — there is no
+//     app-supplied filename to sanitize. The other two DO validate, since the
+//     app supplies the filename and it must not escape the target directory.
+// ───────────────────────────────────────────────────────────────────────────
+
 /// Open a native folder-picker dialog and return the chosen path.
 /// Returns `None` if the user cancels. Does not persist any setting.
+///
+/// Called once before a batch export so the per-file writes that follow
+/// (`save_file_to_path`) don't each prompt.
 #[tauri::command]
 async fn pick_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
     use tauri_plugin_dialog::DialogExt;
@@ -155,9 +187,12 @@ async fn pick_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
     Ok(folder.map(|p| p.to_string()))
 }
 
-/// Save a base64-encoded blob to a caller-supplied directory.
-/// The directory must already exist (obtained from `pick_folder`).
-/// Returns the absolute path of the written file on success.
+/// Save a base64-encoded blob to a caller-supplied directory — the batch path.
+///
+/// The directory must already exist: it is the one `pick_folder` just returned,
+/// so a missing directory means a bad argument, not a first run. `filename` is
+/// app-supplied and therefore validated with `is_safe_filename` so it cannot
+/// escape `dir`. Returns the absolute path written.
 #[tauri::command]
 fn save_file_to_path(
     dir: String,
@@ -186,8 +221,13 @@ fn save_file_to_path(
     Ok(final_path.to_string_lossy().to_string())
 }
 
-/// Save a base64-encoded blob to the configured download directory.
-/// Returns the absolute path of the written file on success.
+/// Save a base64-encoded blob to the configured download directory — used when
+/// "Ask where to save each download" is OFF.
+///
+/// The directory comes from persisted settings (or the OS Downloads folder), so
+/// it is created if missing: the user may have chosen it long ago and since
+/// deleted or moved it. `filename` is app-supplied and validated with
+/// `is_safe_filename`. Returns the absolute path written.
 #[tauri::command]
 fn save_file_to_dir(
     app: tauri::AppHandle,
@@ -218,11 +258,18 @@ fn save_file_to_dir(
     Ok(final_path.to_string_lossy().to_string())
 }
 
-/// Save a base64-encoded blob via a native "Save As" dialog, so the user
-/// chooses the destination and the OS handles overwrite confirmation. Returns
-/// the chosen path, or `None` if the user cancelled. Used for single,
-/// user-initiated downloads (e.g. the PDF preview) where silently overwriting a
-/// same-named file would be surprising; batch exports keep `save_file_to_dir`.
+/// Save a base64-encoded blob via a native "Save As" dialog — used for single,
+/// user-initiated downloads (e.g. the PDF preview) when "Ask where to save each
+/// download" is ON, where silently overwriting a same-named file would be
+/// surprising.
+///
+/// The user chooses the destination and the OS handles overwrite confirmation,
+/// so there is deliberately no `is_safe_filename` check here: `filename` is only
+/// a suggested name for the dialog, not a path the app writes to unattended.
+/// Returns the chosen path, or `None` if the user cancelled.
+///
+/// Batch exports do NOT use this — being prompted once per file would be
+/// hostile. They call `pick_folder` once and then `save_file_to_path` per file.
 #[tauri::command]
 async fn save_file_as(
     app: tauri::AppHandle,
