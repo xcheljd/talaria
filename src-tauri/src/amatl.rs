@@ -430,9 +430,15 @@ fn plan_replacement(
         return None;
     }
 
-    // Effective DPI = pixels / inches displayed. Skip if already near target.
-    let eff_dpi = px_w as f32 / (rendered_w_pts / 72.0);
-    if eff_dpi <= target_dpi * dpi_margin {
+    // Effective DPI = pixels / inches displayed, evaluated on BOTH axes. A
+    // non-uniformly scaled image (say 1000x1000 px drawn into 500x100 pt) can
+    // sit under the threshold horizontally while being ~6x over-resolved
+    // vertically; testing width alone skipped the whole image. Consider it if
+    // *either* axis is over-resolved — the `target_* >= px_*` guard below still
+    // prevents any upscaling. `non_uniform_placement_is_downsampled` pins this.
+    let eff_dpi_w = px_w as f32 / (rendered_w_pts / 72.0);
+    let eff_dpi_h = px_h as f32 / (rendered_h_pts / 72.0);
+    if eff_dpi_w.max(eff_dpi_h) <= target_dpi * dpi_margin {
         return None;
     }
 
@@ -866,6 +872,12 @@ mod tests {
     /// Build a one-page PDF embedding a `px`×`px` RGB JPEG drawn into a
     /// `draw_pts`×`draw_pts` box, i.e. at an effective DPI of px/(draw_pts/72).
     fn build_pdf(px: u32, draw_pts: i64) -> Vec<u8> {
+        build_pdf_placed(px, draw_pts, draw_pts)
+    }
+
+    /// Same, but with an independent width/height placement box so a
+    /// NON-UNIFORMLY scaled image can be exercised.
+    fn build_pdf_placed(px: u32, draw_w_pts: i64, draw_h_pts: i64) -> Vec<u8> {
         // A non-flat gradient so JPEG has real content to compress.
         let mut img = image::RgbImage::new(px, px);
         for (x, y, pixel) in img.enumerate_pixels_mut() {
@@ -896,10 +908,10 @@ mod tests {
                 Operation::new(
                     "cm",
                     vec![
-                        draw_pts.into(),
+                        draw_w_pts.into(),
                         0.into(),
                         0.into(),
-                        draw_pts.into(),
+                        draw_h_pts.into(),
                         0.into(),
                         0.into(),
                     ],
@@ -1068,6 +1080,37 @@ mod tests {
             }
         }
         panic!("no image stream");
+    }
+
+    #[test]
+    fn non_uniform_placement_is_downsampled() {
+        // 1000x1000 px drawn into a 500x100 pt box:
+        //   horizontal effective DPI = 1000 / (500/72) = 144  (under 130*1.15)
+        //   vertical   effective DPI = 1000 / (100/72) = 720  (~6x over target)
+        // Testing width alone skipped this image entirely. Both axes must be
+        // considered, so the vertically over-resolved image gets downsampled.
+        let pdf = build_pdf_placed(1000, 500, 100);
+        let out = optimize(&pdf);
+
+        let (w, h) = image_dims(&out);
+        assert!(
+            (w, h) != (1000, 1000),
+            "vertically over-resolved image must not be skipped"
+        );
+        // Target is sized per axis: 500pt -> ~903px wide, 100pt -> ~181px tall.
+        assert!((850..=950).contains(&w), "unexpected width: {w}");
+        assert!((150..=210).contains(&h), "unexpected height: {h}");
+        assert!(out.len() < pdf.len(), "output must be smaller");
+        assert!(Document::load_mem(&out).is_ok(), "output must still load");
+    }
+
+    #[test]
+    fn uniformly_low_resolution_image_still_skipped() {
+        // Guard the other direction: considering both axes must not cause
+        // already-adequate images to be churned.
+        let pdf = build_pdf_placed(120, 100, 100);
+        let out = optimize(&pdf);
+        assert_eq!(image_dims(&out), (120, 120), "must be left untouched");
     }
 
     #[test]
