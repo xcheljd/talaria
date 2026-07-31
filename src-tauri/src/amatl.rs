@@ -441,11 +441,18 @@ fn plan_replacement(
         return None;
     }
 
-    let decoded = image::load_from_memory_with_format(&stream.content, ImageFormat::Jpeg).ok()?;
-    let is_gray = matches!(
-        decoded,
-        DynamicImage::ImageLuma8(_) | DynamicImage::ImageLuma16(_)
-    );
+    // Prefer scaled decoding; fall back to a full decode for color spaces the
+    // scaled path declines (CMYK/YCCK) or if libjpeg refuses the stream.
+    let (decoded, is_gray) = decode_jpeg_scaled(&stream.content, target_w, target_h)
+        .or_else(|| {
+            let decoded =
+                image::load_from_memory_with_format(&stream.content, ImageFormat::Jpeg).ok()?;
+            let is_gray = matches!(
+                decoded,
+                DynamicImage::ImageLuma8(_) | DynamicImage::ImageLuma16(_)
+            );
+            Some((decoded, is_gray))
+        })?;
     let resized = decoded.resize_exact(target_w, target_h, image::imageops::FilterType::Lanczos3);
 
     // Preserve the original component count so the PDF /ColorSpace (which we
@@ -467,6 +474,70 @@ fn plan_replacement(
 /// Encode an image as JPEG using mozjpeg (optimized Huffman + trellis), which
 /// produces substantially smaller files than the basic encoder at equal
 /// quality. Channel count is preserved to match the unchanged PDF /ColorSpace.
+/// Decode a JPEG that we are about to shrink, using libjpeg's DCT-domain
+/// scaled decoding so the full-resolution image is never materialized.
+///
+/// Decoding is done at the smallest `n/8` scale whose output still covers the
+/// target in both axes, so the caller's Lanczos3 step always downsamples and
+/// quality is preserved. A 4000x4000 source targeting 180px decodes at 1/8
+/// (500x500, ~750 KB) instead of full size (~48 MB) — most of the IDCT work and
+/// nearly all of the intermediate allocation disappear.
+///
+/// Returns `(image, is_grayscale)`, or `None` for anything that is not plain
+/// RGB or grayscale (e.g. CMYK/YCCK) so the caller can fall back to the
+/// general-purpose decoder rather than risk mis-handling color.
+fn decode_jpeg_scaled(
+    data: &[u8],
+    target_w: u32,
+    target_h: u32,
+) -> Option<(DynamicImage, bool)> {
+    let mut dec = mozjpeg::Decompress::new_mem(data).ok()?;
+    let (full_w, full_h) = (dec.width(), dec.height());
+    if full_w == 0 || full_h == 0 {
+        return None;
+    }
+
+    // Smallest n/8 that still covers the target in BOTH axes (never upscale).
+    let mut numerator = 8u8;
+    for n in 1..=8u8 {
+        let scaled_w = (full_w * n as usize).div_ceil(8);
+        let scaled_h = (full_h * n as usize).div_ceil(8);
+        if scaled_w >= target_w as usize && scaled_h >= target_h as usize {
+            numerator = n;
+            break;
+        }
+    }
+    // Decide the channel count from the JPEG's OWN colorspace and then request
+    // that output explicitly. Do NOT rely on `image()`/`out_color_space`: for a
+    // grayscale JPEG libjpeg's default can still hand back RGB, which would
+    // write 3-channel data into a stream whose PDF /ColorSpace is DeviceGray —
+    // a corrupt image. `grayscale_stays_grayscale` pins this.
+    use mozjpeg::ColorSpace;
+    let is_gray = dec.color_space() == ColorSpace::JCS_GRAYSCALE;
+    // CMYK/YCCK need a color conversion we don't want to hand-roll.
+    if matches!(dec.color_space(), ColorSpace::JCS_CMYK | ColorSpace::JCS_YCCK) {
+        return None;
+    }
+
+    dec.scale(numerator);
+
+    let mut started = if is_gray {
+        dec.grayscale().ok()?
+    } else {
+        dec.rgb().ok()?
+    };
+    let (w, h) = (started.width(), started.height());
+    let buf: Vec<u8> = started.read_scanlines::<u8>().ok()?;
+    started.finish().ok()?;
+
+    let img = if is_gray {
+        DynamicImage::ImageLuma8(image::GrayImage::from_raw(w as u32, h as u32, buf)?)
+    } else {
+        DynamicImage::ImageRgb8(image::RgbImage::from_raw(w as u32, h as u32, buf)?)
+    };
+    Some((img, is_gray))
+}
+
 /// Takes `img` **by value** so the pixel buffer can be moved out with `into_*`
 /// instead of copied: `to_rgb8(&self)` always allocates a fresh buffer, while
 /// `into_rgb8(self)` returns the existing one when the variant already matches
@@ -982,6 +1053,96 @@ mod tests {
         assert!(Document::load_mem(&out).is_ok());
     }
 
+    /// Pull the (single) image stream's JPEG bytes out of a PDF.
+    fn image_stream_bytes(pdf: &[u8]) -> Vec<u8> {
+        let doc = Document::load_mem(pdf).unwrap();
+        for obj in doc.objects.values() {
+            if let Object::Stream(s) = obj {
+                if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image") {
+                    return s.content.clone();
+                }
+            }
+        }
+        panic!("no image stream");
+    }
+
+    #[test]
+    fn scaled_decode_matches_full_decode_pixels() {
+        // The scaled-decode fast path must be visually equivalent to the old
+        // full-decode-then-resize path, not merely the right dimensions.
+        let pdf = build_pdf(800, 100);
+        let out = optimize(&pdf);
+        let produced = image::load_from_memory(&image_stream_bytes(&out))
+            .unwrap()
+            .to_rgb8();
+
+        let src = image::load_from_memory(&image_stream_bytes(&pdf)).unwrap();
+        let reference = src
+            .resize_exact(
+                produced.width(),
+                produced.height(),
+                image::imageops::FilterType::Lanczos3,
+            )
+            .to_rgb8();
+
+        assert_eq!(produced.dimensions(), reference.dimensions());
+        let sad: f64 = produced
+            .as_raw()
+            .iter()
+            .zip(reference.as_raw().iter())
+            .map(|(a, b)| (*a as f64 - *b as f64).abs())
+            .sum();
+        let mad = sad / produced.as_raw().len() as f64;
+        assert!(mad < 12.0, "scaled decode diverges from full decode: MAD={mad}");
+    }
+
+    #[test]
+    fn scaled_decode_never_undershoots_target() {
+        // Decoding must always cover the target so the final Lanczos3 step
+        // downsamples; undershooting would silently upscale and blur.
+        let mut img = image::RgbImage::new(4000, 4000);
+        for (x, y, p) in img.enumerate_pixels_mut() {
+            *p = image::Rgb([(x % 256) as u8, (y % 256) as u8, 0]);
+        }
+        let mut jpeg: Vec<u8> = Vec::new();
+        image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, 85)
+            .encode_image(&DynamicImage::ImageRgb8(img))
+            .unwrap();
+        for target in [180u32, 500, 1000, 2500, 3999] {
+            let (d, _) = decode_jpeg_scaled(&jpeg, target, target).unwrap();
+            assert!(
+                d.width() >= target && d.height() >= target,
+                "target {target}: decoded {}x{} undershoots",
+                d.width(),
+                d.height()
+            );
+        }
+    }
+
+    #[test]
+    fn grayscale_jpeg_round_trips_as_grayscale() {
+        // A true JCS_GRAYSCALE JPEG must decode back as 1-channel, so the
+        // re-encode matches a DeviceGray /ColorSpace. Encoding 3-channel data
+        // into a DeviceGray stream would corrupt the image.
+        //
+        // NOTE: build the fixture with amatl's own encoder. image's JpegEncoder
+        // writes a Luma8 buffer as a 3-component YCbCr JPEG, which is NOT a
+        // grayscale JPEG and would not exercise this path.
+        let mut gray = image::GrayImage::new(600, 600);
+        for (x, y, p) in gray.enumerate_pixels_mut() {
+            *p = image::Luma([((x + y) % 256) as u8]);
+        }
+        let jpeg = encode_jpeg(DynamicImage::ImageLuma8(gray), true, 90).unwrap();
+
+        let (decoded, is_gray) = decode_jpeg_scaled(&jpeg, 100, 100).expect("should decode");
+        assert!(is_gray, "true grayscale JPEG must report is_gray");
+        assert!(
+            matches!(decoded, DynamicImage::ImageLuma8(_)),
+            "must decode as single-channel Luma8"
+        );
+        assert!(decoded.width() >= 100 && decoded.height() >= 100);
+    }
+
     #[test]
     fn duplicate_image_streams_are_merged() {
         // Eight byte-identical images must collapse to ONE stream: decoded and
@@ -1321,5 +1482,7 @@ mod tests {
         assert!(Document::load_mem(&out).is_ok(), "output must remain a valid PDF");
     }
 }
+
+
 
 
