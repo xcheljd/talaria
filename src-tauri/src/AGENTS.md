@@ -193,6 +193,33 @@ higher than highest object number + 1) that trips `qpdf --check`. It's harmless
 `renumber_objects()` before save makes the id space contiguous so `/Size` is
 exact and the output is strictly clean.
 
+### Performance characteristics (2026-07-31 review)
+
+Three changes came out of an efficiency review; keep them in mind before
+"optimizing" this code again:
+
+1. **Scaled decoding, not full decoding.** `decode_jpeg_scaled` uses libjpeg's
+   DCT-domain scaling (via mozjpeg, already a dependency) to decode at the
+   smallest `n/8` that still covers the target, then Lanczos3 finishes the job.
+   A 4000px source targeting 180px decodes at 1/8 instead of full size — ~2.25x
+   faster and a far smaller peak allocation. **The channel count is decided from
+   the JPEG's own `jpeg_color_space`, never from `image()`/`out_color_space`**:
+   for a grayscale JPEG libjpeg's default can hand back RGB, which would write
+   3-channel data into a `DeviceGray` stream and corrupt it. CMYK/YCCK decline
+   the fast path and fall back to the general-purpose decoder.
+2. **Duplicate image streams are merged first.** `dedup_streams` runs *before*
+   planning, so a logo re-embedded per page is decoded and re-encoded once and
+   stored once. (`dedup_objects` handles only non-stream objects — the two are
+   deliberately separate because Debug-formatting megabytes of stream content
+   into a map key would be enormous.) Merging counts as work for the no-op early
+   return, or a duplicates-only document would discard the win.
+3. **Planning is parallel** (`rayon`). Each image is an independent decode →
+   resize → re-encode against an immutable `&Document`. Rayon propagates worker
+   panics to the calling thread, so the `catch_unwind` fail-safe boundary still
+   holds — `crafted_pdf_panic_is_caught_not_unwound` pins it.
+
+Measured together on 8 cores: 16 images went from 158 ms to ~16 ms (~10x).
+
 ### Acceptance bar for any change to the optimizer
 
 Verify on real promo PDFs:
