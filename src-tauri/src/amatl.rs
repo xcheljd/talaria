@@ -27,6 +27,7 @@
 use std::collections::HashMap;
 
 use image::{DynamicImage, ImageFormat};
+use rayon::prelude::*;
 use lopdf::content::Content;
 use lopdf::{Document, Object, ObjectId};
 
@@ -746,13 +747,16 @@ fn try_optimize(
     // object instead of N identical ones.
     let merged_streams = dedup_streams(&mut doc);
 
+    // Plan every image in parallel: each is an independent decode -> resize ->
+    // re-encode against an immutable &Document, so there is no shared mutable
+    // state. Rayon propagates a worker panic to this thread, so the
+    // `catch_unwind` boundary in `optimize_with_options` still holds
+    // (`crafted_pdf_panic_is_caught_not_unwound` pins that).
     let placements = collect_placements(&doc);
-    let mut replacements: Vec<Replacement> = Vec::new();
-    for (id, rendered) in placements {
-        if let Some(plan) = plan_replacement(&doc, id, rendered, options) {
-            replacements.push(plan);
-        }
-    }
+    let replacements: Vec<Replacement> = placements
+        .par_iter()
+        .filter_map(|(&id, &rendered)| plan_replacement(&doc, id, rendered, options))
+        .collect();
 
     // If we have no work to do at all, hand back the original bytes.
     // Note: pack_object_streams alone is not sufficient reason to write a new
@@ -1482,6 +1486,7 @@ mod tests {
         assert!(Document::load_mem(&out).is_ok(), "output must remain a valid PDF");
     }
 }
+
 
 
 

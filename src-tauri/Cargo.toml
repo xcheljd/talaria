@@ -31,3 +31,6 @@ base64 = "0.22"
 lopdf = "0.42"
 image = { version = "0.25", default-features = false, features = ["jpeg"] }
 mozjpeg = "0.10"
+# Parallel image work. Pure Rust, MIT OR Apache-2.0, no native deps — fits the
+# toolchain-purity axis in docs/amatl-roadmap.md.
+rayon = "1"

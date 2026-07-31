@@ -3758,6 +3758,7 @@ dependencies = [
  "log",
  "lopdf",
  "mozjpeg",
+ "rayon",
  "serde",
  "serde_json",
  "tauri",
