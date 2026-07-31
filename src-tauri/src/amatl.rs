@@ -450,7 +450,7 @@ fn plan_replacement(
 
     // Preserve the original component count so the PDF /ColorSpace (which we
     // leave unchanged) still matches: gray -> 1 channel, else RGB -> 3.
-    let out = encode_jpeg(&resized, is_gray, quality)?;
+    let out = encode_jpeg(resized, is_gray, quality)?;
 
     if out.len() >= stream.content.len() {
         return None;
@@ -467,17 +467,23 @@ fn plan_replacement(
 /// Encode an image as JPEG using mozjpeg (optimized Huffman + trellis), which
 /// produces substantially smaller files than the basic encoder at equal
 /// quality. Channel count is preserved to match the unchanged PDF /ColorSpace.
-fn encode_jpeg(img: &DynamicImage, is_gray: bool, quality: u8) -> Option<Vec<u8>> {
+/// Takes `img` **by value** so the pixel buffer can be moved out with `into_*`
+/// instead of copied: `to_rgb8(&self)` always allocates a fresh buffer, while
+/// `into_rgb8(self)` returns the existing one when the variant already matches
+/// (which it does — `resize_exact` preserves the type).
+fn encode_jpeg(img: DynamicImage, is_gray: bool, quality: u8) -> Option<Vec<u8>> {
     use mozjpeg::{ColorSpace, Compress};
 
+    // Capture dimensions before the buffer is moved out.
+    let (width, height) = (img.width() as usize, img.height() as usize);
     let (color_space, data) = if is_gray {
-        (ColorSpace::JCS_GRAYSCALE, img.to_luma8().into_raw())
+        (ColorSpace::JCS_GRAYSCALE, img.into_luma8().into_raw())
     } else {
-        (ColorSpace::JCS_RGB, img.to_rgb8().into_raw())
+        (ColorSpace::JCS_RGB, img.into_rgb8().into_raw())
     };
 
     let mut comp = Compress::new(color_space);
-    comp.set_size(img.width() as usize, img.height() as usize);
+    comp.set_size(width, height);
     comp.set_quality(quality as f32);
 
     let mut started = comp.start_compress(Vec::new()).ok()?;
@@ -590,11 +596,84 @@ fn dedup_objects(doc: &mut Document) {
     }
 }
 
+/// Merge byte-identical **stream** objects — in practice repeated images: a logo
+/// or product shot re-embedded once per page. Returns true if anything merged.
+///
+/// Run *before* image planning, so a repeated image is decoded, resized and
+/// re-encoded exactly **once** instead of once per copy, and stored once in the
+/// output. [`dedup_objects`] deliberately skips streams (Debug-formatting
+/// multi-megabyte content into a map key would be enormous), so this is the
+/// stream-shaped counterpart.
+///
+/// Safety: buckets are keyed on a cheap `(dict, len, content-hash)` triple, then
+/// full byte equality is verified before merging — so a hash collision can never
+/// cause a false merge, matching `dedup_objects`' conservative stance.
+fn dedup_streams(doc: &mut Document) -> bool {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
+    let mut buckets: HashMap<(Vec<u8>, usize, u64), Vec<ObjectId>> = HashMap::new();
+    for (&id, obj) in doc.objects.iter() {
+        if let Object::Stream(s) = obj {
+            let mut hasher = DefaultHasher::new();
+            s.content.hash(&mut hasher);
+            let key = (
+                format!("{:?}", s.dict).into_bytes(),
+                s.content.len(),
+                hasher.finish(),
+            );
+            buckets.entry(key).or_default().push(id);
+        }
+    }
+
+    // Build the remap under immutable borrows only, verifying real equality.
+    let mut remap: HashMap<ObjectId, ObjectId> = HashMap::new();
+    for ids in buckets.values() {
+        if ids.len() < 2 {
+            continue;
+        }
+        let mut ids = ids.clone();
+        ids.sort_unstable();
+        let canonical = ids[0];
+        let Some(Object::Stream(canon)) = doc.objects.get(&canonical) else {
+            continue;
+        };
+        for dup in &ids[1..] {
+            if let Some(Object::Stream(other)) = doc.objects.get(dup) {
+                // Same bucket already implies an equal dict; confirm the bytes.
+                if other.content == canon.content {
+                    remap.insert(*dup, canonical);
+                }
+            }
+        }
+    }
+
+    if remap.is_empty() {
+        return false;
+    }
+
+    for obj in doc.objects.values_mut() {
+        remap_references(obj, &remap);
+    }
+    for (_, val) in doc.trailer.iter_mut() {
+        remap_references(val, &remap);
+    }
+    for id in remap.keys() {
+        doc.objects.remove(id);
+    }
+    true
+}
+
 fn try_optimize(
     input: &[u8],
     options: OptimizeOptions,
 ) -> Result<Vec<u8>, lopdf::Error> {
     let mut doc = Document::load_mem(input)?;
+
+    // Collapse repeated images first: every downstream step (placement
+    // collection, decode/resize/re-encode, and the final write) then sees one
+    // object instead of N identical ones.
+    let merged_streams = dedup_streams(&mut doc);
 
     let placements = collect_placements(&doc);
     let mut replacements: Vec<Replacement> = Vec::new();
@@ -608,7 +687,10 @@ fn try_optimize(
     // Note: pack_object_streams alone is not sufficient reason to write a new
     // file — packing only helps when there are objects to pack, and the
     // dispatcher handles it cheaply inside the save step regardless.
-    if replacements.is_empty() && !options.strip_accessibility {
+    // `merged_streams` counts as work: dedup_streams may have collapsed repeated
+    // images even when nothing needed downsampling, and discarding that would
+    // throw away a real size win.
+    if replacements.is_empty() && !options.strip_accessibility && !merged_streams {
         return Ok(input.to_vec());
     }
 
@@ -783,6 +865,76 @@ mod tests {
         out
     }
 
+    /// One page holding `copies` SEPARATE image objects that all contain the
+    /// same JPEG bytes — what you get when a logo or product shot is
+    /// re-embedded per page. Pins the `dedup_streams` behavior.
+    fn build_pdf_duplicate_images(copies: usize, px: u32) -> Vec<u8> {
+        let mut img = image::RgbImage::new(px, px);
+        for (x, y, pixel) in img.enumerate_pixels_mut() {
+            *pixel = image::Rgb([(x % 256) as u8, (y % 256) as u8, ((x + y) % 256) as u8]);
+        }
+        let mut jpeg: Vec<u8> = Vec::new();
+        image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, 92)
+            .encode_image(&img)
+            .unwrap();
+
+        let mut doc = Document::with_version("1.5");
+        let mut ops = vec![];
+        let mut xobjs = lopdf::Dictionary::new();
+        for i in 0..copies {
+            let id = doc.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject", "Subtype" => "Image",
+                    "Width" => px as i64, "Height" => px as i64,
+                    "ColorSpace" => "DeviceRGB", "BitsPerComponent" => 8,
+                    "Filter" => "DCTDecode",
+                },
+                jpeg.clone(),
+            ));
+            let name = format!("Im{i}");
+            xobjs.set(name.as_bytes().to_vec(), id);
+            ops.push(Operation::new("q", vec![]));
+            ops.push(Operation::new(
+                "cm",
+                vec![100.into(), 0.into(), 0.into(), 100.into(), 0.into(), 0.into()],
+            ));
+            ops.push(Operation::new("Do", vec![Object::Name(name.into_bytes())]));
+            ops.push(Operation::new("Q", vec![]));
+        }
+        let content_id = doc.add_object(Stream::new(
+            dictionary! {},
+            Content { operations: ops }.encode().unwrap(),
+        ));
+        let pages_id = doc.new_object_id();
+        let page_id = doc.add_object(dictionary! {
+            "Type" => "Page", "Parent" => pages_id, "Contents" => content_id,
+            "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+            "Resources" => dictionary! { "XObject" => xobjs },
+        });
+        doc.objects.insert(
+            pages_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Pages", "Kids" => vec![page_id.into()], "Count" => 1,
+            }),
+        );
+        let catalog_id = doc.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
+        doc.trailer.set("Root", catalog_id);
+        let mut out: Vec<u8> = Vec::new();
+        doc.save_to(&mut out).unwrap();
+        out
+    }
+
+    fn count_image_streams(pdf: &[u8]) -> usize {
+        let doc = Document::load_mem(pdf).unwrap();
+        doc.objects
+            .values()
+            .filter(|o| {
+                matches!(o, Object::Stream(s)
+                    if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image"))
+            })
+            .count()
+    }
+
     fn image_dims(pdf: &[u8]) -> (i64, i64) {
         let doc = Document::load_mem(pdf).unwrap();
         for obj in doc.objects.values() {
@@ -828,6 +980,44 @@ mod tests {
         assert_eq!(w, h, "aspect ratio should be preserved");
         // Output must still be a loadable PDF.
         assert!(Document::load_mem(&out).is_ok());
+    }
+
+    #[test]
+    fn duplicate_image_streams_are_merged() {
+        // Eight byte-identical images must collapse to ONE stream: decoded and
+        // re-encoded once instead of eight times, and stored once. Before
+        // dedup_streams this produced 8 separate (identical) image streams.
+        let pdf = build_pdf_duplicate_images(8, 400);
+        assert_eq!(count_image_streams(&pdf), 8, "fixture should start with 8");
+
+        let out = optimize(&pdf);
+        assert_eq!(
+            count_image_streams(&out),
+            1,
+            "identical images must be merged into a single stream"
+        );
+        assert!(out.len() < pdf.len(), "output must be smaller");
+        assert!(Document::load_mem(&out).is_ok(), "output must still load");
+    }
+
+    #[test]
+    fn distinct_image_streams_are_not_merged() {
+        // Guard against over-merging: differing bytes must never collapse.
+        let mut doc = Document::load_mem(&build_pdf_duplicate_images(2, 400)).unwrap();
+        let ids: Vec<ObjectId> = doc
+            .objects
+            .iter()
+            .filter(|(_, o)| {
+                matches!(o, Object::Stream(s)
+                    if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image"))
+            })
+            .map(|(id, _)| *id)
+            .collect();
+        assert_eq!(ids.len(), 2);
+        if let Ok(Object::Stream(s)) = doc.get_object_mut(ids[1]) {
+            s.content.push(0x00);
+        }
+        assert!(!dedup_streams(&mut doc), "differing bytes must not merge");
     }
 
     #[test]
