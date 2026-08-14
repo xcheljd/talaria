@@ -10,7 +10,7 @@
  * collapse affordance.
  */
 
-import { lazy, memo, Suspense } from 'react';
+import { lazy, memo, Suspense, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import {
@@ -206,19 +206,33 @@ function HowToShopEditor() {
       reorderHowToShopItems: s.reorderHowToShopItems,
     }))
   );
+  // Actions object is memoized on the (referentially stable) store actions so
+  // `ItemRow`'s memo wrapper isn't defeated by a fresh object per render.
+  const actions = useMemo(
+    () => ({
+      addItem: store.addHowToShopItem,
+      removeItem: store.removeHowToShopItem,
+      updateItem: store.updateHowToShopItem,
+      moveItemUp: store.moveHowToShopItemUp,
+      moveItemDown: store.moveHowToShopItemDown,
+      toggleFormat: store.toggleHowToShopFormat,
+      reorderItems: store.reorderHowToShopItems,
+    }),
+    [
+      store.addHowToShopItem,
+      store.removeHowToShopItem,
+      store.updateHowToShopItem,
+      store.moveHowToShopItemUp,
+      store.moveHowToShopItemDown,
+      store.toggleHowToShopFormat,
+      store.reorderHowToShopItems,
+    ]
+  );
   return (
     <div className="space-y-3">
       <FormattableItemEditor
         items={store.howToShopItems}
-        actions={{
-          addItem: store.addHowToShopItem,
-          removeItem: store.removeHowToShopItem,
-          updateItem: store.updateHowToShopItem,
-          moveItemUp: store.moveHowToShopItemUp,
-          moveItemDown: store.moveHowToShopItemDown,
-          toggleFormat: store.toggleHowToShopFormat,
-          reorderItems: store.reorderHowToShopItems,
-        }}
+        actions={actions}
         placeholder="e.g., Visit us in-store for outlet-exclusive deals"
         itemLabel="Item"
         emptyMessage={
@@ -258,19 +272,33 @@ function ImportantNotesEditor() {
       reorderImportantNotesItems: s.reorderImportantNotesItems,
     }))
   );
+  // Actions object is memoized on the (referentially stable) store actions so
+  // `ItemRow`'s memo wrapper isn't defeated by a fresh object per render.
+  const actions = useMemo(
+    () => ({
+      addItem: store.addImportantNotesItem,
+      removeItem: store.removeImportantNotesItem,
+      updateItem: store.updateImportantNotesItem,
+      moveItemUp: store.moveImportantNotesItemUp,
+      moveItemDown: store.moveImportantNotesItemDown,
+      toggleFormat: store.toggleImportantNotesFormat,
+      reorderItems: store.reorderImportantNotesItems,
+    }),
+    [
+      store.addImportantNotesItem,
+      store.removeImportantNotesItem,
+      store.updateImportantNotesItem,
+      store.moveImportantNotesItemUp,
+      store.moveImportantNotesItemDown,
+      store.toggleImportantNotesFormat,
+      store.reorderImportantNotesItems,
+    ]
+  );
   return (
     <div className="space-y-3">
       <FormattableItemEditor
         items={store.importantNotesItems}
-        actions={{
-          addItem: store.addImportantNotesItem,
-          removeItem: store.removeImportantNotesItem,
-          updateItem: store.updateImportantNotesItem,
-          moveItemUp: store.moveImportantNotesItemUp,
-          moveItemDown: store.moveImportantNotesItemDown,
-          toggleFormat: store.toggleImportantNotesFormat,
-          reorderItems: store.reorderImportantNotesItems,
-        }}
+        actions={actions}
         placeholder="e.g., Important safety information or key details"
         itemLabel="Note"
         emptyMessage={

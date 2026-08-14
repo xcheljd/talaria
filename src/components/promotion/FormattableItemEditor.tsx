@@ -7,7 +7,7 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -103,7 +103,13 @@ interface ItemRowProps {
   placeholder: string;
 }
 
-function ItemRow({ item, index, total, actions, placeholder }: ItemRowProps) {
+const ItemRow = memo(function ItemRow({
+  item,
+  index,
+  total,
+  actions,
+  placeholder,
+}: ItemRowProps) {
   const isFirst = index === 0;
   const isLast = index === total - 1;
 
@@ -194,7 +200,7 @@ function ItemRow({ item, index, total, actions, placeholder }: ItemRowProps) {
       </div>
     </SortableItem>
   );
-}
+});
 
 // ===== Main Editor Component =====
 
