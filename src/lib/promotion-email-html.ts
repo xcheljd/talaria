@@ -465,7 +465,7 @@ const DEFAULT_TABLE_STYLE: TableStyleOptions = {
   headerBg: EMAIL_PALETTE.sectionBg,
 };
 
-function convertTipTapToInlineHTML(
+export function convertTipTapToInlineHTML(
   html: string,
   palette: EmailPalette = EMAIL_PALETTE,
   tableStyle: TableStyleOptions = DEFAULT_TABLE_STYLE
@@ -533,8 +533,8 @@ function convertTipTapToInlineHTML(
   result = result.replace(/<\/mark>/g, '</span>');
 
   // ===== Helper to extract text-align from existing style attr =====
-  const extractTextAlign = (attrs: string): string => {
-    const match = attrs.match(
+  const extractTextAlign = (attrs: string | undefined): string => {
+    const match = (attrs ?? '').match(
       /style="[^"]*text-align:\s*(left|center|right|justify)/
     );
     return match ? ` text-align: ${match[1]};` : '';
@@ -556,9 +556,14 @@ function convertTipTapToInlineHTML(
       `<h3 style="font-size: 17px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 12px 0 6px 0; font-weight: bold;${extractTextAlign(attrs)}">`
   );
 
-  // Replace <p> with inline-styled version (preserve text-align)
+  // Replace <p> with inline-styled version (preserve text-align).
+  // NB: `(?:\s([^>]*))?` instead of `([^>]*)` so a bare `<p>` still
+  // matches but `<pre>` does not — the old `[^>]*` captured `re` from
+  // `<pre>` and rewrote code blocks as paragraphs before the pre/code
+  // regex below could run, killing the code styling and leaking a
+  // stray `</pre>`.
   result = result.replace(
-    /<p([^>]*)>/g,
+    /<p(?:\s([^>]*))?>/g,
     (_match, attrs) =>
       `<p style="font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 0 0 8px 0;${extractTextAlign(attrs)}">`
   );
