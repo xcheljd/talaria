@@ -19,21 +19,26 @@ React Hook Form. No backend, no auth, no network calls — all state lives in
 
 ## Commands
 
-| Task | Command |
-| --- | --- |
-| Dev server | `npm run dev` |
-| Production build | `npm run build` |
-| Typecheck (two-pass: app + tests) | `npm run typecheck` |
-| Lint | `npm run lint` |
-| Unit/component tests (Vitest) | `npm test` |
-| Coverage | `npm run test:coverage` |
-| E2E (Playwright) | `npm run test:e2e` |
-| Desktop dev / build | `npm run tauri:dev` / `npm run tauri:build` |
+| Task                              | Command                                     |
+| --------------------------------- | ------------------------------------------- |
+| Dev server                        | `npm run dev`                               |
+| Production build                  | `npm run build`                             |
+| Typecheck (two-pass: app + tests) | `npm run typecheck`                         |
+| Lint                              | `npm run lint`                              |
+| Unit/component tests (Vitest)     | `npm test`                                  |
+| Coverage                          | `npm run test:coverage`                     |
+| E2E (Playwright)                  | `npm run test:e2e`                          |
+| Desktop dev / build               | `npm run tauri:dev` / `npm run tauri:build` |
 
 **Before committing, run `npm run typecheck && npm run lint && npm test`.** The
 typecheck is two passes: the app compiles browser-only (`types: []`); the test
 project (`tsconfig.test.json`) adds node types. A change can pass one and fail
 the other.
+
+The pre-commit hook (husky + lint-staged) now enforces the fast part of this
+gate automatically: eslint and both typecheck passes run on staged files. Full
+`npm test` stays out of the hook (it's slow); CI runs it, and you should run it
+locally before pushing.
 
 ## Key modules
 
