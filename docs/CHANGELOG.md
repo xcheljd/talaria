@@ -2,6 +2,70 @@
 
 All notable changes to the Talaria will be documented in this file.
 
+## [1.5.0] - 2026-08-14
+
+Rebrand + amatl API hardening + promotion builder ergonomics + PDF optimizer
+performance pass. Includes the CometCast → Talaria rename and brand-agnostic
+profile fields.
+
+### Added
+- **Brand-agnostic profile**: `companyName`, `brandLinks`, `productNoun` /
+  `productNounPlural`, and brand/collection keywords replace all hardcoded
+  Citizen Watch values; signature, subject lines, and templates read from the
+  profile (`99ad13b`, `498bb34`)
+- **How-to-Shop auto-lines**: contact lines auto-refresh from the profile, hide
+  when the profile field is empty, and persist through export/import
+  (`71579d9`, `7c8c34e`, `59eac71`, `a3fc163`)
+- **Important Notes directions line** now follows the profile (`d08414b`)
+- **Dev mode toggle**: advanced surfaces gated behind a Settings dev toggle
+  (`0d2b842`, `c32cf89`)
+- **A11y scan snapshot**: manual scan result + stale-results indicator
+  (`bdb8e12`)
+- **Single-day date formatting**: "Only \<date\>" for same-day ranges, and
+  full "Saturday, June 20th, 2026" for one-day promos (`bce6dff`, `818d684`)
+- **Word-style bubble menu** on text selection in the newsletter editor
+  (`99cb7b3`)
+- **Client-faithful dark-mode preview**, plain-text paste, and editor WYSIWYG
+  (`8dfb73c`); preview light/dark + full/partial remembered across sessions
+  (`ca0a7a6`); preview light/dark syncs with app theme (`4f9bab1`)
+
+### Fixed
+- **EML subject injection**: CR/LF stripped from the Subject header
+  (`c2f4339`)
+- **Imported PDFs validated** instead of blind cast (`1b71924`)
+- **Preview scroll preserved** across dark-mode switches and panel resizes
+  (`536f9cd`, `8803aa9`, `be9717b`)
+- **Download folder**: Settings now shows the folder downloads actually use,
+  removing the drift-prone localStorage copy (`6640959`, `0d43139`)
+- **E2E suite repaired**: CSS-variable color assertion and dev-only-card
+  timeouts (`57b94bb`)
+
+### Changed
+- **Rebrand**: app renamed CometCast → Talaria (`4c28cea`)
+- **amatl tunables**: DPI / JPEG quality / margin promoted from consts to
+  `OptimizeOptions` fields with a manual `Default` (`9a68bd3`, plans/001)
+- **amatl API**: `OptimizeOptions` is now `#[non_exhaustive]` with chainable
+  `with_*` builder methods (`b7f0cf9`, plans/002)
+- **amatl performance**: rayon-parallel replacement planning, reduced-scale
+  JPEG decode, duplicate image-stream merging, zero pixel-buffer copies
+  (`f8b8d3a`, `1f2dded`, `bbbf561`, `cc2976c`, `d4d1cfa`, `9f55704`; perf
+  characteristics recorded in `src-tauri/src/AGENTS.md`)
+- **lopdf 0.42**: xref self-entry workaround deleted (`00b8844`)
+- **Dependencies**: TipTap 3.27.1 → 3.29.0; tauri crate 2.11.3 to match
+  `@tauri-apps/api` (`492b86d`, `a223be4`)
+- **Icon toolbar**: single-card tool selector (`f3ff0d2`)
+- **UI**: hand-rolled buttons/collapsibles replaced with shadcn primitives;
+  dead `SidebarBar`/`HorizontalStrip` and `useScrollSpy` removed; newsletter
+  editor lazy-loaded (`7bb7fff`, `b781cff`, `232e1b6`, `e108728`)
+- **Perf**: memoized `IconToolbar`/`PreviewToolbar`, per-card status
+  re-renders, scoped Switch transition, smoother theme transition
+  (`90f1058`, `424ec26`, `5618183`, `e93ddf9`)
+
+### CI / Build
+- Windows installers: portable `.exe` restored, real MSI/NSIS artifacts staged
+  and uploaded from `tauri-action` (`80d4d35`, `f84fae8`, `e906144`,
+  `25efc51`, `e4d0d0f`)
+
 ## [1.4.0] - 2026-06-19
 
 Reliability, security, and test-coverage hardening pass driven by a codebase

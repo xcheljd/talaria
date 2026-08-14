@@ -10,8 +10,8 @@ starting, honor its STOP conditions, and update your row when done.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 001  | Make image tunables (DPI / quality / margin) configurable via `OptimizeOptions` | P1 | M | — | TODO |
-| 002  | Make `OptimizeOptions` forward-compatible for crate publication (`#[non_exhaustive]` + builder methods) | P2 | S | 001 | TODO |
+| 001  | Make image tunables (DPI / quality / margin) configurable via `OptimizeOptions` | P1 | M | — | DONE |
+| 002  | Make `OptimizeOptions` forward-compatible for crate publication (`#[non_exhaustive]` + builder methods) | P2 | S | 001 | DONE |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 

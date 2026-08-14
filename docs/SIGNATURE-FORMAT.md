@@ -1,12 +1,12 @@
 # Email Signature Format
 
-**Date**: November 11, 2025 (Updated)
+**Date**: August 14, 2026 (Updated)
 **Status**: ✓ Current Implementation
-**Location**: `src/js/shared/signature.js` - `getEmployeeSignature()` function (re-exported by `src/js/templates.js`)
+**Location**: `src/lib/signature.ts` - `getEmployeeSignature()` function
 
 ## Overview
 
-The email signature is a standardized footer included in all employee communications. It displays professional contact information with proper formatting for both plain text and HTML email clients.
+The email signature is a standardized footer included in employee communications. It displays professional contact information with proper formatting for both plain text and HTML email clients. All brand values (company name, store name, brand links) are read per-install from the saved profile, so the signature works for any brand — there are no hardcoded company values.
 
 ## Signature Structure
 
@@ -34,8 +34,8 @@ ______________________________________________________________________
 Acme Inc.
 Acme Store - Store Location
 ```
-- "Acme Inc." on first line (**bold**)
-- "Acme Store - Store Location" on second line (**bold**)
+- `companyName` on first line (**bold**)
+- `storeName - storeLocation` on second line (**bold**; location line omitted when empty)
 - Store location from profile (e.g., "the South Premium Outlets")
 - Font: Century Gothic, 8pt, dark gray (#2f2f2f)
 
@@ -44,7 +44,7 @@ Acme Store - Store Location
 [Full Store Address from Profile]
 ```
 - Street address from `storeAddress` profile field
-- Multi-line addresses display with proper line breaks
+- Multi-line addresses display with proper line breaks (`<br>` in HTML)
 - Font: Century Gothic, 8pt, dark gray (#2f2f2f)
 - **Note**: Only shows if address is filled in profile
 
@@ -61,11 +61,12 @@ Tel/SMS: (702) 555-0190
 Email: vegassouth@example.com
 ```
 - **Smart Selection Based on Job Title**:
-  - If title contains: "Manager", "Director", "Supervisor", or "Assistant Manager"
+  - If title contains "manager", "director", "supervisor", or "assistant manager"
+    (case-insensitive, checked against `MANAGER_TITLES` in `signature.ts`)
     - Uses `companyEmail` from profile (if available)
   - Otherwise
     - Uses `storeEmail` from profile (if available)
-- Email formatted as hyperlink: `Email: prefix@domain.com` (with @ as hyperlink)
+- Email formatted as hyperlink (`mailto:` link, styled blue + underline)
 - Font: Century Gothic, 8pt, dark gray (#2f2f2f)
 - **Note**: Only shows if email is available
 - **Spacing**: No blank line between email and brand links (flows directly)
@@ -74,14 +75,12 @@ Email: vegassouth@example.com
 ```
 Lumen | Zenith | Acme | Meridian
 ```
-- Four brand links separated by pipes (|)
-- Each brand is a hyperlink in blue (#0000ee) with underline
+- Brand links configured in the profile (`brandLinks` array), separated by pipes (|)
+- Each brand is a hyperlink in blue (#0066cc) with underline
 - Font: Century Gothic, 8pt
-- **Links**:
-  - Lumen: https://lumen.example.com/
-  - Zenith: https://zenith.example.com/
-  - Acme: https://acme.example.com/
-  - Meridian: https://meridian.example.com/
+- **Note**: Links are only rendered for brands with both a name and URL; the
+  entire row is omitted when no valid brand links are configured (no empty
+  placeholder row)
 
 ### 8. Environment Message
 ```
@@ -97,14 +96,19 @@ Please consider the environment before printing this e-mail
 - **Font Family**: Century Gothic, Aptos, Arial, sans-serif (fallback order)
 - **Name/Title**: 9pt, bold, black
 - **Details**: 8pt, dark gray (#2f2f2f)
-- **Links**: 8pt, blue (#0000ee), underlined
+- **Links**: 8pt, blue (#0066cc), underlined
 - **Environment**: 8pt, green (#0c8822), bold
 
 ### Styling Details
 - All paragraphs: `margin: 0; padding: 0;`
 - Email paragraph: `margin: 10px 0 0 0;` (adds top margin for blank line spacing)
+- Brand links paragraph: `margin: 4px 0;`
+- Environment paragraph: `margin: 4px 0;`
 - Links in email body: automatically styled blue with underline
 - Color consistency across all email clients
+- Preview mode (`forPreview: true`) swaps colors when the host page is dark
+  (via `isIframePreviewDarkMode()`): primary `#e0e0e0`, secondary `#b0b0b0`,
+  link `#4da6ff`, environmental `#4CAF50`
 
 ## Plain Text Formatting
 
@@ -116,24 +120,29 @@ In plain text emails:
 
 ## Profile Configuration
 
-The signature pulls data from the user profile saved in the application. Make sure to fill in these fields in `start.html`:
+The signature pulls data from the user profile saved in the application (see
+`src/lib/profile.ts`, `extractSignatureData()`), edited on the Settings page
+(`src/pages/ProfileSettingsPage.tsx`):
 
 | Field | Type | Required | Used For |
 |-------|------|----------|----------|
 | `employeeName` | Text | Yes | Name in signature |
 | `jobTitle` | Text | Yes | Title in signature; determines email selection |
-| `storeLocation` | Text | Yes | Location after "Acme Inc." |
+| `storeLocation` | Text | Yes | Location after `storeName` |
 | `storeAddress` | Text | No | Address line in signature |
 | `storePhone` | Text | Yes | Tel/SMS number |
 | `storeEmail` | Text | No | Email for non-manager staff |
 | `companyEmail` | Text | No | Email for managers and above |
+| `companyName` | Text | Yes | Company name line in signature |
+| `storeName` | Text | Yes | Store name line in signature |
+| `brandLinks` | Array | No | Brand name/URL pairs rendered as links |
 
 ## Email Selection Logic
 
 The signature automatically selects the appropriate email based on job title:
 
 ```
-If jobTitle contains "Manager", "Director", "Supervisor", or "Assistant Manager":
+If jobTitle contains "manager", "director", "supervisor", or "assistant manager":
   Use companyEmail (if available)
 Else:
   Use storeEmail (if available)
@@ -148,40 +157,43 @@ This ensures:
 ## Implementation Details
 
 ### Function Location
-- **File**: `src/js/shared/signature.js`
-- **Function**: `getEmployeeSignature(format = 'text')`
+- **File**: `src/lib/signature.ts` (migrated from the legacy
+  `src/js/shared/signature.js` — removed in the TypeScript migration)
+- **Function**: `getEmployeeSignature(format = 'text', options?)`
 - **Parameters**:
   - `format`: 'text' (default) or 'html'
+  - `options.forPreview`: when true, uses theme-aware preview colors
 
 ### Usage in Templates
-Plain text templates end with:
-```javascript
-${getEmployeeSignature()}  // Returns plain text signature
+Template bodies end with a closing generated by `generateClosing()` in
+`src/lib/templates.ts`:
+
+```typescript
+function generateClosing(): string {
+  return `\n\nBest regards,`;
+}
 ```
 
-HTML conversion uses:
-```javascript
-getEmployeeSignature('html')  // Returns HTML-formatted signature
-```
+Each template's `generate()` result carries `includeSignature: true` (or
+`false` for templates that shouldn't append one), and the generator appends
+`getEmployeeSignature()` / `getEmployeeSignature('html')` accordingly
+(`src/lib/templates.ts` lines ~287-289).
 
 ### Signature Removal
-When converting plain text to HTML for preview/EML, the signature is detected and removed:
+When converting the editable preview back to text/HTML for export, the
+signature is detected and removed via a dedicated CSS class, **not** regex
+(`src/lib/htmlTextConversion.ts`):
 
-**Primary Method** (templates with "Best regards," sign-off):
-- Regex: `/\n\nBest regards,/`
-- Keeps the email body including "Best regards,"
-- Removes the plain text signature that follows
-
-**Fallback Method** (for templates without "Best regards,"):
-- Regex: `/\n\n-{5,}\n/` or `/______+/`
-- Detects signature by separator markers
-- Removes from the marker onwards
-
-After removal, the HTML signature is appended fresh to ensure consistent formatting.
+- The rendered signature block is marked with the
+  `.email-signature-protected` class.
+- `getEditableBodyHTML()` clones the preview container and removes any
+  `.email-signature-protected` element before extracting content, so the
+  signature is never duplicated in the exported body.
 
 ## Sign-Off Format
 
-All email templates include a professional sign-off before the signature:
+All email templates use the "Best regards," sign-off, centralized in
+`generateClosing()` in `src/lib/templates.ts`:
 
 ```
 Best regards,
@@ -190,18 +202,7 @@ Best regards,
 **Implementation**:
 - Appears on its own line
 - Immediately followed by the signature (no blank line between)
-- All 8 email templates use "Best regards," as the sign-off
-- Provides professional closing before contact information
-
-**Templates Using Sign-Off**:
-1. new-customer-welcome
-2. new-model-arrival
-3. limited-edition
-4. vip-reconnection
-5. phone-confirmation
-6. phone-shipped
-7. phone-under-500
-8. inter-store-notification
+- Provided by every template through the shared `generateClosing()` helper
 
 ## Email Client Compatibility
 
@@ -246,9 +247,10 @@ Shows the same content with:
 ## Maintenance Notes
 
 - **Font files**: Uses system fonts (Century Gothic or Aptos fallback)
-- **Color consistency**: Uses exact hex values (#2f2f2f, #0000ee, #0c8822)
-- **Security**: All user input escaped to prevent XSS attacks
+- **Color consistency**: Uses exact hex values (#2f2f2f, #0066cc, #0c8822)
+- **Security**: All user input escaped via `sanitizeHTML()` to prevent XSS attacks
 - **Localization**: Store location and address support multi-line input
+- **Branding**: All brand values are profile-driven — no hardcoded company names
 
 ## Future Enhancements
 
@@ -259,20 +261,17 @@ Potential improvements for future versions:
 - Dynamic content (e.g., current promotions)
 - Multi-language support
 
-## Recent Updates (November 11, 2025)
+## Recent Updates (August 14, 2026)
 
-- ✅ Added "Best regards," sign-off to all 8 email templates
-- ✅ Improved signature spacing (blank line between phone and email)
-- ✅ Updated HTML preview to reflect correct spacing
-- ✅ Added email tab showing actual HTML code
-- ✅ Fixed preview rendering for plain text templates
-- ✅ Documented signature removal logic for "Best regards," marker
-- ✅ Split company information into two lines (Acme Inc., then Acme Store - Location)
-- ✅ Added bold formatting to name, separator line, and company information
-- ✅ Updated management hierarchy: Assistant → Associate → General → Area → Regional → District
+- ✅ Documented the current React/TypeScript implementation (`src/lib/signature.ts`)
+- ✅ Updated link color to the current value (#0066cc)
+- ✅ Documented `.email-signature-protected` removal mechanism
+- ✅ Documented centralized `generateClosing()` sign-off helper
+- ✅ Documented profile-driven brand links (`brandLinks`) and brand-agnostic behavior
+- ✅ Removed references to the deleted legacy `src/js/` files
 
 ---
 
-**Last Updated**: November 11, 2025
+**Last Updated**: August 14, 2026
 **Maintained By**: Development Team
 **Status**: Production Ready ✓
