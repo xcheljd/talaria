@@ -1016,6 +1016,50 @@ describe('promotion store', () => {
       expect(state.pdfRestoreWarning).toBe(true);
     });
 
+    it('restores remaining PDFs in metadata order when one read rejects', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [
+          { id: 'pdf-1', name: 'a.pdf', size: 10, type: 'application/pdf' },
+          { id: 'pdf-2', name: 'b.pdf', size: 20, type: 'application/pdf' },
+          { id: 'pdf-3', name: 'c.pdf', size: 30, type: 'application/pdf' },
+        ],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+      };
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
+
+      // pdf-2's read rejects with no legacy data. pdf-3 resolves before
+      // pdf-1 to prove the restored list follows metadata order, not
+      // resolution order (parallel hydration).
+      vi.mocked(getPDFFromIndexedDB).mockImplementation(async (id) => {
+        if (id === 'pdf-2') {
+          throw new Error('IndexedDB read failed');
+        }
+        await new Promise((resolve) =>
+          setTimeout(resolve, id === 'pdf-3' ? 0 : 10)
+        );
+        return {
+          id,
+          name: `${id}.pdf`,
+          data: `data:application/pdf;base64,${id}`,
+        };
+      });
+
+      const store = getFreshStore();
+      await store.restoreState();
+
+      const state = getFreshStore();
+      expect(state.attachedPDFs.map((p) => p.id)).toEqual(['pdf-1', 'pdf-3']);
+      expect(state.attachedPDFs[0].data).toBe(
+        'data:application/pdf;base64,pdf-1'
+      );
+      expect(state.pdfRestoreWarning).toBe(true);
+    });
+
     it('clearPdfRestoreWarning resets the flag', async () => {
       const savedData = {
         promotionEntries: [],
