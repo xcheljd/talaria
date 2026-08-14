@@ -145,6 +145,68 @@ describe('signature', () => {
     });
   });
 
+  describe('getEmployeeSignature (brand link URL scheme validation)', () => {
+    it('omits javascript: brand links from HTML signature output', () => {
+      saveUserProfile({
+        ...managerProfile,
+        brandLinks: [
+          { name: 'Acme', url: 'https://acme.example.com/' },
+          { name: 'Evil', url: 'javascript:alert(1)' },
+        ],
+      });
+      const sig = getEmployeeSignature('html');
+      expect(sig).not.toContain('javascript:');
+      expect(sig).not.toContain('<a href="javascript:');
+      expect(sig).not.toContain('Evil');
+      expect(sig).toContain('https://acme.example.com/');
+    });
+
+    it('omits data:text/html brand links from HTML signature output', () => {
+      saveUserProfile({
+        ...managerProfile,
+        brandLinks: [
+          { name: 'Data', url: 'data:text/html,<script>alert(1)</script>' },
+        ],
+      });
+      const sig = getEmployeeSignature('html');
+      expect(sig).not.toContain('data:text/html');
+      expect(sig).not.toContain('Data');
+    });
+
+    it('still emits https:// brand links', () => {
+      saveUserProfile(managerProfile);
+      const sig = getEmployeeSignature('html');
+      expect(sig).toContain('href="https://acme.example.com/"');
+      expect(sig).toContain('Acme');
+    });
+
+    it('still emits relative brand URLs', () => {
+      saveUserProfile({
+        ...managerProfile,
+        brandLinks: [
+          { name: 'Acme', url: 'https://acme.example.com/' },
+          { name: 'Rel', url: '/relative/path' },
+        ],
+      });
+      const sig = getEmployeeSignature('html');
+      expect(sig).toContain('href="/relative/path"');
+      expect(sig).toContain('Rel');
+    });
+
+    it('still emits mailto: and tel: brand links', () => {
+      saveUserProfile({
+        ...managerProfile,
+        brandLinks: [
+          { name: 'Mail', url: 'mailto:brands@acme.com' },
+          { name: 'Tel', url: 'tel:+17025551234' },
+        ],
+      });
+      const sig = getEmployeeSignature('html');
+      expect(sig).toContain('href="mailto:brands@acme.com"');
+      expect(sig).toContain('href="tel:+17025551234"');
+    });
+  });
+
   describe('manager title detection', () => {
     it.each(MANAGER_TITLES)('detects "%s" as manager', (title) => {
       saveUserProfile({
