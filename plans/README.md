@@ -18,7 +18,7 @@ when done.
 | 006  | Validate persisted style/color fields on restore (reuse import schemas) | P1 | S | — | DONE |
 | 007  | Add `sandbox` to the print iframe and validate `img src` in the sanitizer | P2 | S | — | DONE |
 | 008  | Bump react-router-dom out of the known-vulnerable range; run `npm audit fix` | P2 | S | — | DONE |
-| 009  | Enforce coverage thresholds and run coverage in CI | P2 | S | — | TODO |
+| 009  | Enforce coverage thresholds and run coverage in CI | P2 | S | — | DONE |
 | 010  | Add tests for the Tauri IPC save/read/optimize commands | P2 | M | — | TODO |
 | 011  | Characterization tests for `convertTipTapToInlineHTML` | P2 | M | — | TODO |
 | 012  | Per-row Zustand subscriptions + `memo` in the three list editors | P2 | M | — | TODO |
