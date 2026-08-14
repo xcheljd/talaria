@@ -6,7 +6,7 @@
 
 import { extractSignatureData } from './profile';
 import type { SignatureData, BrandLink } from './profile';
-import { sanitizeHTML } from './html-utils';
+import { isSafeURL, sanitizeHTML } from './html-utils';
 import { isIframePreviewDarkMode } from './theme-utils';
 
 // ============================================================================
@@ -221,7 +221,9 @@ function renderBrandLinks(
   format: 'text' | 'html',
   colors: SignatureColors
 ): string {
-  const links = brandLinks.filter((b) => b.name.trim() && b.url.trim());
+  const links = brandLinks.filter(
+    (b) => b.name.trim() && b.url.trim() && isSafeURL(b.url)
+  );
   if (links.length === 0) {
     return '';
   }
