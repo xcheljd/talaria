@@ -6,7 +6,7 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -32,46 +32,68 @@ import { Button } from '@/components/ui/button';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
 
-// Shared slice for both HourRow and the list component
-const selectHoursState = (s: PromotionState) => ({
+// List container slice: the array itself plus the actions the container needs
+// directly (add + reorder). Rows never touch this — they subscribe per-row.
+const selectHoursListState = (s: PromotionState) => ({
   specialHours: s.specialHours,
   addSpecialHour: s.addSpecialHour,
-  removeSpecialHour: s.removeSpecialHour,
-  updateSpecialHour: s.updateSpecialHour,
-  moveSpecialHourUp: s.moveSpecialHourUp,
-  moveSpecialHourDown: s.moveSpecialHourDown,
   reorderSpecialHours: s.reorderSpecialHours,
 });
+
+/**
+ * Per-row slice. Rows subscribe only to their own hour object and the
+ * (referentially stable) actions, so editing one row re-renders only that row.
+ */
+const useHourSlice = (id: number) =>
+  usePromotionStore(
+    useShallow((s) => ({
+      hour: s.specialHours.find((h) => h.id === id),
+      updateSpecialHour: s.updateSpecialHour,
+      removeSpecialHour: s.removeSpecialHour,
+      moveSpecialHourUp: s.moveSpecialHourUp,
+      moveSpecialHourDown: s.moveSpecialHourDown,
+    }))
+  );
 
 // ===== Single Hour Row Component =====
 
 interface HourRowProps {
-  hour: SpecialHour;
+  id: number;
   index: number;
   total: number;
 }
 
-function HourRow({ hour, index, total }: HourRowProps) {
-  const store = usePromotionStore(useShallow(selectHoursState));
+const HourRow = memo(function HourRow({ id, index, total }: HourRowProps) {
+  const {
+    hour,
+    updateSpecialHour,
+    removeSpecialHour,
+    moveSpecialHourUp,
+    moveSpecialHourDown,
+  } = useHourSlice(id);
 
   const handleChange = useCallback(
     (field: keyof Pick<SpecialHour, 'day' | 'hours'>) => (val: string) => {
-      store.updateSpecialHour(hour.id, field, val);
+      updateSpecialHour(id, field, val);
     },
-    [store, hour.id]
+    [updateSpecialHour, id]
   );
 
   const handleMoveUp = useCallback(() => {
-    store.moveSpecialHourUp(hour.id);
-  }, [store, hour.id]);
+    moveSpecialHourUp(id);
+  }, [moveSpecialHourUp, id]);
 
   const handleMoveDown = useCallback(() => {
-    store.moveSpecialHourDown(hour.id);
-  }, [store, hour.id]);
+    moveSpecialHourDown(id);
+  }, [moveSpecialHourDown, id]);
 
   const handleRemove = useCallback(() => {
-    store.removeSpecialHour(hour.id);
-  }, [store, hour.id]);
+    removeSpecialHour(id);
+  }, [removeSpecialHour, id]);
+
+  // A row can briefly render with no hour while it is being removed: the
+  // container drops it from the list in the same commit that unmounts it.
+  if (!hour) return null;
 
   const isFirst = index === 0;
   const isLast = index === total - 1;
@@ -144,12 +166,12 @@ function HourRow({ hour, index, total }: HourRowProps) {
       </div>
     </SortableItem>
   );
-}
+});
 
 // ===== Main Editor Component =====
 
 export function SpecialHoursEditor() {
-  const store = usePromotionStore(useShallow(selectHoursState));
+  const store = usePromotionStore(useShallow(selectHoursListState));
   const hours = store.specialHours;
 
   const handleAdd = useCallback(() => {
@@ -211,7 +233,7 @@ export function SpecialHoursEditor() {
               {hours.map((hour, index) => (
                 <HourRow
                   key={hour.id}
-                  hour={hour}
+                  id={hour.id}
                   index={index}
                   total={hours.length}
                 />

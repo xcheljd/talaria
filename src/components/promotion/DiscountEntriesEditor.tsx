@@ -8,7 +8,7 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -35,54 +35,83 @@ import { Button } from '@/components/ui/button';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
 
-// Shared slice for both EntryItem and the list component
-const selectEntryState = (s: PromotionState) => ({
+// List container slice: the array itself plus the actions the container needs
+// directly (add + reorder). Rows never touch this — they subscribe per-row.
+const selectEntryListState = (s: PromotionState) => ({
   promotionEntries: s.promotionEntries,
-  entryCollapsedStates: s.entryCollapsedStates,
   addPromotionEntry: s.addPromotionEntry,
-  removePromotionEntry: s.removePromotionEntry,
-  updatePromotionEntry: s.updatePromotionEntry,
-  movePromotionEntryUp: s.movePromotionEntryUp,
-  movePromotionEntryDown: s.movePromotionEntryDown,
   reorderPromotionEntries: s.reorderPromotionEntries,
-  toggleEntryCollapse: s.toggleEntryCollapse,
 });
+
+/**
+ * Per-row slice. Rows subscribe only to their own entry object, their own
+ * collapse flag, and the (referentially stable) actions. `useShallow` keeps
+ * the slice identity stable across edits to other rows, so editing entry N
+ * re-renders only entry N instead of every row.
+ */
+const useEntrySlice = (id: number) =>
+  usePromotionStore(
+    useShallow((s) => ({
+      entry: s.promotionEntries.find((e) => e.id === id),
+      collapsed: !!s.entryCollapsedStates[id],
+      updatePromotionEntry: s.updatePromotionEntry,
+      removePromotionEntry: s.removePromotionEntry,
+      movePromotionEntryUp: s.movePromotionEntryUp,
+      movePromotionEntryDown: s.movePromotionEntryDown,
+      toggleEntryCollapse: s.toggleEntryCollapse,
+    }))
+  );
 
 // ===== Single Entry Component =====
 
 interface EntryItemProps {
-  entry: PromotionEntry;
+  id: number;
   index: number;
   total: number;
-  isCollapsed: boolean;
 }
 
-function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
-  const store = usePromotionStore(useShallow(selectEntryState));
+const EntryItem = memo(function EntryItem({
+  id,
+  index,
+  total,
+}: EntryItemProps) {
+  const {
+    entry,
+    collapsed,
+    updatePromotionEntry,
+    removePromotionEntry,
+    movePromotionEntryUp,
+    movePromotionEntryDown,
+    toggleEntryCollapse,
+  } = useEntrySlice(id);
 
   const handleChange = useCallback(
     (field: keyof Pick<PromotionEntry, 'line' | 'collections' | 'callout'>) =>
       (val: string) => {
-        store.updatePromotionEntry(entry.id, field, val);
+        updatePromotionEntry(id, field, val);
       },
-    [store, entry.id]
+    [updatePromotionEntry, id]
   );
 
   const handleMoveUp = useCallback(() => {
-    store.movePromotionEntryUp(entry.id);
-  }, [store, entry.id]);
+    movePromotionEntryUp(id);
+  }, [movePromotionEntryUp, id]);
 
   const handleMoveDown = useCallback(() => {
-    store.movePromotionEntryDown(entry.id);
-  }, [store, entry.id]);
+    movePromotionEntryDown(id);
+  }, [movePromotionEntryDown, id]);
 
   const handleRemove = useCallback(() => {
-    store.removePromotionEntry(entry.id);
-  }, [store, entry.id]);
+    removePromotionEntry(id);
+  }, [removePromotionEntry, id]);
 
   const handleToggleCollapse = useCallback(() => {
-    store.toggleEntryCollapse(entry.id);
-  }, [store, entry.id]);
+    toggleEntryCollapse(id);
+  }, [toggleEntryCollapse, id]);
+
+  // A row can briefly render with no entry while it is being removed: the
+  // container drops it from the list in the same commit that unmounts it.
+  if (!entry) return null;
 
   const isFirst = index === 0;
   const isLast = index === total - 1;
@@ -95,7 +124,7 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
       <div
         className={cn(
           'rounded-lg border bg-card transition-colors',
-          isCollapsed && 'bg-muted/30'
+          collapsed && 'bg-muted/30'
         )}
         data-entry-id={entry.id}
         aria-label={`Discount entry ${index + 1}`}
@@ -127,7 +156,7 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
             <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
               Entry {index + 1}
             </span>
-            {isCollapsed && (
+            {collapsed && (
               <span className="text-xs text-muted-foreground truncate max-w-[200px]">
                 {summaryText}
               </span>
@@ -138,15 +167,15 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
               variant="ghost"
               size="xs"
               onClick={handleToggleCollapse}
-              aria-label={isCollapsed ? 'Expand entry' : 'Collapse entry'}
+              aria-label={collapsed ? 'Expand entry' : 'Collapse entry'}
             >
               <ChevronRight
                 className={cn(
                   'h-3.5 w-3.5 transition-transform',
-                  !isCollapsed && 'rotate-90'
+                  !collapsed && 'rotate-90'
                 )}
               />
-              {isCollapsed ? 'Expand' : 'Collapse'}
+              {collapsed ? 'Expand' : 'Collapse'}
             </Button>
             <Button
               variant="ghost"
@@ -160,7 +189,7 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
         </div>
 
         {/* Entry Fields (hidden when collapsed) */}
-        {!isCollapsed && (
+        {!collapsed && (
           <div className="grid gap-3 px-3 pb-3">
             <div className="space-y-1">
               <label
@@ -212,12 +241,12 @@ function EntryItem({ entry, index, total, isCollapsed }: EntryItemProps) {
       </div>
     </SortableItem>
   );
-}
+});
 
 // ===== Main Editor Component =====
 
 export function DiscountEntriesEditor() {
-  const store = usePromotionStore(useShallow(selectEntryState));
+  const store = usePromotionStore(useShallow(selectEntryListState));
   const entries = store.promotionEntries;
 
   const handleAdd = useCallback(() => {
@@ -278,10 +307,9 @@ export function DiscountEntriesEditor() {
               {entries.map((entry, index) => (
                 <EntryItem
                   key={entry.id}
-                  entry={entry}
+                  id={entry.id}
                   index={index}
                   total={entries.length}
-                  isCollapsed={!!store.entryCollapsedStates[entry.id]}
                 />
               ))}
             </div>

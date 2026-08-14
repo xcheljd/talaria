@@ -29,6 +29,31 @@ import { SpecialHoursEditor } from '@/components/promotion/SpecialHoursEditor';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 
+// ===== Render-isolation instrumentation =====
+// Per-row render counts: wrap SortableItem (rendered once per row, and not
+// itself memoized, so its render count tracks the row's) with a counting
+// component. The wrapper delegates to the real SortableItem, preserving all
+// existing behavior. Used by the render-isolation tests below.
+const sortableRenderCounts = vi.hoisted(
+  () => new Map<string | number, number>()
+);
+
+vi.mock('@/components/promotion/SortableItem', async (importOriginal) => {
+  const mod = await importOriginal<
+    typeof import('@/components/promotion/SortableItem')
+  >();
+  return {
+    ...mod,
+    SortableItem: (props: React.ComponentProps<typeof mod.SortableItem>) => {
+      sortableRenderCounts.set(
+        props.id,
+        (sortableRenderCounts.get(props.id) ?? 0) + 1
+      );
+      return <mod.SortableItem {...props} />;
+    },
+  };
+});
+
 
 // Mock ResizeObserver for Radix components
 beforeAll(() => {
@@ -272,6 +297,39 @@ describe('DiscountEntriesEditor', () => {
     const store = usePromotionStore.getState();
     expect(store.promotionEntries[0].collections).toBe('Brand1, Brand2');
     expect(store.promotionEntries[0].callout).toBe('Some callout');
+  });
+
+  it('does not re-render sibling rows when one entry is edited', async () => {
+    const user = userEvent.setup();
+    sortableRenderCounts.clear();
+    renderWithTheme(<DiscountEntriesEditor />);
+
+    await user.click(screen.getByRole('button', { name: /add entry/i }));
+    await user.click(screen.getByRole('button', { name: /add entry/i }));
+
+    const [firstId, secondId] = usePromotionStore
+      .getState()
+      .promotionEntries.map((e: { id: number }) => e.id);
+    expect(firstId).toBeDefined();
+    expect(secondId).toBeDefined();
+
+    const firstBefore = sortableRenderCounts.get(firstId) ?? 0;
+    const secondBefore = sortableRenderCounts.get(secondId) ?? 0;
+    expect(firstBefore).toBeGreaterThan(0);
+    expect(secondBefore).toBeGreaterThan(0);
+
+    // Type into the first row's line input (a per-keystroke store update).
+    const lineInputs = screen.getAllByPlaceholderText(
+      /BRAND – ADDITIONAL 20% OFF/i
+    );
+    await user.type(lineInputs[0], 'Edited line');
+
+    // The edited row re-rendered (its own value changed)...
+    expect(sortableRenderCounts.get(firstId) ?? 0).toBeGreaterThan(
+      firstBefore
+    );
+    // ...but the sibling row did not re-render at all.
+    expect(sortableRenderCounts.get(secondId) ?? 0).toBe(secondBefore);
   });
 });
 
@@ -544,6 +602,64 @@ describe('FormattableItemEditor', () => {
     );
 
     expect(screen.getByRole('button', { name: /add note/i })).toBeInTheDocument();
+  });
+
+  it('does not re-render sibling rows when one item changes', async () => {
+    sortableRenderCounts.clear();
+
+    // Seed the store with two items, then drive the editor with store-backed
+    // props exactly like the real HowToShopEditor wiring does.
+    usePromotionStore.setState({
+      howToShopItems: [
+        { id: 1, text: 'First', bold: false, italic: false, underline: false },
+        { id: 2, text: 'Second', bold: false, italic: false, underline: false },
+      ],
+    });
+    const store = usePromotionStore.getState();
+    const actions = {
+      addItem: store.addHowToShopItem,
+      removeItem: store.removeHowToShopItem,
+      updateItem: store.updateHowToShopItem,
+      moveItemUp: store.moveHowToShopItemUp,
+      moveItemDown: store.moveHowToShopItemDown,
+      toggleFormat: store.toggleHowToShopFormat,
+    };
+
+    const { rerender } = renderWithTheme(
+      <FormattableItemEditor
+        items={usePromotionStore.getState().howToShopItems}
+        actions={actions}
+        placeholder="Enter text"
+        itemLabel="Item"
+        emptyMessage="No items yet"
+      />
+    );
+
+    const firstBefore = sortableRenderCounts.get(1) ?? 0;
+    const secondBefore = sortableRenderCounts.get(2) ?? 0;
+    expect(firstBefore).toBeGreaterThan(0);
+    expect(secondBefore).toBeGreaterThan(0);
+
+    // Edit item 1 through the store. The items array identity changes, but
+    // item 2's object reference is preserved by the store's map update.
+    usePromotionStore.getState().updateHowToShopItem(1, 'First edited');
+
+    rerender(
+      <ThemeProvider>
+        <FormattableItemEditor
+          items={usePromotionStore.getState().howToShopItems}
+          actions={actions}
+          placeholder="Enter text"
+          itemLabel="Item"
+          emptyMessage="No items yet"
+        />
+      </ThemeProvider>
+    );
+
+    // The edited row re-rendered (its own item object changed)...
+    expect(sortableRenderCounts.get(1) ?? 0).toBeGreaterThan(firstBefore);
+    // ...but the sibling row did not.
+    expect(sortableRenderCounts.get(2) ?? 0).toBe(secondBefore);
   });
 });
 
