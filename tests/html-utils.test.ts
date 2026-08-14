@@ -3,6 +3,7 @@ import {
   sanitizeHTML,
   escapeAttr,
   sanitizeTemplateData,
+  sanitizeRichHTML,
 } from '../src/lib/html-utils';
 
 describe('html-utils', () => {
@@ -86,6 +87,51 @@ describe('html-utils', () => {
     it('handles empty object', () => {
       const result = sanitizeTemplateData({});
       expect(Object.keys(result)).toHaveLength(0);
+    });
+  });
+
+  describe('sanitizeRichHTML img src validation', () => {
+    it('strips javascript: img src', () => {
+      const result = sanitizeRichHTML('<img src="javascript:alert(1)">');
+      expect(result).not.toContain('javascript:');
+      expect(result).not.toContain('src=');
+    });
+
+    it('strips data:text/html img src', () => {
+      const result = sanitizeRichHTML(
+        '<img src="data:text/html,<script>alert(1)</script>">'
+      );
+      expect(result).not.toContain('data:text/html');
+      expect(result).not.toContain('<script>');
+    });
+
+    it('strips other non-image data: payloads', () => {
+      const result = sanitizeRichHTML(
+        '<img src="data:application/pdf;base64,AAAA">'
+      );
+      expect(result).not.toContain('data:application');
+    });
+
+    it('keeps https img src', () => {
+      const result = sanitizeRichHTML('<img src="https://example.com/a.png">');
+      expect(result).toContain('src="https://example.com/a.png"');
+    });
+
+    it('keeps data:image/ img src', () => {
+      const result = sanitizeRichHTML(
+        '<img src="data:image/png;base64,iVBORw0KGgo=">'
+      );
+      expect(result).toContain('src="data:image/png;base64,iVBORw0KGgo="');
+    });
+
+    it('keeps cid: img src', () => {
+      const result = sanitizeRichHTML('<img src="cid:logo@example.com">');
+      expect(result).toContain('src="cid:logo@example.com"');
+    });
+
+    it('keeps relative img src', () => {
+      const result = sanitizeRichHTML('<img src="images/logo.png">');
+      expect(result).toContain('src="images/logo.png"');
     });
   });
 });
