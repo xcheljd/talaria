@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::Manager;
 
 mod amatl;
@@ -100,13 +100,11 @@ fn validate_readable_pdf(path: &str) -> Result<PathBuf, String> {
     if !has_pdf_extension(path) {
         return Err(format!("Refusing to read non-PDF file: {path}"));
     }
-    let canonical = fs::canonicalize(path)
-        .map_err(|e| format!("Failed to resolve {path}: {e}"))?;
+    let canonical = fs::canonicalize(path).map_err(|e| format!("Failed to resolve {path}: {e}"))?;
     if !has_pdf_extension(&canonical.to_string_lossy()) {
         return Err(format!("Refusing to read non-PDF file: {path}"));
     }
-    let meta = fs::metadata(&canonical)
-        .map_err(|e| format!("Failed to read {path}: {e}"))?;
+    let meta = fs::metadata(&canonical).map_err(|e| format!("Failed to read {path}: {e}"))?;
     if !meta.is_file() {
         return Err(format!("Not a regular file: {path}"));
     }
@@ -194,11 +192,7 @@ async fn pick_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
 /// app-supplied and therefore validated with `is_safe_filename` so it cannot
 /// escape `dir`. Returns the absolute path written.
 #[tauri::command]
-fn save_file_to_path(
-    dir: String,
-    filename: String,
-    data_base64: String,
-) -> Result<String, String> {
+fn save_file_to_path(dir: String, filename: String, data_base64: String) -> Result<String, String> {
     use base64::{engine::general_purpose::STANDARD, Engine};
 
     if !is_safe_filename(&filename) {
@@ -221,6 +215,35 @@ fn save_file_to_path(
     Ok(final_path.to_string_lossy().to_string())
 }
 
+/// Decode a base64 payload and write it to `filename` inside `dir`, creating
+/// `dir` if missing. This is the file-logic body of `save_file_to_dir`
+/// (extracted so the write path is unit-testable without a Tauri `AppHandle`,
+/// which the command only uses to resolve the configured download dir).
+/// `filename` is app-supplied and validated with `is_safe_filename` so it
+/// cannot escape `dir`. Returns the absolute path written.
+fn write_base64_to_dir(dir: &Path, filename: &str, data_base64: &str) -> Result<PathBuf, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+
+    if !is_safe_filename(filename) {
+        return Err(format!("Refusing to write unsafe filename: {filename}"));
+    }
+
+    if !dir.exists() {
+        fs::create_dir_all(dir)
+            .map_err(|e| format!("Failed to create directory {}: {e}", dir.display()))?;
+    }
+
+    let bytes = STANDARD
+        .decode(data_base64.as_bytes())
+        .map_err(|e| format!("Invalid base64 payload: {e}"))?;
+
+    let final_path = dir.join(filename);
+    fs::write(&final_path, &bytes)
+        .map_err(|e| format!("Failed to write {}: {e}", final_path.display()))?;
+
+    Ok(final_path)
+}
+
 /// Save a base64-encoded blob to the configured download directory — used when
 /// "Ask where to save each download" is OFF.
 ///
@@ -234,27 +257,8 @@ fn save_file_to_dir(
     filename: String,
     data_base64: String,
 ) -> Result<String, String> {
-    use base64::{engine::general_purpose::STANDARD, Engine};
-
-    if !is_safe_filename(&filename) {
-        return Err(format!("Refusing to write unsafe filename: {filename}"));
-    }
-
-    let dir = get_download_dir(app.clone());
-    let dir_path = PathBuf::from(&dir);
-    if !dir_path.exists() {
-        fs::create_dir_all(&dir_path)
-            .map_err(|e| format!("Failed to create directory {dir}: {e}"))?;
-    }
-
-    let bytes = STANDARD
-        .decode(data_base64.as_bytes())
-        .map_err(|e| format!("Invalid base64 payload: {e}"))?;
-
-    let final_path = dir_path.join(&filename);
-    fs::write(&final_path, &bytes)
-        .map_err(|e| format!("Failed to write {}: {e}", final_path.display()))?;
-
+    let dir = get_download_dir(app);
+    let final_path = write_base64_to_dir(Path::new(&dir), &filename, &data_base64)?;
     Ok(final_path.to_string_lossy().to_string())
 }
 
@@ -298,8 +302,7 @@ async fn save_file_as(
             let pb = path
                 .into_path()
                 .map_err(|e| format!("Invalid save path: {e}"))?;
-            fs::write(&pb, &bytes)
-                .map_err(|e| format!("Failed to write {}: {e}", pb.display()))?;
+            fs::write(&pb, &bytes).map_err(|e| format!("Failed to write {}: {e}", pb.display()))?;
             Ok(Some(pb.to_string_lossy().to_string()))
         }
         // User cancelled the dialog — not an error.
@@ -381,6 +384,7 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use base64::Engine;
 
     #[test]
     fn rejects_path_traversal_filenames() {
@@ -415,8 +419,12 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .subsec_nanos();
-        let dir = std::env::temp_dir()
-            .join(format!("cct_test_{}_{}_{}", std::process::id(), nanos, label));
+        let dir = std::env::temp_dir().join(format!(
+            "cct_test_{}_{}_{}",
+            std::process::id(),
+            nanos,
+            label
+        ));
         fs::create_dir_all(&dir).expect("failed to create test dir");
         dir
     }
@@ -440,10 +448,7 @@ mod tests {
         let result = validate_readable_pdf("/tmp/secret_config.txt");
         assert!(result.is_err());
         let msg = result.unwrap_err();
-        assert!(
-            msg.contains("Refusing"),
-            "unexpected error message: {msg}"
-        );
+        assert!(msg.contains("Refusing"), "unexpected error message: {msg}");
     }
 
     #[test]
@@ -484,6 +489,183 @@ mod tests {
         assert!(
             msg.contains("Empty path"),
             "unexpected error message: {msg}"
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // IPC save/read/optimize command tests
+    //
+    // `save_file_as` (the OS Save As dialog) and `pick_folder` /
+    // `choose_download_dir` (OS folder pickers) are intentionally NOT
+    // unit-tested: they block on native UI dialogs. `save_file_to_dir` is
+    // exercised through its extracted body `write_base64_to_dir`, since the
+    // command itself only resolves the configured download dir from the
+    // `AppHandle` (which would fall back to the real OS Downloads folder in a
+    // unit test). All other commands take plain args and are tested directly.
+    // ─────────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn save_file_to_dir_writes_decoded_bytes() {
+        let dir = make_test_dir("save_to_dir");
+        let payload = b"%PDF-1.4 \x00\x01\xff hello save_file_to_dir";
+        let b64 = base64::engine::general_purpose::STANDARD.encode(payload);
+
+        let written = write_base64_to_dir(&dir, "out.pdf", &b64).expect("save should succeed");
+        assert_eq!(written, dir.join("out.pdf"));
+        assert_eq!(
+            fs::read(&written).unwrap(),
+            payload,
+            "file contents must match decoded input"
+        );
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_file_to_path_writes_decoded_bytes() {
+        let dir = make_test_dir("save_to_path");
+        let payload = b"batch email export contents";
+        let b64 = base64::engine::general_purpose::STANDARD.encode(payload);
+
+        let written = save_file_to_path(
+            dir.to_string_lossy().to_string(),
+            "out.eml".to_string(),
+            b64,
+        )
+        .expect("save should succeed");
+        assert_eq!(PathBuf::from(&written), dir.join("out.eml"));
+        assert_eq!(
+            fs::read(&written).unwrap(),
+            payload,
+            "file contents must match decoded input"
+        );
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_commands_reject_unsafe_filenames() {
+        let dir = make_test_dir("unsafe_filename");
+        for bad in ["../escape.pdf", "dir/file.eml", r"dir\file.eml", ".."] {
+            let result = save_file_to_path(
+                dir.to_string_lossy().to_string(),
+                bad.to_string(),
+                "AAAA".to_string(),
+            );
+            assert!(result.is_err(), "expected {bad} to be rejected");
+            let msg = result.unwrap_err();
+            assert!(
+                msg.contains("unsafe filename"),
+                "unexpected error message: {msg}"
+            );
+        }
+
+        // The extracted save_file_to_dir body enforces the same guard.
+        for bad in ["../escape.pdf", "dir/file.eml", r"dir\file.eml", ".."] {
+            assert!(
+                write_base64_to_dir(&dir, bad, "AAAA").is_err(),
+                "expected {bad} to be rejected by write_base64_to_dir"
+            );
+        }
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_file_to_path_requires_existing_dir() {
+        let dir = make_test_dir("missing_dir");
+        let missing = dir.join("nope");
+
+        let result = save_file_to_path(
+            missing.to_string_lossy().to_string(),
+            "out.eml".to_string(),
+            "AAAA".to_string(),
+        );
+        assert!(result.is_err());
+        let msg = result.unwrap_err();
+        assert!(
+            msg.contains("Not a directory"),
+            "unexpected error message: {msg}"
+        );
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn save_file_to_dir_creates_missing_dir() {
+        let base = make_test_dir("creates_missing_dir");
+        // save_file_to_dir's contract: the dir comes from persisted settings
+        // and may have been deleted — it is created if missing.
+        let target = base.join("nested").join("deeper");
+        let payload = b"%PDF-1.4 created dir";
+        let b64 = base64::engine::general_purpose::STANDARD.encode(payload);
+
+        let written = write_base64_to_dir(&target, "out.pdf", &b64)
+            .expect("save should create the missing dir and write");
+        assert_eq!(written, target.join("out.pdf"));
+        assert!(target.is_dir(), "missing dir should have been created");
+        assert_eq!(fs::read(&written).unwrap(), payload);
+
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn read_file_as_data_url_round_trips_pdf() {
+        let dir = make_test_dir("read_roundtrip");
+        let file = dir.join("flyer.pdf");
+        let payload = b"%PDF-1.4 \x00\x01\xff drag-drop attach";
+        fs::write(&file, payload).unwrap();
+
+        let url =
+            read_file_as_data_url(file.to_str().unwrap().to_string()).expect("read should succeed");
+        let prefix = "data:application/pdf;base64,";
+        assert!(url.starts_with(prefix), "unexpected data URL prefix: {url}");
+        let decoded = base64::engine::general_purpose::STANDARD
+            .decode(&url.as_bytes()[prefix.len()..])
+            .unwrap();
+        assert_eq!(
+            decoded, payload,
+            "base64 round-trip must reproduce the file contents"
+        );
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn read_file_as_data_url_rejects_over_limit_files() {
+        let dir = make_test_dir("read_too_big");
+        let file = dir.join("huge.pdf");
+        // Sparse file: logical size exceeds MAX_READ_BYTES without allocating
+        // 25MB of disk, and the size check fires before fs::read.
+        let f = fs::File::create(&file).unwrap();
+        f.set_len(MAX_READ_BYTES + 1).unwrap();
+        drop(f);
+
+        let result = read_file_as_data_url(file.to_str().unwrap().to_string());
+        assert!(result.is_err());
+        let msg = result.unwrap_err();
+        assert!(
+            msg.contains("File too large"),
+            "unexpected error message: {msg}"
+        );
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn amatl_optimize_passthroughs_garbage_payload() {
+        // Fail-safe contract: input that decodes to bytes but isn't a real PDF
+        // comes back from amatl unchanged, so the command must return the
+        // original data URL verbatim (nothing was optimized).
+        let garbage = b"this is not a pdf at all";
+        let b64 = base64::engine::general_purpose::STANDARD.encode(garbage);
+        let data_url = format!("data:application/pdf;base64,{b64}");
+
+        let result = amatl_optimize(data_url.clone(), true, false);
+        assert_eq!(
+            result.unwrap(),
+            data_url,
+            "garbage input must pass through unchanged"
         );
     }
 }
