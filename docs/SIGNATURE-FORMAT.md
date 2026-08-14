@@ -180,15 +180,14 @@ Each template's `generate()` result carries `includeSignature: true` (or
 (`src/lib/templates.ts` lines ~287-289).
 
 ### Signature Removal
-When converting the editable preview back to text/HTML for export, the
-signature is detected and removed via a dedicated CSS class, **not** regex
-(`src/lib/htmlTextConversion.ts`):
-
-- The rendered signature block is marked with the
-  `.email-signature-protected` class.
-- `getEditableBodyHTML()` clones the preview container and removes any
-  `.email-signature-protected` element before extracting content, so the
-  signature is never duplicated in the exported body.
+The legacy `htmlTextConversion.ts` module (which handled contenteditable-preview
+signature stripping via an `.email-signature-protected` class) was removed in
+the TipTap migration — it had zero callers. The TipTap newsletter editor owns
+its own editable content; signatures are appended at generation time and are
+not re-extracted from an editable preview, so no removal pass is needed. If a
+future export path needs to strip a rendered signature block, that logic
+belongs in the module that owns the preview DOM (do not reintroduce a
+standalone converter).
 
 ## Sign-Off Format
 
@@ -265,7 +264,8 @@ Potential improvements for future versions:
 
 - ✅ Documented the current React/TypeScript implementation (`src/lib/signature.ts`)
 - ✅ Updated link color to the current value (#0066cc)
-- ✅ Documented `.email-signature-protected` removal mechanism
+- ✅ Documented that the legacy `.email-signature-protected` removal
+  mechanism was deleted with `htmlTextConversion.ts` (TipTap migration)
 - ✅ Documented centralized `generateClosing()` sign-off helper
 - ✅ Documented profile-driven brand links (`brandLinks`) and brand-agnostic behavior
 - ✅ Removed references to the deleted legacy `src/js/` files
