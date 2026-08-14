@@ -24,7 +24,7 @@ when done.
 | 012  | Per-row Zustand subscriptions + `memo` in the three list editors | P2 | M | — | TODO |
 | 013  | Parallelize PDF hydration and orphan sweep in `restoreState` | P2 | S | 005 | TODO |
 | 014  | Delete dead `htmlTextConversion.ts` module + test | P3 | S | — | TODO |
-| 015  | Rewrite `features.md` to match current stack and product | P3 | S | — | TODO |
+| 015  | Rewrite `features.md` to match current stack and product | P3 | S | — | DONE |
 | 016  | Align CHANGELOG/manifest versions (1.5.0 or Unreleased) | P3 | S | — | TODO |
 | 017  | Update amatl-roadmap §9/§10 (const→options delta already shipped) | P3 | S | — | TODO |
 | 018  | Consolidate the 4–5 divergent HTML escape/convert implementations | P3 | M | 011 | TODO |
