@@ -31,7 +31,7 @@ when done.
 | 019  | Add pre-commit enforcement of the documented quality gate | P3 | S | — | DONE |
 | 020  | Cache Playwright browsers in CI | P3 | S | — | DONE |
 | 021  | Replace E2E fixed sleeps with expectation polling; make webServer unconditional | P3 | M | — | DONE |
-| 022  | Slice the god objects (store domains, ProfileSettingsPage sections) | P3 | L | 005, 009, 011 | PARTIAL — store slices done; ProfileSettingsPage split deferred |
+| 022  | Slice the god objects (store domains, ProfileSettingsPage sections) | P3 | L | 005, 009, 011 | DONE |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
