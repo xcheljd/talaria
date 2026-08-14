@@ -134,10 +134,10 @@ move, not a rewrite.
 - **crates.io publish** → Rust developers; `docs.rs` renders the (already
   excellent) doc comments for free.
 - **`amatl` CLI:** e.g. `amatl in.pdf -o out.pdf --target-dpi 130 --quality 78
-  --strip-accessibility`. Requires one real code change: promote `TARGET_DPI`,
-  `JPEG_QUALITY`, and `DPI_MARGIN` from `const`s to `OptimizeOptions` fields so
-  they're tunable. Ship prebuilt binaries via `cargo-binstall`, Homebrew, and
-  GitHub Releases.
+  --strip-accessibility`. The tunables are already in `OptimizeOptions` (shipped
+  in 9a68bd3/b7f0cf9) — the CLI is just a thin binary over
+  `optimize_with_options`. Ship prebuilt binaries via `cargo-binstall`,
+  Homebrew, and GitHub Releases.
 - **WASM build + demo site:** "compress in your browser — nothing uploaded" is
   the strongest privacy story and doubles as a portfolio centerpiece.
   - **Decision required:** mozjpeg is C (libjpeg-turbo). It *can* compile to WASM
@@ -224,10 +224,13 @@ fair-source) to a **separate pro module**, never to the optimizer core.
 
 ## 9. Concrete code deltas extraction requires
 
-For reference when Phase 1/2 begins:
+Items 2–5 remain; item 1 shipped:
 
-1. Promote `TARGET_DPI` / `JPEG_QUALITY` / `DPI_MARGIN` (`amatl.rs:34–39`) from
-   `const`s to `OptimizeOptions` fields — unblocks the CLI and general use.
+1. ~~Promote `TARGET_DPI` / `JPEG_QUALITY` / `DPI_MARGIN` (`amatl.rs:34–39`) from
+   `const`s to `OptimizeOptions` fields — unblocks the CLI and general use.~~
+   **Shipped**: `OptimizeOptions` now carries `target_dpi` / `jpeg_quality` /
+   `dpi_margin` with `#[non_exhaustive]` + builder setters (9a68bd3, b7f0cf9;
+   plans/001+002).
 2. Drop the `#[allow(dead_code)]` on `optimize()` — it becomes a real public
    entry point once Amatl is a library.
 3. Add crate metadata (keywords/categories/docs.rs), `LICENSE-MIT`,
@@ -243,7 +246,8 @@ For reference when Phase 1/2 begins:
 1. **Phase 0 + 1** — claim the name, extract to its own repo with README +
    licenses + CI. Lowest risk, highest credibility-per-hour; the code was built
    for it.
-2. **Phase 2 CLI** — the `const`→`options` change plus a thin CLI; the artifact
+2. **Phase 2 CLI** — the tunables are already in `OptimizeOptions` (9a68bd3) —
+   the CLI is now just a thin binary over `optimize_with_options`; the artifact
    most people can actually run.
 3. **Phase 2 WASM demo** — the portfolio centerpiece (pick the encoder trade-off).
 4. **Phase 3** — expand format coverage / font subsetting only as interest and
