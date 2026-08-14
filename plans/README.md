@@ -21,7 +21,7 @@ when done.
 | 009  | Enforce coverage thresholds and run coverage in CI | P2 | S | — | DONE |
 | 010  | Add tests for the Tauri IPC save/read/optimize commands | P2 | M | — | TODO |
 | 011  | Characterization tests for `convertTipTapToInlineHTML` | P2 | M | — | DONE |
-| 012  | Per-row Zustand subscriptions + `memo` in the three list editors | P2 | M | — | TODO |
+| 012  | Per-row Zustand subscriptions + `memo` in the three list editors | P2 | M | — | DONE |
 | 013  | Parallelize PDF hydration and orphan sweep in `restoreState` | P2 | S | 005 | TODO |
 | 014  | Delete dead `htmlTextConversion.ts` module + test | P3 | S | — | DONE |
 | 015  | Rewrite `features.md` to match current stack and product | P3 | S | — | TODO |
