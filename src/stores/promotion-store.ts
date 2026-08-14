@@ -970,39 +970,51 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         attachedPDFs?: Array<AttachedPDFMetadata & { data?: string }>;
       } = JSON.parse(stored);
 
-      // Restore PDFs: prefer IndexedDB data, fallback to legacy localStorage data
+      // Restore PDFs: prefer IndexedDB data, fallback to legacy localStorage
+      // data. Reads run in parallel (allSettled so one failing blob can't
+      // abort the rest); the results array preserves input order.
       const restoredPDFs: AttachedPDF[] = [];
-      for (const metadata of parsed.attachedPDFs || []) {
-        // Try IndexedDB first
-        try {
-          const fullPdfData: PDFRecord | null = await getPDFFromIndexedDB(
-            metadata.id
-          );
-          if (fullPdfData && fullPdfData.data) {
-            restoredPDFs.push({
-              id: metadata.id,
-              name: metadata.name,
-              size: metadata.size,
-              type: metadata.type,
-              data: fullPdfData.data,
-            });
-            continue;
-          }
-        } catch {
-          // IndexedDB read failed, try legacy fallback
-        }
+      const pdfRestoreResults = await Promise.allSettled(
+        (parsed.attachedPDFs || []).map(
+          async (metadata: AttachedPDFMetadata & { data?: string }) => {
+            // Try IndexedDB first
+            try {
+              const fullPdfData: PDFRecord | null = await getPDFFromIndexedDB(
+                metadata.id
+              );
+              if (fullPdfData && fullPdfData.data) {
+                return {
+                  id: metadata.id,
+                  name: metadata.name,
+                  size: metadata.size,
+                  type: metadata.type,
+                  data: fullPdfData.data,
+                };
+              }
+            } catch {
+              // IndexedDB read failed, try legacy fallback
+            }
 
-        // Legacy fallback: if localStorage had data (old format)
-        if (metadata.data) {
-          restoredPDFs.push({
-            id: metadata.id,
-            name: metadata.name,
-            size: metadata.size,
-            type: metadata.type,
-            data: metadata.data,
-          });
+            // Legacy fallback: if localStorage had data (old format)
+            if (metadata.data) {
+              return {
+                id: metadata.id,
+                name: metadata.name,
+                size: metadata.size,
+                type: metadata.type,
+                data: metadata.data,
+              };
+            }
+            // If no IndexedDB data and no legacy data, omit the PDF
+            return null;
+          }
+        )
+      );
+
+      for (const result of pdfRestoreResults) {
+        if (result.status === 'fulfilled' && result.value) {
+          restoredPDFs.push(result.value);
         }
-        // If no IndexedDB data and no legacy data, omit the PDF
       }
 
       const expectedCount = parsed.attachedPDFs?.length ?? 0;
@@ -1024,11 +1036,12 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
           ...(parsed.attachedPDFs || []).map((p) => p.id),
           ...get().attachedPDFs.map((p) => p.id),
         ]);
-        for (const key of allKeys) {
-          if (!currentIds.has(key)) {
-            await deletePDFFromIndexedDB(key);
-          }
-        }
+        // Issue the deletes in parallel; allSettled so one failing delete
+        // can't abort the rest of the sweep.
+        const toDelete = allKeys.filter((k) => !currentIds.has(k));
+        await Promise.allSettled(
+          toDelete.map((k) => deletePDFFromIndexedDB(k))
+        );
       } catch {
         // Best-effort orphan cleanup
       }
