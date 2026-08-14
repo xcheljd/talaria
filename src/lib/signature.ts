@@ -6,7 +6,7 @@
 
 import { extractSignatureData } from './profile';
 import type { SignatureData, BrandLink } from './profile';
-import { isSafeURL, sanitizeHTML } from './html-utils';
+import { escapeAttr, isSafeURL, sanitizeHTML } from './html-utils';
 import { isIframePreviewDarkMode } from './theme-utils';
 
 // ============================================================================
@@ -232,7 +232,7 @@ function renderBrandLinks(
     const rendered = links
       .map(
         (brand) =>
-          `<a href="${sanitizeHTML(brand.url)}" style="color: ${colors.link}; text-decoration: underline; font-size: ${SIGNATURE_STYLES.fontSize.details};">${sanitizeHTML(brand.name)}</a>`
+          `<a href="${escapeAttr(brand.url)}" style="color: ${colors.link}; text-decoration: underline; font-size: ${SIGNATURE_STYLES.fontSize.details};">${sanitizeHTML(brand.name)}</a>`
       )
       .join(` <span style="color: ${colors.secondary};">|</span> `);
 

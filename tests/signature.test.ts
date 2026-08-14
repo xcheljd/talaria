@@ -193,6 +193,25 @@ describe('signature', () => {
       expect(sig).toContain('Rel');
     });
 
+    it('escapes quote characters in emitted brand-link hrefs (attribute-injection guard)', () => {
+      saveUserProfile({
+        ...managerProfile,
+        brandLinks: [
+          { name: 'Acme', url: 'https://acme.example.com/' },
+          {
+            name: 'Quote',
+            url: 'http://x"/onmouseover="alert(1)',
+          },
+        ],
+      });
+      const sig = getEmployeeSignature('html');
+      // The quote must be entity-escaped so it cannot break out of the
+      // href attribute (escapeAttr, not sanitizeHTML, for attribute context).
+      expect(sig).not.toContain('href="http://x"');
+      expect(sig).toContain('href="http://x&quot;/onmouseover=&quot;alert(1)"');
+      expect(sig).toContain('Quote');
+    });
+
     it('still emits mailto: and tel: brand links', () => {
       saveUserProfile({
         ...managerProfile,
