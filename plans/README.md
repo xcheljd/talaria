@@ -8,30 +8,30 @@ when done.
 
 ## Execution order & status
 
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 001  | Make image tunables (DPI / quality / margin) configurable via `OptimizeOptions` | P1 | M | — | DONE |
-| 002  | Make `OptimizeOptions` forward-compatible for crate publication (`#[non_exhaustive]` + builder methods) | P2 | S | 001 | DONE |
-| 003  | Validate brand-link URL schemes before emitting hrefs | P1 | S | — | DONE |
-| 004  | Validate imported PDF `data` fields (prefix + size) before persisting | P1 | M | — | DONE |
-| 005  | Re-arm `isInitializing` in `restoreState` and guard auto-save + orphan sweep | P1 | S | — | DONE |
-| 006  | Validate persisted style/color fields on restore (reuse import schemas) | P1 | S | — | DONE |
-| 007  | Add `sandbox` to the print iframe and validate `img src` in the sanitizer | P2 | S | — | DONE |
-| 008  | Bump react-router-dom out of the known-vulnerable range; run `npm audit fix` | P2 | S | — | DONE |
-| 009  | Enforce coverage thresholds and run coverage in CI | P2 | S | — | DONE |
-| 010  | Add tests for the Tauri IPC save/read/optimize commands | P2 | M | — | TODO |
-| 011  | Characterization tests for `convertTipTapToInlineHTML` | P2 | M | — | DONE |
-| 012  | Per-row Zustand subscriptions + `memo` in the three list editors | P2 | M | — | TODO |
-| 013  | Parallelize PDF hydration and orphan sweep in `restoreState` | P2 | S | 005 | TODO |
-| 014  | Delete dead `htmlTextConversion.ts` module + test | P3 | S | — | DONE |
-| 015  | Rewrite `features.md` to match current stack and product | P3 | S | — | TODO |
-| 016  | Align CHANGELOG/manifest versions (1.5.0 or Unreleased) | P3 | S | — | DONE |
-| 017  | Update amatl-roadmap §9/§10 (const→options delta already shipped) | P3 | S | — | TODO |
-| 018  | Consolidate the 4–5 divergent HTML escape/convert implementations | P3 | M | 011 | TODO |
-| 019  | Add pre-commit enforcement of the documented quality gate | P3 | S | — | TODO |
-| 020  | Cache Playwright browsers in CI | P3 | S | — | DONE |
-| 021  | Replace E2E fixed sleeps with expectation polling; make webServer unconditional | P3 | M | — | TODO |
-| 022  | Slice the god objects (store domains, ProfileSettingsPage sections) | P3 | L | 005, 009, 011 | TODO |
+| Plan | Title                                                                                                   | Priority | Effort | Depends on    | Status |
+| ---- | ------------------------------------------------------------------------------------------------------- | -------- | ------ | ------------- | ------ |
+| 001  | Make image tunables (DPI / quality / margin) configurable via `OptimizeOptions`                         | P1       | M      | —             | DONE   |
+| 002  | Make `OptimizeOptions` forward-compatible for crate publication (`#[non_exhaustive]` + builder methods) | P2       | S      | 001           | DONE   |
+| 003  | Validate brand-link URL schemes before emitting hrefs                                                   | P1       | S      | —             | DONE   |
+| 004  | Validate imported PDF `data` fields (prefix + size) before persisting                                   | P1       | M      | —             | DONE   |
+| 005  | Re-arm `isInitializing` in `restoreState` and guard auto-save + orphan sweep                            | P1       | S      | —             | DONE   |
+| 006  | Validate persisted style/color fields on restore (reuse import schemas)                                 | P1       | S      | —             | DONE   |
+| 007  | Add `sandbox` to the print iframe and validate `img src` in the sanitizer                               | P2       | S      | —             | DONE   |
+| 008  | Bump react-router-dom out of the known-vulnerable range; run `npm audit fix`                            | P2       | S      | —             | DONE   |
+| 009  | Enforce coverage thresholds and run coverage in CI                                                      | P2       | S      | —             | DONE   |
+| 010  | Add tests for the Tauri IPC save/read/optimize commands                                                 | P2       | M      | —             | TODO   |
+| 011  | Characterization tests for `convertTipTapToInlineHTML`                                                  | P2       | M      | —             | DONE   |
+| 012  | Per-row Zustand subscriptions + `memo` in the three list editors                                        | P2       | M      | —             | TODO   |
+| 013  | Parallelize PDF hydration and orphan sweep in `restoreState`                                            | P2       | S      | 005           | TODO   |
+| 014  | Delete dead `htmlTextConversion.ts` module + test                                                       | P3       | S      | —             | DONE   |
+| 015  | Rewrite `features.md` to match current stack and product                                                | P3       | S      | —             | TODO   |
+| 016  | Align CHANGELOG/manifest versions (1.5.0 or Unreleased)                                                 | P3       | S      | —             | DONE   |
+| 017  | Update amatl-roadmap §9/§10 (const→options delta already shipped)                                       | P3       | S      | —             | TODO   |
+| 018  | Consolidate the 4–5 divergent HTML escape/convert implementations                                       | P3       | M      | 011           | TODO   |
+| 019  | Add pre-commit enforcement of the documented quality gate                                               | P3       | S      | —             | DONE   |
+| 020  | Cache Playwright browsers in CI                                                                         | P3       | S      | —             | DONE   |
+| 021  | Replace E2E fixed sleeps with expectation polling; make webServer unconditional                         | P3       | M      | —             | TODO   |
+| 022  | Slice the god objects (store domains, ProfileSettingsPage sections)                                     | P3       | L      | 005, 009, 011 | TODO   |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
