@@ -76,6 +76,13 @@ const sectionBoxStyleSchema = z.object({
   backgroundColor: colorOrNull,
 });
 
+// NOTE: the .catch() defaults below take lazy function form so this module
+// never reads promotion-store exports at evaluation time. promotion-store.ts
+// imports sanitizePersistedStyles from here (closing a module cycle), and an
+// eager default would read DEFAULT_NEWSLETTER_STYLE / DEFAULT_EMAIL_PALETTE
+// before the store's body has run. Lazy catch values are computed only when
+// a parse actually fails, long after module init.
+
 const newsletterStyleSchema = z
   .object({
     borderColor: colorOrNull,
@@ -92,19 +99,19 @@ const newsletterStyleSchema = z
       .catch('solid'),
     tableHeaderBg: colorOrNull,
   })
-  .catch({ ...DEFAULT_NEWSLETTER_STYLE });
+  .catch(() => ({ ...DEFAULT_NEWSLETTER_STYLE }));
 
 const emailPaletteSchema = z.object({
-  footerBg: safeColor.catch(DEFAULT_EMAIL_PALETTE.footerBg),
-  sectionBg: safeColor.catch(DEFAULT_EMAIL_PALETTE.sectionBg),
-  unsubscribeBg: safeColor.catch(DEFAULT_EMAIL_PALETTE.unsubscribeBg),
-  accent: safeColor.catch(DEFAULT_EMAIL_PALETTE.accent),
-  text: safeColor.catch(DEFAULT_EMAIL_PALETTE.text),
-  link: safeColor.catch(DEFAULT_EMAIL_PALETTE.link),
-  noteBorder: safeColor.catch(DEFAULT_EMAIL_PALETTE.noteBorder),
-  headerBorder: safeColor.catch(DEFAULT_EMAIL_PALETTE.headerBorder),
-  bodyBg: safeColor.catch(DEFAULT_EMAIL_PALETTE.bodyBg),
-  footerText: safeColor.catch(DEFAULT_EMAIL_PALETTE.footerText),
+  footerBg: safeColor.catch(() => DEFAULT_EMAIL_PALETTE.footerBg),
+  sectionBg: safeColor.catch(() => DEFAULT_EMAIL_PALETTE.sectionBg),
+  unsubscribeBg: safeColor.catch(() => DEFAULT_EMAIL_PALETTE.unsubscribeBg),
+  accent: safeColor.catch(() => DEFAULT_EMAIL_PALETTE.accent),
+  text: safeColor.catch(() => DEFAULT_EMAIL_PALETTE.text),
+  link: safeColor.catch(() => DEFAULT_EMAIL_PALETTE.link),
+  noteBorder: safeColor.catch(() => DEFAULT_EMAIL_PALETTE.noteBorder),
+  headerBorder: safeColor.catch(() => DEFAULT_EMAIL_PALETTE.headerBorder),
+  bodyBg: safeColor.catch(() => DEFAULT_EMAIL_PALETTE.bodyBg),
+  footerText: safeColor.catch(() => DEFAULT_EMAIL_PALETTE.footerText),
 });
 
 const stringArraySchema = z.array(z.string().catch('')).catch([]);
@@ -161,6 +168,34 @@ export function parseEmailPalette(
   if (raw === undefined || raw === null) return undefined;
   if (typeof raw !== 'object') return undefined;
   return emailPaletteSchema.parse(raw);
+}
+
+/**
+ * Sanitize a raw persisted style/palette object through the same safe-color
+ * schemas the import path uses, so the localStorage surface gets identical
+ * validation to the import surface. restoreState feeds these values — with no
+ * further escaping — into style="" attributes of the generated email, so a
+ * tampered or corrupt localStorage entry must fall back to the safe default
+ * instead of reaching the HTML. Non-object input (or a schema shape this file
+ * does not know) returns `fallback`; valid persisted values pass through
+ * unchanged.
+ */
+export function sanitizePersistedStyles<T extends object>(
+  raw: unknown,
+  fallback: T
+): T {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return fallback;
+  }
+  // Dispatch on the fallback's shape: each persisted style type is validated
+  // by its own dedicated schema defined above.
+  if ('tableBorderWidth' in fallback) {
+    return newsletterStyleSchema.parse(raw) as unknown as T;
+  }
+  if ('footerBg' in fallback) {
+    return emailPaletteSchema.parse(raw) as unknown as T;
+  }
+  return sectionBoxStyleSchema.parse(raw) as unknown as T;
 }
 
 export function parseStringArray(raw: unknown): string[] {
