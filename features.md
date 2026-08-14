@@ -1,53 +1,58 @@
-# Features Overview
+# Talaria — Features Overview
+
+Talaria is a campaign email and customer-communication template generator that **any brand can make its own**. Set your company, store, products, and branding once on the Settings page, then generate promotion campaigns, newsletters, and email/text/phone templates — there are no hardcoded brand assumptions, so it works for any store or company out of the box.
+
+It ships as a single-page React app (web) with an optional **Tauri 2** desktop shell.
 
 ## 🚀 Core Application Features
 
 ### Template System
 
-- **Customer Email Templates** (10+ templates)
+- **Customer Email Templates** (7)
   - New Customer Welcome
-  - New Model Arrival notifications
+  - New Model Arrival alerts
+  - Back-in-Stock follow-ups
   - Limited Edition alerts
   - Warranty registration and care tips
   - Weekly sale notifications
   - VIP reconnection campaigns
-  - Order confirmations and shipping updates
 
-- **Phone Order Templates** (5 templates)
+- **Phone Order Templates** (5)
   - Order confirmation with details
   - Shipped notifications with tracking
-  - Under $500 approval requests
+  - Under-$500 approval requests
   - Corporate order approvals
-  - Inter-store notifications
+  - Inter-store notifications (multi-store retailers)
 
-- **Text Message Templates** (3 templates)
+- **Text Message Templates** (3)
   - Quick availability responses
-  - Post-purchase thank you messages
-  - Sale alert follow-ups
+  - Post-purchase thank-you messages
+  - Interest follow-ups after store visits
 
 - **Enhanced Email Features**
-  - Editable subject lines for all enhanced templates
+  - Editable subject lines on all templates that support them
   - Dual output: text body + HTML email preview
-  - EML/EMLTPL download for Outlook and other email clients
+  - EML/EMLTPL download for Outlook and other email clients (RFC 5322/2045, quoted-printable, CRLF line endings)
+  - One-click `mailto:` launch for templates that support it
   - Cross-platform compatibility (Outlook, Mac Mail, Gmail, etc.)
 
 ### User Experience
 
 - **Real-time Search**: Instant template filtering across all categories
 - **Category Navigation**: Quick access to Email, Phone, and Text templates
-- **Theme System**: Light/dark modes with multiple palette options
-- **Profile Management**: Store and employee configuration saved locally
+- **Theme System**: Light/dark modes with 16 palette options
+- **Profile Management**: Company, store, employee, and product-noun configuration saved locally — brand-agnostic, with no hardcoded brand values
 - **Copy-to-Clipboard**: One-click copying of generated messages
 - **Email Client Integration**: Direct `mailto:` links and EML file exports
 
-## 🌟 Promotion Email Template - The Star Feature
+## 🌟 Promotion Email Builder — The Star Feature
 
 The promotion email template is the most sophisticated feature, combining advanced content management with professional email marketing capabilities.
 
 ### Dynamic Content Builder
 
 - **Brand/Product Entries**
-  - Add multiple watch collections and brands
+  - Add product collections and brands of *your* choosing
   - Configure discount percentages and pricing
   - Drag-and-drop reordering of entries
   - Real-time preview updates
@@ -58,7 +63,7 @@ The promotion email template is the most sophisticated feature, combining advanc
   - Reorderable priority display
 
 - **"How to Shop" Guide**
-  - Customizable shopping instructions
+  - Customizable shopping instructions (auto-refreshed from the profile)
   - Step-by-step customer guidance
   - Editable content with formatting
 
@@ -67,31 +72,43 @@ The promotion email template is the most sophisticated feature, combining advanc
   - Drag-and-drop priority management
   - Rich text content support
 
+- **Newsletter Section**
+  - Full rich-text editing via TipTap (tables, images, links, highlighting, undo/redo)
+  - Color/border theming that matches the email palette
+
 ### Advanced Email Features
 
 - **Live HTML Preview**
   - Real-time email rendering as you type
-  - Theme-integrated styling
-  - Professional email layout with Aptos font
+  - Desktop and mobile widths with a light/dark toggle
+  - Theme-integrated styling with Aptos-based email layout
   - Automatic signature integration
 
 - **PDF Attachment Support**
   - Upload multiple PDF files (size-validated)
+  - On-upload optimization via the native Rust `amatl` command (downsampled embedded JPEGs + object-stream packing — ~59% smaller on real promotion files)
   - Interactive preview modal with iframe rendering
   - Download fallback for unsupported PDFs
-  - PDF metadata stored in localStorage, binary data in IndexedDB
+  - PDF metadata stored in localStorage; binary data in IndexedDB
 
 - **Smart Subject Line Generation**
   - Auto-generates professional titles based on date ranges
   - Manual override option for custom subjects
-  - Multiple subject line suggestions
-  - Subject line preview and selection
+  - Multiple subject line suggestions with preview and selection
 
 - **Bulk Email Generation**
   - BCC recipient list management
-  - Configurable batch sizes (50-100 recipients per email)
+  - Configurable batch sizes (50–1000 recipients per email)
   - ZIP export of all generated emails
   - Recipient list persistence in IndexedDB
+
+- **Version History**
+  - Up to 20 auto-saved snapshots of promotion state
+  - Manual named saves and one-click restore from any point
+
+- **Quality Checkers**
+  - Accessibility checker: missing alt text, empty links, heading-hierarchy gaps, overly long alt text, missing language direction hints
+  - Outlook compatibility checker
 
 ### Professional Email Output
 
@@ -102,117 +119,105 @@ The promotion email template is the most sophisticated feature, combining advanc
   - Outlook and Mac Mail compatible
 
 - **HTML Email Format**
-  - Professional styling with consistent branding
+  - Professional styling consistent with the configured branding
   - Responsive email layout
   - Automatic employee signature insertion
   - Theme-aware color schemes
 
 ### Data Management & Workflow
 
-- **Undo/Redo System**
-  - 50-level history stack for all edits
-  - State capture and restoration
-  - Keyboard shortcuts support (Ctrl+Z/Ctrl+Y)
-
-- **Persistence & Storage**
-  - Auto-save to localStorage (metadata)
-  - IndexedDB for binary PDF data
-  - Template configuration export/import
+- **Auto-save & Persistence**
+  - Promotion state auto-saved (Zustand store) and restored across sessions
+  - IndexedDB for binary PDF data and bulk-email recipient lists
   - Cross-session state preservation
 
 - **Import/Export Capabilities**
-  - Save promotion configurations as JSON files
-  - Load previously saved templates
-  - Share templates between stores/employees
-  - Backup and restore functionality
+  - Export/import promotion configurations as JSON
+  - Export/import the profile
+  - Load previously saved configurations
+  - Backup, restore, and share between stores/colleagues
 
-## 🔐 Security & Performance Features
+## 🔐 Security & Performance
 
 ### Security
 
 - **XSS Prevention**: All user content sanitized via `sanitizeHTML()`
-- **Input Validation**: Phone numbers, tracking numbers (UPS/FedEx/USPS)
-- **Safe File Handling**: PDF metadata isolated from binary data
-- **Content Security**: Structured data generation only
+- **Input Validation**: Zod schemas + per-field validation hints (profile, template fields, imported configs)
+- **Safe File Handling**: PDF metadata isolated from binary data (localStorage vs IndexedDB)
+- **URL Scheme Validation**: Brand-link URLs validated before being emitted as `href`s
 
-### Performance Optimizations
+### Performance
 
-- **DOM Caching**: ~85% reduction in DOM queries
-- **Lazy Loading**: On-demand resource initialization
-- **Memory Efficiency**: Optimized state management
-- **Fast Rendering**: Cached selectors and reduced reflows
+- **Code-Split Bundles**: Heavy dependencies (TipTap, jszip) are code-split
+- **Native PDF Optimization**: Rust-side JPEG downsampling and object-stream packing keep attachments small
+- **Memory Efficiency**: Large binary payloads live in IndexedDB rather than localStorage
 
 ## 🎨 Accessibility & Design
 
 ### Accessibility
 
-- **ARIA Labels**: Comprehensive screen reader support
-- **Keyboard Navigation**: Full keyboard accessibility
+- **Built-in Checker**: The promotion builder scans generated content for missing alt text, empty links, heading-hierarchy gaps, overly long alt text, and missing language direction hints
+- **Reduced Motion**: Scroll behavior honors `prefers-reduced-motion`
+- **ARIA & Keyboard Support**: Radix UI primitives with built-in ARIA, plus full keyboard navigation
 - **Focus Management**: Proper modal and form focus handling
 - **High Contrast**: Theme-based contrast options
-- **WCAG Compliance**: 44px touch targets, proper color ratios
 
 ### Design System
 
+- **Tailwind CSS v4** with oklch design tokens and inline `@theme` config
+- **16 Color Palettes** (8 light + 8 dark), persisted and applied via `data-*` attributes
+- **shadcn/ui (New York)** components built on Radix UI primitives
 - **Responsive Layout**: Desktop-first with mobile support (375px+)
-- **Theme Integration**: Light/dark modes with palette variants
-- **Professional Styling**: Consistent with retail brand standards
-- **Interactive Feedback**: Hover states, transitions, loading indicators
+- **Interactive Feedback**: Hover states, transitions, loading indicators (Sonner toasts)
 
-## 📱 Cross-Platform Support
+## 🖥️ Desktop & Web
 
-### Web Compatibility
+### Web
 
+- **Single-Page App**: React Router v7 SPA — one page with client-side routes
 - **Modern Browsers**: Chrome, Firefox, Safari, Edge support
 - **Mobile Responsive**: Tablet and phone layouts
-- **Progressive Enhancement**: Core features work everywhere
+- **Works Without the Shell**: Full functionality in a plain browser — the desktop app is optional
 
-### Desktop Application
+### Desktop Application (Tauri 2)
 
-- **Electron Integration**: Native desktop app packaging
+- **Tauri 2 Shell**: Native desktop packaging with a Rust backend
 - **Windows Support**: Portable .exe distribution
-- **macOS Support**: ZIP archive distribution
-- **Offline Capability**: Full functionality without internet
+- **macOS Support**: Universal .app + .dmg builds
+- **Linux Support**: Desktop builds via `tauri build`
+- **Native Download Folder**: Folder picker + `save_file_to_dir` Rust command; every download routes through it when running in the shell
+- **Offline Capability**: Local-first — no backend or network required
 
 ## 🔧 Development Features
 
-### Code Quality
+### Architecture
 
-- **ES Modules**: Modern JavaScript architecture
-- **Separation of Concerns**: Clean module boundaries
-- **Centralized Validation**: Reusable helper functions
-- **Error Handling**: User-friendly toast notifications
+- **React 19 + TypeScript (strict)**: Modern, type-safe single-page app
+- **Vite 8**: Fast development server and optimized production builds
+- **Single-Page Routing**: React Router v7 (BrowserRouter) — templates, promotions, and profile settings are routes, not pages
+- **State Management**: React Context (theme/profile) + Zustand (promotion store)
+- **Forms**: React Hook Form + Zod validation
+- **Rich Text**: TipTap for newsletter editing
+- **Packaging**: jszip for bulk-email ZIP archives
 
-### Build System
+### Quality Gates
 
-- **Vite Powered**: Fast development and optimized builds
-- **Multi-page Support**: Main app and profile setup
-- **Asset Optimization**: Automatic CSS/JS bundling
-- **Production Ready**: Optimized for deployment
-
-### Maintenance
-
-- **Linting**: ESLint configuration for code quality
-- **Formatting**: Prettier for consistent style
-- **Documentation**: Comprehensive inline comments
-- **Version Control**: Git-friendly project structure
+- **Typecheck**: `tsc --noEmit`
+- **Linting**: ESLint on `src/`
+- **Formatting**: Prettier
+- **Unit Tests**: Vitest with enforced coverage thresholds
+- **E2E Tests**: Playwright
+- **CI**: GitHub Actions builds and tests desktop apps for Windows and macOS
 
 ---
 
 ## 🎯 Key Differentiators
 
-What makes this application stand out:
+1. **Promotion Email Builder**: The flagship feature — content management, email marketing, and professional design in one tool
+2. **Brand-Agnostic by Design**: No hardcoded brand assumptions — any brand can make it its own
+3. **Professional Email Output**: RFC-compliant EML/EMLTPL that integrates with existing email workflows
+4. **Native PDF Optimization**: A Rust-side optimizer shrinks attached PDFs before they're stored
+5. **Desktop + Web**: Optional Tauri 2 shell with offline capability; the same app runs in any browser
+6. **Security & Accessibility First**: XSS sanitization, validated input, built-in accessibility checks
 
-1. **Promotion Email Builder**: The most sophisticated feature, combining content management, email marketing, and professional design
-
-2. **Retail-Specific Design**: Built specifically for watch store operations with industry-specific templates and workflows
-
-3. **Professional Email Output**: EML export capability that integrates seamlessly with existing email workflows
-
-4. **Performance & Security**: Enterprise-level optimizations with comprehensive XSS protection
-
-5. **Accessibility First**: WCAG-compliant design with full keyboard navigation and screen reader support
-
-6. **Cross-Platform Flexibility**: Web, desktop, and mobile support with consistent functionality
-
-The promotion email template represents the pinnacle of the application's capabilities, transforming a simple template generator into a sophisticated email marketing tool while maintaining the ease of use and reliability expected in a retail environment.
+The promotion email builder transforms a simple template generator into a sophisticated email marketing tool while keeping the ease of use expected in a retail environment.
