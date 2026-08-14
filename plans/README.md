@@ -29,7 +29,7 @@ when done.
 | 017  | Update amatl-roadmap §9/§10 (const→options delta already shipped) | P3 | S | — | TODO |
 | 018  | Consolidate the 4–5 divergent HTML escape/convert implementations | P3 | M | 011 | TODO |
 | 019  | Add pre-commit enforcement of the documented quality gate | P3 | S | — | TODO |
-| 020  | Cache Playwright browsers in CI | P3 | S | — | TODO |
+| 020  | Cache Playwright browsers in CI | P3 | S | — | DONE |
 | 021  | Replace E2E fixed sleeps with expectation polling; make webServer unconditional | P3 | M | — | TODO |
 | 022  | Slice the god objects (store domains, ProfileSettingsPage sections) | P3 | L | 005, 009, 011 | TODO |
 
