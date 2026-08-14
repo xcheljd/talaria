@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   EMAIL_PALETTE,
+  convertTipTapToInlineHTML,
   generatePromotionEmailHTML,
   type PromotionEmailData,
 } from '../src/lib/promotion-email-html';
@@ -113,6 +114,107 @@ describe('mark data-color sanitization', () => {
     const html = generatePromotionEmailHTML(
       makeEmailData('<p>Highlighted <mark>plain</mark> text</p>')
     );
+    expect(html).toContain('background-color: yellow;');
+  });
+});
+
+/**
+ * Characterization tests for `convertTipTapToInlineHTML`.
+ *
+ * These LOCK IN the current output of the converter (default palette /
+ * default table style): each fixture is a minimal element and the
+ * assertions pin the specific inline styles the implementation actually
+ * emits, so a future regex change that stops converting a tag fails here.
+ * Deliberately NOT an attempt to improve the output — plan 018 owns any
+ * behavior changes.
+ */
+describe('convertTipTapToInlineHTML characterization', () => {
+  it('returns empty string for empty or whitespace-only input', () => {
+    expect(convertTipTapToInlineHTML('')).toBe('');
+    expect(convertTipTapToInlineHTML('   \n\t ')).toBe('');
+  });
+
+  it('converts <table>/<td> to collapsed-border inline styles', () => {
+    const html = convertTipTapToInlineHTML(
+      '<table><tr><td>cell</td></tr></table>'
+    );
+    // Default table style: 1px solid palette.text (#333333).
+    expect(html).toContain(
+      'border-collapse: collapse; width: 100%; margin: 8px 0;'
+    );
+    expect(html).toContain('border: 1px solid #333333;');
+    expect(html).toContain(
+      'border: 1px solid #333333; padding: 6px 8px; vertical-align: top;'
+    );
+  });
+
+  it('converts <blockquote> to border-left/margin/color inline styles', () => {
+    const html = convertTipTapToInlineHTML('<blockquote>quote</blockquote>');
+    // Default palette accent is #ffd700.
+    expect(html).toContain(
+      'border-left: 4px solid #ffd700; padding-left: 12px; margin: 8px 0; color: #555555; font-style: italic;'
+    );
+  });
+
+  it('converts <pre><code> to monospace inline styles', () => {
+    const html = convertTipTapToInlineHTML('<pre><code>code</code></pre>');
+    // Default palette footerBg is #2c3e50. Regression guard: the <p>
+    // regex must NOT swallow <pre> (a <p([^>]*)> pattern matched <pre>,
+    // rewriting code blocks as paragraphs, killing the pre/code styles,
+    // and leaking a stray </pre>).
+    expect(html).toBe(
+      '<pre style="background-color: #2c3e50; border-radius: 6px; padding: 12px 16px; margin: 8px 0; overflow-x: auto; border: 1px solid #dddddd;"><code style="font-family: \'Courier New\', Courier, monospace; font-size: 13px; line-height: 1.5; background: none;">code</code></pre>'
+    );
+    expect(html).not.toContain('<p style=');
+  });
+
+  it('converts <hr> to margin/border-top inline styles', () => {
+    const html = convertTipTapToInlineHTML('<hr>');
+    expect(html).toContain('margin: 12px 0;');
+    expect(html).toContain('border: none; border-top: 1px solid #333333;');
+  });
+
+  it('preserves img src and emits max-width/block styling', () => {
+    const src = 'data:image/png;base64,iVBORw0KGgo=';
+    const html = convertTipTapToInlineHTML(`<img src="${src}">`);
+    expect(html).toContain(`src="${src}"`);
+    expect(html).toContain(
+      'max-width: 100%; height: auto; display: block; margin: 8px auto;'
+    );
+  });
+
+  it('converts <ul>/<li> to padding-left/margin inline styles', () => {
+    const html = convertTipTapToInlineHTML('<ul><li>item</li></ul>');
+    expect(html).toContain(
+      "font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 8px 0; padding-left: 24px;"
+    );
+    expect(html).toContain(
+      "font-size: 14px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 2px 0;"
+    );
+  });
+
+  it('preserves td colspan when converting cell styles', () => {
+    const html = convertTipTapToInlineHTML(
+      '<table><tr><td colspan="2">wide</td></tr></table>'
+    );
+    expect(html).toContain('<td colspan="2" style="');
+  });
+
+  it('converts <h2> to font-size/weight inline styles', () => {
+    const html = convertTipTapToInlineHTML('<h2>Title</h2>');
+    expect(html).toContain('font-size: 20px;');
+    expect(html).toContain(
+      "font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin: 15px 0 8px 0; font-weight: bold;"
+    );
+  });
+
+  it('sanitizes a malicious mark data-color at the converter level', () => {
+    const html = convertTipTapToInlineHTML(
+      '<p>Highlighted <mark data-color="red; background-image: url(x)">bad</mark> text</p>'
+    );
+    expect(html).not.toContain('background-image');
+    expect(html).not.toContain('red; background-image');
+    expect(html).not.toContain('data-color="red; background-image: url(x)"');
     expect(html).toContain('background-color: yellow;');
   });
 });
