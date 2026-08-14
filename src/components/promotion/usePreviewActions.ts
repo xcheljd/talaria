@@ -371,6 +371,12 @@ export function usePreviewActions(emailHTML: string, store: PreviewStore) {
     iframe.style.left = '-9999px';
     iframe.style.width = '600px';
     iframe.style.height = '800px';
+    // Sandbox the print iframe so any <script> in the generated HTML cannot
+    // execute with app privileges. allow-same-origin (without allow-scripts)
+    // keeps contentDocument/print() reachable from the parent while blocking
+    // all script execution — an empty sandbox would be stricter but makes the
+    // frame cross-origin, which breaks doc.write() and contentWindow.print().
+    iframe.setAttribute('sandbox', 'allow-same-origin');
     document.body.appendChild(iframe);
     const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
     if (!doc) {

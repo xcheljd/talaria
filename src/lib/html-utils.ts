@@ -89,26 +89,60 @@ const ALLOWED_ATTRS: Record<string, Set<string>> = {
 const SAFE_PROTOCOLS = ['http:', 'https:', 'mailto:', 'tel:'];
 
 /**
- * Validate that a URL uses a safe protocol.
- * Blocks javascript:, data:, vbscript:, and other dangerous protocols.
+ * Safe URL protocols that are allowed in img src attributes. `cid:` is
+ * included for email clients; `data:` payloads are handled separately in
+ * isSafeImageURL (only `data:image/` is accepted).
  */
-export function isSafeURL(url: string): boolean {
+const SAFE_IMAGE_PROTOCOLS = ['http:', 'https:', 'cid:'];
+
+/**
+ * Core scheme check shared by isSafeURL / isSafeImageURL. Scheme-less
+ * relative URLs and anchors are always safe. Any explicit scheme must be in
+ * the allowlist; `extraSchemeOk` lets callers accept scheme-specific payloads
+ * (e.g. `data:image/` for img src). Fail closed: an unknown or malformed
+ * scheme (e.g. javascript:, data:text/html, or a URL that won't parse) is
+ * rejected rather than allowed through.
+ */
+function isSafeURLWithSchemes(
+  url: string,
+  schemes: string[],
+  extraSchemeOk?: (trimmed: string) => boolean
+): boolean {
   if (!url || !url.trim()) return false;
   const trimmed = url.trim();
   // Relative URLs and anchors have no scheme — always safe
   if (trimmed.startsWith('#') || trimmed.startsWith('/')) return true;
-  // If the URL carries an explicit scheme, it must be in the allowlist.
-  // Fail closed: an unknown or malformed scheme (e.g. javascript:, data:,
-  // or a URL that won't parse) is rejected rather than allowed through.
   if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
     try {
-      return SAFE_PROTOCOLS.includes(new URL(trimmed).protocol);
+      const protocol = new URL(trimmed).protocol;
+      if (schemes.includes(protocol)) return true;
+      return extraSchemeOk ? extraSchemeOk(trimmed) : false;
     } catch {
       return false;
     }
   }
   // No scheme → relative URL (e.g. "page.html", "foo/bar") → safe
   return true;
+}
+
+/**
+ * Validate that a URL uses a safe protocol.
+ * Blocks javascript:, data:, vbscript:, and other dangerous protocols.
+ */
+export function isSafeURL(url: string): boolean {
+  return isSafeURLWithSchemes(url, SAFE_PROTOCOLS);
+}
+
+/**
+ * Validate that an img src uses a safe URL. Like isSafeURL but also allows
+ * `cid:` (email clients) and `data:image/` payloads (inline images the email
+ * generator can emit). Rejects javascript:, data:text/html, and every other
+ * scheme.
+ */
+export function isSafeImageURL(url: string): boolean {
+  return isSafeURLWithSchemes(url, SAFE_IMAGE_PROTOCOLS, (trimmed) =>
+    /^data:image\//i.test(trimmed)
+  );
 }
 
 /**
@@ -183,6 +217,15 @@ function sanitizeNode(node: Element): string {
         if (attr.name === 'href') {
           if (!isSafeURL(attr.value)) continue;
           safeAttrs.push(`href="${escapeAttr(attr.value)}"`);
+          continue;
+        }
+
+        // Special handling for src — block dangerous protocols (img only
+        // allows src). Keeps http(s), data:image/, cid:; rejects
+        // javascript:, data:text/html, and every other scheme.
+        if (attr.name === 'src') {
+          if (!isSafeImageURL(attr.value)) continue;
+          safeAttrs.push(`src="${escapeAttr(attr.value)}"`);
           continue;
         }
 
