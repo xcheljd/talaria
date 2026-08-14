@@ -17,6 +17,12 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: ['node_modules/', 'tests/e2e/', 'dist/', '**/*.test.js'],
+      thresholds: {
+        lines: 72,
+        functions: 70,
+        branches: 64,
+        statements: 71,
+      },
     },
   },
 });
