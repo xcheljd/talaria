@@ -20,6 +20,7 @@ import {
 import { getStorePhone, getStoreEmail, getDirections } from '@/lib/profile';
 import { prependHeadingIfMissing } from '@/lib/html-utils';
 import { StorageKeys } from '@/lib/storage-keys';
+import { sanitizePersistedStyles } from '@/lib/promotion-config-schema';
 
 // ===== Types =====
 
@@ -1062,12 +1063,15 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         specialHours: parsed.specialHours || [],
         howToShopItems: loadedHowToShop,
         importantNotesItems: loadedImportantNotes,
-        howToShopStyle: parsed.howToShopStyle || {
+        howToShopStyle: sanitizePersistedStyles(parsed.howToShopStyle, {
           ...DEFAULT_HOW_TO_SHOP_STYLE,
-        },
-        importantNotesStyle: parsed.importantNotesStyle || {
-          ...DEFAULT_IMPORTANT_NOTES_STYLE,
-        },
+        }),
+        importantNotesStyle: sanitizePersistedStyles(
+          parsed.importantNotesStyle,
+          {
+            ...DEFAULT_IMPORTANT_NOTES_STYLE,
+          }
+        ),
         attachedPDFs: restoredPDFs,
         generatedSubjectLines: parsed.generatedSubjectLines || [],
         selectedSubjectLine: parsed.selectedSubjectLine || null,
@@ -1078,11 +1082,13 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         newsletterHeading: loadedHeading,
         newsletterBody: loadedBody,
         newsletterPosition: parsed.newsletterPosition || 'top',
-        newsletterStyle: parsed.newsletterStyle || {
+        newsletterStyle: sanitizePersistedStyles(parsed.newsletterStyle, {
           ...DEFAULT_NEWSLETTER_STYLE,
-        },
+        }),
         newsletterVisible: parsed.newsletterVisible ?? false,
-        emailPalette: parsed.emailPalette || { ...DEFAULT_EMAIL_PALETTE },
+        emailPalette: sanitizePersistedStyles(parsed.emailPalette, {
+          ...DEFAULT_EMAIL_PALETTE,
+        }),
         isInitializing: false,
         saveStatus: 'ok',
         pdfRestoreWarning,

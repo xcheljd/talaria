@@ -12,6 +12,10 @@ import {
   autoLineText,
   adoptLegacyAutoLines,
   refreshAutoLines,
+  DEFAULT_EMAIL_PALETTE,
+  DEFAULT_NEWSLETTER_STYLE,
+  DEFAULT_HOW_TO_SHOP_STYLE,
+  DEFAULT_IMPORTANT_NOTES_STYLE,
 } from '@/stores/promotion-store';
 import type { AttachedPDF, HowToShopItem } from '@/stores/promotion-store';
 import { useAutoSave } from '@/components/promotion/promotion-page-hooks';
@@ -1067,6 +1071,143 @@ describe('promotion store', () => {
       expect(state.attachedPDFs).toHaveLength(1);
       expect(state.attachedPDFs[0].data).toBe('data:application/pdf;base64,legacy');
       expect(state.pdfRestoreWarning).toBe(false);
+    });
+
+    it('sanitizes a malicious persisted emailPalette on restore', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+        emailPalette: {
+          footerBg: '#2c3e50',
+          sectionBg: '#f5f5f5',
+          unsubscribeBg: '#f4f4f4',
+          // CSS injection: would break out of the style="" attribute and add
+          // a tracking beacon if it ever reached the generated email.
+          accent: '"; background-image: url(https://evil.example/track)',
+          text: '#333333',
+          link: '#0066cc',
+          noteBorder: '#ddd',
+          headerBorder: 'gray',
+          bodyBg: 'white',
+          footerText: 'white',
+        },
+      };
+      localStorage.setItem(
+        'promotionBuilderState',
+        JSON.stringify(savedData)
+      );
+
+      const store = getFreshStore();
+      await store.restoreState();
+
+      const state = getFreshStore();
+      // The injected value is replaced by the safe default, not preserved.
+      expect(state.emailPalette).toEqual(DEFAULT_EMAIL_PALETTE);
+      expect(JSON.stringify(state.emailPalette)).not.toContain('evil');
+    });
+
+    it('sanitizes malicious persisted section/newsletter styles on restore', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+        howToShopStyle: {
+          borderColor: '"; background-image: url(https://evil.example/track)',
+          backgroundColor: '"; position: fixed',
+        },
+        importantNotesStyle: {
+          borderColor: '"; content: "x',
+          backgroundColor: '"; background-image: url(https://evil.example/px)',
+        },
+        newsletterStyle: {
+          borderColor: '"; position: fixed; top: 0',
+          backgroundColor: '"; content: "x',
+          headingColor: '"; display: none',
+          borderStyle: 'left',
+          headingAlign: 'left',
+          tableBorderColor: null,
+          tableBorderWidth: 1,
+          tableBorderStyle: 'solid',
+          tableHeaderBg: null,
+        },
+      };
+      localStorage.setItem(
+        'promotionBuilderState',
+        JSON.stringify(savedData)
+      );
+
+      const store = getFreshStore();
+      await store.restoreState();
+
+      const state = getFreshStore();
+      // Every injected color falls back to the safe default shape; nothing
+      // from the fixture can break out of a style="" attribute.
+      expect(state.howToShopStyle).toEqual(DEFAULT_HOW_TO_SHOP_STYLE);
+      expect(state.importantNotesStyle).toEqual(DEFAULT_IMPORTANT_NOTES_STYLE);
+      expect(state.newsletterStyle).toEqual(DEFAULT_NEWSLETTER_STYLE);
+      expect(JSON.stringify(state)).not.toContain('evil');
+    });
+
+    it('round-trips valid persisted styles unchanged', async () => {
+      const savedData = {
+        promotionEntries: [],
+        specialHours: [],
+        howToShopItems: [],
+        importantNotesItems: [],
+        attachedPDFs: [],
+        generatedSubjectLines: [],
+        selectedSubjectLine: null,
+        howToShopStyle: {
+          borderColor: '#ff0000',
+          backgroundColor: 'rgb(255, 0, 0)',
+        },
+        importantNotesStyle: { borderColor: null, backgroundColor: '#f5f5f5' },
+        newsletterStyle: {
+          borderColor: '#000000',
+          backgroundColor: '#ffffff',
+          headingColor: null,
+          borderStyle: 'full',
+          headingAlign: 'center',
+          tableBorderColor: '#ddd',
+          tableBorderWidth: 2,
+          tableBorderStyle: 'dashed',
+          tableHeaderBg: '#eeeeee',
+        },
+        emailPalette: {
+          footerBg: '#111111',
+          sectionBg: '#222222',
+          unsubscribeBg: '#333333',
+          accent: '#444444',
+          text: '#555555',
+          link: '#666666',
+          noteBorder: '#777777',
+          headerBorder: '#888888',
+          bodyBg: '#999999',
+          footerText: '#aaaaaa',
+        },
+      };
+      localStorage.setItem(
+        'promotionBuilderState',
+        JSON.stringify(savedData)
+      );
+
+      const store = getFreshStore();
+      await store.restoreState();
+
+      const state = getFreshStore();
+      expect(state.howToShopStyle).toEqual(savedData.howToShopStyle);
+      expect(state.importantNotesStyle).toEqual(savedData.importantNotesStyle);
+      expect(state.newsletterStyle).toEqual(savedData.newsletterStyle);
+      expect(state.emailPalette).toEqual(savedData.emailPalette);
     });
   });
 
