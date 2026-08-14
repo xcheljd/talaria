@@ -15,7 +15,7 @@ when done.
 | 003  | Validate brand-link URL schemes before emitting hrefs | P1 | S | — | DONE |
 | 004  | Validate imported PDF `data` fields (prefix + size) before persisting | P1 | M | — | DONE |
 | 005  | Re-arm `isInitializing` in `restoreState` and guard auto-save + orphan sweep | P1 | S | — | DONE |
-| 006  | Validate persisted style/color fields on restore (reuse import schemas) | P1 | S | — | TODO |
+| 006  | Validate persisted style/color fields on restore (reuse import schemas) | P1 | S | — | DONE |
 | 007  | Add `sandbox` to the print iframe and validate `img src` in the sanitizer | P2 | S | — | TODO |
 | 008  | Bump react-router-dom out of the known-vulnerable range; run `npm audit fix` | P2 | S | — | TODO |
 | 009  | Enforce coverage thresholds and run coverage in CI | P2 | S | — | TODO |
