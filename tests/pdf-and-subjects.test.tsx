@@ -21,6 +21,7 @@ import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerato
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
+import { toast } from 'sonner';
 
 
 // Mock ResizeObserver for Radix components
@@ -238,6 +239,34 @@ describe('PDFAttachments', () => {
     expect(
       screen.getByRole('button', { name: /download/i })
     ).toBeInTheDocument();
+  });
+
+  it('shows an error toast instead of opening the preview for invalid PDF data', async () => {
+    const user = userEvent.setup();
+
+    usePromotionStore.setState({
+      attachedPDFs: [
+        {
+          id: 'pdf-bad',
+          name: 'broken.pdf',
+          size: 1024,
+          type: 'application/pdf',
+          data: 'data:application/pdf;base64,%%%',
+        },
+      ],
+    });
+
+    renderWithProviders(<PDFAttachments />);
+
+    await user.click(screen.getByRole('button', { name: 'broken.pdf' }));
+
+    // No crash, no dialog — just an error toast.
+    expect(toast.error).toHaveBeenCalledWith(
+      expect.stringContaining('unavailable')
+    );
+    expect(
+      document.querySelector('[data-slot="dialog-content"]')
+    ).toBeNull();
   });
 
   it('shows warning icon for PDFs without data', () => {

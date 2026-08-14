@@ -13,8 +13,8 @@ when done.
 | 001  | Make image tunables (DPI / quality / margin) configurable via `OptimizeOptions` | P1 | M | — | DONE |
 | 002  | Make `OptimizeOptions` forward-compatible for crate publication (`#[non_exhaustive]` + builder methods) | P2 | S | 001 | DONE |
 | 003  | Validate brand-link URL schemes before emitting hrefs | P1 | S | — | DONE |
-| 004  | Validate imported PDF `data` fields (prefix + size) before persisting | P1 | M | — | TODO |
-| 005  | Re-arm `isInitializing` in `restoreState` and guard auto-save + orphan sweep | P1 | S | — | TODO |
+| 004  | Validate imported PDF `data` fields (prefix + size) before persisting | P1 | M | — | DONE |
+| 005  | Re-arm `isInitializing` in `restoreState` and guard auto-save + orphan sweep | P1 | S | — | DONE |
 | 006  | Validate persisted style/color fields on restore (reuse import schemas) | P1 | S | — | TODO |
 | 007  | Add `sandbox` to the print iframe and validate `img src` in the sanitizer | P2 | S | — | TODO |
 | 008  | Bump react-router-dom out of the known-vulnerable range; run `npm audit fix` | P2 | S | — | TODO |

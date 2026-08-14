@@ -86,7 +86,27 @@ describe('dataURLtoBlob', () => {
     const dataURL = 'data:application/pdf;base64,SGVsbG8gV29ybGQ=';
     const blob = dataURLtoBlob(dataURL);
     expect(blob).toBeInstanceOf(Blob);
-    expect(blob.type).toBe('application/pdf');
+    expect(blob!.type).toBe('application/pdf');
+  });
+
+  it('converts a minimal PDF data URL to a Blob', () => {
+    const dataURL = 'data:application/pdf;base64,JVBERi0xLjQK';
+    const blob = dataURLtoBlob(dataURL);
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob!.type).toBe('application/pdf');
+    expect(blob!.size).toBe(9);
+  });
+
+  it('returns null for non-data-URL strings', () => {
+    expect(dataURLtoBlob('not-a-data-url')).toBeNull();
+    expect(dataURLtoBlob('https://example.com/flyer.pdf')).toBeNull();
+    expect(dataURLtoBlob('')).toBeNull();
+  });
+
+  it('returns null for invalid base64 payloads', () => {
+    expect(dataURLtoBlob('data:application/pdf;base64,%%%')).toBeNull();
+    // Valid prefix but a base64 alphabet violation mid-payload
+    expect(dataURLtoBlob('data:application/pdf;base64,JVBERi%')).toBeNull();
   });
 });
 

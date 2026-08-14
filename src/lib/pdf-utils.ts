@@ -81,11 +81,22 @@ export const amatl = {
   },
 };
 
-export function dataURLtoBlob(dataURL: string): Blob {
-  const byteCharacters = atob(dataURL.split(',')[1]);
-  const byteArray = new Uint8Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteArray[i] = byteCharacters.charCodeAt(i);
+/**
+ * Convert a base64 data URL to a Blob. Returns `null` on any malformed
+ * input (non-data-URL string or invalid base64) instead of throwing —
+ * callers must handle the null case (preview shows an error toast).
+ */
+export function dataURLtoBlob(dataURL: string): Blob | null {
+  const match = /^data:([^,]*);base64,(.+)$/s.exec(dataURL);
+  if (!match) return null;
+  try {
+    const byteCharacters = atob(match[2]);
+    const byteArray = new Uint8Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArray[i] = byteCharacters.charCodeAt(i);
+    }
+    return new Blob([byteArray], { type: 'application/pdf' });
+  } catch {
+    return null;
   }
-  return new Blob([byteArray], { type: 'application/pdf' });
 }
