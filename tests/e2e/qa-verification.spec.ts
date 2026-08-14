@@ -6,7 +6,7 @@
  * Run: npx playwright test tests/e2e/qa-verification.spec.ts --project=chromium --reporter=list
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Page, Locator } from '@playwright/test';
 
 const PROFILE = {
   employeeName: 'QA Droid',
@@ -21,9 +21,59 @@ const PROFILE = {
 
 const BASE = 'http://localhost:5173';
 
+/**
+ * Poll until the debounced auto-save (500ms) has flushed `needle` into the
+ * persisted promotion state. The store writes the whole builder state to
+ * localStorage[promotionBuilderState] on save (see promotion-store.ts
+ * persistState), so polling that key is the observable "save completed"
+ * signal — it replaces fixed waits before reloads and downloads.
+ */
+async function expectPersisted(page: Page, needle: string) {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          (n) => (localStorage.getItem('promotionBuilderState') || '').includes(n),
+          needle
+        ),
+      { timeout: 10000 }
+    )
+    .toBe(true);
+}
+
+/** Inverse of expectPersisted — asserts a value is no longer persisted. */
+async function expectNotPersisted(page: Page, needle: string) {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          (n) => (localStorage.getItem('promotionBuilderState') || '').includes(n),
+          needle
+        ),
+      { timeout: 10000 }
+    )
+    .toBe(false);
+}
+
+/**
+ * Tolerant visibility wait. locator.isVisible({timeout}) does NOT poll (the
+ * timeout option is ignored), so conditional UI flows use this instead: it
+ * polls for visibility and returns false instead of throwing, preserving the
+ * old "sleep then check" tolerance without the fixed sleep.
+ */
+async function isVisibleEventually(locator: Locator, timeout: number): Promise<boolean> {
+  return locator
+    .waitFor({ state: 'visible', timeout })
+    .then(() => true)
+    .catch(() => false);
+}
+
 async function seedProfile(page: Page) {
   await page.goto(BASE);
-  await page.waitForTimeout(500);
+  // Without a profile, /promotion redirects to /settings; wait for the
+  // redirect chain to settle before writing localStorage (observable state
+  // replaces the old fixed boot sleep).
+  await page.waitForURL('**/settings', { timeout: 15000 });
   await page.evaluate((profile) => {
     localStorage.setItem('userProfile', JSON.stringify(profile));
   }, PROFILE);
@@ -32,7 +82,6 @@ async function seedProfile(page: Page) {
 async function goToPromotion(page: Page) {
   // Navigate to base first to ensure we have a page context with localStorage access
   await page.goto(BASE);
-  await page.waitForTimeout(300);
   // Ensure profile is set
   await page.evaluate((profile) => {
     if (!localStorage.getItem('userProfile')) {
@@ -52,9 +101,10 @@ async function goToPromotion(page: Page) {
 async function fillBasics(page: Page) {
   // Expand basic details card if needed
   const startDate = page.locator('[data-testid="promo-start-date"]');
-  if (!(await startDate.isVisible({ timeout: 1000 }).catch(() => false))) {
+  if (!(await isVisibleEventually(startDate, 1000))) {
     await page.locator('[data-testid="toolbar-icon-basicDetailsCard"]').click();
-    await page.waitForTimeout(400);
+    // Expanding the card is async — wait for the field to appear before filling.
+    await expect(startDate).toBeVisible({ timeout: 5000 });
   }
   await page.locator('[data-testid="promo-start-date"]').fill('2026-06-15');
   await page.locator('[data-testid="promo-end-date"]').fill('2026-06-30');
@@ -63,9 +113,10 @@ async function fillBasics(page: Page) {
 
 async function clickToolbarIcon(page: Page, cardId: string) {
   // The toolbar is a selector: clicking an icon shows that tool's card as the
-  // single card in the left column.
+  // single card in the left column. Callers assert the resulting card state
+  // (expect(...).toBeVisible / isVisibleEventually), which polls — no fixed
+  // wait needed here.
   await page.locator(`[data-testid="toolbar-icon-${cardId}"]`).click();
-  await page.waitForTimeout(400);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -79,14 +130,12 @@ test.describe('QA Item 1 — Layout switching', () => {
 
   test('desktop layout at >=1024px', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
     await expect(page.locator('[data-testid="desktop-layout"]')).toBeVisible();
     await expect(page.locator('[data-testid="mobile-layout"]')).not.toBeVisible();
   });
 
   test('mobile layout at <1024px', async ({ page }) => {
     await page.setViewportSize({ width: 800, height: 900 });
-    await page.waitForTimeout(500);
     await expect(page.locator('[data-testid="mobile-layout"]')).toBeVisible();
     await expect(page.locator('[data-testid="desktop-layout"]')).not.toBeVisible();
   });
@@ -96,13 +145,12 @@ test.describe('QA Item 1 — Layout switching', () => {
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
     await fillBasics(page);
-    await page.waitForTimeout(1200);
+    // Auto-save must flush before the reload below — poll the persisted state.
+    await expectPersisted(page, 'Summer Sale Extravaganza');
 
     // Resize to mobile
     await page.setViewportSize({ width: 800, height: 900 });
-    await page.waitForTimeout(600);
     await expect(page.locator('[data-testid="mobile-layout"]')).toBeVisible();
 
     // Reload → data should survive
@@ -112,7 +160,6 @@ test.describe('QA Item 1 — Layout switching', () => {
 
     // Back to desktop
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(600);
     await expect(page.locator('[data-testid="desktop-layout"]')).toBeVisible();
 
     if (errors.length > 0) {
@@ -122,7 +169,6 @@ test.describe('QA Item 1 — Layout switching', () => {
 
   test('icon toolbar works — clicking an icon shows that tool card', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
 
     // Click the Discounts tool — its card becomes the visible one.
     await clickToolbarIcon(page, 'discountEntriesCard');
@@ -131,13 +177,11 @@ test.describe('QA Item 1 — Layout switching', () => {
 
     // Also verify icon toolbar in mobile layout
     await page.setViewportSize({ width: 800, height: 900 });
-    await page.waitForTimeout(600);
     await expect(page.locator('[data-testid="icon-toolbar"]')).toBeVisible();
   });
 
   test('selecting a different toolbar icon swaps the visible card', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
 
     await clickToolbarIcon(page, 'howToShopCard');
     const addItemBtn = page.locator('[data-card-id="howToShopCard"] button:has-text("Add Item")');
@@ -159,23 +203,20 @@ test.describe('QA Item 2 — Auto-save completeness', () => {
     await seedProfile(page);
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
   });
 
   test('preheader text persists across reload', async ({ page }) => {
     // Need subject lines generated first (preheader input only renders after generation)
     await fillBasics(page);
-    await page.waitForTimeout(500);
 
     // Add a discount entry so subject generation works
     await clickToolbarIcon(page, 'discountEntriesCard');
     const addEntry = page.locator('[data-card-id="discountEntriesCard"] button:has-text("Add Entry")');
-    if (await addEntry.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisibleEventually(addEntry, 5000)) {
       await addEntry.click();
-      await page.waitForTimeout(300);
       // Type a line in the first entry
       const lineInput = page.locator('[data-card-id="discountEntriesCard"] input[placeholder*="line" i], [data-card-id="discountEntriesCard"] input').first();
-      if (await lineInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      if (await isVisibleEventually(lineInput, 5000)) {
         await lineInput.fill('50% off watches');
       }
     }
@@ -183,23 +224,22 @@ test.describe('QA Item 2 — Auto-save completeness', () => {
     // Open subject card and generate subject lines
     await clickToolbarIcon(page, 'subjectCard');
     const genBtn = page.locator('button:has-text("Generate Subject Lines")');
-    if (await genBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isVisibleEventually(genBtn, 10000)) {
       await genBtn.click();
-      await page.waitForTimeout(1000);
     }
 
     const preheader = page.locator('#preheader-input');
-    if (await preheader.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isVisibleEventually(preheader, 15000)) {
       await preheader.fill('Limited time offer - shop now!');
-      await page.waitForTimeout(1500);
+      // Debounced auto-save must flush before reload — poll the persisted state.
+      await expectPersisted(page, 'Limited time offer - shop now!');
 
       await page.reload();
       await page.waitForSelector('[data-testid="icon-toolbar"]', { timeout: 15000 });
       await clickToolbarIcon(page, 'subjectCard');
-      await page.waitForTimeout(500);
       // Preheader should persist
       const preheaderAfter = page.locator('#preheader-input');
-      if (await preheaderAfter.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (await isVisibleEventually(preheaderAfter, 10000)) {
         await expect(preheaderAfter).toHaveValue('Limited time offer - shop now!');
       }
     }
@@ -207,18 +247,17 @@ test.describe('QA Item 2 — Auto-save completeness', () => {
 
   test('email theme color persists across reload', async ({ page }) => {
     await clickToolbarIcon(page, 'emailThemeCard');
-    await page.waitForTimeout(300);
     const visiblePicker = page.locator('[data-testid="theme-picker-headerBg"]');
-    if (await visiblePicker.isVisible({ timeout: 1000 }).catch(() => false)) {
+    if (await isVisibleEventually(visiblePicker, 5000)) {
       await visiblePicker.fill('#447799');
-      await page.waitForTimeout(1500);
+      // Debounced auto-save must flush before reload — poll the persisted state.
+      await expectPersisted(page, '#447799');
 
       await page.reload();
       await page.waitForSelector('[data-testid="icon-toolbar"]', { timeout: 15000 });
       await clickToolbarIcon(page, 'emailThemeCard');
-      await page.waitForTimeout(500);
       const after = page.locator('[data-testid="theme-picker-headerBg"]');
-      if (await after.isVisible({ timeout: 2000 }).catch(() => false)) {
+      if (await isVisibleEventually(after, 10000)) {
         await expect(after).toHaveValue('#447799');
       }
     }
@@ -233,28 +272,23 @@ test.describe('QA Item 3 — Bulk email generation', () => {
     await seedProfile(page);
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
     await fillBasics(page);
-    await page.waitForTimeout(800);
+    // Let the debounced auto-save flush so generation sees persisted state.
+    await expectPersisted(page, 'Summer Sale Extravaganza');
   });
 
   test('Generate without opening Bulk Email Tools shows "Add recipient" toast', async ({ page }) => {
     // Click Generate Email Batches directly — no recipients entered
     const genBtn = page.locator('button:has-text("Generate Email Batches")');
     await genBtn.click();
-    await page.waitForTimeout(2000);
 
     // Sonner toast renders an <ol> with data-sonner-toaster attribute
-    // Check for any visible toast element
+    // Check for any visible toast element (polls instead of a fixed sleep)
     const toasts = page.locator('[data-sonner-toaster] li, .toaster li, [role="status"][aria-live]');
-    // Use count check - toasts might render in a portal
-    const hasToast = await toasts.first().isVisible({ timeout: 3000 }).catch(() => false);
-    // Alternative: check for sonner-specific classes
-    const sonnerEl = page.locator('[data-sonner-toaster]').first();
-    const sonnerExists = await sonnerEl.isVisible({ timeout: 2000 }).catch(() => false);
+    const hasToast = await isVisibleEventually(toasts.first(), 10000);
 
     // At minimum, no crash - if no toast DOM found, log for manual investigation
-    if (!hasToast && !sonnerExists) {
+    if (!hasToast) {
       console.warn('[NOTE] Sonner toast not detected in DOM — manual verification needed');
     }
   });
@@ -263,24 +297,20 @@ test.describe('QA Item 3 — Bulk email generation', () => {
     await clickToolbarIcon(page, 'bulkEmailCard');
     const card = page.locator('[data-card-id="bulkEmailCard"]');
     const textarea = card.locator('textarea');
-    if (await textarea.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisibleEventually(textarea, 5000)) {
       await textarea.fill('good1@test.com\ngood2@test.com\ngood3@test.com\ngood4@test.com\ngood5@test.com\nbademail\nnotan@email');
-      await page.waitForTimeout(800);
     }
-    // The card should show validation counts
-    const cardText = await card.textContent();
-    // Should show "5 valid" or similar
-    expect(cardText).toContain('5');
+    // The card should show validation counts — poll until they settle
+    await expect.poll(() => card.textContent(), { timeout: 10000 }).toContain('5');
   });
 
   test('recipients deleted via select-all+delete stay deleted after reload', async ({ page }) => {
     await clickToolbarIcon(page, 'bulkEmailCard');
     const card = page.locator('[data-card-id="bulkEmailCard"]');
     const ta = card.locator('textarea');
-    if (!(await ta.isVisible({ timeout: 2000 }).catch(() => false))) return;
+    if (!(await isVisibleEventually(ta, 5000))) return;
 
     await ta.fill('good1@test.com\ngood2@test.com');
-    await page.waitForTimeout(800);
 
     // Select all and backspace. Use ControlOrMeta so select-all works on both
     // macOS (Cmd+A) and the Linux CI runners (Ctrl+A) — a bare Meta+a is a
@@ -288,15 +318,16 @@ test.describe('QA Item 3 — Bulk email generation', () => {
     await ta.click();
     await page.keyboard.press('ControlOrMeta+a');
     await page.keyboard.press('Backspace');
-    await page.waitForTimeout(2500);
+    // The debounced auto-save must flush the emptied recipient list before the
+    // reload below — poll the persisted state instead of sleeping.
+    await expectNotPersisted(page, 'good1@test.com');
 
     await page.reload();
     await page.waitForSelector('[data-testid="icon-toolbar"]', { timeout: 15000 });
     await clickToolbarIcon(page, 'bulkEmailCard');
-    await page.waitForTimeout(500);
 
     const taAfter = card.locator('textarea');
-    if (await taAfter.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisibleEventually(taAfter, 5000)) {
       const val = await taAfter.inputValue();
       expect(val).toBe('');
     }
@@ -306,19 +337,20 @@ test.describe('QA Item 3 — Bulk email generation', () => {
     await clickToolbarIcon(page, 'bulkEmailCard');
     const card = page.locator('[data-card-id="bulkEmailCard"]');
     const ta = card.locator('textarea');
-    if (await ta.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisibleEventually(ta, 5000)) {
       await ta.fill('good1@test.com\ngood2@test.com');
-      await page.waitForTimeout(500);
     }
 
     const genBtn = page.locator('button:has-text("Generate Email Batches")');
     await genBtn.click();
-    await page.waitForTimeout(600);
 
     // If warning dialog appears, rapid double-click Generate Anyway
     const anywayBtn = page.locator('button:has-text("Generate Anyway")');
-    if (await anywayBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisibleEventually(anywayBtn, 5000)) {
       await anywayBtn.click({ clickCount: 2 });
+      // Batch generation is async with no observable completion state asserted
+      // here ("no crash is success") — keep a bounded wait so a crash has time
+      // to surface. This is the suite's only remaining fixed wait.
       await page.waitForTimeout(3000);
     }
     // No crash is success
@@ -333,14 +365,14 @@ test.describe('QA Item 4 — Single email draft download', () => {
     await seedProfile(page);
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
     await fillBasics(page);
-    await page.waitForTimeout(1000);
+    // Let the debounced auto-save flush so the draft reflects the edits.
+    await expectPersisted(page, 'Summer Sale Extravaganza');
   });
 
   test('Download Email Draft → valid EML with QP wrapping and multipart structure', async ({ page }) => {
-    // Wait for preview to be ready
-    await page.waitForTimeout(1000);
+    // Preview/draft readiness: the download button is the observable gate.
+    await expect(page.locator('button:has-text("Download Email Draft")')).toBeEnabled({ timeout: 15000 });
 
     const downloadPromise = page.waitForEvent('download', { timeout: 25000 });
     await page.locator('button:has-text("Download Email Draft")').click();
@@ -390,28 +422,25 @@ test.describe('QA Item 4 — Single email draft download', () => {
   test('non-ASCII subject → RFC 2047 encoded-words, each ≤75 chars', async ({ page }) => {
     // Add a discount entry so subject generation has content to work with
     await clickToolbarIcon(page, 'discountEntriesCard');
-    await page.waitForTimeout(300);
     const addEntry = page.locator('[data-card-id="discountEntriesCard"] button:has-text("Add Entry")');
-    if (await addEntry.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisibleEventually(addEntry, 5000)) {
       await addEntry.click();
-      await page.waitForTimeout(400);
     }
 
     // Open subject card and generate subject lines
     await clickToolbarIcon(page, 'subjectCard');
-    await page.waitForTimeout(500);
 
     const genBtn = page.locator('button:has-text("Generate Subject Lines")');
-    if (await genBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isVisibleEventually(genBtn, 10000)) {
       await genBtn.click();
-      await page.waitForTimeout(1500);
     }
 
     // Now set a non-ASCII subject
     const subjectInput = page.locator('#selected-subject-input');
-    if (await subjectInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isVisibleEventually(subjectInput, 15000)) {
       await subjectInput.fill("Vente d'été — économisez");
-      await page.waitForTimeout(500);
+      // Auto-save must flush before the download reads state — poll persistence.
+      await expectPersisted(page, "Vente d'été — économisez");
     }
 
     const downloadPromise = page.waitForEvent('download', { timeout: 25000 });
@@ -440,12 +469,12 @@ test.describe('QA Item 5 — Import/export config', () => {
     await seedProfile(page);
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
   });
 
   test('export and re-import round-trips state', async ({ page }) => {
     await fillBasics(page);
-    await page.waitForTimeout(1000);
+    // Auto-save must flush so the export reflects the edits — poll persistence.
+    await expectPersisted(page, 'Summer Sale Extravaganza');
 
     // Open the export-options dialog
     await page.locator('button[aria-label="Export"]').click();
@@ -470,9 +499,8 @@ test.describe('QA Item 5 — Import/export config', () => {
       mimeType: 'application/json',
       buffer: Buffer.from(exportedJson),
     });
-    await page.waitForTimeout(800);
 
-    // Title should still be set
+    // Title should still be set (toHaveValue polls for the import to land)
     await expect(page.locator('[data-testid="promo-title"]')).toHaveValue('Summer Sale Extravaganza');
   });
 
@@ -505,11 +533,10 @@ test.describe('QA Item 5 — Import/export config', () => {
       mimeType: 'application/json',
       buffer: Buffer.from(JSON.stringify(badConfig)),
     });
-    await page.waitForTimeout(800);
 
     // Preview should render (no broken page)
     const preview = page.locator('iframe[title="Email Preview"]');
-    const previewVisible = await preview.isVisible({ timeout: 3000 }).catch(() => false);
+    const previewVisible = await isVisibleEventually(preview, 5000);
     // At minimum, page should still be functional
     const toolbar = page.locator('[data-testid="icon-toolbar"]');
     await expect(toolbar).toBeVisible();
@@ -523,13 +550,10 @@ test.describe('QA Item 5 — Import/export config', () => {
       mimeType: 'application/json',
       buffer: Buffer.from('{ not valid json at all'),
     });
-    await page.waitForTimeout(800);
 
-    // Toast or error indication should appear — check sonner
+    // Toast should appear — poll the sonner list instead of sleeping
     const toastContainer = page.locator('[data-sonner-toaster]');
-    const toastItems = await toastContainer.locator('li').all();
-    // Should have at least one toast
-    expect(toastItems.length).toBeGreaterThan(0);
+    await expect.poll(() => toastContainer.locator('li').count()).toBeGreaterThan(0);
   });
 });
 
@@ -541,33 +565,26 @@ test.describe('QA Item 6 — Persistence & version history', () => {
     await seedProfile(page);
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
   });
 
   test('snapshot summary reflects just-typed edit', async ({ page }) => {
     await fillBasics(page);
-    await page.waitForTimeout(800);
 
     await clickToolbarIcon(page, 'versionHistoryCard');
     const saveBtn = page.locator('button:has-text("Save Snapshot")');
-    if (!(await saveBtn.isVisible({ timeout: 2000 }).catch(() => false))) return;
+    if (!(await isVisibleEventually(saveBtn, 5000))) return;
 
     await saveBtn.click();
-    await page.waitForTimeout(600);
 
+    // The snapshot list should reflect the just-typed edit — poll for content.
     const vhList = page.locator('[data-testid="version-history-list"]');
-    if (await vhList.isVisible({ timeout: 2000 }).catch(() => false)) {
-      const listText = await vhList.textContent();
-      expect(listText).toBeTruthy();
-    }
+    await expect.poll(() => vhList.textContent(), { timeout: 10000 }).toBeTruthy();
   });
 
   test('Start Over dialog mentions bulk recipients kept, reset clears data', async ({ page }) => {
     await fillBasics(page);
-    await page.waitForTimeout(1000);
 
     await page.locator('button:has-text("Start Over")').click();
-    await page.waitForTimeout(500);
 
     const dialog = page.locator('[role="alertdialog"]');
     await expect(dialog).toBeVisible({ timeout: 3000 });
@@ -576,11 +593,10 @@ test.describe('QA Item 6 — Persistence & version history', () => {
 
     // Click Reset
     await page.locator('button:has-text("Reset")').click();
-    await page.waitForTimeout(1000);
 
-    // Title should be cleared
+    // Title should be cleared (toHaveValue polls for the reset to land)
     const title = page.locator('[data-testid="promo-title"]');
-    if (await title.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisibleEventually(title, 5000)) {
       await expect(title).toHaveValue('');
     }
   });
@@ -594,9 +610,7 @@ test.describe('QA Item 7 — Newsletter editor', () => {
     await seedProfile(page);
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
     await fillBasics(page);
-    await page.waitForTimeout(500);
   });
 
   test('newsletter toggle, heading+body, dark-mode preview toggle, XSS safe', async ({ page }) => {
@@ -604,31 +618,28 @@ test.describe('QA Item 7 — Newsletter editor', () => {
 
     // Enable newsletter toggle
     const toggle = page.locator('[data-testid="newsletter-visible-toggle"]');
-    if (await toggle.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisibleEventually(toggle, 5000)) {
       await toggle.click();
-      await page.waitForTimeout(500);
     }
 
     // Type in TipTap editor with XSS attempt in heading
     const editor = page.locator('.ProseMirror, [contenteditable="true"]').first();
-    if (await editor.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isVisibleEventually(editor, 10000)) {
       await editor.click();
       await editor.fill('<script>alert(1)</script> Safe Newsletter');
-      await page.waitForTimeout(500);
     }
 
     // Toggle dark mode preview
     const darkBtn = page.locator('button[aria-label="Switch to dark preview"]');
-    if (await darkBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisibleEventually(darkBtn, 5000)) {
       await darkBtn.click();
-      await page.waitForTimeout(400);
       const lightBtn = page.locator('button[aria-label="Switch to light preview"]');
       await expect(lightBtn).toBeVisible({ timeout: 3000 });
     }
 
     // Verify iframe renders (no broken page)
     const iframe = page.locator('iframe[title="Email Preview"]');
-    const iframeVisible = await iframe.isVisible({ timeout: 2000 }).catch(() => false);
+    const iframeVisible = await isVisibleEventually(iframe, 5000);
     expect(iframeVisible || true).toBeTruthy();
   });
 
@@ -640,7 +651,7 @@ test.describe('QA Item 7 — Newsletter editor', () => {
 
     // Position toggle should be present
     const positionLabel = card.locator('text=/[Aa]bove|[Bb]elow|[Tt]op|[Bb]ottom|Position/');
-    const posVisible = await positionLabel.isVisible({ timeout: 2000 }).catch(() => false);
+    const posVisible = await isVisibleEventually(positionLabel, 5000);
     expect(posVisible || true).toBeTruthy();
   });
 });
@@ -653,18 +664,23 @@ test.describe('QA Item 8 — Regression sweep', () => {
     await seedProfile(page);
     // Navigate to templates page
     await page.goto(BASE);
-    await page.waitForTimeout(2000);
 
-    // Either the page renders with profile data, or we're redirected somewhere else
-    const content = await page.content();
+    // Either the page renders with profile data, or we're redirected somewhere
+    // else — poll for the profile signature instead of sleeping.
+    let hasProfileData = false;
+    try {
+      await expect
+        .poll(() => page.content(), { timeout: 15000 })
+        .toMatch(/QA Droid|Test Store/);
+      hasProfileData = true;
+    } catch {
+      // Profile data not rendered on the initial route — fall through.
+    }
 
-    // If on templates page, check for profile data
-    // If redirected to /start, check there for profile data
-    const hasProfileData = content.includes('QA Droid') || content.includes('Test Store');
     if (!hasProfileData) {
       // Try /promotion to verify profile is recognized
       await page.goto(`${BASE}/promotion`);
-      await page.waitForTimeout(1000);
+      await page.waitForSelector('[data-testid="icon-toolbar"]', { timeout: 15000 });
       const promoContent = await page.content();
       expect(promoContent.includes('QA Droid') || promoContent.includes('icon-toolbar')).toBeTruthy();
     }
@@ -673,24 +689,21 @@ test.describe('QA Item 8 — Regression sweep', () => {
   test('Profile settings page loads with saved profile', async ({ page }) => {
     await seedProfile(page);
     await page.goto(`${BASE}/settings`);
-    await page.waitForTimeout(1500);
 
-    const content = await page.content();
-    expect(content).toContain('QA Droid');
-    expect(content).toContain('Test Store');
+    // Poll until the saved profile is rendered
+    await expect.poll(() => page.content(), { timeout: 15000 }).toContain('QA Droid');
+    await expect.poll(() => page.content(), { timeout: 15000 }).toContain('Test Store');
   });
 
   test('Theme toggle persists across reload', async ({ page }) => {
     await seedProfile(page);
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
 
     // Find theme toggle button
     const themeToggle = page.locator('button[aria-label*="Switch to dark" i], button[aria-label*="Toggle theme" i], button[id*="theme" i]').first();
-    if (await themeToggle.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisibleEventually(themeToggle, 5000)) {
       await themeToggle.click();
-      await page.waitForTimeout(500);
     }
 
     await page.reload();
@@ -702,54 +715,46 @@ test.describe('QA Item 8 — Regression sweep', () => {
   test('Subject line generator produces suggestions and fills subject', async ({ page }) => {
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
     await fillBasics(page);
     // Add a discount entry so subject generation has content
     await clickToolbarIcon(page, 'discountEntriesCard');
-    await page.waitForTimeout(300);
     const addEntry = page.locator('[data-card-id="discountEntriesCard"] button:has-text("Add Entry")');
-    if (await addEntry.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisibleEventually(addEntry, 5000)) {
       await addEntry.click();
-      await page.waitForTimeout(400);
     }
-    await page.waitForTimeout(500);
 
     await clickToolbarIcon(page, 'subjectCard');
-    await page.waitForTimeout(500);
 
     // Click "Generate Subject Lines" button
     const genBtn = page.locator('button:has-text("Generate Subject Lines")');
-    if (await genBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isVisibleEventually(genBtn, 10000)) {
       await genBtn.click();
-      await page.waitForTimeout(2000);
     }
 
-    // After generation, inbox preview should appear
+    // After generation, inbox preview should appear (polls)
     const inbox = page.locator('[data-testid="inbox-preview"]');
-    const inboxVisible = await inbox.isVisible({ timeout: 3000 }).catch(() => false);
+    const inboxVisible = await isVisibleEventually(inbox, 15000);
     expect(inboxVisible).toBeTruthy();
   });
 
   test('Accessibility Check card scans and reports issues', async ({ page }) => {
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
     await fillBasics(page);
 
     await clickToolbarIcon(page, 'accessibilityCard');
     // Click "Run Accessibility Scan" button
     const scanBtn = page.locator('button:has-text("Run Accessibility Scan")');
-    if (await scanBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isVisibleEventually(scanBtn, 10000)) {
       await scanBtn.click();
-      await page.waitForTimeout(1000);
     }
 
-    // After scan, either shows issues list or "No issues" message
+    // After scan, either shows issues list or "No issues" message (polls)
     const issuesList = page.locator('[data-testid="a11y-issues-list"]');
     const noIssues = page.locator('text=No accessibility issues found');
     const hasResult = await Promise.any([
-      issuesList.isVisible({ timeout: 3000 }).then(() => true),
-      noIssues.isVisible({ timeout: 3000 }).then(() => true),
+      issuesList.waitFor({ state: 'visible', timeout: 10000 }).then(() => true),
+      noIssues.waitFor({ state: 'visible', timeout: 10000 }).then(() => true),
     ]).catch(() => false);
     expect(hasResult).toBeTruthy();
   });
@@ -757,24 +762,21 @@ test.describe('QA Item 8 — Regression sweep', () => {
   test('Outlook Compatibility card scans and reports issues', async ({ page }) => {
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
     await fillBasics(page);
-    await page.waitForTimeout(500);
 
     await clickToolbarIcon(page, 'outlookCard');
     // Click "Scan for Outlook Issues" button
     const scanBtn = page.locator('button:has-text("Scan for Outlook Issues")');
-    if (await scanBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await isVisibleEventually(scanBtn, 10000)) {
       await scanBtn.click();
-      await page.waitForTimeout(1500);
     }
 
-    // After scan, shows issues list or "No issues" message
+    // After scan, shows issues list or "No issues" message (polls)
     const issuesList = page.locator('[data-testid="outlook-issues-list"]');
     const noIssues = page.locator('text=No Outlook compatibility issues found');
     const hasResult = await Promise.any([
-      issuesList.isVisible({ timeout: 3000 }).then(() => true),
-      noIssues.isVisible({ timeout: 3000 }).then(() => true),
+      issuesList.waitFor({ state: 'visible', timeout: 10000 }).then(() => true),
+      noIssues.waitFor({ state: 'visible', timeout: 10000 }).then(() => true),
     ]).catch(() => false);
     expect(hasResult).toBeTruthy();
   });
@@ -782,13 +784,11 @@ test.describe('QA Item 8 — Regression sweep', () => {
   test('Print button is enabled when content exists', async ({ page }) => {
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
     await fillBasics(page);
-    await page.waitForTimeout(1000);
 
     // Print button should be enabled after content is generated
     const printBtn = page.locator('button[aria-label="Print email"]');
-    if (await printBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await isVisibleEventually(printBtn, 5000)) {
       await expect(printBtn).toBeEnabled();
     }
   });
@@ -809,20 +809,15 @@ test.describe('Console errors', () => {
     await seedProfile(page);
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(500);
     await fillBasics(page);
-    await page.waitForTimeout(1000);
 
     // Resize to mobile and back
     await page.setViewportSize({ width: 800, height: 900 });
-    await page.waitForTimeout(600);
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(600);
 
-    // Click toolbar icons
+    // Click toolbar icons (each click auto-waits for actionability)
     for (const icon of ['subjectCard', 'howToShopCard', 'newsletterCard', 'emailThemeCard']) {
       await page.locator(`[data-testid="toolbar-icon-${icon}"]`).click();
-      await page.waitForTimeout(300);
     }
 
     // Log findings for report
