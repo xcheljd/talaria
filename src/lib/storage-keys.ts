@@ -27,9 +27,6 @@ export const StorageKeys = {
   /** Bulk email batch size (number as string) */
   bulkEmailBatchSize: 'bulkEmail.batchSize',
 
-  /** User-chosen folder for desktop-app downloads (Tauri) */
-  downloadFolderPath: 'downloadFolderPath',
-
   /**
    * Whether downloads show a native Save As dialog (true) or save silently to
    * the configured download folder (false). Default true.

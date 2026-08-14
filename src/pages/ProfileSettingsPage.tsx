@@ -11,7 +11,7 @@
  * - Responsive 2-column layout with shadcn Card
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
@@ -127,13 +127,14 @@ export function ProfileSettingsPage() {
   const { profile, saveProfile } = useProfile();
   const { lightPalette, darkPalette, setLightPalette, setDarkPalette } =
     useTheme();
-  const { isTauri, openFolderDialog } = useTauri();
+  const { isTauri, invoke, openFolderDialog } = useTauri();
   const { devMode, setDevMode } = useDevMode();
   const { syncPreviewTheme, setSyncPreviewTheme } = usePreviewThemeSync();
 
-  const [downloadFolder, setDownloadFolder] = useState<string>(
-    () => localStorage.getItem(StorageKeys.downloadFolderPath) || ''
-  );
+  // Seeded from the Rust config on mount (see effect below), not from
+  // localStorage — `downloads-config.json` is the single source of truth for
+  // where `save_file_to_dir` actually writes.
+  const [downloadFolder, setDownloadFolder] = useState<string>('');
   const [pdfOptimize, setPdfOptimize] = useState<boolean>(
     () => localStorage.getItem(StorageKeys.pdfOptimize) !== 'false'
   );
@@ -386,11 +387,32 @@ export function ProfileSettingsPage() {
 
   // ─── Download Folder Handler ──────────────────────────────────────────────
 
+  // Show the folder downloads ACTUALLY go to. Previously this screen rendered a
+  // separate localStorage copy, which is written alongside the Rust config but
+  // read independently — so losing either one (clearing webview data, changing
+  // the Tauri identifier, restoring a backup) left the UI displaying a folder
+  // that files were no longer being written to, with no way to notice.
+  useEffect(() => {
+    if (!isTauri) return;
+    let cancelled = false;
+    invoke<string>('get_download_dir')
+      .then((dir) => {
+        if (!cancelled) setDownloadFolder(dir ?? '');
+      })
+      .catch(() => {
+        // Leave blank; the field falls back to its "system Downloads" hint.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isTauri, invoke]);
+
   const handleChooseFolder = useCallback(async () => {
+    // choose_download_dir persists the selection to downloads-config.json and
+    // returns it, so the state below and the write target stay in agreement.
     const folder = await openFolderDialog();
     if (folder) {
       setDownloadFolder(folder);
-      localStorage.setItem(StorageKeys.downloadFolderPath, folder);
     }
   }, [openFolderDialog]);
 

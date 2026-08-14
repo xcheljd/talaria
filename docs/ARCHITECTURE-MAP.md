@@ -187,7 +187,7 @@ typing string literals at call sites.
 | Bulk-email UI | localStorage  | `bulkEmail.downloadFormat`, `bulkEmail.batchSize`                         | `src/components/promotion/BulkEmailTools.tsx`  |
 | Saved palettes | localStorage | `emailPaletteSaved`                                                       | `src/components/promotion/EmailThemeEditor.tsx`|
 | Last template | localStorage  | `selectedTemplate`                                                        | `src/pages/TemplateGeneratorPage.tsx`          |
-| Download folder | localStorage + Tauri config | `downloadFolderPath` + `downloads-config.json`                | `src/pages/ProfileSettingsPage.tsx`            |
+| Download folder | Tauri config (only)         | `downloads-config.json` (read via `get_download_dir`)                     | `src-tauri/src/lib.rs`                         |
 | PDF blobs     | IndexedDB     | DB `Talaria`, store `promotionPDFs`                              | `src/lib/db.ts`                                |
 | Bulk recipients | IndexedDB   | DB `Talaria`, store `bulkEmailRecipients`                        | `src/lib/db.ts`                                |
 
@@ -279,6 +279,11 @@ Located in `src/lib/`:
   Downloads folder.
 - `choose_download_dir(app)` — opens the native folder picker, persists the
   selection to `downloads-config.json`.
+- `get_download_dir(app)` — the single source of truth for the download folder.
+  The Settings screen reads it on mount so the folder it displays is the folder
+  `save_file_to_dir` actually writes to. It previously rendered a separate
+  `downloadFolderPath` localStorage copy, which was written alongside the Rust
+  config but read independently and could silently drift out of agreement.
 - `read_file_as_data_url(path)` — used for drag-and-drop file URI handling.
 - `save_file_to_dir(app, filename, dataBase64)` — writes a base64-encoded blob
   into the configured download dir. Powers `saveBlob()` for every download in
