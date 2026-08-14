@@ -22,7 +22,7 @@ when done.
 | 010  | Add tests for the Tauri IPC save/read/optimize commands | P2 | M | — | TODO |
 | 011  | Characterization tests for `convertTipTapToInlineHTML` | P2 | M | — | TODO |
 | 012  | Per-row Zustand subscriptions + `memo` in the three list editors | P2 | M | — | TODO |
-| 013  | Parallelize PDF hydration and orphan sweep in `restoreState` | P2 | S | 005 | TODO |
+| 013  | Parallelize PDF hydration and orphan sweep in `restoreState` | P2 | S | 005 | DONE |
 | 014  | Delete dead `htmlTextConversion.ts` module + test | P3 | S | — | TODO |
 | 015  | Rewrite `features.md` to match current stack and product | P3 | S | — | TODO |
 | 016  | Align CHANGELOG/manifest versions (1.5.0 or Unreleased) | P3 | S | — | TODO |
