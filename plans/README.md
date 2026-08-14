@@ -17,7 +17,7 @@ when done.
 | 005  | Re-arm `isInitializing` in `restoreState` and guard auto-save + orphan sweep | P1 | S | — | DONE |
 | 006  | Validate persisted style/color fields on restore (reuse import schemas) | P1 | S | — | TODO |
 | 007  | Add `sandbox` to the print iframe and validate `img src` in the sanitizer | P2 | S | — | TODO |
-| 008  | Bump react-router-dom out of the known-vulnerable range; run `npm audit fix` | P2 | S | — | TODO |
+| 008  | Bump react-router-dom out of the known-vulnerable range; run `npm audit fix` | P2 | S | — | DONE |
 | 009  | Enforce coverage thresholds and run coverage in CI | P2 | S | — | TODO |
 | 010  | Add tests for the Tauri IPC save/read/optimize commands | P2 | M | — | TODO |
 | 011  | Characterization tests for `convertTipTapToInlineHTML` | P2 | M | — | TODO |
