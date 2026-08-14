@@ -6,15 +6,6 @@
 import { sanitizeHTML } from './html-utils';
 import { isIframePreviewDarkMode } from './theme-utils';
 
-/**
- * Escape HTML special characters to prevent XSS.
- */
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 export interface PreviewHTMLOptions {
   forPreview?: boolean;
 }
@@ -30,7 +21,7 @@ export function plainTextToPreviewHTML(
   plainText: string,
   { forPreview = false }: PreviewHTMLOptions = {}
 ): string {
-  const esc = (str: string): string => escapeHtml(str);
+  const esc = (str: string): string => sanitizeHTML(str);
 
   let textColor = 'rgb(0, 0, 0)';
 

@@ -35,6 +35,7 @@ import {
   ClipboardPaste,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sanitizeHTML } from '@/lib/html-utils';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -225,11 +226,9 @@ export function NewsletterEditor() {
     // Insert with all formatting stripped: blank lines become paragraphs,
     // single newlines a <br>, and any markup in the clipboard is escaped to
     // literal text.
-    const escapeHtml = (s: string) =>
-      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const html = text
       .split(/\r?\n\r?\n+/)
-      .map((para) => `<p>${escapeHtml(para).replace(/\r?\n/g, '<br>')}</p>`)
+      .map((para) => `<p>${sanitizeHTML(para).replace(/\r?\n/g, '<br>')}</p>`)
       .join('');
     chain.insertContent(html).run();
   }, [editor, contextMenu]);
