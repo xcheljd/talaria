@@ -140,8 +140,8 @@ Promotion-specific (`src/components/promotion/`):
 
 - Editors: `BasicDetailsEditor`, `DiscountEntriesEditor`, `SpecialHoursEditor`,
   `FormattableItemEditor`, `NewsletterEditor`, `EmailThemeEditor`.
-- Layout: `CollapsibleCard`, `IconToolbar`, `SidebarBar`, `HorizontalStrip`,
-  `SortableItem` (dnd-kit drag handle).
+- Layout: `CollapsibleCard`, `IconToolbar`, `SortableItem` (dnd-kit drag handle),
+  `PreviewColumn`/`PreviewToolbar` (preview pane split into focused modules).
 - Tools: `PDFAttachments`, `SubjectLineGenerator`, `BulkEmailTools`,
   `VersionHistory`, `OutlookChecker`, `AccessibilityChecker`.
 
@@ -276,14 +276,13 @@ Located in `src/lib/`:
 `src-tauri/src/lib.rs`:
 
 - `get_download_dir(app)` — returns the configured download dir, or the OS
-  Downloads folder.
-- `choose_download_dir(app)` — opens the native folder picker, persists the
-  selection to `downloads-config.json`.
-- `get_download_dir(app)` — the single source of truth for the download folder.
-  The Settings screen reads it on mount so the folder it displays is the folder
+  Downloads folder. The single source of truth for the download folder: the
+  Settings screen reads it on mount so the folder it displays is the folder
   `save_file_to_dir` actually writes to. It previously rendered a separate
   `downloadFolderPath` localStorage copy, which was written alongside the Rust
   config but read independently and could silently drift out of agreement.
+- `choose_download_dir(app)` — opens the native folder picker, persists the
+  selection to `downloads-config.json`.
 - `read_file_as_data_url(path)` — used for drag-and-drop file URI handling.
 - `save_file_to_dir(app, filename, dataBase64)` — writes a base64-encoded blob
   into the configured download dir. Powers `saveBlob()` for every download in
