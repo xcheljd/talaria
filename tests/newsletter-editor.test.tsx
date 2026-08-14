@@ -11,40 +11,51 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { NewsletterEditor } from '@/components/promotion/NewsletterEditor';
 
-// Mock the store
-const mockStore = {
-  newsletterHeading: 'Newsletter',
-  newsletterBody: '',
-  newsletterPosition: 'top' as 'top' | 'bottom',
-  newsletterVisible: false,
-  newsletterStyle: {
-    borderColor: null as string | null,
-    backgroundColor: null as string | null,
-    headingColor: null as string | null,
-    borderStyle: 'left' as const,
-    headingAlign: 'left' as const,
-  },
-  emailPalette: {
-    footerBg: '#2c3e50',
-    sectionBg: '#f5f5f5',
-    unsubscribeBg: '#f4f4f4',
-    accent: '#ffd700',
-    text: '#333333',
-    link: '#0066cc',
-    noteBorder: '#ddd',
-    headerBorder: 'gray',
-    bodyBg: 'white',
-    footerText: 'white',
-  },
-  setNewsletterHeading: vi.fn(),
-  setNewsletterBody: vi.fn(),
-  setNewsletterPosition: vi.fn(),
-  setNewsletterStyle: vi.fn(),
-  setNewsletterVisible: vi.fn(),
-};
+// Mock the store (state must be hoisted above vi.mock — vitest hoists
+// mock factories, so a plain const would be referenced before init)
+const { mockStore } = vi.hoisted(() => {
+  const state = {
+    newsletterHeading: 'Newsletter',
+    newsletterBody: '',
+    newsletterPosition: 'top' as 'top' | 'bottom',
+    newsletterVisible: false,
+    newsletterStyle: {
+      borderColor: null as string | null,
+      backgroundColor: null as string | null,
+      headingColor: null as string | null,
+      borderStyle: 'left' as const,
+      headingAlign: 'left' as const,
+    },
+    emailPalette: {
+      footerBg: '#2c3e50',
+      sectionBg: '#f5f5f5',
+      unsubscribeBg: '#f4f4f4',
+      accent: '#ffd700',
+      text: '#333333',
+      link: '#0066cc',
+      noteBorder: '#ddd',
+      headerBorder: 'gray',
+      bodyBg: 'white',
+      footerText: 'white',
+    },
+  };
+  return {
+    mockStore: {
+      ...state,
+      setNewsletterHeading: vi.fn(),
+      setNewsletterBody: vi.fn(),
+      setNewsletterPosition: vi.fn(),
+      setNewsletterStyle: vi.fn(),
+      setNewsletterVisible: vi.fn(),
+    },
+  };
+});
 
-vi.mock('@/stores/promotion-store', () => ({
-  usePromotionStore: () => mockStore,
+// The component reads the newsletter domain store (plan 022 slice), so mock
+// THAT store — its actual dependency. The promotion-store types are
+// type-only imports, erased at compile time.
+vi.mock('@/stores/newsletter-store', () => ({
+  useNewsletterStore: () => mockStore,
 }));
 
 describe('NewsletterEditor', () => {

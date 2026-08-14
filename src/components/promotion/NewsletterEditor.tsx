@@ -41,10 +41,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { useShallow } from 'zustand/react/shallow';
 
-import {
-  usePromotionStore,
-  type NewsletterPosition,
-} from '@/stores/promotion-store';
+import { type NewsletterPosition } from '@/stores/promotion-store';
+import { useNewsletterStore } from '@/stores/newsletter-store';
 
 import {
   FontSize,
@@ -71,14 +69,15 @@ function extractHeadingFromHTML(html: string): string {
 // ===== Main Component =====
 
 export function NewsletterEditor() {
-  const store = usePromotionStore(
+  // Newsletter domain fields now live in their own store (plan 022); the
+  // palette stays on the main store (emailPalette is the palette domain).
+  const store = useNewsletterStore(
     useShallow((s) => ({
       newsletterBody: s.newsletterBody,
       newsletterHeading: s.newsletterHeading,
       newsletterPosition: s.newsletterPosition,
       newsletterStyle: s.newsletterStyle,
       newsletterVisible: s.newsletterVisible,
-      emailPalette: s.emailPalette,
       setNewsletterBody: s.setNewsletterBody,
       setNewsletterHeading: s.setNewsletterHeading,
       setNewsletterPosition: s.setNewsletterPosition,

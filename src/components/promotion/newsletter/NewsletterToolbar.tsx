@@ -53,19 +53,24 @@ import {
 } from '@/components/ui/popover';
 
 import { usePromotionStore } from '@/stores/promotion-store';
+import { useNewsletterStore } from '@/stores/newsletter-store';
 import { compressImage } from './image-utils';
 import { EMOJI_LIST } from './emoji-data';
 import { FONT_SIZES } from './extensions';
 import { ToolbarButton, ToolbarSeparator, ColorInput } from './toolbar';
 
 export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
-  const store = usePromotionStore(
+  // Newsletter-domain fields (newsletterStyle + its setter, used for heading
+  // alignment) read from the newsletter store (plan 022). emailPalette is the
+  // palette domain and stays on the main store.
+  const { newsletterStyle, setNewsletterStyle } = useNewsletterStore(
     useShallow((s) => ({
       newsletterStyle: s.newsletterStyle,
       setNewsletterStyle: s.setNewsletterStyle,
-      emailPalette: s.emailPalette,
     }))
   );
+  const emailPalette = usePromotionStore((s) => s.emailPalette);
+  const store = { newsletterStyle, setNewsletterStyle, emailPalette };
 
   // Track last-used colors for color pickers (#11)
   const [lastTextColor, setLastTextColor] = useState('#000000');

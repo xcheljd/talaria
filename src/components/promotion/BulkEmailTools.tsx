@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { usePromotionStore } from '@/stores/promotion-store';
+import { useBulkEmailStore } from '@/stores/bulk-email-store';
 import {
   computeEmailStats,
   clampBatchSize,
@@ -80,10 +80,13 @@ function FormatStatus() {
 // ===== Component =====
 
 export function BulkEmailTools() {
-  const recipientText = usePromotionStore((s) => s.bulkEmailRecipients);
-  const setRecipientText = usePromotionStore((s) => s.setBulkEmailRecipients);
-  const isGenerating = usePromotionStore((s) => s.bulkEmailGenerating);
-  const generationProgress = usePromotionStore((s) => s.bulkEmailProgress);
+  // Bulk-email domain fields read/write the bulk-email store (plan 022); it
+  // write-throughs to the main store so persistence / preview still see them.
+  // bulkEmailDownloadFormat / bulkEmailBatchSize remain plain localStorage.
+  const recipientText = useBulkEmailStore((s) => s.bulkEmailRecipients);
+  const setRecipientText = useBulkEmailStore((s) => s.setBulkEmailRecipients);
+  const isGenerating = useBulkEmailStore((s) => s.bulkEmailGenerating);
+  const generationProgress = useBulkEmailStore((s) => s.bulkEmailProgress);
 
   const emailStats = useMemo(
     () => computeEmailStats(recipientText),
@@ -107,13 +110,13 @@ export function BulkEmailTools() {
   // page-level restoreState hasn't populated the store (e.g. tests,
   // standalone mounts). Skipped when the store already has text.
   useEffect(() => {
-    if (usePromotionStore.getState().bulkEmailRecipients) return;
+    if (useBulkEmailStore.getState().bulkEmailRecipients) return;
     let cancelled = false;
     async function loadRecipients() {
       try {
         const saved = await getBulkEmailRecipientsFromIndexedDB();
         if (!cancelled && saved) {
-          usePromotionStore.getState().setBulkEmailRecipients(saved);
+          useBulkEmailStore.getState().setBulkEmailRecipients(saved);
         }
       } catch (error) {
         console.warn('Failed to restore recipients from IndexedDB:', error);
