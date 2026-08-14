@@ -431,11 +431,6 @@ export interface PromotionConfigForExport {
 
 // ===== Helpers =====
 
-/** Escape HTML special characters */
-function escapeHtml(text: string): string {
-  return sanitizeHTML(text);
-}
-
 /**
  * Convert TipTap HTML output to email-compatible inline-styled HTML.
  * Strips CSS classes, keeps only safe elements, and applies inline styles
@@ -729,7 +724,9 @@ function buildNewsletterSection(
   if (!headingText && !strippedBody) return '';
 
   const headingDisplay =
-    headingText && headingText.trim() ? escapeHtml(headingText) : 'Newsletter';
+    headingText && headingText.trim()
+      ? sanitizeHTML(headingText)
+      : 'Newsletter';
 
   // Build border style based on borderStyle option
   let borderCSS = '';
@@ -766,7 +763,7 @@ function formatItemText(item: {
   italic: boolean;
   underline: boolean;
 }): string {
-  let text = escapeHtml(item.text);
+  let text = sanitizeHTML(item.text);
   if (item.bold) text = `<strong>${text}</strong>`;
   if (item.italic) text = `<em>${text}</em>`;
   if (item.underline) text = `<u>${text}</u>`;
@@ -788,19 +785,19 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
     : EMAIL_PALETTE;
 
   const dateRangeRaw = data.promoDateRange || '';
-  const dateRange = escapeHtml(dateRangeRaw);
+  const dateRange = sanitizeHTML(dateRangeRaw);
   const title =
     data.promoTitle && data.promoTitle.trim()
-      ? escapeHtml(data.promoTitle)
+      ? sanitizeHTML(data.promoTitle)
       : generatePromoTitle(dateRangeRaw);
 
   const year =
     data.promoYear && data.promoYear.trim()
-      ? escapeHtml(data.promoYear.trim())
+      ? sanitizeHTML(data.promoYear.trim())
       : new Date().getFullYear().toString();
 
   const storePhoneRaw = getStorePhone();
-  const storePhone = escapeHtml(storePhoneRaw);
+  const storePhone = sanitizeHTML(storePhoneRaw);
   // Normalize to a US tel: href; tolerate numbers already entered with a
   // leading country code so we don't emit tel:+11702...
   let phoneDigits = storePhoneRaw.replace(/\D/g, '');
@@ -843,12 +840,12 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
   }
 
   // Store info
-  const storeNameFooter = escapeHtml(getStoreName().toUpperCase());
+  const storeNameFooter = sanitizeHTML(getStoreName().toUpperCase());
   const rawAddress = getStoreAddress();
-  const storeAddress = escapeHtml(rawAddress).replace(/\n/g, '<br>');
+  const storeAddress = sanitizeHTML(rawAddress).replace(/\n/g, '<br>');
   const storeEmailRaw = getStoreEmail();
-  const storeEmail = escapeHtml(storeEmailRaw);
-  const storeHours = escapeHtml(getStoreHours());
+  const storeEmail = sanitizeHTML(storeEmailRaw);
+  const storeHours = sanitizeHTML(getStoreHours());
   const plusCode = getStorePlusCode();
 
   let storeMapLink = 'https://www.google.com/maps';
@@ -884,7 +881,7 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
                     ${data.specialHours
                       .map((hour) =>
                         hour.day && hour.hours
-                          ? `${escapeHtml(hour.day)}: ${escapeHtml(hour.hours)}`
+                          ? `${sanitizeHTML(hour.day)}: ${sanitizeHTML(hour.hours)}`
                           : ''
                       )
                       .filter((h) => h)
@@ -944,10 +941,10 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
 
   // Preheader text — hidden span that email clients show as preview text
   const preheaderHTML = data.preheaderText?.trim()
-    ? `<span style="display:none;font-size:1px;color:${pal.bodyBg};line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${escapeHtml(data.preheaderText.trim())}</span>`
+    ? `<span style="display:none;font-size:1px;color:${pal.bodyBg};line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${sanitizeHTML(data.preheaderText.trim())}</span>`
     : '';
 
-  const headTitle = escapeHtml(data.promoTitle?.trim() || 'Promotion');
+  const headTitle = sanitizeHTML(data.promoTitle?.trim() || 'Promotion');
 
   return `<!DOCTYPE html>
 <html>
@@ -1053,12 +1050,12 @@ function buildEntryHTML(
   palette: EmailPalette = EMAIL_PALETTE
 ): string {
   let html = `
-                <p class="brand-line" style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-bottom: 8px;"><b>${escapeHtml(line)}</b></p>`;
+                <p class="brand-line" style="font-size: 18px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-bottom: 8px;"><b>${sanitizeHTML(line)}</b></p>`;
 
   if (collections && collections.trim()) {
     const collectionItems = collections
       .split(',')
-      .map((c) => escapeHtml(c.trim()))
+      .map((c) => sanitizeHTML(c.trim()))
       .filter((c) => c);
     const collectionsHTML = collectionItems.map((c) => `*${c}`).join(' • ');
 
@@ -1071,7 +1068,7 @@ function buildEntryHTML(
   if (callout && callout.trim()) {
     html += `
                 <p style="font-size: 13px; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; margin-left: 20px; margin-top: 0; margin-bottom: 20px; color: ${palette.link}; font-style: italic;">
-                    ${escapeHtml(callout)}
+                    ${sanitizeHTML(callout)}
                 </p>`;
   }
 
