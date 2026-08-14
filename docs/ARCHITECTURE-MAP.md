@@ -261,8 +261,7 @@ Located in `src/lib/`:
   otherwise.
 - `db.ts` — IndexedDB wrappers for PDFs and bulk recipients.
 - `profile.ts` / `profile-validation.ts` — profile read/write + Zod schema.
-- `html-utils.ts` / `htmlTextConversion.ts` — HTML escaping, sanitization,
-  HTML↔text conversion.
+- `html-utils.ts` — HTML escaping and sanitization.
 - `newsletter-utils.ts` — newsletter card color/border resolvers.
 - `subject-line-generator.ts` — AI-style subject line generation + PDF data
   helpers (`dataURLtoBlob`, `validatePDFFile`).
