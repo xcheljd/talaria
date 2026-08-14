@@ -10,18 +10,23 @@ import { useShallow } from 'zustand/react/shallow';
 import { ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
 
 import { usePromotionStore } from '@/stores/promotion-store';
+import { useNewsletterStore } from '@/stores/newsletter-store';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
 export function NewsletterStylePanel() {
-  const store = usePromotionStore(
+  // Newsletter-domain fields (newsletterStyle + its setter) live in the
+  // newsletter store (plan 022). emailPalette is the palette domain and stays
+  // on the main store, so we read from both.
+  const { newsletterStyle, setNewsletterStyle } = useNewsletterStore(
     useShallow((s) => ({
       newsletterStyle: s.newsletterStyle,
-      emailPalette: s.emailPalette,
       setNewsletterStyle: s.setNewsletterStyle,
     }))
   );
+  const emailPalette = usePromotionStore((s) => s.emailPalette);
+  const store = { newsletterStyle, setNewsletterStyle, emailPalette };
   const [showCustomize, setShowCustomize] = useState(false);
   const [showTableStyle, setShowTableStyle] = useState(false);
 
