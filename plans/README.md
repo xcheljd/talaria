@@ -26,7 +26,7 @@ when done.
 | 014  | Delete dead `htmlTextConversion.ts` module + test | P3 | S | — | DONE |
 | 015  | Rewrite `features.md` to match current stack and product | P3 | S | — | TODO |
 | 016  | Align CHANGELOG/manifest versions (1.5.0 or Unreleased) | P3 | S | — | TODO |
-| 017  | Update amatl-roadmap §9/§10 (const→options delta already shipped) | P3 | S | — | TODO |
+| 017  | Update amatl-roadmap §9/§10 (const→options delta already shipped) | P3 | S | — | DONE |
 | 018  | Consolidate the 4–5 divergent HTML escape/convert implementations | P3 | M | 011 | TODO |
 | 019  | Add pre-commit enforcement of the documented quality gate | P3 | S | — | TODO |
 | 020  | Cache Playwright browsers in CI | P3 | S | — | TODO |
