@@ -936,6 +936,12 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   },
 
   restoreState: async () => {
+    // Re-arm the initialization flag so auto-save stays suppressed for the
+    // whole restore (IndexedDB reads, hydration loop, orphan sweep) — exactly
+    // like first mount. Without this, a second restore (snapshot/import) runs
+    // with the flag false and a pending keystroke-save can clobber the
+    // snapshot mid-restore.
+    set({ isInitializing: true });
     try {
       await initIndexedDB();
 
@@ -1010,7 +1016,13 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       // restored metadata. Runs once per load instead of on every auto-save.
       try {
         const allKeys = await getAllPDFKeysFromIndexedDB();
-        const currentIds = new Set(restoredPDFs.map((p) => p.id));
+        // Guard the sweep against PDFs attached while the restore's awaited
+        // reads were in flight: their blobs are in IndexedDB but not yet in
+        // the restored metadata, so include the in-memory list too.
+        const currentIds = new Set([
+          ...(parsed.attachedPDFs || []).map((p) => p.id),
+          ...get().attachedPDFs.map((p) => p.id),
+        ]);
         for (const key of allKeys) {
           if (!currentIds.has(key)) {
             await deletePDFFromIndexedDB(key);

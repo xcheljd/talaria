@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
 import {
   usePromotionStore,
   _resetIdCounter,
@@ -13,6 +14,7 @@ import {
   refreshAutoLines,
 } from '@/stores/promotion-store';
 import type { AttachedPDF, HowToShopItem } from '@/stores/promotion-store';
+import { useAutoSave } from '@/components/promotion/promotion-page-hooks';
 import {
   savePDFToIndexedDB,
   deletePDFFromIndexedDB,
@@ -882,6 +884,20 @@ describe('promotion store', () => {
       expect(state.isInitializing).toBe(false);
     });
 
+    it('re-arms isInitializing while restoreState is in flight', async () => {
+      const store = getFreshStore();
+      // resetState() (run in beforeEach) leaves the flag false; a second
+      // restore (snapshot/import) must re-arm it to suppress auto-save.
+      expect(store.isInitializing).toBe(false);
+
+      const restorePromise = store.restoreState();
+      // The flag is armed synchronously at entry, before any await.
+      expect(getFreshStore().isInitializing).toBe(true);
+
+      await restorePromise;
+      expect(getFreshStore().isInitializing).toBe(false);
+    });
+
     it('handles corrupted localStorage gracefully', async () => {
       localStorage.setItem('promotionBuilderState', 'not-valid-json');
       const store = getFreshStore();
@@ -1051,6 +1067,42 @@ describe('promotion store', () => {
       expect(state.attachedPDFs).toHaveLength(1);
       expect(state.attachedPDFs[0].data).toBe('data:application/pdf;base64,legacy');
       expect(state.pdfRestoreWarning).toBe(false);
+    });
+  });
+
+  // ===== Auto-save suppression during restore =====
+
+  describe('auto-save suppression during restore', () => {
+    it('does not schedule persistState while isInitializing is true', () => {
+      vi.useFakeTimers();
+      try {
+        const persistSpy = vi
+          .spyOn(usePromotionStore.getState(), 'persistState')
+          .mockImplementation(async () => {});
+
+        // restoreState re-arms the flag at entry; simulate that in-flight
+        // window. Auto-save must not schedule while it is armed.
+        usePromotionStore.setState({ isInitializing: true });
+        renderHook(() => useAutoSave());
+
+        act(() => {
+          vi.advanceTimersByTime(1000);
+        });
+        expect(persistSpy).not.toHaveBeenCalled();
+
+        // Once the restore completes the flag clears and auto-save resumes.
+        act(() => {
+          usePromotionStore.setState({ isInitializing: false });
+        });
+        act(() => {
+          vi.advanceTimersByTime(500);
+        });
+        expect(persistSpy).toHaveBeenCalledTimes(1);
+
+        persistSpy.mockRestore();
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
@@ -2413,6 +2465,50 @@ describe('promotion store', () => {
       await store.restoreState();
 
       expect(deletePDFFromIndexedDB).toHaveBeenCalledWith('pdf-orphan');
+      expect(deletePDFFromIndexedDB).not.toHaveBeenCalledWith('pdf-1');
+    });
+
+    it('orphan cleanup keeps a blob attached in-memory during restore', async () => {
+      // Snapshot metadata references only pdf-1…
+      localStorage.setItem(
+        'promotionBuilderState',
+        JSON.stringify({
+          promotionEntries: [],
+          specialHours: [],
+          howToShopItems: [],
+          importantNotesItems: [],
+          attachedPDFs: [
+            { id: 'pdf-1', name: 'a.pdf', size: 100, type: 'application/pdf' },
+          ],
+          generatedSubjectLines: [],
+          selectedSubjectLine: null,
+        })
+      );
+      vi.mocked(getPDFFromIndexedDB).mockResolvedValue({
+        id: 'pdf-1',
+        name: 'a.pdf',
+        data: 'data:1',
+      });
+      // …but a PDF was attached in-memory while the restore was awaiting its
+      // IndexedDB reads. Its blob is in IndexedDB but not in the metadata.
+      await getFreshStore().addPDF({
+        id: 'pdf-fresh',
+        name: 'fresh.pdf',
+        size: 200,
+        type: 'application/pdf',
+        data: 'data:2',
+      });
+      vi.mocked(getAllPDFKeysFromIndexedDB).mockResolvedValue([
+        'pdf-1',
+        'pdf-fresh',
+        'pdf-orphan',
+      ]);
+
+      await getFreshStore().restoreState();
+
+      // Only the true orphan is deleted; the fresh blob survives.
+      expect(deletePDFFromIndexedDB).toHaveBeenCalledWith('pdf-orphan');
+      expect(deletePDFFromIndexedDB).not.toHaveBeenCalledWith('pdf-fresh');
       expect(deletePDFFromIndexedDB).not.toHaveBeenCalledWith('pdf-1');
     });
 
