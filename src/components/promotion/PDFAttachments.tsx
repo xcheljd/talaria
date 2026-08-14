@@ -264,6 +264,10 @@ export function PDFAttachments() {
     }
 
     const blob = dataURLtoBlob(pdf.data);
+    if (!blob) {
+      toast.error('This PDF preview is unavailable — the file data is invalid');
+      return;
+    }
     const blobUrl = URL.createObjectURL(blob);
     setPreviewPDF(pdf);
     setPreviewBlobUrl(blobUrl);
@@ -287,6 +291,10 @@ export function PDFAttachments() {
   const handleDownload = useCallback(async () => {
     if (!previewPDF?.data) return;
     const blob = dataURLtoBlob(previewPDF.data);
+    if (!blob) {
+      toast.error('This PDF preview is unavailable — the file data is invalid');
+      return;
+    }
     // Use a Save-As dialog: this is a single user-initiated download, and the
     // attachment is the optimized PDF — silently overwriting a same-named source
     // file in the download folder would be surprising (and lossy vs. the source).

@@ -21,6 +21,7 @@ import {
   type SectionBoxStyle,
   type EmailPaletteConfig,
 } from '@/stores/promotion-store';
+import { dataURLByteSize, MAX_PDF_SIZE } from '@/lib/pdf-utils';
 
 // ===== Color validation =====
 
@@ -169,6 +170,23 @@ export function parseStringArray(raw: unknown): string[] {
 // ===== Attached PDF schema =====
 
 /**
+ * Embedded PDF `data` must be a PDF data URL within the same 10MB cap the
+ * upload path enforces (validatePDFFile). Anything else — non-PDF prefixes,
+ * oversized payloads — falls back to undefined, so the entry survives as
+ * metadata-only and the import loop never writes invalid bytes to IndexedDB.
+ */
+const pdfDataURLSchema = z
+  .string()
+  .refine((s) => /^data:application\/pdf;base64,/.test(s), {
+    message: 'must be a PDF data URL',
+  })
+  .refine((s) => dataURLByteSize(s) <= MAX_PDF_SIZE, {
+    message: 'PDF data exceeds 10MB',
+  })
+  .optional()
+  .catch(undefined);
+
+/**
  * Lenient schema for an imported PDF attachment entry. Note: PDF ids are
  * **strings** (unlike the numeric item ids), so this does NOT go through
  * normalizeIds. Bad scalar fields fall back to defaults; a non-string `data`
@@ -182,7 +200,7 @@ const attachedPDFSchema = z
     name: z.string().catch(''),
     size: z.coerce.number().catch(0),
     type: z.string().catch('application/pdf'),
-    data: z.string().optional().catch(undefined),
+    data: pdfDataURLSchema,
   })
   .catch({ id: '', name: '', size: 0, type: 'application/pdf' });
 
