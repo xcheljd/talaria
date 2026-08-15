@@ -78,9 +78,16 @@ function FormItem({ className, ...props }: React.ComponentProps<'div'>) {
 
   return (
     <FormItemContext.Provider value={{ id }}>
+      {/*
+        `content-start` is load-bearing: a FormItem is itself a grid item of the
+        surrounding form grid, so it gets stretched to its row's height. Without
+        an explicit align-content, the default (`normal` → stretch) spreads that
+        slack evenly across the item's own rows, inflating the label and pushing
+        the input down whenever a side-by-side field has taller content.
+      */}
       <div
         data-slot="form-item"
-        className={cn('grid gap-2', className)}
+        className={cn('grid content-start gap-2', className)}
         {...props}
       />
     </FormItemContext.Provider>
