@@ -22,7 +22,6 @@ import {
   ChevronDown,
   ChevronRight,
   AlertTriangle,
-  Loader2,
   Plus,
   Minus,
 } from 'lucide-react';
@@ -48,6 +47,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Collapsible, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Spinner } from '@/components/ui/spinner';
 
 // ===== Format Status Sub-component =====
 
@@ -399,7 +399,7 @@ export function BulkEmailTools() {
       {/* Generation progress indicator */}
       {isGenerating && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <Spinner className="size-3.5" />
           Generating... {generationProgress}
         </div>
       )}

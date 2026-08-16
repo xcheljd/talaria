@@ -1,8 +1,9 @@
 import { Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Layers, Settings as SettingsIcon, Loader2 } from 'lucide-react';
+import { Layers, Settings as SettingsIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Spinner } from '@/components/ui/spinner';
 import { useDevMode } from '@/hooks/useDevMode';
 
 const navLinks = [
@@ -75,7 +76,7 @@ export function Layout() {
         <Suspense
           fallback={
             <div className="flex h-full items-center justify-center">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Spinner className="size-5 text-muted-foreground" />
             </div>
           }
         >

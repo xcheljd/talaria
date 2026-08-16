@@ -18,7 +18,6 @@ import {
   FileCode,
   Download,
   Upload,
-  Loader2,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -34,6 +33,7 @@ import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Spinner } from '@/components/ui/spinner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -341,7 +341,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
         >
           {store.bulkEmailGenerating ? (
             <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Spinner className="size-3.5" />
               <span className="tabular-nums">
                 Generating... {store.bulkEmailProgress}
               </span>

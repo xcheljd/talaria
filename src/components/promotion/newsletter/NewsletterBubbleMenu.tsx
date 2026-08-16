@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { isSafeURL } from '@/lib/html-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import {
   Popover,
   PopoverContent,
@@ -171,7 +172,7 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
                 {size}px
               </button>
             ))}
-            <hr className="my-0.5 border-border" />
+            <Separator className="my-0.5" />
             <button
               type="button"
               className="rounded px-2 py-1 text-xs text-left text-muted-foreground hover:bg-accent transition-colors"
