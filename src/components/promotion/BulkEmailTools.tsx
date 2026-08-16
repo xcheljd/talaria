@@ -258,7 +258,7 @@ export function BulkEmailTools() {
           {emailStats.duplicates > 0 && (
             <Badge
               variant="outline"
-              className="gap-1 border-yellow-500/50 text-yellow-600 dark:text-yellow-400"
+              className="gap-1 border-warning/50 text-warning"
             >
               <AlertTriangle className="h-3 w-3" />
               {emailStats.duplicates} duplicate

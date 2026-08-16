@@ -1,5 +1,17 @@
 @import 'tailwindcss';
 
+/* ==========================================================================
+   `dark:` VARIANT — bound to the app theme, NOT the OS
+   Talaria drives theming from `data-theme` on <html> (see ThemeProvider), and
+   never toggles Tailwind's `.dark` class. Tailwind v4's stock `dark:` variant
+   therefore fell through to `@media (prefers-color-scheme: dark)` — the OS
+   setting — so on a dark OS with a light app palette (or the reverse) every
+   `dark:` utility fired against the wrong theme and mixed two palettes in one
+   component. Rebinding the variant to the same attribute the tokens use keeps
+   `dark:` and the CSS-var palettes in agreement at all times.
+   ========================================================================== */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -13,6 +25,9 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-info: var(--info);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -89,6 +104,17 @@
 @property --input { syntax: '<color>'; inherits: true; initial-value: #d0d7de; }
 /* prettier-ignore */
 @property --ring { syntax: '<color>'; inherits: true; initial-value: #0969da; }
+/* Status tokens. Unlike --destructive (which also has to host white text as a
+   solid button fill), these are text/tint-only, so each palette's value is its
+   own canonical warning/success/info hue tuned to clear 4.5:1 against both
+   --background and --card once a 10% tint of itself is composited on top —
+   which is exactly how they're consumed (`text-warning` on `bg-warning/10`). */
+/* prettier-ignore */
+@property --warning { syntax: '<color>'; inherits: true; initial-value: #8f6000; }
+/* prettier-ignore */
+@property --success { syntax: '<color>'; inherits: true; initial-value: #197834; }
+/* prettier-ignore */
+@property --info { syntax: '<color>'; inherits: true; initial-value: #0965d1; }
 
 /* While swapping, interpolate the tokens on <html>; everything inherits them. */
 html.theme-transition {
@@ -97,7 +123,7 @@ html.theme-transition {
     --popover-foreground, --primary, --primary-foreground, --secondary,
     --secondary-foreground, --muted, --muted-foreground, --accent,
     --accent-foreground, --destructive, --destructive-foreground, --border,
-    --input, --ring;
+    --input, --ring, --warning, --success, --info;
   transition-duration: var(--theme-transition-duration);
   transition-timing-function: var(--theme-transition-ease);
 }
@@ -122,17 +148,17 @@ html.theme-transition *::after {
    ========================================================================== */
 :root {
   --background: #ffffff;
-  --foreground: #24292f;
+  --foreground: #1f2328;
   --card: #f6f8fa;
-  --card-foreground: #24292f;
+  --card-foreground: #1f2328;
   --popover: #ffffff;
-  --popover-foreground: #24292f;
+  --popover-foreground: #1f2328;
   --primary: #0969da;
   --primary-foreground: #ffffff;
   --secondary: #f6f8fa;
-  --secondary-foreground: #24292f;
+  --secondary-foreground: #1f2328;
   --muted: #f6f8fa;
-  --muted-foreground: #57606a;
+  --muted-foreground: #656d76;
   --accent: #ddf4ff;
   --accent-foreground: #0969da;
   --destructive: #cf222e;
@@ -140,6 +166,10 @@ html.theme-transition *::after {
   --border: #d0d7de;
   --input: #d0d7de;
   --ring: #0969da;
+  /* Primer attention/success/accent fg, darkened to clear 4.5:1 over a 10% tint */
+  --warning: #8e5f00;
+  --success: #197834;
+  --info: #0965d1;
   --radius: 0.5rem;
 }
 
@@ -165,7 +195,8 @@ html.theme-transition *::after {
   --secondary: #f0f0f0;
   --secondary-foreground: #343d46;
   --muted: #f0f0f0;
-  --muted-foreground: #a7adba;
+  /* base03, not base04 — base04 (#a7adba) sits at 2.2:1 on this near-white bg */
+  --muted-foreground: #65737e;
   --accent: #dce3ea;
   --accent-foreground: #65737e;
   --destructive: #bf616a;
@@ -173,6 +204,10 @@ html.theme-transition *::after {
   --border: #c0c5ce;
   --input: #c0c5ce;
   --ring: #65737e;
+  /* Base16 Ocean base0A / base0B / base0D, darkened for a light surface */
+  --warning: #825e17;
+  --success: #506d37;
+  --info: #406792;
 }
 
 /* 3. Catppuccin Latte */
@@ -196,6 +231,10 @@ html.theme-transition *::after {
   --border: #bcc0cc;
   --input: #bcc0cc;
   --ring: #1e66f5;
+  /* Latte yellow / green / sapphire, darkened for a light surface */
+  --warning: #865511;
+  --success: #2c6e1e;
+  --info: #156978;
 }
 
 /* 4. Nord Light */
@@ -219,6 +258,10 @@ html.theme-transition *::after {
   --border: #d8dee9;
   --input: #d8dee9;
   --ring: #5e81ac;
+  /* Aurora nord13 / nord14 and nord10, darkened for a light surface */
+  --warning: #7d5a16;
+  --success: #4f673a;
+  --info: #456286;
 }
 
 /* 5. Rose Pine Dawn */
@@ -230,7 +273,10 @@ html.theme-transition *::after {
   --popover: var(--background);
   --popover-foreground: var(--foreground);
   --primary: #d7827e;
-  --primary-foreground: #faf4ed;
+  /* Dawn's `rose` is a mid-tone salmon: neither #faf4ed (2.6:1) nor any Dawn
+     ink (`text` #575279 → 2.5:1) is readable on it. Rosé Pine `base` — what the
+     dark variant already uses over its own rose — clears 6.2:1. */
+  --primary-foreground: #191724;
   --secondary: #f2e9e1;
   --secondary-foreground: #575279;
   --muted: #fffaf3;
@@ -241,46 +287,62 @@ html.theme-transition *::after {
   --destructive-foreground: #ffffff;
   --border: #dfdad9;
   --input: #dfdad9;
-  --ring: #d7827e;
+  /* `iris`, not `rose`: rose is 2.6:1 on base, below the 3:1 a focus indicator
+     needs to be perceivable. */
+  --ring: #907aa9;
+  /* Dawn gold / foam darkened, and `pine` as-is (already 4.9:1) */
+  --warning: #935b0f;
+  --success: #406e76;
+  --info: #286983;
 }
 
 /* 6. Tokyo Night Day */
 [data-theme='light'][data-light-palette='tokyo-day'] {
   --background: #e1e2e7;
   --foreground: #3760bf;
-  --card: #d5d6db;
+  /* bg_dark; the previous #d5d6db was the same lightness with the blue taken
+     out, which read as a grey card inside a blue-grey theme. */
+  --card: #d0d5e3;
   --card-foreground: #3760bf;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
   --primary: #2e7de9;
   --primary-foreground: #ffffff;
-  --secondary: #c4c5c9;
+  /* bg_highlight (was #c4c5c9 — same hue drift as --card) */
+  --secondary: #c4c8da;
   --secondary-foreground: #3760bf;
-  --muted: #d5d6db;
+  --muted: #d0d5e3;
   --muted-foreground: #6172b0;
-  --accent: #d5d6db;
+  --accent: #d0d5e3;
   --accent-foreground: #2e7de9;
   --destructive: #f52a65;
   --destructive-foreground: #ffffff;
   --border: #b4b5b9;
   --input: #b4b5b9;
   --ring: #2e7de9;
+  /* Upstream day `warning` (yellow), `green` and `info` (blue2), darkened */
+  --warning: #68502e;
+  --success: #455b2d;
+  --info: #055c6c;
 }
 
 /* 7. Solarized Light */
 [data-theme='light'][data-light-palette='solarized'] {
   --background: #fdf6e3;
-  --foreground: #657b83;
+  /* base01 = Solarized's *emphasized* content tone, base00 its body tone. The
+     two were swapped, which left --muted-foreground darker than --foreground
+     and body text at 4.13:1. */
+  --foreground: #586e75;
   --card: #eee8d5;
-  --card-foreground: #657b83;
+  --card-foreground: #586e75;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
   --primary: #268bd2;
   --primary-foreground: #fdf6e3;
   --secondary: #eee8d5;
-  --secondary-foreground: #657b83;
+  --secondary-foreground: #586e75;
   --muted: #eee8d5;
-  --muted-foreground: #586e75;
+  --muted-foreground: #657b83;
   --accent: #eee8d5;
   --accent-foreground: #268bd2;
   --destructive: #dc322f;
@@ -288,6 +350,10 @@ html.theme-transition *::after {
   --border: #d5cfbe;
   --input: #d5cfbe;
   --ring: #268bd2;
+  /* Solarized yellow / green / blue, darkened for base3 */
+  --warning: #795b00;
+  --success: #596600;
+  --info: #1b6498;
 }
 
 /* 8. One Light */
@@ -311,6 +377,10 @@ html.theme-transition *::after {
   --border: #e0e0e0;
   --input: #e0e0e0;
   --ring: #4078f2;
+  /* hue-6 orange / hue-4 green / hue-1 cyan, darkened */
+  --warning: #875c01;
+  --success: #387138;
+  --info: #016a97;
 }
 
 /* ==========================================================================
@@ -321,17 +391,17 @@ html.theme-transition *::after {
 [data-theme='dark'][data-dark-palette='github'],
 [data-theme='dark']:not([data-dark-palette]) {
   --background: #0d1117;
-  --foreground: #c9d1d9;
+  --foreground: #e6edf3;
   --card: #161b22;
-  --card-foreground: #c9d1d9;
+  --card-foreground: #e6edf3;
   --popover: #161b22;
-  --popover-foreground: #c9d1d9;
+  --popover-foreground: #e6edf3;
   --primary: #2f81f7;
   --primary-foreground: #ffffff;
   --secondary: #21262d;
-  --secondary-foreground: #c9d1d9;
+  --secondary-foreground: #e6edf3;
   --muted: #21262d;
-  --muted-foreground: #8b949e;
+  --muted-foreground: #7d8590;
   --accent: #30363d;
   --accent-foreground: #2f81f7;
   --destructive: #f85149;
@@ -339,6 +409,10 @@ html.theme-transition *::after {
   --border: #30363d;
   --input: #30363d;
   --ring: #2f81f7;
+  /* Primer dark attention.fg / success.fg / accent.fg (accent lifted a touch) */
+  --warning: #d29922;
+  --success: #3fb950;
+  --info: #408bf8;
 }
 
 /* 2. SpaceGray Dark */
@@ -362,6 +436,10 @@ html.theme-transition *::after {
   --border: #4f5b66;
   --input: #4f5b66;
   --ring: #96b5b4;
+  /* Base16 Ocean base0A / base0B / base0D (base0D lifted off base01) */
+  --warning: #ebcb8b;
+  --success: #a4bf8d;
+  --info: #aab8c5;
 }
 
 /* 3. Catppuccin Mocha */
@@ -385,6 +463,10 @@ html.theme-transition *::after {
   --border: #313244;
   --input: #313244;
   --ring: #89b4fa;
+  /* Mocha yellow / green / sky, all canonical */
+  --warning: #f9e2af;
+  --success: #a6e3a1;
+  --info: #89dceb;
 }
 
 /* 4. Nord Dark */
@@ -408,6 +490,10 @@ html.theme-transition *::after {
   --border: #434c5e;
   --input: #434c5e;
   --ring: #88c0d0;
+  /* Aurora nord13 as-is; nord14 / nord9 lifted off the nord1 card */
+  --warning: #ebcb8b;
+  --success: #afc79b;
+  --info: #adc2d6;
 }
 
 /* 5. Rose Pine */
@@ -431,6 +517,10 @@ html.theme-transition *::after {
   --border: #403d52;
   --input: #403d52;
   --ring: #ebbcba;
+  /* Rosé Pine has no green: `foam` is its added/ok accent and `iris` its hint */
+  --warning: #f6c177;
+  --success: #9ccfd8;
+  --info: #c4a7e7;
 }
 
 /* 6. Tokyo Night */
@@ -454,6 +544,10 @@ html.theme-transition *::after {
   --border: #414868;
   --input: #414868;
   --ring: #7aa2f7;
+  /* Upstream night `warning` (yellow), `green` and `info` (blue2), canonical */
+  --warning: #e0af68;
+  --success: #9ece6a;
+  --info: #0db9d7;
 }
 
 /* 7. Monokai */
@@ -472,11 +566,17 @@ html.theme-transition *::after {
   --muted-foreground: #cfcfc2;
   --accent: #3e3d32;
   --accent-foreground: #a6e22e;
-  --destructive: #f44747;
+  /* Monokai's red. The previous #f44747 was VS Code's default error red and
+     appears nowhere in the Monokai spec. */
+  --destructive: #f92672;
   --destructive-foreground: #ffffff;
   --border: #75715e;
   --input: #75715e;
   --ring: #a6e22e;
+  /* Monokai orange (lifted off the #3e3d32 card) / green / cyan */
+  --warning: #fda236;
+  --success: #a6e22e;
+  --info: #66d9ef;
 }
 
 /* 8. Kanagawa */
@@ -492,7 +592,8 @@ html.theme-transition *::after {
   --secondary: #363646;
   --secondary-foreground: #dcd7ba;
   --muted: #2a2a37;
-  --muted-foreground: #727169;
+  /* fujiGray lifted: at #727169 it is 2.9:1 on the sumiInk4 card */
+  --muted-foreground: #939289;
   --accent: #363646;
   --accent-foreground: #7e9cd8;
   --destructive: #e82424;
@@ -500,14 +601,26 @@ html.theme-transition *::after {
   --border: #54546d;
   --input: #54546d;
   --ring: #7e9cd8;
+  /* diag.warning (roninYellow) / diag.ok (springGreen) / diag.info (dragonBlue,
+     lifted off the card) */
+  --warning: #ff9e3b;
+  --success: #98bb6c;
+  --info: #89a3ae;
 }
 
 /* ==========================================================================
    BASE STYLES
    ========================================================================== */
 
-* {
-  border-color: var(--border);
+/* Must live in `@layer base`. Unlayered CSS outranks every cascade layer, so
+   as a bare top-level rule this beat all of Tailwind's `border-*` utilities
+   (which land in `@layer utilities`) and silently forced every bordered
+   element to the neutral --border — `border-destructive/30`,
+   `border-warning/40`, `border-success/30` and friends all rendered grey. */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 }
 
 body {

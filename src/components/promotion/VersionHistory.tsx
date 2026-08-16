@@ -336,7 +336,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                       <div className="flex gap-1.5">
                         {isConfirming ? (
                           <>
-                            <span className="text-[10px] text-amber-600 dark:text-amber-400 self-center">
+                            <span className="text-[10px] text-warning self-center">
                               Restore this snapshot? Current state will be
                               overwritten.
                             </span>

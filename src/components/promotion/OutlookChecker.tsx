@@ -250,8 +250,8 @@ const SEVERITY_CONFIG: Record<
   { icon: typeof AlertTriangle; className: string }
 > = {
   error: { icon: ShieldAlert, className: 'text-destructive' },
-  warning: { icon: AlertTriangle, className: 'text-amber-500' },
-  info: { icon: Info, className: 'text-blue-500' },
+  warning: { icon: AlertTriangle, className: 'text-warning' },
+  info: { icon: Info, className: 'text-info' },
 };
 
 // ===== Component =====
@@ -352,7 +352,7 @@ export function OutlookChecker() {
               {warningCount > 0 && (
                 <Badge
                   variant="secondary"
-                  className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                  className="text-xs bg-warning/15 text-warning"
                 >
                   {warningCount} warning{warningCount !== 1 ? 's' : ''}
                 </Badge>
@@ -367,9 +367,9 @@ export function OutlookChecker() {
 
           {/* Results */}
           {issues.length === 0 ? (
-            <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30 p-3">
-              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
-              <p className="text-sm text-green-800 dark:text-green-300">
+            <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 p-3">
+              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+              <p className="text-sm text-success">
                 No Outlook compatibility issues found!
               </p>
             </div>
@@ -387,9 +387,8 @@ export function OutlookChecker() {
                       issue.severity === 'error' &&
                         'border-destructive/30 bg-destructive/5',
                       issue.severity === 'warning' &&
-                        'border-amber-300/50 bg-amber-50/50 dark:border-amber-700/30 dark:bg-amber-950/20',
-                      issue.severity === 'info' &&
-                        'border-blue-200/50 bg-blue-50/50 dark:border-blue-800/30 dark:bg-blue-950/20'
+                        'border-warning/30 bg-warning/5',
+                      issue.severity === 'info' && 'border-info/30 bg-info/5'
                     )}
                   >
                     <div className="flex items-start gap-2">

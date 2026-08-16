@@ -400,7 +400,7 @@ export function NewsletterEditor() {
         heading.
         {store.newsletterBody &&
           !extractHeadingFromHTML(store.newsletterBody) && (
-            <span className="text-orange-500 ml-1">
+            <span className="text-warning ml-1">
               No H2 found — click the H2 button to add one.
             </span>
           )}
@@ -610,7 +610,7 @@ export function NewsletterEditor() {
               wordCount > WORD_DANGER
                 ? 'text-destructive font-medium'
                 : wordCount > WORD_WARNING
-                  ? 'text-orange-500'
+                  ? 'text-warning'
                   : ''
             )}
           >
@@ -630,7 +630,7 @@ export function NewsletterEditor() {
             <span
               className={cn(
                 'text-[10px] ml-1',
-                wordCount > WORD_DANGER ? 'text-destructive' : 'text-orange-500'
+                wordCount > WORD_DANGER ? 'text-destructive' : 'text-warning'
               )}
             >
               {wordCount > WORD_DANGER

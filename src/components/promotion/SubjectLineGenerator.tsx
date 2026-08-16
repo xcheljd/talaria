@@ -68,7 +68,10 @@ function InboxPreview({
         className="rounded-lg border bg-background overflow-hidden"
         data-testid="inbox-preview"
       >
-        {/* Mock inbox row */}
+        {/* Mock inbox row. The literal blue rule and green avatar are Gmail's
+            own chrome, not Talaria's — they stay fixed across all 16 palettes
+            on purpose, because the point of the preview is to show the subject
+            line as the recipient's client will render it. */}
         <div className="flex items-start gap-3 px-3 py-2.5 border-l-2 border-l-blue-500 bg-accent/40">
           <div className="flex items-center gap-2 pt-0.5 shrink-0">
             <Star className="h-3.5 w-3.5 text-muted-foreground/40" />

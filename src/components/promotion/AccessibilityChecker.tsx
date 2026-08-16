@@ -171,10 +171,10 @@ const SEVERITY_CONFIG: Record<
   error: { icon: AlertTriangle, className: 'text-destructive', label: 'Error' },
   warning: {
     icon: AlertTriangle,
-    className: 'text-amber-500',
+    className: 'text-warning',
     label: 'Warning',
   },
-  info: { icon: Info, className: 'text-blue-500', label: 'Info' },
+  info: { icon: Info, className: 'text-info', label: 'Info' },
 };
 
 const CATEGORY_ICONS: Record<string, typeof AlertTriangle> = {
@@ -242,8 +242,7 @@ export function AccessibilityChecker() {
               onClick={handleScan}
               className={cn(
                 'gap-1.5 text-xs',
-                isStale &&
-                  'border-amber-300 text-amber-700 dark:border-amber-700/50 dark:text-amber-400'
+                isStale && 'border-warning/50 text-warning'
               )}
             >
               <RefreshCw className="h-3.5 w-3.5" />
@@ -251,7 +250,7 @@ export function AccessibilityChecker() {
             </Button>
             {isStale && (
               <span
-                className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400"
+                className="flex items-center gap-1 text-xs text-warning"
                 data-testid="a11y-stale"
               >
                 <AlertTriangle className="h-3 w-3 shrink-0" />
@@ -267,7 +266,7 @@ export function AccessibilityChecker() {
               {warningCount > 0 && (
                 <Badge
                   variant="secondary"
-                  className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                  className="text-xs bg-warning/15 text-warning"
                 >
                   {warningCount} warning{warningCount !== 1 ? 's' : ''}
                 </Badge>
@@ -282,9 +281,9 @@ export function AccessibilityChecker() {
 
           {/* Results */}
           {issues.length === 0 ? (
-            <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30 p-3">
-              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
-              <p className="text-sm text-green-800 dark:text-green-300">
+            <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 p-3">
+              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+              <p className="text-sm text-success">
                 No accessibility issues found. Your content looks good!
               </p>
             </div>
@@ -303,9 +302,8 @@ export function AccessibilityChecker() {
                       issue.severity === 'error' &&
                         'border-destructive/30 bg-destructive/5',
                       issue.severity === 'warning' &&
-                        'border-amber-300/50 bg-amber-50/50 dark:border-amber-700/30 dark:bg-amber-950/20',
-                      issue.severity === 'info' &&
-                        'border-blue-200/50 bg-blue-50/50 dark:border-blue-800/30 dark:bg-blue-950/20'
+                        'border-warning/30 bg-warning/5',
+                      issue.severity === 'info' && 'border-info/30 bg-info/5'
                     )}
                   >
                     <SeverityIcon

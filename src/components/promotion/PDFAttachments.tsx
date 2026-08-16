@@ -310,7 +310,7 @@ export function PDFAttachments() {
         </p>
         {store.saveStatus === 'warning' && (
           <span
-            className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+            className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning"
             title="Last save may not have completed"
           >
             <AlertTriangle className="h-3 w-3" />
@@ -386,7 +386,7 @@ export function PDFAttachments() {
                   {pdf.name}
                   {!pdf.data && (
                     <span
-                      className="ml-1 text-orange-500"
+                      className="ml-1 text-warning"
                       title="Preview unavailable"
                     >
                       ⚠

@@ -241,11 +241,14 @@ export function ProfileSettingsPage() {
 
         {/* Main content */}
         <div className="min-w-0 flex-1">
-          {/* Profile Required Banner */}
+          {/* Profile Required Banner. `text-warning` has to sit on the Alert
+              itself: alertVariants ships `[&>svg]:text-current`, whose
+              descendant selector outranks a utility class on the icon, so the
+              icon follows the root's color. */}
           {showProfileBanner && (
-            <Alert className="mb-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
-              <Info className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+            <Alert className="mb-4 border-warning/40 bg-warning/10 text-warning">
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-warning">
                 <strong>Profile required:</strong> Please complete your profile
                 to continue to the Promotion Email Generator.
               </AlertDescription>
@@ -254,8 +257,8 @@ export function ProfileSettingsPage() {
 
           {/* Save Success Banner */}
           {saveSuccess && (
-            <Alert className="mb-4 border-green-500 bg-green-50 dark:bg-green-950/20">
-              <AlertDescription className="text-green-800 dark:text-green-200">
+            <Alert className="mb-4 border-success/40 bg-success/10 text-success">
+              <AlertDescription className="text-success">
                 Profile saved successfully!
               </AlertDescription>
             </Alert>

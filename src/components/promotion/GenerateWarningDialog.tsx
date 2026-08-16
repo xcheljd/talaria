@@ -40,7 +40,7 @@ export function GenerateWarningDialog({
         <ul className="space-y-2 text-sm">
           {warnings.map((w) => (
             <li key={w} className="flex items-start gap-2">
-              <span className="mt-0.5 text-amber-500">⚠</span>
+              <span className="mt-0.5 text-warning">⚠</span>
               <span className="text-pretty">{w}</span>
             </li>
           ))}
