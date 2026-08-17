@@ -742,6 +742,18 @@ test.describe('QA Item 8 — Regression sweep', () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await fillBasics(page);
 
+    // AccessibilityChecker requires non-empty newsletterBody — add some content
+    await clickToolbarIcon(page, 'newsletterCard');
+    const toggle = page.locator('[data-testid="newsletter-visible-toggle"]');
+    if (await isVisibleEventually(toggle, 5000)) {
+      await toggle.click();
+    }
+    const editor = page.locator('.ProseMirror, [contenteditable="true"]').first();
+    if (await isVisibleEventually(editor, 10000)) {
+      await editor.click();
+      await editor.fill('Test newsletter content for accessibility scan');
+    }
+
     await clickToolbarIcon(page, 'accessibilityCard');
     // Click "Run Accessibility Scan" button
     const scanBtn = page.locator('button:has-text("Run Accessibility Scan")');
