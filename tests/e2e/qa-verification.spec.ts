@@ -738,28 +738,34 @@ test.describe('QA Item 8 — Regression sweep', () => {
   });
 
   test('Accessibility Check card scans and reports issues', async ({ page }) => {
+    // AccessibilityChecker gates on a non-empty newsletterBody in the
+    // promotion store. Typing into the TipTap editor from Playwright is
+    // unreliable (contenteditable + ProseMirror dispatch), so seed the
+    // persisted store state before app boot instead — same approach as
+    // seedProfile. Missing fields fall back to store defaults on load.
+    await page.goto(BASE);
+    await page.evaluate(() => {
+      localStorage.setItem(
+        'promotionBuilderState',
+        JSON.stringify({
+          newsletterBody:
+            '<h2>Newsletter</h2><p>Test content for accessibility scan</p>',
+          newsletterVisible: true,
+        })
+      );
+    });
+
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
     await fillBasics(page);
 
-    // AccessibilityChecker requires non-empty newsletterBody — add some content
-    await clickToolbarIcon(page, 'newsletterCard');
-    const toggle = page.locator('[data-testid="newsletter-visible-toggle"]');
-    if (await isVisibleEventually(toggle, 5000)) {
-      await toggle.click();
-    }
-    const editor = page.locator('.ProseMirror, [contenteditable="true"]').first();
-    if (await isVisibleEventually(editor, 10000)) {
-      await editor.click();
-      await editor.fill('Test newsletter content for accessibility scan');
-    }
-
     await clickToolbarIcon(page, 'accessibilityCard');
-    // Click "Run Accessibility Scan" button
+    // Click "Run Accessibility Scan" button — hard assertion: if the scan
+    // button never appears (empty-content gate), fail loudly here instead of
+    // silently skipping and timing out at the result check below.
     const scanBtn = page.locator('button:has-text("Run Accessibility Scan")');
-    if (await isVisibleEventually(scanBtn, 10000)) {
-      await scanBtn.click();
-    }
+    await expect(scanBtn).toBeVisible({ timeout: 10000 });
+    await scanBtn.click();
 
     // After scan, either shows issues list or "No issues" message (polls)
     const issuesList = page.locator('[data-testid="a11y-issues-list"]');
