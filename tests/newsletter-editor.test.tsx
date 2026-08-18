@@ -10,6 +10,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { NewsletterEditor } from '@/components/promotion/NewsletterEditor';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 // Mock the store (state must be hoisted above vi.mock — vitest hoists
 // mock factories, so a plain const would be referenced before init)
@@ -58,6 +59,16 @@ vi.mock('@/stores/newsletter-store', () => ({
   useNewsletterStore: () => mockStore,
 }));
 
+// Mirrors App.tsx: Tooltip primitives require an ancestor TooltipProvider,
+// which the app supplies once at the root.
+function renderEditor() {
+  return render(
+    <TooltipProvider>
+      <NewsletterEditor />
+    </TooltipProvider>
+  );
+}
+
 describe('NewsletterEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -75,7 +86,7 @@ describe('NewsletterEditor', () => {
   });
 
   it('renders the TipTap editor with toolbar', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
 
     // Toolbar buttons should be present
     expect(screen.getByLabelText('Bold')).toBeInTheDocument();
@@ -88,42 +99,50 @@ describe('NewsletterEditor', () => {
   });
 
   it('renders text color picker', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     expect(screen.getByLabelText('Text color')).toBeInTheDocument();
   });
 
   it('renders highlight color picker', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     expect(screen.getByLabelText('Highlight')).toBeInTheDocument();
   });
 
   it('renders position toggle with default Above % and Below %', () => {
-    render(<NewsletterEditor />);
-    expect(screen.getByRole('button', { name: 'Position: Above %' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Position: Below %' })).toBeInTheDocument();
+    renderEditor();
+    expect(
+      screen.getByRole('button', { name: 'Position: Above %' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Position: Below %' })
+    ).toBeInTheDocument();
   });
 
   it('shows Above % as active by default', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     const topButton = screen.getByRole('button', { name: 'Position: Above %' });
     expect(topButton).toHaveAttribute('data-active');
     // Below % should NOT have data-active
-    const bottomButton = screen.getByRole('button', { name: 'Position: Below %' });
+    const bottomButton = screen.getByRole('button', {
+      name: 'Position: Below %',
+    });
     expect(bottomButton).not.toHaveAttribute('data-active');
   });
 
   it('calls setNewsletterPosition when toggle is clicked', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
-    const bottomButton = screen.getByRole('button', { name: 'Position: Below %' });
+    const bottomButton = screen.getByRole('button', {
+      name: 'Position: Below %',
+    });
     await user.click(bottomButton);
 
     expect(mockStore.setNewsletterPosition).toHaveBeenCalledWith('bottom');
   });
 
   it('renders the editor content area', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     // The editor renders a .tiptap content area inside the EditorContent wrapper
     const editorWrapper = document.querySelector('.tiptap');
     expect(editorWrapper).toBeTruthy();
@@ -131,7 +150,7 @@ describe('NewsletterEditor', () => {
 
   it('initializes editor with content from store', async () => {
     mockStore.newsletterBody = '<p>Hello world</p>';
-    render(<NewsletterEditor />);
+    renderEditor();
 
     await waitFor(() => {
       const editorArea = document.querySelector('.tiptap');
@@ -140,7 +159,7 @@ describe('NewsletterEditor', () => {
   });
 
   it('renders toolbar buttons with correct active state class', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const boldButton = screen.getByLabelText('Bold');
     const italicButton = screen.getByLabelText('Italic');
@@ -151,27 +170,26 @@ describe('NewsletterEditor', () => {
   });
 
   it('has an undo button in the toolbar', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     expect(screen.getByLabelText('Undo')).toBeInTheDocument();
   });
 
   it('has a redo button in the toolbar', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     expect(screen.getByLabelText('Redo')).toBeInTheDocument();
   });
 
   it('renders color picker for text color', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     const colorButton = screen.getByLabelText('Text color');
     expect(colorButton).toBeInTheDocument();
   });
 
   it('renders color picker for highlight', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     const highlightButton = screen.getByLabelText('Highlight');
     expect(highlightButton).toBeInTheDocument();
   });
-
 });
 
 describe('NewsletterEditor - toolbar interactions', () => {
@@ -184,7 +202,7 @@ describe('NewsletterEditor - toolbar interactions', () => {
 
   it('clicking bold button calls editor chain command', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const boldButton = screen.getByLabelText('Bold');
     await user.click(boldButton);
@@ -196,7 +214,7 @@ describe('NewsletterEditor - toolbar interactions', () => {
 
   it('clicking italic button calls editor chain command', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const italicButton = screen.getByLabelText('Italic');
     await user.click(italicButton);
@@ -207,7 +225,7 @@ describe('NewsletterEditor - toolbar interactions', () => {
 
   it('clicking H2 button calls editor chain command', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const h2Button = screen.getByLabelText('Heading 2');
     await user.click(h2Button);
@@ -218,7 +236,7 @@ describe('NewsletterEditor - toolbar interactions', () => {
 
   it('clicking bullet list button calls editor chain command', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const listButton = screen.getByLabelText('Bullet list');
     await user.click(listButton);
@@ -229,7 +247,7 @@ describe('NewsletterEditor - toolbar interactions', () => {
 
   it('clicking link button opens link popover', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const linkButton = screen.getByLabelText('Add link');
     await user.click(linkButton);
@@ -241,7 +259,7 @@ describe('NewsletterEditor - toolbar interactions', () => {
 
   it('clicking link button shows URL input field', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const linkButton = screen.getByLabelText('Add link');
     await user.click(linkButton);
@@ -252,7 +270,7 @@ describe('NewsletterEditor - toolbar interactions', () => {
   });
 
   it('editor instance exists and supports commands', async () => {
-    render(<NewsletterEditor />);
+    renderEditor();
 
     // The editor should render a .tiptap element (ProseMirror content area)
     const editorArea = document.querySelector('.tiptap');
@@ -271,7 +289,7 @@ describe('NewsletterEditor - position toggle', () => {
 
   it('shows Above % as active when store position is top', () => {
     mockStore.newsletterPosition = 'top';
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const topButton = screen.getByRole('button', { name: 'Position: Above %' });
     expect(topButton).toHaveAttribute('data-active');
@@ -279,7 +297,7 @@ describe('NewsletterEditor - position toggle', () => {
 
   it('shows Below % as active when store position is bottom', () => {
     mockStore.newsletterPosition = 'bottom';
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const bottomButton = screen.getByRole('button', {
       name: 'Position: Below %',
@@ -289,7 +307,7 @@ describe('NewsletterEditor - position toggle', () => {
 
   it('calls setNewsletterPosition when switching from top to bottom', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const bottomButton = screen.getByRole('button', {
       name: 'Position: Below %',
@@ -302,7 +320,7 @@ describe('NewsletterEditor - position toggle', () => {
   it('calls setNewsletterPosition when switching from bottom to top', async () => {
     mockStore.newsletterPosition = 'bottom';
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const topButton = screen.getByRole('button', { name: 'Position: Above %' });
     await user.click(topButton);
@@ -327,21 +345,21 @@ describe('NewsletterEditor - customization UI', () => {
   });
 
   it('renders Customize Border & Background toggle', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     expect(
       screen.getByTestId('newsletter-customize-toggle')
     ).toBeInTheDocument();
   });
 
   it('customization section is collapsed by default', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     // Border style buttons should NOT be visible
     expect(screen.queryByTestId('border-style-left')).not.toBeInTheDocument();
   });
 
   it('expands customization section on toggle click', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const toggle = screen.getByTestId('newsletter-customize-toggle');
     await user.click(toggle);
@@ -354,7 +372,7 @@ describe('NewsletterEditor - customization UI', () => {
   });
 
   it('renders heading alignment buttons in toolbar', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
 
     expect(screen.getByLabelText('Align heading left')).toBeInTheDocument();
     expect(screen.getByLabelText('Align heading center')).toBeInTheDocument();
@@ -362,7 +380,7 @@ describe('NewsletterEditor - customization UI', () => {
 
   it('renders color pickers for border and background in customize section', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     await user.click(screen.getByTestId('newsletter-customize-toggle'));
 
@@ -372,7 +390,7 @@ describe('NewsletterEditor - customization UI', () => {
 
   it('renders heading color picker in customize section', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     // Heading color picker is now in the Customize section
     await user.click(screen.getByTestId('newsletter-customize-toggle'));
@@ -382,7 +400,7 @@ describe('NewsletterEditor - customization UI', () => {
 
   it('renders color swatches', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     await user.click(screen.getByTestId('newsletter-customize-toggle'));
 
@@ -392,7 +410,7 @@ describe('NewsletterEditor - customization UI', () => {
 
   it('renders heading color swatch in customize section', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     await user.click(screen.getByTestId('newsletter-customize-toggle'));
 
@@ -401,7 +419,7 @@ describe('NewsletterEditor - customization UI', () => {
 
   it('renders Auto buttons for border and background colors', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     await user.click(screen.getByTestId('newsletter-customize-toggle'));
 
@@ -411,7 +429,7 @@ describe('NewsletterEditor - customization UI', () => {
 
   it('renders reset button for heading color in customize section', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     await user.click(screen.getByTestId('newsletter-customize-toggle'));
 
@@ -420,7 +438,7 @@ describe('NewsletterEditor - customization UI', () => {
 
   it('calls setNewsletterStyle when border style button is clicked', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     await user.click(screen.getByTestId('newsletter-customize-toggle'));
     await user.click(screen.getByTestId('border-style-full'));
@@ -432,7 +450,7 @@ describe('NewsletterEditor - customization UI', () => {
 
   it('calls setNewsletterStyle when heading align button is clicked', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     await user.click(screen.getByLabelText('Align heading center'));
 
@@ -444,7 +462,7 @@ describe('NewsletterEditor - customization UI', () => {
   it('calls setNewsletterStyle when Auto button is clicked', async () => {
     mockStore.newsletterStyle.borderColor = '#ff0000';
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     await user.click(screen.getByTestId('newsletter-customize-toggle'));
     await user.click(screen.getByTestId('auto-borderColor'));
@@ -456,7 +474,7 @@ describe('NewsletterEditor - customization UI', () => {
 
   it('Auto button is disabled when color is already null', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     await user.click(screen.getByTestId('newsletter-customize-toggle'));
 
@@ -466,7 +484,7 @@ describe('NewsletterEditor - customization UI', () => {
 
   it('collapses customization section on second toggle click', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const toggle = screen.getByTestId('newsletter-customize-toggle');
 
@@ -497,26 +515,26 @@ describe('NewsletterEditor - show in email toggle', () => {
   });
 
   it('renders Show in Email toggle', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     expect(screen.getByTestId('newsletter-visible-toggle')).toBeInTheDocument();
   });
 
   it('toggle is unchecked by default when newsletterVisible is false', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     const toggle = screen.getByTestId('newsletter-visible-toggle');
     expect(toggle.getAttribute('data-state')).toBe('unchecked');
   });
 
   it('toggle is checked when newsletterVisible is true', () => {
     mockStore.newsletterVisible = true;
-    render(<NewsletterEditor />);
+    renderEditor();
     const toggle = screen.getByTestId('newsletter-visible-toggle');
     expect(toggle.getAttribute('data-state')).toBe('checked');
   });
 
   it('calls setNewsletterVisible when toggled', async () => {
     const user = userEvent.setup();
-    render(<NewsletterEditor />);
+    renderEditor();
 
     const toggle = screen.getByTestId('newsletter-visible-toggle');
     await user.click(toggle);
@@ -540,7 +558,7 @@ describe('NewsletterEditor - paste as plain text', () => {
   }
 
   it('opens a context menu with "Paste as plain text" on right click', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
 
     // No menu until the user right-clicks.
     expect(
@@ -554,7 +572,7 @@ describe('NewsletterEditor - paste as plain text', () => {
   });
 
   it('dismisses the menu on Escape', () => {
-    render(<NewsletterEditor />);
+    renderEditor();
     fireEvent.contextMenu(getEditorArea());
     expect(screen.getByTestId('newsletter-context-menu')).toBeInTheDocument();
 
@@ -572,7 +590,7 @@ describe('NewsletterEditor - paste as plain text', () => {
       configurable: true,
     });
 
-    render(<NewsletterEditor />);
+    renderEditor();
     fireEvent.contextMenu(getEditorArea());
     await userEvent.click(screen.getByText('Paste as plain text'));
 
@@ -593,7 +611,7 @@ describe('NewsletterEditor - paste as plain text', () => {
       configurable: true,
     });
 
-    render(<NewsletterEditor />);
+    renderEditor();
     fireEvent.contextMenu(getEditorArea());
     await userEvent.click(screen.getByText('Paste as plain text'));
 

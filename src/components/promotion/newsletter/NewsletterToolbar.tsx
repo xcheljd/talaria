@@ -45,6 +45,11 @@ import {
 import { cn } from '@/lib/utils';
 import { isSafeURL } from '@/lib/html-utils';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -825,17 +830,20 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         <PopoverContent className="w-64 p-2" side="bottom" align="start">
           <div className="grid grid-cols-8 gap-0.5 max-h-[200px] overflow-y-auto">
             {EMOJI_LIST.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent text-base cursor-pointer"
-                onClick={() => {
-                  editor?.chain().focus().insertContent(emoji).run();
-                }}
-                title={emoji}
-              >
-                {emoji}
-              </button>
+              <Tooltip key={emoji}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent text-base cursor-pointer"
+                    onClick={() => {
+                      editor?.chain().focus().insertContent(emoji).run();
+                    }}
+                  >
+                    {emoji}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{emoji}</TooltipContent>
+              </Tooltip>
             ))}
           </div>
         </PopoverContent>

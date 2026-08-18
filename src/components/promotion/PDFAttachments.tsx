@@ -40,6 +40,11 @@ import { AlertTriangle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -309,13 +314,15 @@ export function PDFAttachments() {
           file)
         </p>
         {store.saveStatus === 'warning' && (
-          <span
-            className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning"
-            title="Last save may not have completed"
-          >
-            <AlertTriangle className="h-3 w-3" />
-            Save issue
-          </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
+                <AlertTriangle className="h-3 w-3" />
+                Save issue
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Last save may not have completed</TooltipContent>
+          </Tooltip>
         )}
       </div>
 

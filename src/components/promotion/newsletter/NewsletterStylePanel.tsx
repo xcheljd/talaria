@@ -13,6 +13,11 @@ import { usePromotionStore } from '@/stores/promotion-store';
 import { useNewsletterStore } from '@/stores/newsletter-store';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 export function NewsletterStylePanel() {
@@ -185,24 +190,27 @@ export function NewsletterStylePanel() {
                     {/* Email palette swatches */}
                     <div className="flex items-center gap-1 ml-[98px]">
                       {picker.swatches.map((sw) => (
-                        <button
-                          key={sw.color}
-                          type="button"
-                          className={cn(
-                            'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
-                            currentValue === sw.color &&
-                              'ring-1 ring-primary ring-offset-1'
-                          )}
-                          style={{ backgroundColor: sw.color }}
-                          onClick={() =>
-                            store.setNewsletterStyle({
-                              [picker.key]: sw.color,
-                            })
-                          }
-                          title={`${sw.label} (${sw.color})`}
-                          aria-label={`Set ${picker.label} to ${sw.label} color`}
-                          data-testid={`palette-swatch-${picker.key}-${sw.label.toLowerCase()}`}
-                        />
+                        <Tooltip key={sw.color}>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className={cn(
+                                'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
+                                currentValue === sw.color &&
+                                  'ring-1 ring-primary ring-offset-1'
+                              )}
+                              style={{ backgroundColor: sw.color }}
+                              onClick={() =>
+                                store.setNewsletterStyle({
+                                  [picker.key]: sw.color,
+                                })
+                              }
+                              aria-label={`Set ${picker.label} to ${sw.label} color`}
+                              data-testid={`palette-swatch-${picker.key}-${sw.label.toLowerCase()}`}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>{`${sw.label} (${sw.color})`}</TooltipContent>
+                        </Tooltip>
                       ))}
                       <span className="text-[9px] text-muted-foreground ml-1">
                         email colors
@@ -349,23 +357,26 @@ export function NewsletterStylePanel() {
                     { color: store.emailPalette.footerBg, label: 'Footer' },
                     { color: store.emailPalette.link, label: 'Link' },
                   ].map((sw) => (
-                    <button
-                      key={sw.color}
-                      type="button"
-                      className={cn(
-                        'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
-                        store.newsletterStyle.tableBorderColor === sw.color &&
-                          'ring-1 ring-primary ring-offset-1'
-                      )}
-                      style={{ backgroundColor: sw.color }}
-                      onClick={() =>
-                        store.setNewsletterStyle({
-                          tableBorderColor: sw.color,
-                        })
-                      }
-                      title={`${sw.label} (${sw.color})`}
-                      aria-label={`Set table border color to ${sw.label}`}
-                    />
+                    <Tooltip key={sw.color}>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className={cn(
+                            'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
+                            store.newsletterStyle.tableBorderColor ===
+                              sw.color && 'ring-1 ring-primary ring-offset-1'
+                          )}
+                          style={{ backgroundColor: sw.color }}
+                          onClick={() =>
+                            store.setNewsletterStyle({
+                              tableBorderColor: sw.color,
+                            })
+                          }
+                          aria-label={`Set table border color to ${sw.label}`}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>{`${sw.label} (${sw.color})`}</TooltipContent>
+                    </Tooltip>
                   ))}
                   <span className="text-[9px] text-muted-foreground ml-1">
                     email colors
@@ -427,21 +438,26 @@ export function NewsletterStylePanel() {
                     },
                     { color: store.emailPalette.bodyBg, label: 'Body' },
                   ].map((sw) => (
-                    <button
-                      key={sw.color}
-                      type="button"
-                      className={cn(
-                        'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
-                        store.newsletterStyle.tableHeaderBg === sw.color &&
-                          'ring-1 ring-primary ring-offset-1'
-                      )}
-                      style={{ backgroundColor: sw.color }}
-                      onClick={() =>
-                        store.setNewsletterStyle({ tableHeaderBg: sw.color })
-                      }
-                      title={`${sw.label} (${sw.color})`}
-                      aria-label={`Set table header bg to ${sw.label}`}
-                    />
+                    <Tooltip key={sw.color}>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className={cn(
+                            'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
+                            store.newsletterStyle.tableHeaderBg === sw.color &&
+                              'ring-1 ring-primary ring-offset-1'
+                          )}
+                          style={{ backgroundColor: sw.color }}
+                          onClick={() =>
+                            store.setNewsletterStyle({
+                              tableHeaderBg: sw.color,
+                            })
+                          }
+                          aria-label={`Set table header bg to ${sw.label}`}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>{`${sw.label} (${sw.color})`}</TooltipContent>
+                    </Tooltip>
                   ))}
                   <span className="text-[9px] text-muted-foreground ml-1">
                     email colors

@@ -20,8 +20,8 @@ import {
   DEFAULT_EMAIL_PALETTE,
 } from '@/stores/promotion-store';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
-
 
 vi.mock('@/lib/db', () => ({
   initIndexedDB: vi.fn().mockResolvedValue(true),
@@ -66,9 +66,11 @@ function renderEmailThemeEditor() {
   return render(
     <ThemeProvider>
       <ProfileProvider>
-        <MemoryRouter>
-          <EmailThemeEditor />
-        </MemoryRouter>
+        <TooltipProvider>
+          <MemoryRouter>
+            <EmailThemeEditor />
+          </MemoryRouter>
+        </TooltipProvider>
       </ProfileProvider>
     </ThemeProvider>
   );
@@ -110,9 +112,7 @@ describe('EmailThemeEditor', () => {
     renderEmailThemeEditor();
 
     // Initially default — no reset button
-    expect(
-      screen.queryByTestId('reset-email-palette')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('reset-email-palette')).not.toBeInTheDocument();
 
     // Change a color
     const picker = screen.getByTestId('theme-picker-footerBg');
@@ -120,7 +120,9 @@ describe('EmailThemeEditor', () => {
 
     // Re-render to pick up state change
     renderEmailThemeEditor();
-    expect(screen.getAllByTestId('reset-email-palette').length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId('reset-email-palette').length).toBeGreaterThan(
+      0
+    );
   });
 
   it('resets all colors to defaults', async () => {
@@ -173,9 +175,7 @@ describe('EmailThemeEditor', () => {
     await user.click(saveButtons[saveButtons.length - 1]);
 
     // Check localStorage
-    const saved = JSON.parse(
-      localStorage.getItem('emailPaletteSaved') || '[]'
-    );
+    const saved = JSON.parse(localStorage.getItem('emailPaletteSaved') || '[]');
     expect(saved.length).toBeGreaterThan(0);
     expect(saved[0].name).toBe('My Custom');
   });

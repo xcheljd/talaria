@@ -20,9 +20,9 @@ import { PDFAttachments } from '@/components/promotion/PDFAttachments';
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { toast } from 'sonner';
-
 
 // Mock ResizeObserver for Radix components
 beforeAll(() => {
@@ -80,7 +80,9 @@ function resetStore() {
 function renderWithProviders(ui: React.ReactElement) {
   return render(
     <ThemeProvider>
-      <ProfileProvider>{ui}</ProfileProvider>
+      <ProfileProvider>
+        <TooltipProvider>{ui}</TooltipProvider>
+      </ProfileProvider>
     </ThemeProvider>
   );
 }
@@ -264,9 +266,7 @@ describe('PDFAttachments', () => {
     expect(toast.error).toHaveBeenCalledWith(
       expect.stringContaining('unavailable')
     );
-    expect(
-      document.querySelector('[data-slot="dialog-content"]')
-    ).toBeNull();
+    expect(document.querySelector('[data-slot="dialog-content"]')).toBeNull();
   });
 
   it('shows warning icon for PDFs without data', () => {
@@ -297,14 +297,22 @@ describe('PDFAttachments', () => {
 
   // ===== Save Status Indicator Tests =====
 
-  it('shows save warning indicator when saveStatus is warning', () => {
+  it('shows save warning indicator when saveStatus is warning', async () => {
+    const user = userEvent.setup();
     usePromotionStore.setState({ saveStatus: 'warning' });
 
     renderWithProviders(<PDFAttachments />);
 
-    expect(screen.getByText('Save issue')).toBeInTheDocument();
+    const badge = screen.getByText('Save issue');
+    expect(badge).toBeInTheDocument();
+
+    // The explanatory label moved from a native title= to a Radix Tooltip, so
+    // it only enters the DOM once the badge is hovered.
+    await user.hover(badge);
     expect(
-      screen.getByTitle('Last save may not have completed')
+      await screen.findByRole('tooltip', {
+        name: 'Last save may not have completed',
+      })
     ).toBeInTheDocument();
   });
 

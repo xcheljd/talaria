@@ -20,6 +20,11 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // ===== NodeView Component =====
 
@@ -93,63 +98,83 @@ function ImageNodeView({
       {/* Floating toolbar */}
       {selected && !isResizing && (
         <div className="absolute -top-9 left-1/2 -translate-x-1/2 flex items-center gap-0.5 rounded-md border bg-background shadow-md px-1 py-0.5 z-20">
-          <button
-            type="button"
-            className={cn(
-              'h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent',
-              align === 'left' && 'bg-accent'
-            )}
-            onClick={() => updateAttributes({ align: 'left' })}
-            title="Align left"
-          >
-            <AlignLeft className="h-3 w-3" />
-          </button>
-          <button
-            type="button"
-            className={cn(
-              'h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent',
-              align === 'center' && 'bg-accent'
-            )}
-            onClick={() => updateAttributes({ align: 'center' })}
-            title="Align center"
-          >
-            <AlignCenter className="h-3 w-3" />
-          </button>
-          <button
-            type="button"
-            className={cn(
-              'h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent',
-              align === 'right' && 'bg-accent'
-            )}
-            onClick={() => updateAttributes({ align: 'right' })}
-            title="Align right"
-          >
-            <AlignRight className="h-3 w-3" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  'h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent',
+                  align === 'left' && 'bg-accent'
+                )}
+                onClick={() => updateAttributes({ align: 'left' })}
+              >
+                <AlignLeft className="h-3 w-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Align left</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  'h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent',
+                  align === 'center' && 'bg-accent'
+                )}
+                onClick={() => updateAttributes({ align: 'center' })}
+              >
+                <AlignCenter className="h-3 w-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Align center</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  'h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent',
+                  align === 'right' && 'bg-accent'
+                )}
+                onClick={() => updateAttributes({ align: 'right' })}
+              >
+                <AlignRight className="h-3 w-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Align right</TooltipContent>
+          </Tooltip>
           <div className="mx-0.5 h-4 w-px bg-border" />
-          <button
-            type="button"
-            className={cn(
-              'h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent',
-              href && 'text-primary'
-            )}
-            onClick={() => {
-              setLinkValue(href || 'https://');
-              setShowLinkInput(!showLinkInput);
-            }}
-            title="Add link"
-          >
-            <LinkIcon className="h-3 w-3" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  'h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent',
+                  href && 'text-primary'
+                )}
+                onClick={() => {
+                  setLinkValue(href || 'https://');
+                  setShowLinkInput(!showLinkInput);
+                }}
+              >
+                <LinkIcon className="h-3 w-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Add link</TooltipContent>
+          </Tooltip>
           <div className="mx-0.5 h-4 w-px bg-border" />
-          <button
-            type="button"
-            className="h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent text-destructive"
-            onClick={deleteNode}
-            title="Delete image"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent text-destructive"
+                onClick={deleteNode}
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Delete image</TooltipContent>
+          </Tooltip>
         </div>
       )}
 
@@ -175,17 +200,21 @@ function ImageNodeView({
             OK
           </button>
           {href && (
-            <button
-              type="button"
-              className="h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent text-destructive"
-              onClick={() => {
-                updateAttributes({ href: null });
-                setShowLinkInput(false);
-              }}
-              title="Remove link"
-            >
-              <X className="h-3 w-3" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent text-destructive"
+                  onClick={() => {
+                    updateAttributes({ href: null });
+                    setShowLinkInput(false);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Remove link</TooltipContent>
+            </Tooltip>
           )}
         </div>
       )}

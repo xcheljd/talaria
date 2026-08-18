@@ -19,8 +19,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
-
 
 // Mock db
 vi.mock('@/lib/db', () => ({
@@ -80,9 +80,11 @@ function renderSubjectLineGenerator() {
   return render(
     <ThemeProvider>
       <ProfileProvider>
-        <MemoryRouter>
-          <SubjectLineGenerator />
-        </MemoryRouter>
+        <TooltipProvider>
+          <MemoryRouter>
+            <SubjectLineGenerator />
+          </MemoryRouter>
+        </TooltipProvider>
       </ProfileProvider>
     </ThemeProvider>
   );

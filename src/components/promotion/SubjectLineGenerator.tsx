@@ -26,6 +26,11 @@ import {
 } from '@/contexts/ProfileProvider';
 
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -344,14 +349,21 @@ export function SubjectLineGenerator() {
         <label htmlFor="selected-subject-input" className="text-sm font-medium">
           Subject Line (customizable):
         </label>
-        <ClearableInput
-          id="selected-subject-input"
-          value={store.selectedSubjectLine || ''}
-          onChange={handleSubjectEdit}
-          placeholder="Type your subject line..."
-          title="Edit the email subject line. Changes will be reflected in generated emails."
-          className="w-full"
-        />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <ClearableInput
+              id="selected-subject-input"
+              value={store.selectedSubjectLine || ''}
+              onChange={handleSubjectEdit}
+              placeholder="Type your subject line..."
+              className="w-full"
+            />
+          </TooltipTrigger>
+          <TooltipContent>
+            Edit the email subject line. Changes will be reflected in generated
+            emails.
+          </TooltipContent>
+        </Tooltip>
         <Badge
           variant={isOptimal ? 'default' : 'secondary'}
           className="text-xs"
@@ -367,14 +379,21 @@ export function SubjectLineGenerator() {
         <label htmlFor="preheader-input" className="text-sm font-medium">
           Preheader Text (preview text):
         </label>
-        <ClearableInput
-          id="preheader-input"
-          value={store.preheaderText}
-          onChange={(val) => store.setPreheaderText(val)}
-          placeholder="Text shown after subject in inbox..."
-          title="Preview text shown after the subject line in email client inbox views. Keep it under 100 characters."
-          className="w-full"
-        />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <ClearableInput
+              id="preheader-input"
+              value={store.preheaderText}
+              onChange={(val) => store.setPreheaderText(val)}
+              placeholder="Text shown after subject in inbox..."
+              className="w-full"
+            />
+          </TooltipTrigger>
+          <TooltipContent>
+            Preview text shown after the subject line in email client inbox
+            views. Keep it under 100 characters.
+          </TooltipContent>
+        </Tooltip>
         <div className="flex items-center gap-2">
           <Badge
             variant={
@@ -398,17 +417,20 @@ export function SubjectLineGenerator() {
             </p>
             <div className="flex flex-wrap gap-1">
               {preheaderSuggestions.slice(0, 4).map((suggestion, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className="text-left text-[11px] rounded border px-2 py-1 hover:bg-accent transition-colors truncate max-w-full"
-                  onClick={() => store.setPreheaderText(suggestion)}
-                  title={suggestion}
-                >
-                  {suggestion.length > 60
-                    ? suggestion.slice(0, 60) + '…'
-                    : suggestion}
-                </button>
+                <Tooltip key={i}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-left text-[11px] rounded border px-2 py-1 hover:bg-accent transition-colors truncate max-w-full"
+                      onClick={() => store.setPreheaderText(suggestion)}
+                    >
+                      {suggestion.length > 60
+                        ? suggestion.slice(0, 60) + '…'
+                        : suggestion}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{suggestion}</TooltipContent>
+                </Tooltip>
               ))}
             </div>
           </div>

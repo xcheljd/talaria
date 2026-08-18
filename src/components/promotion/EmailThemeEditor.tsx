@@ -10,6 +10,11 @@ import { useState } from 'react';
 import { RotateCcw, Save, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useShallow } from 'zustand/react/shallow';
 
 import {
@@ -281,29 +286,32 @@ export function EmailThemeEditor() {
           </label>
           <div className="flex flex-wrap gap-1.5">
             {group.presets.map((preset) => (
-              <button
-                key={preset.name}
-                type="button"
-                className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] hover:bg-accent/50 transition-colors"
-                onClick={() => handleApplyPalette(preset.palette)}
-                title={preset.name}
-              >
-                <div className="flex gap-0.5">
-                  {[
-                    preset.palette.footerBg,
-                    preset.palette.accent,
-                    preset.palette.link,
-                    preset.palette.sectionBg,
-                  ].map((c, i) => (
-                    <div
-                      key={i}
-                      className="h-3 w-3 rounded-sm border border-border"
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-                <span>{preset.name}</span>
-              </button>
+              <Tooltip key={preset.name}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] hover:bg-accent/50 transition-colors"
+                    onClick={() => handleApplyPalette(preset.palette)}
+                  >
+                    <div className="flex gap-0.5">
+                      {[
+                        preset.palette.footerBg,
+                        preset.palette.accent,
+                        preset.palette.link,
+                        preset.palette.sectionBg,
+                      ].map((c, i) => (
+                        <div
+                          key={i}
+                          className="h-3 w-3 rounded-sm border border-border"
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </div>
+                    <span>{preset.name}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{preset.name}</TooltipContent>
+              </Tooltip>
             ))}
           </div>
         </div>
@@ -318,37 +326,45 @@ export function EmailThemeEditor() {
           <div className="flex flex-wrap gap-1.5">
             {savedPalettes.map((saved) => (
               <div key={saved.name} className="flex items-center gap-0.5">
-                <button
-                  type="button"
-                  className="flex items-center gap-1.5 rounded-md border border-dashed px-2 py-1 text-[11px] hover:bg-accent/50 transition-colors"
-                  onClick={() => handleApplyPalette(saved.palette)}
-                  title={saved.name}
-                >
-                  <div className="flex gap-0.5">
-                    {[
-                      saved.palette.footerBg,
-                      saved.palette.accent,
-                      saved.palette.link,
-                      saved.palette.sectionBg,
-                    ].map((c, i) => (
-                      <div
-                        key={i}
-                        className="h-3 w-3 rounded-sm border border-border"
-                        style={{ backgroundColor: c }}
-                      />
-                    ))}
-                  </div>
-                  <span>{saved.name}</span>
-                </button>
-                <button
-                  type="button"
-                  className="p-0.5 text-muted-foreground hover:text-destructive"
-                  onClick={() => handleDeleteSaved(saved.name)}
-                  title={`Delete "${saved.name}"`}
-                  aria-label={`Delete palette ${saved.name}`}
-                >
-                  <Trash2 className="h-2.5 w-2.5" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1.5 rounded-md border border-dashed px-2 py-1 text-[11px] hover:bg-accent/50 transition-colors"
+                      onClick={() => handleApplyPalette(saved.palette)}
+                    >
+                      <div className="flex gap-0.5">
+                        {[
+                          saved.palette.footerBg,
+                          saved.palette.accent,
+                          saved.palette.link,
+                          saved.palette.sectionBg,
+                        ].map((c, i) => (
+                          <div
+                            key={i}
+                            className="h-3 w-3 rounded-sm border border-border"
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                      <span>{saved.name}</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{saved.name}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="p-0.5 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDeleteSaved(saved.name)}
+                      aria-label={`Delete palette ${saved.name}`}
+                    >
+                      <Trash2 className="h-2.5 w-2.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{`Delete "${saved.name}"`}</TooltipContent>
+                </Tooltip>
               </div>
             ))}
           </div>
@@ -379,25 +395,31 @@ export function EmailThemeEditor() {
                 data-testid={`theme-picker-${field.key}`}
               />
               <div className="min-w-0 flex-1">
-                <label
-                  className="text-xs font-medium truncate block"
-                  title={field.description}
-                >
-                  {field.label}
-                </label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <label className="text-xs font-medium truncate block">
+                      {field.label}
+                    </label>
+                  </TooltipTrigger>
+                  <TooltipContent>{field.description}</TooltipContent>
+                </Tooltip>
                 {!isFieldDefault && (
-                  <button
-                    type="button"
-                    className="text-[9px] text-muted-foreground hover:text-foreground"
-                    onClick={() =>
-                      store.setEmailPalette({
-                        [field.key]: DEFAULT_EMAIL_PALETTE[field.key],
-                      })
-                    }
-                    title={`Reset to ${DEFAULT_EMAIL_PALETTE[field.key]}`}
-                  >
-                    reset
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-[9px] text-muted-foreground hover:text-foreground"
+                        onClick={() =>
+                          store.setEmailPalette({
+                            [field.key]: DEFAULT_EMAIL_PALETTE[field.key],
+                          })
+                        }
+                      >
+                        reset
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{`Reset to ${DEFAULT_EMAIL_PALETTE[field.key]}`}</TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             </div>

@@ -28,6 +28,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
 // ===== Types =====
@@ -281,12 +282,12 @@ export function AccessibilityChecker() {
 
           {/* Results */}
           {issues.length === 0 ? (
-            <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 p-3">
-              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-              <p className="text-sm text-success">
+            <Alert variant="success">
+              <CheckCircle2 />
+              <AlertDescription>
                 No accessibility issues found. Your content looks good!
-              </p>
-            </div>
+              </AlertDescription>
+            </Alert>
           ) : (
             <div className="space-y-1.5" data-testid="a11y-issues-list">
               {issues.map((issue) => {

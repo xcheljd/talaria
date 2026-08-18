@@ -37,6 +37,11 @@ import {
 import { cn } from '@/lib/utils';
 import { sanitizeHTML } from '@/lib/html-utils';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { useShallow } from 'zustand/react/shallow';
@@ -518,36 +523,44 @@ export function NewsletterEditor() {
               }}
               data-testid="find-input"
             />
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                'h-6 w-6 shrink-0',
-                findCaseSensitive && 'bg-accent text-accent-foreground'
-              )}
-              onClick={() => setFindCaseSensitive(!findCaseSensitive)}
-              title="Match case"
-              aria-label="Match case"
-              aria-pressed={findCaseSensitive}
-              data-testid="find-case-sensitive"
-            >
-              <ALargeSmall className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                'h-6 w-6 shrink-0',
-                findWholeWord && 'bg-accent text-accent-foreground'
-              )}
-              onClick={() => setFindWholeWord(!findWholeWord)}
-              title="Whole word"
-              aria-label="Whole word"
-              aria-pressed={findWholeWord}
-              data-testid="find-whole-word"
-            >
-              <SpellCheck className="h-3 w-3" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-6 w-6 shrink-0',
+                    findCaseSensitive && 'bg-accent text-accent-foreground'
+                  )}
+                  onClick={() => setFindCaseSensitive(!findCaseSensitive)}
+                  aria-label="Match case"
+                  aria-pressed={findCaseSensitive}
+                  data-testid="find-case-sensitive"
+                >
+                  <ALargeSmall className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Match case</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-6 w-6 shrink-0',
+                    findWholeWord && 'bg-accent text-accent-foreground'
+                  )}
+                  onClick={() => setFindWholeWord(!findWholeWord)}
+                  aria-label="Whole word"
+                  aria-pressed={findWholeWord}
+                  data-testid="find-whole-word"
+                >
+                  <SpellCheck className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Whole word</TooltipContent>
+            </Tooltip>
             {findCount > 0 && (
               <span className="text-xs text-muted-foreground whitespace-nowrap">
                 {findCount} found
