@@ -56,147 +56,147 @@ export const PreviewToolbar = memo(function PreviewToolbar({
 }: PreviewToolbarProps) {
   return (
     <div className="flex items-center gap-1.5 border-b bg-muted/40 px-2 py-1">
-        {/* Preview / HTML Code tabs (dev mode only).
-         * flex-none so they shrink to content width, not fill the row. */}
-        {devMode && (
-          <>
-            <TabsList
-              variant="toolbar"
-              className="flex-none gap-0 rounded-md border border-input p-0 shadow-xs"
-            >
-              <TabsTrigger value="preview">
-                <Eye className="h-3.5 w-3.5" />
-                Preview
-              </TabsTrigger>
-              <TabsTrigger value="code">
-                <Code className="h-3.5 w-3.5" />
-                HTML
-              </TabsTrigger>
-            </TabsList>
-            <Separator orientation="vertical" className="mx-0.5 h-4" />
-          </>
-        )}
+      {/* Preview / HTML Code tabs (dev mode only).
+       * flex-none so they shrink to content width, not fill the row. */}
+      {devMode && (
+        <>
+          <TabsList
+            variant="toolbar"
+            className="flex-none gap-0 rounded-md border border-input p-0 shadow-xs"
+          >
+            <TabsTrigger value="preview">
+              <Eye className="h-3.5 w-3.5" />
+              Preview
+            </TabsTrigger>
+            <TabsTrigger value="code">
+              <Code className="h-3.5 w-3.5" />
+              HTML
+            </TabsTrigger>
+          </TabsList>
+          <Separator orientation="vertical" className="mx-0.5 h-4" />
+        </>
+      )}
 
-        {/* Viewport: mutually-exclusive segmented control (icon + label).
-         * ToggleGroupItems use native title= instead of Radix Tooltip to avoid
-         * the data-state collision between TooltipTrigger and Toggle (both write
-         * data-state on the same DOM node when composed via asChild, causing the
-         * active-state styling to disappear). */}
-        <ToggleGroup
-          type="single"
-          value={previewWidth}
-          onValueChange={onViewportChange}
-          variant="outline"
-          size="sm"
-          spacing={0}
-          colorScheme="primary"
-          aria-label="Preview viewport width"
-          className="shadow-xs"
+      {/* Viewport: mutually-exclusive segmented control (icon + label).
+       * ToggleGroupItems use native title= instead of Radix Tooltip to avoid
+       * the data-state collision between TooltipTrigger and Toggle (both write
+       * data-state on the same DOM node when composed via asChild, causing the
+       * active-state styling to disappear). */}
+      <ToggleGroup
+        type="single"
+        value={previewWidth}
+        onValueChange={onViewportChange}
+        variant="outline"
+        size="sm"
+        spacing={0}
+        colorScheme="primary"
+        aria-label="Preview viewport width"
+        className="shadow-xs"
+      >
+        <ToggleGroupItem
+          value="desktop"
+          aria-label="Desktop preview"
+          title="Desktop width (600px)"
+          className="gap-1.5 px-2 text-xs"
         >
-          <ToggleGroupItem
-            value="desktop"
-            aria-label="Desktop preview"
-            title="Desktop width (600px)"
-            className="gap-1.5 px-2 text-xs"
-          >
-            <Monitor className="h-3.5 w-3.5" />
-            Desktop
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="mobile"
-            aria-label="Mobile preview"
-            title="Mobile width (320px)"
-            className="gap-1.5 px-2 text-xs"
-          >
-            <Smartphone className="h-3.5 w-3.5" />
-            Mobile
-          </ToggleGroupItem>
-        </ToggleGroup>
-
-        <Separator orientation="vertical" className="mx-0.5 h-4" />
-
-        {/* Theme: light / dark segmented control */}
-        <ToggleGroup
-          type="single"
-          value={previewDark ? 'dark' : 'light'}
-          onValueChange={onThemeChange}
-          variant="outline"
-          size="sm"
-          spacing={0}
-          colorScheme="primary"
-          aria-label="Preview color scheme"
-          className="shadow-xs"
+          <Monitor className="h-3.5 w-3.5" />
+          Desktop
+        </ToggleGroupItem>
+        <ToggleGroupItem
+          value="mobile"
+          aria-label="Mobile preview"
+          title="Mobile width (320px)"
+          className="gap-1.5 px-2 text-xs"
         >
-          <ToggleGroupItem
-            value="light"
-            aria-label="Light preview"
-            title="Light preview"
-          >
-            <Sun className="h-3.5 w-3.5" />
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="dark"
-            aria-label="Dark preview"
-            title="Dark preview"
-          >
-            <Moon className="h-3.5 w-3.5" />
-          </ToggleGroupItem>
-        </ToggleGroup>
+          <Smartphone className="h-3.5 w-3.5" />
+          Mobile
+        </ToggleGroupItem>
+      </ToggleGroup>
 
-        {/* Dark-mode inversion model — only meaningful while dark preview is on.
-         * Emulates the two ways real clients handle dark mode (full vs partial
-         * color inversion). */}
-        {previewDark && (
-          <>
-            <Separator orientation="vertical" className="mx-0.5 h-4" />
-            <ToggleGroup
-              type="single"
-              value={previewInversion}
-              onValueChange={onInversionChange}
-              variant="outline"
-              size="sm"
-              spacing={0}
-              colorScheme="primary"
-              aria-label="Dark mode inversion model"
-              className="shadow-xs"
-            >
-              <ToggleGroupItem
-                value="full"
-                aria-label="Full inversion"
-                title="Full inversion — every color flips (Outlook Windows, Gmail iOS)"
-                className="px-2 text-xs"
-              >
-                Full
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="partial"
-                aria-label="Partial inversion"
-                title="Partial inversion — light areas darken, dark areas kept (Gmail mobile, Outlook.com)"
-                className="px-2 text-xs"
-              >
-                Partial
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </>
-        )}
+      <Separator orientation="vertical" className="mx-0.5 h-4" />
 
-        {/* Print: standalone ghost button. Radix Tooltip is safe here because
-         * Button has no data-state attribute to collide with. */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              className="ml-auto"
-              variant="ghost"
-              size="icon-sm"
-              onClick={onPrint}
-              disabled={!hasContent}
-              aria-label="Print email"
+      {/* Theme: light / dark segmented control */}
+      <ToggleGroup
+        type="single"
+        value={previewDark ? 'dark' : 'light'}
+        onValueChange={onThemeChange}
+        variant="outline"
+        size="sm"
+        spacing={0}
+        colorScheme="primary"
+        aria-label="Preview color scheme"
+        className="shadow-xs"
+      >
+        <ToggleGroupItem
+          value="light"
+          aria-label="Light preview"
+          title="Light preview"
+        >
+          <Sun className="h-3.5 w-3.5" />
+        </ToggleGroupItem>
+        <ToggleGroupItem
+          value="dark"
+          aria-label="Dark preview"
+          title="Dark preview"
+        >
+          <Moon className="h-3.5 w-3.5" />
+        </ToggleGroupItem>
+      </ToggleGroup>
+
+      {/* Dark-mode inversion model — only meaningful while dark preview is on.
+       * Emulates the two ways real clients handle dark mode (full vs partial
+       * color inversion). */}
+      {previewDark && (
+        <>
+          <Separator orientation="vertical" className="mx-0.5 h-4" />
+          <ToggleGroup
+            type="single"
+            value={previewInversion}
+            onValueChange={onInversionChange}
+            variant="outline"
+            size="sm"
+            spacing={0}
+            colorScheme="primary"
+            aria-label="Dark mode inversion model"
+            className="shadow-xs"
+          >
+            <ToggleGroupItem
+              value="full"
+              aria-label="Full inversion"
+              title="Full inversion — every color flips (Outlook Windows, Gmail iOS)"
+              className="px-2 text-xs"
             >
-              <Printer className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Print email</TooltipContent>
-        </Tooltip>
-      </div>
+              Full
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="partial"
+              aria-label="Partial inversion"
+              title="Partial inversion — light areas darken, dark areas kept (Gmail mobile, Outlook.com)"
+              className="px-2 text-xs"
+            >
+              Partial
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </>
+      )}
+
+      {/* Print: standalone ghost button. Radix Tooltip is safe here because
+       * Button has no data-state attribute to collide with. */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            className="ml-auto"
+            variant="ghost"
+            size="icon-sm"
+            onClick={onPrint}
+            disabled={!hasContent}
+            aria-label="Print email"
+          >
+            <Printer className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Print email</TooltipContent>
+      </Tooltip>
+    </div>
   );
 });
