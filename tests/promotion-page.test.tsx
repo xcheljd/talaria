@@ -12,6 +12,7 @@
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -21,7 +22,6 @@ import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { StorageKeys } from '@/lib/storage-keys';
-
 
 // Mock ResizeObserver for Radix components
 beforeAll(() => {
@@ -87,11 +87,13 @@ function renderPromotionPage(options?: { profile?: boolean }) {
 
   return render(
     <ThemeProvider>
-      <ProfileProvider>
-        <MemoryRouter>
-          <PromotionPage />
-        </MemoryRouter>
-      </ProfileProvider>
+      <TooltipProvider delayDuration={200}>
+        <ProfileProvider>
+          <MemoryRouter>
+            <PromotionPage />
+          </MemoryRouter>
+        </ProfileProvider>
+      </TooltipProvider>
     </ThemeProvider>
   );
 }
@@ -117,11 +119,7 @@ describe('CollapsibleCard', () => {
   it('renders children when expanded (default)', () => {
     render(
       <ThemeProvider>
-        <CollapsibleCard
-          cardId="testCard"
-          title="Test Card"
-          hasContent={false}
-        >
+        <CollapsibleCard cardId="testCard" title="Test Card" hasContent={false}>
           <p>Visible content</p>
         </CollapsibleCard>
       </ThemeProvider>
@@ -132,11 +130,7 @@ describe('CollapsibleCard', () => {
   it('shows status dot with "empty" state when hasContent is false', () => {
     const { container } = render(
       <ThemeProvider>
-        <CollapsibleCard
-          cardId="testCard"
-          title="Test Card"
-          hasContent={false}
-        >
+        <CollapsibleCard cardId="testCard" title="Test Card" hasContent={false}>
           <p>Content</p>
         </CollapsibleCard>
       </ThemeProvider>
@@ -148,11 +142,7 @@ describe('CollapsibleCard', () => {
   it('shows status dot with "filled" state when hasContent is true', () => {
     const { container } = render(
       <ThemeProvider>
-        <CollapsibleCard
-          cardId="testCard"
-          title="Test Card"
-          hasContent={true}
-        >
+        <CollapsibleCard cardId="testCard" title="Test Card" hasContent={true}>
           <p>Content</p>
         </CollapsibleCard>
       </ThemeProvider>
@@ -165,11 +155,7 @@ describe('CollapsibleCard', () => {
     const user = userEvent.setup();
     render(
       <ThemeProvider>
-        <CollapsibleCard
-          cardId="testCard"
-          title="Test Card"
-          hasContent={false}
-        >
+        <CollapsibleCard cardId="testCard" title="Test Card" hasContent={false}>
           <p>Collapsible content</p>
         </CollapsibleCard>
       </ThemeProvider>
@@ -250,11 +236,7 @@ describe('CollapsibleCard', () => {
   it('sets correct data-card-id attribute', () => {
     const { container } = render(
       <ThemeProvider>
-        <CollapsibleCard
-          cardId="mySpecialCard"
-          title="Card"
-          hasContent={false}
-        >
+        <CollapsibleCard cardId="mySpecialCard" title="Card" hasContent={false}>
           <p>Content</p>
         </CollapsibleCard>
       </ThemeProvider>
@@ -356,11 +338,13 @@ describe('PromotionPage', () => {
 
     const { container } = render(
       <ThemeProvider>
-        <ProfileProvider>
-          <MemoryRouter>
-            <PromotionPage />
-          </MemoryRouter>
-        </ProfileProvider>
+        <TooltipProvider delayDuration={200}>
+          <ProfileProvider>
+            <MemoryRouter>
+              <PromotionPage />
+            </MemoryRouter>
+          </ProfileProvider>
+        </TooltipProvider>
       </ThemeProvider>
     );
 

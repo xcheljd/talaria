@@ -9,6 +9,7 @@
 
 import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import userEvent from '@testing-library/user-event';
 
 import { PreviewColumn } from '@/components/promotion/PreviewColumn';
@@ -29,7 +30,9 @@ beforeAll(() => {
 function renderPreview() {
   return render(
     <ThemeProvider>
-      <PreviewColumn emailHTML="" />
+      <TooltipProvider delayDuration={200}>
+        <PreviewColumn emailHTML="" />
+      </TooltipProvider>
     </ThemeProvider>
   );
 }

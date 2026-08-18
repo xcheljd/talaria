@@ -18,23 +18,23 @@
 
 import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { MemoryRouter } from 'react-router-dom';
 
 import {
   generatePromotionEmailHTML,
   type PromotionEmailData,
 } from '@/lib/promotion-email-html';
-import { buildExportConfig, validateImportConfig } from '@/lib/promotion-config';
 import {
-  sanitizeRichHTML,
-  isSafeURL,
-} from '@/lib/html-utils';
+  buildExportConfig,
+  validateImportConfig,
+} from '@/lib/promotion-config';
+import { sanitizeRichHTML, isSafeURL } from '@/lib/html-utils';
 
 import { PromotionPage } from '@/pages/PromotionPage';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore, _resetIdCounter } from '@/stores/promotion-store';
-
 
 // ===== Mock Profile =====
 
@@ -87,17 +87,21 @@ function renderPromotionPage() {
   resetStore();
   return render(
     <ThemeProvider>
-      <ProfileProvider>
-        <MemoryRouter>
-          <PromotionPage />
-        </MemoryRouter>
-      </ProfileProvider>
+      <TooltipProvider delayDuration={200}>
+        <ProfileProvider>
+          <MemoryRouter>
+            <PromotionPage />
+          </MemoryRouter>
+        </ProfileProvider>
+      </TooltipProvider>
     </ThemeProvider>
   );
 }
 
 /** Helper to create email data with defaults */
-function makeEmailData(overrides: Partial<PromotionEmailData> = {}): PromotionEmailData {
+function makeEmailData(
+  overrides: Partial<PromotionEmailData> = {}
+): PromotionEmailData {
   return {
     promoDateRange: 'Nov 28 - Dec 1',
     promoYear: '2025',
@@ -107,10 +111,22 @@ function makeEmailData(overrides: Partial<PromotionEmailData> = {}): PromotionEm
     ],
     specialHours: [],
     howToShopItems: [
-      { id: 1, text: 'Visit us in-store', bold: false, italic: false, underline: false },
+      {
+        id: 1,
+        text: 'Visit us in-store',
+        bold: false,
+        italic: false,
+        underline: false,
+      },
     ],
     importantNotesItems: [
-      { id: 1, text: 'While supplies last', bold: false, italic: false, underline: false },
+      {
+        id: 1,
+        text: 'While supplies last',
+        bold: false,
+        italic: false,
+        underline: false,
+      },
     ],
     newsletterHeading: 'Newsletter',
     newsletterBody: '',
@@ -222,7 +238,9 @@ describe('newsletter email integration - HTML generation', () => {
       // Body content should be present
       expect(html).toContain('Hello world');
       // Should have inline-styled paragraph
-      expect(html).toMatch(/<p style="[^"]*font-family[^"]*"[^>]*>Hello world<\/p>/);
+      expect(html).toMatch(
+        /<p style="[^"]*font-family[^"]*"[^>]*>Hello world<\/p>/
+      );
     });
 
     it('converts strong tags to inline-styled spans', () => {
@@ -233,7 +251,9 @@ describe('newsletter email integration - HTML generation', () => {
 
       // <strong> should be replaced with <span style="font-weight: bold;">
       expect(html).not.toContain('<strong>');
-      expect(html).toContain('<span style="font-weight: bold;">Bold text</span>');
+      expect(html).toContain(
+        '<span style="font-weight: bold;">Bold text</span>'
+      );
     });
 
     it('converts em tags to inline-styled spans for italic text', () => {
@@ -244,7 +264,9 @@ describe('newsletter email integration - HTML generation', () => {
 
       // <em> should be replaced with <span style="font-style: italic;">
       expect(html).not.toContain('<em>');
-      expect(html).toContain('<span style="font-style: italic;">Italic text</span>');
+      expect(html).toContain(
+        '<span style="font-style: italic;">Italic text</span>'
+      );
     });
 
     it('converts u tags to inline-styled spans for underline', () => {
@@ -255,7 +277,9 @@ describe('newsletter email integration - HTML generation', () => {
 
       // <u> should be replaced with <span style="text-decoration: underline;">
       expect(html).not.toContain('<u>');
-      expect(html).toContain('<span style="text-decoration: underline;">Underlined text</span>');
+      expect(html).toContain(
+        '<span style="text-decoration: underline;">Underlined text</span>'
+      );
     });
 
     it('converts mark tags to inline-styled spans for highlight', () => {
@@ -266,22 +290,28 @@ describe('newsletter email integration - HTML generation', () => {
 
       // <mark> should be replaced with <span style="background-color: yellow;">
       expect(html).not.toContain('<mark>');
-      expect(html).toContain('<span style="background-color: yellow;">Highlighted text</span>');
+      expect(html).toContain(
+        '<span style="background-color: yellow;">Highlighted text</span>'
+      );
     });
 
     it('converts mark tags with data-color to inline-styled spans', () => {
       const data = makeEmailData({
-        newsletterBody: '<p><mark data-color="#ff0000">Red highlight</mark></p>',
+        newsletterBody:
+          '<p><mark data-color="#ff0000">Red highlight</mark></p>',
       });
       const html = generatePromotionEmailHTML(data);
 
       expect(html).not.toContain('<mark');
-      expect(html).toContain('<span style="background-color: #ff0000;">Red highlight</span>');
+      expect(html).toContain(
+        '<span style="background-color: #ff0000;">Red highlight</span>'
+      );
     });
 
     it('handles nested formatting with all inline styles', () => {
       const data = makeEmailData({
-        newsletterBody: '<p><strong><em><u>Bold italic underline</u></em></strong></p>',
+        newsletterBody:
+          '<p><strong><em><u>Bold italic underline</u></em></strong></p>',
       });
       const html = generatePromotionEmailHTML(data);
 
@@ -324,7 +354,9 @@ describe('newsletter email integration - HTML generation', () => {
       const html = generatePromotionEmailHTML(data);
 
       expect(html).toContain('Click here');
-      expect(html).toMatch(/<a[^>]*style="[^"]*color[^"]*"[^>]*>Click here<\/a>/);
+      expect(html).toMatch(
+        /<a[^>]*style="[^"]*color[^"]*"[^>]*>Click here<\/a>/
+      );
     });
   });
 
@@ -406,7 +438,9 @@ describe('newsletter email integration - HTML generation', () => {
 
 describe('sanitizeRichHTML', () => {
   it('preserves safe formatting tags', () => {
-    const result = sanitizeRichHTML('<p>Hello <strong>bold</strong> <em>italic</em></p>');
+    const result = sanitizeRichHTML(
+      '<p>Hello <strong>bold</strong> <em>italic</em></p>'
+    );
     expect(result).toContain('<strong>bold</strong>');
     expect(result).toContain('<em>italic</em>');
   });
@@ -434,7 +468,9 @@ describe('sanitizeRichHTML', () => {
   });
 
   it('strips disallowed tags entirely including their content', () => {
-    const result = sanitizeRichHTML('<iframe src="evil.com">Inner text</iframe>');
+    const result = sanitizeRichHTML(
+      '<iframe src="evil.com">Inner text</iframe>'
+    );
     expect(result).not.toContain('<iframe');
     expect(result).not.toContain('Inner text');
     // Dangerous elements are fully removed (content + tag)
@@ -617,7 +653,9 @@ describe('newsletter preview updates', () => {
     act(() => {
       usePromotionStore.getState().setPromoDateRange('Nov 28 - Dec 1');
       usePromotionStore.getState().setNewsletterVisible(true);
-      usePromotionStore.getState().setNewsletterBody('<h2>Test Heading</h2><p>Newsletter content</p>');
+      usePromotionStore
+        .getState()
+        .setNewsletterBody('<h2>Test Heading</h2><p>Newsletter content</p>');
     });
 
     // Preview should update (check iframe srcDoc) - desktop + mobile render 2 iframes
@@ -636,7 +674,9 @@ describe('newsletter preview updates', () => {
     act(() => {
       usePromotionStore.getState().setPromoDateRange('Nov 28 - Dec 1');
       usePromotionStore.getState().setNewsletterVisible(true);
-      usePromotionStore.getState().setNewsletterBody('<h2>Content</h2><p>Body text</p>');
+      usePromotionStore
+        .getState()
+        .setNewsletterBody('<h2>Content</h2><p>Body text</p>');
       usePromotionStore.getState().setNewsletterPosition('top');
     });
 

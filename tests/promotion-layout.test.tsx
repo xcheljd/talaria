@@ -12,6 +12,7 @@
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -20,7 +21,6 @@ import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { StorageKeys } from '@/lib/storage-keys';
-
 
 // Mock ResizeObserver for Radix components
 beforeAll(() => {
@@ -93,11 +93,13 @@ function renderPromotionPage() {
 
   return render(
     <ThemeProvider>
-      <ProfileProvider>
-        <MemoryRouter>
-          <PromotionPage />
-        </MemoryRouter>
-      </ProfileProvider>
+      <TooltipProvider delayDuration={200}>
+        <ProfileProvider>
+          <MemoryRouter>
+            <PromotionPage />
+          </MemoryRouter>
+        </ProfileProvider>
+      </TooltipProvider>
     </ThemeProvider>
   );
 }
@@ -117,14 +119,18 @@ describe('PromotionPage Desktop Layout', () => {
     const { container } = renderPromotionPage();
 
     // Icon toolbar exists
-    expect(container.querySelector('[data-testid="icon-toolbar"]')).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-testid="icon-toolbar"]')
+    ).toBeInTheDocument();
 
     // Preview is rendered (Email Preview header)
     const previews = screen.getAllByText('Email Preview');
     expect(previews.length).toBeGreaterThanOrEqual(1);
 
     // ResizablePanels container exists
-    expect(container.querySelector('[data-testid="resizable-panels"]')).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-testid="resizable-panels"]')
+    ).toBeInTheDocument();
   });
 
   // 2. Only the selected tool's card is shown in the column
@@ -155,7 +161,9 @@ describe('PromotionPage Desktop Layout', () => {
     ];
 
     for (const cardId of expectedCardIds) {
-      const iconBtn = container.querySelector(`[data-testid="toolbar-icon-${cardId}"]`);
+      const iconBtn = container.querySelector(
+        `[data-testid="toolbar-icon-${cardId}"]`
+      );
       expect(iconBtn).toBeInTheDocument();
     }
   });
@@ -166,7 +174,9 @@ describe('PromotionPage Desktop Layout', () => {
     const { container } = renderPromotionPage();
 
     // Click the "How to Shop" tool.
-    const howToShopBtn = container.querySelector('[data-testid="toolbar-icon-howToShopCard"]');
+    const howToShopBtn = container.querySelector(
+      '[data-testid="toolbar-icon-howToShopCard"]'
+    );
     expect(howToShopBtn).toBeInTheDocument();
 
     await user.click(howToShopBtn!);
@@ -217,8 +227,12 @@ describe('PromotionPage Desktop Layout', () => {
     expect(verticalSeparators.length).toBeGreaterThanOrEqual(1);
 
     // Check for first and second panels (desktop panels)
-    const firstPanels = container.querySelectorAll('[data-testid="panel-first"]');
-    const secondPanels = container.querySelectorAll('[data-testid="panel-second"]');
+    const firstPanels = container.querySelectorAll(
+      '[data-testid="panel-first"]'
+    );
+    const secondPanels = container.querySelectorAll(
+      '[data-testid="panel-second"]'
+    );
     expect(firstPanels.length).toBeGreaterThanOrEqual(1);
     expect(secondPanels.length).toBeGreaterThanOrEqual(1);
   });
@@ -267,6 +281,8 @@ describe('PromotionPage Desktop Layout', () => {
     const { container } = renderPromotionPage();
 
     // No desktop sidebar should exist
-    expect(container.querySelector('[data-testid="desktop-sidebar"]')).not.toBeInTheDocument();
+    expect(
+      container.querySelector('[data-testid="desktop-sidebar"]')
+    ).not.toBeInTheDocument();
   });
 });

@@ -16,6 +16,7 @@
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -123,11 +124,13 @@ function renderPromotionPage() {
   resetStore();
   return render(
     <ThemeProvider>
-      <ProfileProvider>
-        <MemoryRouter>
-          <PromotionPage />
-        </MemoryRouter>
-      </ProfileProvider>
+      <TooltipProvider delayDuration={200}>
+        <ProfileProvider>
+          <MemoryRouter>
+            <PromotionPage />
+          </MemoryRouter>
+        </ProfileProvider>
+      </TooltipProvider>
     </ThemeProvider>
   );
 }
@@ -794,11 +797,13 @@ describe('PromotionPage Preview and Export', () => {
 
     render(
       <ThemeProvider>
-        <ProfileProvider>
-          <MemoryRouter>
-            <PromotionPage />
-          </MemoryRouter>
-        </ProfileProvider>
+        <TooltipProvider delayDuration={200}>
+          <ProfileProvider>
+            <MemoryRouter>
+              <PromotionPage />
+            </MemoryRouter>
+          </ProfileProvider>
+        </TooltipProvider>
       </ThemeProvider>
     );
 
@@ -821,11 +826,13 @@ describe('PromotionPage Preview and Export', () => {
 
     render(
       <ThemeProvider>
-        <ProfileProvider>
-          <MemoryRouter>
-            <PromotionPage />
-          </MemoryRouter>
-        </ProfileProvider>
+        <TooltipProvider delayDuration={200}>
+          <ProfileProvider>
+            <MemoryRouter>
+              <PromotionPage />
+            </MemoryRouter>
+          </ProfileProvider>
+        </TooltipProvider>
       </ThemeProvider>
     );
 
@@ -866,11 +873,13 @@ describe('PromotionPage Preview and Export', () => {
 
     render(
       <ThemeProvider>
-        <ProfileProvider>
-          <MemoryRouter>
-            <PromotionPage />
-          </MemoryRouter>
-        </ProfileProvider>
+        <TooltipProvider delayDuration={200}>
+          <ProfileProvider>
+            <MemoryRouter>
+              <PromotionPage />
+            </MemoryRouter>
+          </ProfileProvider>
+        </TooltipProvider>
       </ThemeProvider>
     );
 
@@ -911,11 +920,13 @@ describe('PromotionPage Preview and Export', () => {
 
     render(
       <ThemeProvider>
-        <ProfileProvider>
-          <MemoryRouter>
-            <PromotionPage />
-          </MemoryRouter>
-        </ProfileProvider>
+        <TooltipProvider delayDuration={200}>
+          <ProfileProvider>
+            <MemoryRouter>
+              <PromotionPage />
+            </MemoryRouter>
+          </ProfileProvider>
+        </TooltipProvider>
       </ThemeProvider>
     );
 
@@ -1094,11 +1105,13 @@ describe('BasicDetailsEditor', () => {
 
     render(
       <ThemeProvider>
-        <ProfileProvider>
-          <MemoryRouter>
-            <PromotionPage />
-          </MemoryRouter>
-        </ProfileProvider>
+        <TooltipProvider delayDuration={200}>
+          <ProfileProvider>
+            <MemoryRouter>
+              <PromotionPage />
+            </MemoryRouter>
+          </ProfileProvider>
+        </TooltipProvider>
       </ThemeProvider>
     );
 

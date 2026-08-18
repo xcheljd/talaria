@@ -13,6 +13,7 @@
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -21,7 +22,6 @@ import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { StorageKeys } from '@/lib/storage-keys';
-
 
 // Mock ResizeObserver for Radix components
 beforeAll(() => {
@@ -82,11 +82,13 @@ function renderPromotionPage() {
 
   return render(
     <ThemeProvider>
-      <ProfileProvider>
-        <MemoryRouter>
-          <PromotionPage />
-        </MemoryRouter>
-      </ProfileProvider>
+      <TooltipProvider delayDuration={200}>
+        <ProfileProvider>
+          <MemoryRouter>
+            <PromotionPage />
+          </MemoryRouter>
+        </ProfileProvider>
+      </TooltipProvider>
     </ThemeProvider>
   );
 }
@@ -105,10 +107,14 @@ describe('PromotionPage Mobile Layout', () => {
   it('renders an IconToolbar in the mobile layout', () => {
     const { container } = renderPromotionPage();
 
-    const mobileContainer = container.querySelector('[data-testid="mobile-layout"]');
+    const mobileContainer = container.querySelector(
+      '[data-testid="mobile-layout"]'
+    );
     expect(mobileContainer).toBeInTheDocument();
 
-    const toolbars = mobileContainer!.querySelectorAll('[data-testid="icon-toolbar"]');
+    const toolbars = mobileContainer!.querySelectorAll(
+      '[data-testid="icon-toolbar"]'
+    );
     expect(toolbars.length).toBe(1);
   });
 
@@ -128,7 +134,9 @@ describe('PromotionPage Mobile Layout', () => {
       'bulkEmailCard',
     ];
 
-    const mobileContainer = container.querySelector('[data-testid="mobile-layout"]');
+    const mobileContainer = container.querySelector(
+      '[data-testid="mobile-layout"]'
+    );
     expect(mobileContainer).toBeInTheDocument();
 
     for (const cardId of allCardIds) {
@@ -248,7 +256,9 @@ describe('PromotionPage Mobile Layout', () => {
   it('has accessible aria-labels on toolbar icons', () => {
     const { container } = renderPromotionPage();
 
-    const mobileContainer = container.querySelector('[data-testid="mobile-layout"]');
+    const mobileContainer = container.querySelector(
+      '[data-testid="mobile-layout"]'
+    );
     expect(mobileContainer).toBeInTheDocument();
 
     const toolbarIcons = mobileContainer!.querySelectorAll(
@@ -292,7 +302,9 @@ describe('PromotionPage Mobile Layout', () => {
   it('toolbar icons use aria-pressed for active state', () => {
     const { container } = renderPromotionPage();
 
-    const mobileContainer = container.querySelector('[data-testid="mobile-layout"]');
+    const mobileContainer = container.querySelector(
+      '[data-testid="mobile-layout"]'
+    );
     expect(mobileContainer).toBeInTheDocument();
 
     const toolbarIcons = mobileContainer!.querySelectorAll(
