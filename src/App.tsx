@@ -34,7 +34,7 @@ function App() {
   return (
     <ThemeProvider>
       <ProfileProvider>
-        <TooltipProvider>
+        <TooltipProvider delayDuration={200}>
           <BrowserRouter>
             <Routes>
               <Route element={<Layout />}>

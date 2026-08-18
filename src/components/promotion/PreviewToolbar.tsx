@@ -21,7 +21,6 @@ import { Separator } from '@/components/ui/separator';
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
@@ -56,8 +55,7 @@ export const PreviewToolbar = memo(function PreviewToolbar({
   onPrint,
 }: PreviewToolbarProps) {
   return (
-    <TooltipProvider delayDuration={200}>
-      <div className="flex items-center gap-1.5 border-b bg-muted/40 px-2 py-1">
+    <div className="flex items-center gap-1.5 border-b bg-muted/40 px-2 py-1">
         {/* Preview / HTML Code tabs (dev mode only).
          * flex-none so they shrink to content width, not fill the row. */}
         {devMode && (
@@ -200,6 +198,5 @@ export const PreviewToolbar = memo(function PreviewToolbar({
           <TooltipContent>Print email</TooltipContent>
         </Tooltip>
       </div>
-    </TooltipProvider>
   );
 });
