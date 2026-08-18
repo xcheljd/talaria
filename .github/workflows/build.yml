@@ -99,6 +99,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    # generate_release_notes hits the Releases API; without an explicit
+    # contents:write grant the default read-only GITHUB_TOKEN fails with
+    # "Resource not accessible by integration".
+    permissions:
+      contents: write
 
     steps:
       - name: Download all artifacts
