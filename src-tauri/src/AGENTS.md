@@ -66,11 +66,22 @@ MIT/BSD licensed.
 
 **Public API (library-neutral):**
 - `optimize(bytes)` — convenience, accessibility-preserving (default).
-- `optimize_with_options(bytes, OptimizeOptions)` — configurable. Currently the
-  only option is `strip_accessibility: bool`.
-- `OptimizeOptions::default()` is `strip_accessibility: false`, so the library
-  is accessibility-preserving by default. Future external consumers of amatl
-  would opt in deliberately.
+- `optimize_with_options(bytes, OptimizeOptions)` — configurable.
+  `OptimizeOptions` is `#[non_exhaustive]` (construct via `default()` + the
+  chainable `with_*` setters) and carries five fields:
+  - `target_dpi: f32` — target resolution for downsampled images; values <= 0
+    disable downsampling. Default `130.0`.
+  - `jpeg_quality: u8` — quality (1-100, clamped at use) for re-encoded
+    images. Default `78`.
+  - `dpi_margin: f32` — only downsample when effective DPI exceeds the target
+    by this factor (min 1.0 at use). Default `1.15`.
+  - `strip_accessibility: bool` — remove the PDF structure tree for extra
+    reduction. Default `false`.
+  - `pack_object_streams: bool` — pack eligible non-stream objects into PDF
+    1.5 `ObjStm` streams with a binary xref stream. Default `false`.
+- `OptimizeOptions::default()` preserves accessibility and skips packing, so
+  the library is accessibility-preserving by default. Future external
+  consumers of amatl would opt in deliberately.
 
 **This app's binding (TS):** `amatl.optimize(dataURL)` in
 `src/lib/pdf-utils.ts` calls `optimize_with_options` with

@@ -29,8 +29,10 @@ to ~130 DPI / Q78 via mozjpeg — matching Ghostscript's image bytes within 0.01
 Plus optional accessibility-strip, duplicate-object merge, and PDF 1.5
 object-stream packing.
 
-Three library dependencies — `lopdf` (MIT), `image` (MIT OR Apache-2.0),
-`mozjpeg` (IJG/BSD-3-Clause) — all permissive. No native runtime dependency.
+Four library dependencies — `lopdf` (MIT), `image` (MIT OR Apache-2.0),
+`mozjpeg` (IJG/BSD-3-Clause), `rayon` (MIT OR Apache-2.0; pure Rust, no native
+deps, used for parallel image planning) — all permissive. No native runtime
+dependency.
 
 **Amatl's differentiators are not "best compression ratio."** It deliberately
 ties Ghostscript on image payload. Its actual edges:
@@ -110,15 +112,27 @@ move, not a rewrite.
 - `git mv src-tauri/src/amatl.rs` → new repo `amatl/src/lib.rs`; tests travel
   with it.
 - New `Cargo.toml`: `name = "amatl"`, `license = "MIT OR Apache-2.0"` (already
-  chosen), plus `keywords`, `categories`, and docs.rs metadata. Deps: `lopdf`,
-  `image` (default-features off, `jpeg` only), `mozjpeg`.
+  chosen), plus `keywords`, `categories`, and docs.rs metadata. Carry over
+  `rust-version = "1.77.2"` (MSRV, recorded in the app's `Cargo.toml`) and add a
+  CI job that verifies the crate builds on that toolchain. Deps: `lopdf`,
+  `image` (default-features off, `jpeg` only), `mozjpeg`, `rayon = "1"` (locked
+  1.12.0; pure Rust, MIT OR Apache-2.0, no native deps — used for parallel
+  image planning).
+  - **lopdf hard ceiling: 0.42.** 0.43 and 0.44 do not compile against current
+    `time` (their `datetime.rs` calls `FormatItem::StringLiteral`, which no
+    longer exists in `time` 0.3.47 — the error is inside lopdf itself, not our
+    code). Re-test the bump when lopdf publishes a release that fixes this.
 - Add `LICENSE-MIT` + `LICENSE-APACHE` (Rust dual-license convention).
 - **README** assembled from material that already exists in `AGENTS.md`: the
   Nahuatl etymology, the effective-DPI insight, the measured benchmark table, and
   the "Why NOT Ghostscript" section. This narrative *is* the portfolio value —
   invest in it.
-- CI: replicate the NASM + mozjpeg build setup (recipe already in
-  `.github/workflows/build.yml`).
+- CI: replicate the Rust test/lint setup from `.github/workflows/rust.yml`
+  (pinned `dtolnay/rust-toolchain` stable + clippy, `ilammy/setup-nasm` for
+  mozjpeg's SIMD build, `Swatinem/rust-cache`, `cargo test`, and
+  `cargo clippy --all-targets -- -D warnings`). On extraction, drop the
+  Tauri-specific steps (the apt system-library install and the frontend
+  dist-stub) — they exist only because the app crate links the webview.
 - The app then depends on the published/path/git crate. The Tauri
   `amatl_optimize` command and the TS wrapper (`src/lib/pdf-utils.ts`) **stay in
   the app** — they are the binding, not the library.
@@ -224,19 +238,40 @@ fair-source) to a **separate pro module**, never to the optimizer core.
 
 ## 9. Concrete code deltas extraction requires
 
-Items 2–5 remain; item 1 shipped:
+Items 2–8 remain; item 1 shipped:
 
 1. ~~Promote `TARGET_DPI` / `JPEG_QUALITY` / `DPI_MARGIN` (`amatl.rs:34–39`) from
    `const`s to `OptimizeOptions` fields — unblocks the CLI and general use.~~
    **Shipped**: `OptimizeOptions` now carries `target_dpi` / `jpeg_quality` /
    `dpi_margin` with `#[non_exhaustive]` + builder setters (9a68bd3, b7f0cf9;
    plans/001+002).
-2. Drop the `#[allow(dead_code)]` on `optimize()` — it becomes a real public
-   entry point once Amatl is a library.
-3. Add crate metadata (keywords/categories/docs.rs), `LICENSE-MIT`,
-   `LICENSE-APACHE`, and a README.
-4. New-repo CI with NASM + a C compiler for mozjpeg (port from `build.yml`).
-5. App switches from `mod amatl;` to a Cargo dependency; the IPC command and TS
+2. Drop the two `#[allow(dead_code)]` attributes: on the `OptimizeOptions`
+   builder impl block (`amatl.rs:132`) and on `optimize()` (`amatl.rs:177`).
+   Both exist only because the app doesn't call those surfaces; both come off
+   at extraction once the module is public and they're reachable from outside.
+3. Un-ignore the `OptimizeOptions` doctest (`amatl.rs:63–70`). It is `ignore`d
+   today only because `amatl` is a private module in this app; making the
+   module `pub` at extraction turns it into a compiled doctest.
+4. De-app-ify the wording: doc comments still reference the
+   "communication-templates" app (`amatl.rs` lines 44, 55, 175, 843, plus the
+   real-file test's doc comment near 1447) — rewrite for a standalone library.
+   (The opt-in test env vars have already been renamed `CCT_TEST_*` →
+   `AMATL_TEST_PDF` / `AMATL_TEST_PACK` / `AMATL_TEST_OUT` in-repo.)
+5. Add crate metadata (keywords/categories/docs.rs) and a README.
+   `LICENSE-MIT` + `LICENSE-APACHE` now exist at this repo's root and travel
+   with the extraction. A redistributable test fixture
+   (`src-tauri/fixtures/sample.pdf`, regenerable via the programmatic generator
+   `src-tauri/tests/generate_fixture.rs`) and a Ghostscript-comparison
+   benchmark script (`scripts/bench-vs-gs.sh`) also exist in-repo and travel
+   with it.
+6. New-repo CI with NASM + a C compiler for mozjpeg (port from `rust.yml`,
+   dropping the Tauri-only steps — see [§5](#5-phase-1--extraction-the-git-mv)).
+7. **Phase 2 licensing note:** mozjpeg's IJG license requires the statement
+   "this software is based in part on the work of the Independent JPEG Group"
+   in documentation accompanying **binary** distributions. Source-only
+   distribution (crates.io) doesn't trigger it; create a `NOTICE` file when
+   Phase 2 ships prebuilt binaries (deferred by approved decision).
+8. App switches from `mod amatl;` to a Cargo dependency; the IPC command and TS
    wrapper are unchanged.
 
 ---
