@@ -1443,30 +1443,31 @@ mod tests {
         assert_ne!(first, second, "distinct objects must keep distinct references");
     }
 
-    /// Opt-in real-file check: set CCT_TEST_PDF to a promotion PDF path.
-    /// Uses the same options as the communication-templates app (strip the
-    /// accessibility tree). Asserts the output is smaller and remains a valid,
-    /// loadable PDF.
+    /// Real-file check. Defaults to the committed fixture
+    /// (`fixtures/sample.pdf`, regenerable via `tests/generate_fixture.rs`);
+    /// set AMATL_TEST_PDF to run against another PDF instead. Uses the same
+    /// options as the communication-templates app (strip the accessibility
+    /// tree). Asserts the output is smaller and remains a valid, loadable PDF.
     #[test]
     fn real_file_shrinks_when_present() {
-        let Ok(path) = std::env::var("CCT_TEST_PDF") else {
-            return;
-        };
-        let input = std::fs::read(&path).expect("failed to read CCT_TEST_PDF");
-        // Opt in to object-stream packing for this run via CCT_TEST_PACK=1.
+        let path = std::env::var("AMATL_TEST_PDF").unwrap_or_else(|_| {
+            concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/sample.pdf").to_string()
+        });
+        let input = std::fs::read(&path).expect("failed to read real-file test input");
+        // Opt in to object-stream packing for this run via AMATL_TEST_PACK=1.
         let opts = OptimizeOptions::default()
             .with_strip_accessibility(true)
-            .with_pack_object_streams(std::env::var("CCT_TEST_PACK").is_ok());
+            .with_pack_object_streams(std::env::var("AMATL_TEST_PACK").is_ok());
         let out = optimize_with_options(&input, opts);
         println!(
-            "CCT_TEST_PDF: {} -> {} bytes ({}%)",
+            "{path}: {} -> {} bytes ({}%)",
             input.len(),
             out.len(),
             out.len() * 100 / input.len()
         );
         assert!(out.len() < input.len(), "expected real file to shrink");
         assert!(Document::load_mem(&out).is_ok(), "output must be a valid PDF");
-        if let Ok(dest) = std::env::var("CCT_TEST_OUT") {
+        if let Ok(dest) = std::env::var("AMATL_TEST_OUT") {
             std::fs::write(&dest, &out).unwrap();
         }
     }
