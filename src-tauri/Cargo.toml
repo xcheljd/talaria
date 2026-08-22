@@ -10,8 +10,9 @@ authors = ["you"]
 license = "MIT OR Apache-2.0"
 repository = ""
 edition = "2021"
-# Floor is dependency-driven: lopdf 0.42.0 ships an edition-2024 manifest (needs Cargo/Rust >= 1.85).
-rust-version = "1.85.0"
+# Floor is dependency-driven: lopdf 0.42.0 ships an edition-2024 manifest (needs
+# Cargo/Rust >= 1.85), and current image/time releases require rustc 1.88.
+rust-version = "1.88.0"
 
 [lib]
 name = "talaria_lib"

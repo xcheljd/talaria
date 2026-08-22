@@ -113,10 +113,11 @@ move, not a rewrite.
   with it.
 - New `Cargo.toml`: `name = "amatl"`, `license = "MIT OR Apache-2.0"` (already
   chosen), plus `keywords`, `categories`, and docs.rs metadata. Carry over
-  `rust-version = "1.85.0"` (MSRV, recorded in the app's `Cargo.toml`; the
+  `rust-version = "1.88.0"` (MSRV, recorded in the app's `Cargo.toml`; the
   floor is dependency-driven — lopdf 0.42.0 ships an edition-2024 manifest,
-  which needs Cargo/Rust >= 1.85, as amatl's CI MSRV job proved when 1.77.2
-  failed to resolve) and add a CI job that verifies the crate builds on that
+  which needs Cargo/Rust >= 1.85, and fresh resolution pulls current
+  `image`/`time` releases that require rustc 1.88, as amatl's CI MSRV job
+  proved) and add a CI job that verifies the crate builds on that
   toolchain. Deps: `lopdf`,
   `image` (default-features off, `jpeg` only), `mozjpeg`, `rayon = "1"` (locked
   1.12.0; pure Rust, MIT OR Apache-2.0, no native deps — used for parallel
