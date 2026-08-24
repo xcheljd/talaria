@@ -1,3 +1,5 @@
+#![allow(dead_code)] // vendored library: full upstream API surface kept intentionally;
+// the app uses a subset. CI clippy runs -D warnings.
 //! **amatl** — pure-Rust PDF size optimization.
 //!
 //! Named for the Nahuatl word for the fig-bark paper used in pre-Columbian
