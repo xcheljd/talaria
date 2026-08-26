@@ -57,7 +57,6 @@
 //!   - A re-encode that isn't smaller is discarded.
 //!   - Any failure (parse, decode, save) falls back to the original bytes.
 
-
 mod bitonal {
 //! B-M1: lossless recompression of bitonal (1-bit) images to CCITT G4.
 //!
@@ -867,12 +866,11 @@ mod tests {
         );
     }
 }
-
 }
 
 mod cffhint {
 //! Type2 (CFF / `Type1C`) hint stripping — the CFF analogue of
-//! [`crate::truetype::strip_hinting`].
+//! [`super::truetype::strip_hinting`].
 //!
 //! A Type2 charstring carries two interleaved programs: the *outline*
 //! (movetos, linetos, curvetos) and the *hints* (`hstem`, `vstem`,
@@ -1958,7 +1956,6 @@ mod tests {
         assert!(strip_hints(&[0xFFu8; 256], false).is_none());
     }
 }
-
 }
 
 mod cffmerge {
@@ -2785,7 +2782,6 @@ mod tests {
         assert!(merge_type1c(&[&a, &b], false).is_none());
     }
 }
-
 }
 
 mod encodings {
@@ -3686,7 +3682,1209 @@ mod tests {
         );
     }
 }
+}
 
+mod forms {
+//! Opt-in interactive-form flattening (`OptimizeOptions::flatten_forms`).
+//!
+//! Turns an interactive AcroForm document into a static one: every widget
+//! annotation that draws ink is painted into its page's content stream at the
+//! position ISO 32000-1 12.5.5 says the viewer painted it, and then the whole
+//! form layer — `/AcroForm`, the field tree, the XFA packet set, the widget
+//! annotations — is removed. `prune_objects()` collects the remains.
+//!
+//! The contract this module exists to keep is **data preservation**: a field's
+//! value survives either because its appearance stream (the thing that *shows*
+//! the value) is now page content, or because the field has no value to lose.
+//! When neither holds — a dynamic XFA form, a value with no appearance to
+//! burn, a hidden field that carries data — the whole document is declined and
+//! `try_optimize` proceeds exactly as if the flag were off. See
+//! `docs/FORMS-PLAN.md` for the decline table (D1..D13) referenced by the
+//! comments below.
+//!
+//! Everything here is planning against an immutable `&Document`; `apply` is a
+//! separate, non-failing pass over the plan.
+
+use std::collections::{HashMap, HashSet};
+
+use lopdf::content::Content;
+use lopdf::{dictionary, Dictionary, Document, Object, ObjectId, Stream};
+
+use super::{fonts, resolve};
+
+/// Depth bound for the field-tree walk and the `/Parent` climb.
+const MAX_DEPTH: usize = 32;
+
+/// Geometric degeneracy threshold for `/BBox` and `/Rect` extents, in points.
+/// Not a tolerance for "small": a box thinner than this maps through a
+/// scale factor we refuse to compute (D12).
+const MIN_EXTENT: f64 = 1e-6;
+
+/// One appearance stream to paint into a page.
+struct Burn {
+    /// Resource name bound to `ap_id` in the page's `/XObject` dictionary.
+    /// Globally unique across the document, so mutating a shared or inherited
+    /// resource dictionary can never collide with an existing name.
+    name: Vec<u8>,
+    /// The appearance stream object, used unmodified.
+    ap_id: ObjectId,
+    /// Matrix **A** of ISO 32000-1 12.5.5 (`/BBox` bounds -> `/Rect`).
+    matrix: [f64; 6],
+}
+
+struct PagePlan {
+    page_id: ObjectId,
+    burns: Vec<Burn>,
+    /// Widget annotations to drop from this page's `/Annots`.
+    drop_annots: HashSet<ObjectId>,
+    /// The page has a `/Contents` entry, so the splice needs the `q` / `Q`
+    /// pair that restores the initial CTM before the widget operators.
+    has_contents: bool,
+}
+
+pub(crate) struct FlattenPlan {
+    pages: Vec<PagePlan>,
+    /// Every widget annotation removed anywhere, for the structure-tree
+    /// `/OBJR` cleanup.
+    removed_widgets: HashSet<ObjectId>,
+    /// The catalog carries a `/Perms /UR3` usage-rights signature: the Reader
+    /// grant for exactly the form filling being removed.
+    drop_ur3: bool,
+}
+
+// -- planning ---------------------------------------------------------------
+
+/// Plan the flattening, or return `None` to decline the document.
+pub(crate) fn plan_flatten(doc: &Document) -> Option<FlattenPlan> {
+    // D1 — same posture as every other structural pass.
+    if doc.is_encrypted() || fonts::pdfa_blocked(doc) {
+        return None;
+    }
+    let catalog = doc.catalog().ok()?;
+
+    // D3 — ISO 32000-1 12.7.8: the marker for a dynamic XFA form, whose pages
+    // are a placeholder the reader replaces by laying out the XFA template.
+    // There is nothing static to flatten and amatl will never render XFA.
+    if let Ok(needs) = catalog.get(b"NeedsRendering") {
+        if matches!(resolve(doc, needs), Object::Boolean(true)) {
+            return None;
+        }
+    }
+
+    // D2 — no field tree, nothing to flatten. Widget annotations that are not
+    // reachable from an `/AcroForm` are not guessed at either.
+    let acroform = resolve(doc, catalog.get(b"AcroForm").ok()?)
+        .as_dict()
+        .ok()?;
+
+    let mut scan = FieldScan::default();
+    if let Ok(fields) = acroform.get(b"Fields") {
+        let fields = resolve(doc, fields).as_array().ok()?;
+        for field in fields {
+            walk_field(doc, field, None, None, None, 0, &mut scan)?;
+        }
+    }
+
+    // D5 — the reader was told to generate appearances from `/V`; the stored
+    // ones may be stale or absent, and amatl has no text layout engine.
+    if let Ok(need) = acroform.get(b"NeedAppearances") {
+        if matches!(resolve(doc, need), Object::Boolean(true)) && scan.any_value {
+            return None;
+        }
+    }
+
+    // D4 — every piece of data in the XFA XML must be mirrored by an AcroForm
+    // field value, or it lives only in the XML and flattening would drop it.
+    if let Ok(xfa) = acroform.get(b"XFA") {
+        check_xfa_mirrored(doc, resolve(doc, xfa), &scan)?;
+    }
+
+    let mut pages = Vec::new();
+    // Widgets that end up painting their appearance into a page, and the
+    // single-widget "fields" a page shows that `/Fields` never mentioned.
+    let mut burned: HashSet<ObjectId> = HashSet::new();
+    let mut orphan_valued: Vec<ObjectId> = Vec::new();
+    let mut removed_widgets = HashSet::new();
+    let mut next_name = 0usize;
+
+    for (_, page_id) in doc.get_pages() {
+        let page = doc.get_object(page_id).ok()?.as_dict().ok()?;
+        let Ok(annots) = page.get(b"Annots") else {
+            continue;
+        };
+        let annots = resolve(doc, annots).as_array().ok()?;
+
+        let mut burns = Vec::new();
+        let mut drop_annots = HashSet::new();
+        for entry in annots {
+            let object = resolve(doc, entry);
+            let Ok(annot) = object.as_dict() else {
+                continue;
+            };
+            if !matches!(annot.get(b"Subtype").map(|s| resolve(doc, s)), Ok(Object::Name(n)) if n == b"Widget")
+            {
+                // Links, markup, popups: not form machinery, not touched.
+                continue;
+            }
+            // A widget we cannot name by object id is a widget we cannot
+            // reliably drop from `/Annots` or clean out of the structure tree.
+            let Object::Reference(annot_id) = entry else {
+                return None;
+            };
+            let annot_id = *annot_id;
+
+            // D7 — optional content makes visibility conditional; painting it
+            // into the page would make it unconditional.
+            if annot.has(b"OC") {
+                return None;
+            }
+
+            // A widget the `/Fields` walk never reached is its own field: its
+            // value can only be read off the annotation itself.
+            if !scan.known_widgets.contains(&annot_id) {
+                let value = annot.get(b"V").ok().map(|v| resolve(doc, v));
+                if !value_is_empty(value) {
+                    orphan_valued.push(annot_id);
+                }
+            }
+
+            let appearance = match appearance_stream(doc, annot) {
+                ApSel::Decline => return None,
+                ApSel::None => None,
+                ApSel::Stream(id) => {
+                    if draws_ink(doc, id) {
+                        Some(id)
+                    } else {
+                        None
+                    }
+                }
+            };
+
+            let flags = annot
+                .get(b"F")
+                .map(|f| resolve(doc, f))
+                .and_then(|f| f.as_i64())
+                .unwrap_or(0);
+            let invisible = flags & 0b10 != 0 || flags & 0b10_0000 != 0; // Hidden | NoView
+
+            if invisible {
+                // D8 — a widget that is drawn on paper but not on screen (or
+                // neither) cannot be expressed as unconditional page content.
+                // Whether its field's value survives is settled below, by the
+                // same rule as every other widget: some widget must burn it.
+                if appearance.is_some() {
+                    return None;
+                }
+            } else if let Some(ap_id) = appearance {
+                // P1 — burn the appearance the viewer painted.
+                // D15 — an appearance with no `/Resources` of its own was
+                // resolving its names against `/AcroForm /DR`, which this pass
+                // deletes. Painting it afterwards would draw nothing where the
+                // value used to be.
+                if !appearance_is_self_contained(doc, ap_id) {
+                    return None;
+                }
+                let matrix = burn_matrix(doc, annot, ap_id)?;
+                burns.push(Burn {
+                    name: format!("AmXf{next_name}").into_bytes(),
+                    ap_id,
+                    matrix,
+                });
+                next_name += 1;
+                burned.insert(annot_id);
+            }
+            // else: P2 — nothing drawn. Whether that is allowed is the
+            // valued-field check below.
+
+            drop_annots.insert(annot_id);
+            removed_widgets.insert(annot_id);
+        }
+
+        if drop_annots.is_empty() {
+            continue;
+        }
+
+        let has_contents = page.has(b"Contents");
+        if !burns.is_empty() {
+            // D13 — the splice needs a page whose content is parseable and
+            // whose graphics-state stack returns to its base level, so the `q`
+            // we prepend survives to be popped by the `Q` we append.
+            if has_contents && !content_is_spliceable(doc, page_id) {
+                return None;
+            }
+            // D14 — and a resource dictionary the burn names can actually be
+            // bound into. A `/Resources` or `/XObject` entry that does not
+            // resolve to a dictionary would leave the `Do` operators pointing
+            // at an undefined name, which viewers skip silently — the one
+            // failure mode that would lose a value without saying so.
+            if !resources_are_bindable(doc, page_id) {
+                return None;
+            }
+        }
+        pages.push(PagePlan {
+            page_id,
+            burns,
+            drop_annots,
+            has_contents,
+        });
+    }
+
+    // D9 / D11 — the data-preservation gate. Every field that holds a value
+    // must have at least one widget whose appearance is now page content: a
+    // radio group needs only its selected button, but a filled text field with
+    // no appearance, a hidden one, or one whose widget is on no page at all
+    // has nothing left showing its value, and the document declines.
+    for widgets in scan.valued_fields.values() {
+        if !widgets.iter().any(|widget| burned.contains(widget)) {
+            return None;
+        }
+    }
+    if orphan_valued.iter().any(|widget| !burned.contains(widget)) {
+        return None;
+    }
+
+    let drop_ur3 = catalog
+        .get(b"Perms")
+        .map(|p| resolve(doc, p))
+        .ok()
+        .and_then(|p| p.as_dict().ok())
+        .is_some_and(|perms| perms.has(b"UR3"));
+
+    Some(FlattenPlan {
+        pages,
+        removed_widgets,
+        drop_ur3,
+    })
+}
+
+/// What the field-tree walk learned. Everything here is about *values*: the
+/// module's whole job is to prove no value is silently dropped.
+///
+/// A value belongs to a **field**, not to a widget. A radio group is the case
+/// that forces this: every button in the group inherits the group's `/V`, but
+/// only the one whose `/AS` names a present state paints anything. Requiring
+/// each *widget* to account for the value would decline every radio group ever
+/// made; requiring each *field* to have at least one widget that burns is the
+/// correct reading of "the value is still visible".
+#[derive(Default)]
+struct FieldScan {
+    /// Field node that owns a non-empty `/V` -> the widget annotations under
+    /// it. At least one of them must burn, or the document declines (D9/D11).
+    valued_fields: HashMap<ObjectId, Vec<ObjectId>>,
+    /// Every widget the field tree reaches, so a widget a page shows but
+    /// `/Fields` never mentions can be recognized and handled on its own.
+    known_widgets: HashSet<ObjectId>,
+    /// Partial field name (any trailing `[n]` stripped) -> effective values.
+    /// The XFA `datasets` mirror check reads this.
+    values_by_name: HashMap<Vec<u8>, Vec<Option<Object>>>,
+    /// Any field anywhere carries a non-empty value (feeds D5).
+    any_value: bool,
+}
+
+/// Recursive `/Fields` walk with `/FT` and `/V` inheritance. Returns `None`
+/// to decline the document.
+fn walk_field(
+    doc: &Document,
+    node: &Object,
+    inherited_ft: Option<&[u8]>,
+    inherited_v: Option<&Object>,
+    owner: Option<ObjectId>,
+    depth: usize,
+    scan: &mut FieldScan,
+) -> Option<()> {
+    if depth > MAX_DEPTH {
+        return None;
+    }
+    let node_id = match node {
+        Object::Reference(id) => Some(*id),
+        _ => None,
+    };
+    let Ok(dict) = resolve(doc, node).as_dict() else {
+        // A field entry that is not a dictionary tells us nothing about the
+        // values under it.
+        return None;
+    };
+
+    let own_ft = dict
+        .get(b"FT")
+        .map(|f| resolve(doc, f))
+        .ok()
+        .and_then(|f| f.as_name().ok())
+        .map(<[u8]>::to_vec);
+    let ft: Option<&[u8]> = own_ft.as_deref().or(inherited_ft);
+
+    let own_v = dict.get(b"V").ok().map(|v| resolve(doc, v).clone());
+    let value: Option<&Object> = own_v.as_ref().or(inherited_v);
+
+    // D6 — a form field holding a real signature. Flattening would delete it.
+    if ft == Some(b"Sig".as_slice()) && matches!(value, Some(Object::Dictionary(_))) {
+        return None;
+    }
+
+    let has_value = !value_is_empty(value);
+    if has_value {
+        scan.any_value = true;
+    }
+    // Whichever node last declared a non-empty `/V` owns the value for this
+    // subtree; a node that declares an empty one takes the value away again.
+    let owner = match own_v {
+        Some(_) if has_value => Some(node_id?),
+        Some(_) => None,
+        None => owner,
+    };
+    if let Some(owner) = owner {
+        scan.valued_fields.entry(owner).or_default();
+    }
+
+    if let Ok(Object::String(name, _)) = dict.get(b"T").map(|t| resolve(doc, t)) {
+        scan.values_by_name
+            .entry(strip_index(&text_string(name)))
+            .or_default()
+            .push(value.cloned());
+    }
+
+    let is_widget = matches!(dict.get(b"Subtype").map(|s| resolve(doc, s)), Ok(Object::Name(n)) if n == b"Widget");
+    if is_widget {
+        // A merged field/widget node, or a widget kid. Attribute it to the
+        // field whose value it may be showing.
+        let id = node_id?;
+        scan.known_widgets.insert(id);
+        if let Some(owner) = owner {
+            scan.valued_fields.entry(owner).or_default().push(id);
+        }
+    }
+
+    if let Ok(kids) = dict.get(b"Kids") {
+        for kid in resolve(doc, kids).as_array().ok()? {
+            walk_field(doc, kid, ft, value, owner, depth + 1, scan)?;
+        }
+    }
+    Some(())
+}
+
+/// A value that cannot be lost because there is nothing there: absent, null,
+/// an all-whitespace string, an empty array, or a button's `/Off` state.
+fn value_is_empty(value: Option<&Object>) -> bool {
+    match value {
+        None | Some(Object::Null) => true,
+        Some(Object::String(s, _)) => text_string(s).iter().all(u8::is_ascii_whitespace),
+        Some(Object::Name(n)) => n == b"Off",
+        Some(Object::Array(a)) => a.is_empty(),
+        _ => false,
+    }
+}
+
+/// `f1_05[0]` -> `f1_05`. XFA data nodes carry the partial name without the
+/// occurrence index PDF field names append.
+fn strip_index(name: &[u8]) -> Vec<u8> {
+    if name.last() == Some(&b']') {
+        if let Some(open) = name.iter().rposition(|&b| b == b'[') {
+            if name[open + 1..name.len() - 1]
+                .iter()
+                .all(u8::is_ascii_digit)
+            {
+                return name[..open].to_vec();
+            }
+        }
+    }
+    name.to_vec()
+}
+
+/// A PDF *text string* (ISO 32000-1 7.9.2.2) as UTF-8 bytes, so it can be
+/// compared against the UTF-8 an XFA packet holds. Acrobat writes field names
+/// and values as UTF-16BE with a byte-order mark; PDFDocEncoded strings are
+/// returned as-is, which is exact for the ASCII range and, above it, produces
+/// bytes that simply will not match the XFA text — declining, not guessing.
+fn text_string(bytes: &[u8]) -> Vec<u8> {
+    if let Some(body) = bytes.strip_prefix(&[0xFE, 0xFF]) {
+        let units: Vec<u16> = body
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|pair| u16::from_be_bytes(*pair))
+            .collect();
+        return match char::decode_utf16(units).collect::<Result<String, _>>() {
+            Ok(text) => text.into_bytes(),
+            // Unpaired surrogate: hand back the raw bytes rather than invent a
+            // replacement character that could accidentally compare equal.
+            Err(_) => bytes.to_vec(),
+        };
+    }
+    match bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]) {
+        Some(body) => body.to_vec(),
+        None => bytes.to_vec(),
+    }
+}
+
+// -- XFA --------------------------------------------------------------------
+
+/// D4: every non-empty leaf of the XFA `datasets` (and `form`) packets must be
+/// mirrored by an AcroForm field value. When it is, flattening the AcroForm
+/// flattens the XFA data with it; when it is not, the data lives only in the
+/// XML and the document is declined.
+fn check_xfa_mirrored(doc: &Document, xfa: &Object, scan: &FieldScan) -> Option<()> {
+    // Only the array (packet-list) form is handled: the single-stream XDP form
+    // cannot be split into packets without an XML parser we are not adding, and
+    // scanning the whole XDP would read `/config` values as if they were data.
+    let packets = xfa.as_array().ok()?;
+    for pair in packets.chunks(2) {
+        let [name, stream] = pair else { return None };
+        let Ok(name) = resolve(doc, name).as_str() else {
+            continue;
+        };
+        if name != b"datasets" && name != b"form" {
+            continue;
+        }
+        let bytes = resolve(doc, stream)
+            .as_stream()
+            .ok()?
+            .decompressed_content()
+            .ok()?;
+        for (leaf, text) in datasets_leaves(&bytes)? {
+            if !mirrored(&leaf, &text, scan) {
+                return None;
+            }
+        }
+    }
+    Some(())
+}
+
+/// One XFA leaf value against the AcroForm field tree: at least one field with
+/// that partial name, and *every* such field carrying an equivalent value.
+fn mirrored(leaf: &[u8], text: &[u8], scan: &FieldScan) -> bool {
+    let Some(values) = scan.values_by_name.get(leaf) else {
+        return false;
+    };
+    !values.is_empty()
+        && values.iter().all(|v| match v {
+            Some(Object::String(s, _)) => text_string(s) == text,
+            // XFA writes a checkbox's off-state as `0`; PDF writes it `/Off`.
+            Some(Object::Name(n)) => n == text || (n == b"Off" && text == b"0"),
+            _ => false,
+        })
+}
+
+/// Element name + character data for every leaf element that has non-blank
+/// text, from a well-formed XFA packet. `None` on anything the scanner cannot
+/// account for — an unbalanced or truncated packet declines the document
+/// rather than being read past.
+///
+/// Deliberately not a general XML parser: it resolves no namespaces (the
+/// prefix is stripped), decodes no entities (an entity-bearing value simply
+/// will not match a `/V` and declines), and needs neither, because all it has
+/// to answer is "does this packet carry data the AcroForm does not mirror?".
+fn datasets_leaves(xml: &[u8]) -> Option<Vec<(Vec<u8>, Vec<u8>)>> {
+    struct Frame {
+        name: Vec<u8>,
+        text: Vec<u8>,
+        had_child: bool,
+    }
+    let mut stack: Vec<Frame> = Vec::new();
+    let mut out = Vec::new();
+    let mut i = 0usize;
+    while i < xml.len() {
+        if xml[i] != b'<' {
+            let start = i;
+            while i < xml.len() && xml[i] != b'<' {
+                i += 1;
+            }
+            if let Some(top) = stack.last_mut() {
+                top.text.extend_from_slice(&xml[start..i]);
+            }
+            continue;
+        }
+        if xml[i..].starts_with(b"<!--") {
+            i = find(xml, b"-->", i)? + 3;
+        } else if xml[i..].starts_with(b"<![CDATA[") {
+            let end = find(xml, b"]]>", i)?;
+            if let Some(top) = stack.last_mut() {
+                top.text.extend_from_slice(&xml[i + 9..end]);
+            }
+            i = end + 3;
+        } else if xml[i..].starts_with(b"<?") || xml[i..].starts_with(b"<!") {
+            i = find(xml, b">", i)? + 1;
+        } else if xml[i..].starts_with(b"</") {
+            let end = find(xml, b">", i)?;
+            let frame = stack.pop()?;
+            if !frame.had_child && !frame.text.iter().all(u8::is_ascii_whitespace) {
+                out.push((frame.name, trim(&frame.text).to_vec()));
+            }
+            if let Some(parent) = stack.last_mut() {
+                parent.had_child = true;
+            }
+            i = end + 1;
+        } else {
+            let end = tag_end(xml, i)?;
+            let self_closing = xml[end - 1] == b'/';
+            let name = local_name(&xml[i + 1..if self_closing { end - 1 } else { end }]);
+            if self_closing {
+                if let Some(parent) = stack.last_mut() {
+                    parent.had_child = true;
+                }
+            } else {
+                stack.push(Frame {
+                    name,
+                    text: Vec::new(),
+                    had_child: false,
+                });
+            }
+            i = end + 1;
+        }
+    }
+    stack.is_empty().then_some(out)
+}
+
+/// End index of a start tag's `>`, skipping `>` inside quoted attribute values.
+fn tag_end(xml: &[u8], from: usize) -> Option<usize> {
+    let mut quote = 0u8;
+    for (offset, &b) in xml[from..].iter().enumerate() {
+        match (quote, b) {
+            (0, b'"' | b'\'') => quote = b,
+            (q, c) if q != 0 && q == c => quote = 0,
+            (0, b'>') => return Some(from + offset),
+            _ => {}
+        }
+    }
+    None
+}
+
+/// `xfa:data foo="1"` -> `data`.
+fn local_name(tag: &[u8]) -> Vec<u8> {
+    let end = tag
+        .iter()
+        .position(|b| b.is_ascii_whitespace())
+        .unwrap_or(tag.len());
+    let name = &tag[..end];
+    match name.iter().position(|&b| b == b':') {
+        Some(colon) => name[colon + 1..].to_vec(),
+        None => name.to_vec(),
+    }
+}
+
+fn find(haystack: &[u8], needle: &[u8], from: usize) -> Option<usize> {
+    haystack[from..]
+        .windows(needle.len())
+        .position(|w| w == needle)
+        .map(|p| p + from)
+}
+
+fn trim(bytes: &[u8]) -> &[u8] {
+    let start = bytes
+        .iter()
+        .position(|b| !b.is_ascii_whitespace())
+        .unwrap_or(bytes.len());
+    let end = bytes
+        .iter()
+        .rposition(|b| !b.is_ascii_whitespace())
+        .map_or(start, |p| p + 1);
+    &bytes[start..end]
+}
+
+// -- appearances ------------------------------------------------------------
+
+enum ApSel {
+    /// No appearance is selected — the widget paints nothing.
+    None,
+    /// The selected normal-appearance form XObject.
+    Stream(ObjectId),
+    /// Ambiguous or malformed; decline the document.
+    Decline,
+}
+
+/// Resolve `/AP /N`, honouring `/AS` when it is a state subdictionary.
+fn appearance_stream(doc: &Document, annot: &Dictionary) -> ApSel {
+    let Ok(ap) = annot.get(b"AP").map(|a| resolve(doc, a)) else {
+        return ApSel::None;
+    };
+    let Ok(ap) = ap.as_dict() else {
+        return ApSel::Decline;
+    };
+    let Ok(normal) = ap.get(b"N") else {
+        return ApSel::None;
+    };
+    match normal {
+        Object::Reference(id) => match doc.get_object(*id) {
+            Ok(Object::Stream(_)) => ApSel::Stream(*id),
+            // A reference to a state subdictionary: pick with `/AS`.
+            Ok(Object::Dictionary(states)) => select_state(doc, annot, states),
+            _ => ApSel::Decline,
+        },
+        Object::Dictionary(states) => select_state(doc, annot, states),
+        // A directly-embedded stream has no object id to reference from the
+        // page's resources; real producers never emit one.
+        _ => ApSel::Decline,
+    }
+}
+
+fn select_state(doc: &Document, annot: &Dictionary, states: &Dictionary) -> ApSel {
+    // D10 — ISO 32000-1 12.5.5 requires `/AS` when `/N` is a subdictionary.
+    // Guessing which state was showing is guessing at data.
+    let Ok(Object::Name(state)) = annot.get(b"AS").map(|s| resolve(doc, s)) else {
+        return ApSel::Decline;
+    };
+    match states.get(state) {
+        // A state that is not in the dictionary paints nothing — the shape
+        // every IRS XFA-foreground checkbox is in (`/AS /Off`, only `/1`
+        // present).
+        Err(_) => ApSel::None,
+        Ok(Object::Reference(id)) => match doc.get_object(*id) {
+            Ok(Object::Stream(_)) => ApSel::Stream(*id),
+            _ => ApSel::Decline,
+        },
+        Ok(_) => ApSel::Decline,
+    }
+}
+
+/// Whether an appearance stream contains any operator at all. An appearance
+/// whose content stream is empty is what a producer leaves behind when a
+/// widget exists only to carry a name; painting it would be a no-op and
+/// dropping it changes nothing on the page.
+fn draws_ink(doc: &Document, ap_id: ObjectId) -> bool {
+    let Ok(Object::Stream(stream)) = doc.get_object(ap_id) else {
+        return true;
+    };
+    let Ok(content) = stream.decompressed_content() else {
+        return true;
+    };
+    match Content::decode(&content) {
+        Ok(parsed) => !parsed.operations.is_empty(),
+        Err(_) => true,
+    }
+}
+
+/// Whether an appearance stream can be drawn once `/AcroForm /DR` is gone.
+///
+/// A form XObject that references resources is supposed to carry its own
+/// `/Resources`, but widget appearances are the one place producers lean on
+/// the AcroForm's default resource dictionary instead. An appearance with no
+/// `/Resources` is only safe to move into the page if it names nothing — and
+/// "names nothing" is decided by the operators it uses, not by guessing.
+///
+/// Only the appearance's own operators are examined; an appearance that *has*
+/// `/Resources` is trusted, including for whatever its nested forms do, which
+/// is the same trust the viewer extended before this pass ran.
+fn appearance_is_self_contained(doc: &Document, ap_id: ObjectId) -> bool {
+    let Ok(Object::Stream(stream)) = doc.get_object(ap_id) else {
+        return false;
+    };
+    if stream.dict.has(b"Resources") {
+        return true;
+    }
+    let Ok(content) = stream.decompressed_content() else {
+        return false;
+    };
+    let Ok(parsed) = Content::decode(&content) else {
+        return false;
+    };
+    !parsed.operations.iter().any(|op| {
+        match op.operator.as_str() {
+            // Font, XObject, ext-gstate, shading, marked-content property
+            // list: every one of these is a lookup into `/Resources`.
+            "Tf" | "Do" | "gs" | "sh" | "BDC" | "DP" => true,
+            // A colour space named by anything other than the device families
+            // (and `/Pattern`, which needs a pattern resource) is a resource
+            // lookup too.
+            "cs" | "CS" => !matches!(
+                op.operands.first().and_then(|o| o.as_name().ok()),
+                Some(b"DeviceGray" | b"DeviceRGB" | b"DeviceCMYK")
+            ),
+            // `scn` with a trailing name operand selects a pattern.
+            "scn" | "SCN" => matches!(op.operands.last(), Some(Object::Name(_))),
+            _ => false,
+        }
+    })
+}
+
+/// Matrix **A** of ISO 32000-1 12.5.5: the four `/BBox` corners are mapped
+/// through the form's `/Matrix`, the axis-aligned bounds of the result are
+/// taken, and those bounds are scaled and translated onto the widget's
+/// (normalized) `/Rect`. The `Do` operator concatenates `/Matrix` itself, so
+/// emitting A as the `cm` gives the spec's `AA = Matrix x A`.
+fn burn_matrix(doc: &Document, annot: &Dictionary, ap_id: ObjectId) -> Option<[f64; 6]> {
+    let Ok(Object::Stream(stream)) = doc.get_object(ap_id) else {
+        return None;
+    };
+    // An appearance must be a form XObject; an image would need its own
+    // placement conventions we are not inventing.
+    if !matches!(stream.dict.get(b"Subtype").map(|s| resolve(doc, s)), Ok(Object::Name(n)) if n == b"Form")
+    {
+        return None;
+    }
+    let bbox = numbers(doc, stream.dict.get(b"BBox").ok()?, 4)?;
+    let matrix = match stream.dict.get(b"Matrix") {
+        Ok(m) => numbers(doc, m, 6)?,
+        Err(_) => vec![1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+    };
+    let rect = numbers(doc, annot.get(b"Rect").ok()?, 4)?;
+
+    let (mut min_x, mut min_y) = (f64::INFINITY, f64::INFINITY);
+    let (mut max_x, mut max_y) = (f64::NEG_INFINITY, f64::NEG_INFINITY);
+    for (x, y) in [
+        (bbox[0], bbox[1]),
+        (bbox[2], bbox[1]),
+        (bbox[2], bbox[3]),
+        (bbox[0], bbox[3]),
+    ] {
+        let tx = matrix[0] * x + matrix[2] * y + matrix[4];
+        let ty = matrix[1] * x + matrix[3] * y + matrix[5];
+        min_x = min_x.min(tx);
+        min_y = min_y.min(ty);
+        max_x = max_x.max(tx);
+        max_y = max_y.max(ty);
+    }
+    let (bw, bh) = (max_x - min_x, max_y - min_y);
+    let (rx0, rx1) = (rect[0].min(rect[2]), rect[0].max(rect[2]));
+    let (ry0, ry1) = (rect[1].min(rect[3]), rect[1].max(rect[3]));
+    let (rw, rh) = (rx1 - rx0, ry1 - ry0);
+
+    // D12 — a degenerate box has no mapping onto the rectangle.
+    if !(bw > MIN_EXTENT && bh > MIN_EXTENT && rw > MIN_EXTENT && rh > MIN_EXTENT) {
+        return None;
+    }
+    let (sx, sy) = (rw / bw, rh / bh);
+    if ![sx, sy].iter().all(|v| v.is_finite()) {
+        return None;
+    }
+    Some([sx, 0.0, 0.0, sy, rx0 - min_x * sx, ry0 - min_y * sy])
+}
+
+/// Exactly `count` numeric entries from an array object.
+fn numbers(doc: &Document, object: &Object, count: usize) -> Option<Vec<f64>> {
+    let array = resolve(doc, object).as_array().ok()?;
+    if array.len() != count {
+        return None;
+    }
+    array
+        .iter()
+        .map(|v| match resolve(doc, v) {
+            Object::Integer(i) => Some(*i as f64),
+            Object::Real(r) => Some(f64::from(*r)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Whether `bind_xobjects` will find somewhere to put the burn names: the
+/// `/Resources` chain must be absent (we create one) or resolve to a
+/// dictionary, and any `/XObject` it already carries must resolve to one too.
+fn resources_are_bindable(doc: &Document, page_id: ObjectId) -> bool {
+    let mut current = page_id;
+    for _ in 0..MAX_DEPTH {
+        let Ok(dict) = doc.get_object(current).and_then(|o| o.as_dict()) else {
+            return false;
+        };
+        match dict.get(b"Resources") {
+            Ok(resources) => {
+                // Mirrors `bind_xobjects` exactly, reference for reference: a
+                // shape it would silently skip must be a shape this rejects.
+                let resources = match resources {
+                    Object::Dictionary(dict) => dict,
+                    Object::Reference(id) => match doc.get_object(*id) {
+                        Ok(Object::Dictionary(dict)) => dict,
+                        _ => return false,
+                    },
+                    _ => return false,
+                };
+                return match resources.get(b"XObject") {
+                    Ok(Object::Dictionary(_)) => true,
+                    Ok(Object::Reference(id)) => {
+                        matches!(doc.get_object(*id), Ok(Object::Dictionary(_)))
+                    }
+                    Ok(_) => false,
+                    Err(_) => true,
+                };
+            }
+            Err(_) => match dict.get(b"Parent") {
+                Ok(Object::Reference(parent)) => current = *parent,
+                // No `/Resources` anywhere in the chain: one gets created.
+                _ => return true,
+            },
+        }
+    }
+    false
+}
+
+// -- content splicing -------------------------------------------------------
+
+/// D13: the page's content must parse, must not contain an inline image (a
+/// naive `q`/`Q` scan would miscount the binary payload, and `Content::decode`
+/// hands `BI` back as an operator whose operands we do not model), and must
+/// leave the graphics-state stack exactly as it found it — otherwise the `q`
+/// prepended before it is not the one the appended `Q` pops.
+fn content_is_spliceable(doc: &Document, page_id: ObjectId) -> bool {
+    let bytes = doc.get_page_content(page_id);
+    let Ok(parsed) = Content::decode_strict(&bytes) else {
+        return false;
+    };
+    let mut depth = 0i64;
+    let mut in_text = false;
+    for op in &parsed.operations {
+        match op.operator.as_str() {
+            "BI" => return false,
+            "q" => depth += 1,
+            "Q" => {
+                depth -= 1;
+                if depth < 0 {
+                    return false;
+                }
+            }
+            // A `cm` inside a text object is not legal, so content that never
+            // closes its last `BT` cannot be appended to either.
+            "BT" => in_text = true,
+            "ET" => in_text = false,
+            _ => {}
+        }
+    }
+    depth == 0 && !in_text
+}
+
+/// `q <A> cm /Name Do Q` for each burn, prefixed by the `Q` that closes the
+/// `q` prepended before the page's own content.
+fn burn_operators(plan: &PagePlan) -> Vec<u8> {
+    let mut out = Vec::new();
+    if plan.has_contents {
+        out.extend_from_slice(b"Q\n");
+    }
+    for burn in &plan.burns {
+        out.extend_from_slice(b"q ");
+        for value in burn.matrix {
+            out.extend_from_slice(format_number(value).as_bytes());
+            out.push(b' ');
+        }
+        out.extend_from_slice(b"cm /");
+        out.extend_from_slice(&burn.name);
+        out.extend_from_slice(b" Do Q\n");
+    }
+    out
+}
+
+/// Rust's `{}` for `f64` is the shortest representation that round-trips, but
+/// it can print an exponent, which PDF numbers must not have.
+fn format_number(value: f64) -> String {
+    let text = format!("{value}");
+    if text.contains(['e', 'E']) {
+        format!("{value:.6}")
+    } else {
+        text
+    }
+}
+
+// -- applying ---------------------------------------------------------------
+
+/// Apply a plan. Infallible by construction: every decision was made during
+/// planning, and a step that cannot find what it planned for simply does
+/// nothing (the object graph only ever loses form machinery).
+pub(crate) fn apply_flatten(doc: &mut Document, plan: FlattenPlan) {
+    // One shared `q` stream for every spliced page; `dedup_streams` would
+    // merge per-page copies anyway, so make one and reference it.
+    let mut save_state_id: Option<ObjectId> = None;
+
+    for page in &plan.pages {
+        if !page.burns.is_empty() {
+            let bindings: Vec<(Vec<u8>, ObjectId)> = page
+                .burns
+                .iter()
+                .map(|b| (b.name.clone(), b.ap_id))
+                .collect();
+            bind_xobjects(doc, page.page_id, &bindings);
+
+            let ops_id = doc.add_object(Stream::new(dictionary! {}, burn_operators(page)));
+            let prefix = if page.has_contents {
+                Some(*save_state_id.get_or_insert_with(|| {
+                    doc.add_object(Stream::new(dictionary! {}, b"q\n".to_vec()))
+                }))
+            } else {
+                None
+            };
+            splice_contents(doc, page.page_id, prefix, ops_id);
+        }
+        drop_widget_annots(doc, page.page_id, &page.drop_annots);
+    }
+
+    // The structure tree keeps object references to annotations; a removed
+    // widget must not leave a dangling `/OBJR` behind.
+    drop_objr_references(doc, &plan.removed_widgets);
+
+    if let Ok(catalog) = doc.catalog_mut() {
+        catalog.remove(b"AcroForm");
+        catalog.remove(b"NeedsRendering");
+        if plan.drop_ur3 {
+            // The Reader usage-rights signature grants exactly the local form
+            // filling and saving this pass removes (and any amatl rewrite has
+            // already invalidated it). `/DocMDP` is left alone.
+            let perms_id = match catalog.get(b"Perms") {
+                Ok(Object::Reference(id)) => Some(*id),
+                _ => None,
+            };
+            match perms_id {
+                Some(id) => {
+                    if let Ok(Object::Dictionary(perms)) = doc.get_object_mut(id) {
+                        perms.remove(b"UR3");
+                        if perms.is_empty() {
+                            if let Ok(catalog) = doc.catalog_mut() {
+                                catalog.remove(b"Perms");
+                            }
+                        }
+                    }
+                }
+                None => {
+                    if let Ok(Object::Dictionary(perms)) = catalog.get_mut(b"Perms") {
+                        perms.remove(b"UR3");
+                        if perms.is_empty() {
+                            catalog.remove(b"Perms");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Bind appearance streams into the page's `/XObject` resources. The resource
+/// dictionary is mutated wherever it lives — on the page, inherited from a
+/// `/Pages` node, or shared by reference between pages — which is safe only
+/// because the names are unique across the whole document, so a page that
+/// gains a name it never draws renders identically.
+fn bind_xobjects(doc: &mut Document, page_id: ObjectId, bindings: &[(Vec<u8>, ObjectId)]) {
+    enum Home {
+        /// `/Resources` is an indirect object.
+        Indirect(ObjectId),
+        /// `/Resources` is inline in this object's dictionary.
+        Inline(ObjectId),
+    }
+
+    // Phase 1, immutable: find the resource dictionary and its `/XObject`.
+    let mut home = None;
+    let mut current = page_id;
+    for _ in 0..MAX_DEPTH {
+        let Ok(dict) = doc.get_object(current).and_then(|o| o.as_dict()) else {
+            break;
+        };
+        match dict.get(b"Resources") {
+            Ok(Object::Reference(id)) => {
+                home = Some(Home::Indirect(*id));
+                break;
+            }
+            Ok(Object::Dictionary(_)) => {
+                home = Some(Home::Inline(current));
+                break;
+            }
+            _ => match dict.get(b"Parent") {
+                Ok(Object::Reference(parent)) => current = *parent,
+                _ => break,
+            },
+        }
+    }
+    let home = match home {
+        Some(home) => home,
+        None => {
+            // No resources anywhere in the chain: give the page its own.
+            let Ok(Object::Dictionary(page)) = doc.get_object_mut(page_id) else {
+                return;
+            };
+            page.set("Resources", Object::Dictionary(Dictionary::new()));
+            Home::Inline(page_id)
+        }
+    };
+    let resources_owner = match home {
+        Home::Indirect(id) => id,
+        Home::Inline(id) => id,
+    };
+    let inline_resources = matches!(home, Home::Inline(_));
+
+    let xobject_ref = {
+        let Some(resources) = resource_dict(doc, resources_owner, inline_resources) else {
+            return;
+        };
+        match resources.get(b"XObject") {
+            Ok(Object::Reference(id)) => Some(*id),
+            _ => None,
+        }
+    };
+
+    // Phase 2, mutable.
+    if let Some(id) = xobject_ref {
+        if let Ok(Object::Dictionary(xobjects)) = doc.get_object_mut(id) {
+            for (name, ap_id) in bindings {
+                xobjects.set(name.clone(), Object::Reference(*ap_id));
+            }
+        }
+        return;
+    }
+    let Some(resources) = resource_dict_mut(doc, resources_owner, inline_resources) else {
+        return;
+    };
+    if !matches!(resources.get(b"XObject"), Ok(Object::Dictionary(_))) {
+        resources.set("XObject", Object::Dictionary(Dictionary::new()));
+    }
+    let Ok(Object::Dictionary(xobjects)) = resources.get_mut(b"XObject") else {
+        return;
+    };
+    for (name, ap_id) in bindings {
+        xobjects.set(name.clone(), Object::Reference(*ap_id));
+    }
+}
+
+fn resource_dict(doc: &Document, owner: ObjectId, inline: bool) -> Option<&Dictionary> {
+    let object = doc.get_object(owner).ok()?;
+    if inline {
+        object
+            .as_dict()
+            .ok()?
+            .get(b"Resources")
+            .ok()?
+            .as_dict()
+            .ok()
+    } else {
+        object.as_dict().ok()
+    }
+}
+
+fn resource_dict_mut(doc: &mut Document, owner: ObjectId, inline: bool) -> Option<&mut Dictionary> {
+    let object = doc.get_object_mut(owner).ok()?;
+    if inline {
+        object
+            .as_dict_mut()
+            .ok()?
+            .get_mut(b"Resources")
+            .ok()?
+            .as_dict_mut()
+            .ok()
+    } else {
+        object.as_dict_mut().ok()
+    }
+}
+
+/// Rewrite `/Contents` as `[prefix?, ...original..., burn_ops]`.
+fn splice_contents(
+    doc: &mut Document,
+    page_id: ObjectId,
+    prefix: Option<ObjectId>,
+    ops_id: ObjectId,
+) {
+    // `/Contents` is a stream, an array of streams, or an indirect reference
+    // to either. The array-behind-a-reference case has to be unwrapped: an
+    // array element that is itself a reference to an array is not a content
+    // stream, and splicing one in would lose the page's own drawing.
+    let existing: Vec<Object> = {
+        let Ok(page) = doc.get_object(page_id).and_then(|o| o.as_dict()) else {
+            return;
+        };
+        match page.get(b"Contents") {
+            Ok(Object::Array(array)) => array.clone(),
+            Ok(Object::Reference(id)) => match doc.get_object(*id) {
+                Ok(Object::Array(array)) => array.clone(),
+                _ => vec![Object::Reference(*id)],
+            },
+            Ok(other) => vec![other.clone()],
+            Err(_) => Vec::new(),
+        }
+    };
+    let mut parts: Vec<Object> = prefix.into_iter().map(Object::Reference).collect();
+    parts.extend(existing);
+    parts.push(Object::Reference(ops_id));
+    let Ok(Object::Dictionary(page)) = doc.get_object_mut(page_id) else {
+        return;
+    };
+    page.set("Contents", Object::Array(parts));
+}
+
+/// Drop the planned widget annotations from a page, and the `/Annots` key
+/// itself once nothing is left in it.
+fn drop_widget_annots(doc: &mut Document, page_id: ObjectId, drop: &HashSet<ObjectId>) {
+    // `/Annots` may be an indirect array shared with nothing else; handle both
+    // shapes without cloning the page's other entries.
+    let annots_ref = match doc.get_object(page_id).and_then(|o| o.as_dict()) {
+        Ok(dict) => match dict.get(b"Annots") {
+            Ok(Object::Reference(id)) => Some(*id),
+            _ => None,
+        },
+        Err(_) => return,
+    };
+    let keep = |array: &mut Vec<Object>| {
+        array.retain(|entry| !matches!(entry, Object::Reference(id) if drop.contains(id)));
+        array.is_empty()
+    };
+    let emptied = match annots_ref {
+        Some(id) => match doc.get_object_mut(id) {
+            Ok(Object::Array(array)) => keep(array),
+            _ => false,
+        },
+        None => match doc.get_object_mut(page_id) {
+            Ok(Object::Dictionary(page)) => match page.get_mut(b"Annots") {
+                Ok(Object::Array(array)) => keep(array),
+                _ => false,
+            },
+            _ => false,
+        },
+    };
+    if emptied {
+        if let Ok(Object::Dictionary(page)) = doc.get_object_mut(page_id) {
+            page.remove(b"Annots");
+        }
+    }
+}
+
+/// Remove every `/Type /OBJR` structure-tree entry whose `/Obj` pointed at a
+/// widget this pass deleted, so the tagged tree keeps no reference to an
+/// object that no longer exists.
+fn drop_objr_references(doc: &mut Document, removed: &HashSet<ObjectId>) {
+    if removed.is_empty() {
+        return;
+    }
+    let dead: HashSet<ObjectId> = doc
+        .objects
+        .iter()
+        .filter(|(_, object)| is_dead_objr(object, removed))
+        .map(|(id, _)| *id)
+        .collect();
+
+    for object in doc.objects.values_mut() {
+        prune_objr(object, removed, &dead);
+    }
+}
+
+fn is_dead_objr(object: &Object, removed: &HashSet<ObjectId>) -> bool {
+    let Object::Dictionary(dict) = object else {
+        return false;
+    };
+    matches!(dict.get(b"Type"), Ok(Object::Name(t)) if t == b"OBJR")
+        && matches!(dict.get(b"Obj"), Ok(Object::Reference(id)) if removed.contains(id))
+}
+
+fn prune_objr(object: &mut Object, removed: &HashSet<ObjectId>, dead: &HashSet<ObjectId>) {
+    let is_dead = |entry: &Object| match entry {
+        Object::Reference(id) => dead.contains(id),
+        other => is_dead_objr(other, removed),
+    };
+    match object {
+        Object::Array(array) => {
+            array.retain(|entry| !is_dead(entry));
+            for entry in array.iter_mut() {
+                prune_objr(entry, removed, dead);
+            }
+        }
+        Object::Dictionary(dict) => {
+            for (_, value) in dict.iter_mut() {
+                if is_dead(value) {
+                    *value = Object::Null;
+                } else {
+                    prune_objr(value, removed, dead);
+                }
+            }
+        }
+        Object::Stream(stream) => {
+            for (_, value) in stream.dict.iter_mut() {
+                if is_dead(value) {
+                    *value = Object::Null;
+                } else {
+                    prune_objr(value, removed, dead);
+                }
+            }
+        }
+        _ => {}
+    }
+}
 }
 
 mod fonts {
@@ -3764,7 +4962,7 @@ impl FontPlan {
         match self {
             FontPlan::Cid(p) => p.type0_id,
             FontPlan::Simple(p) => p.font_id,
-            FontPlan::Type1(p) => p.font_id,
+            FontPlan::Type1(p) => p.font_ids[0],
         }
     }
 }
@@ -3808,7 +5006,9 @@ pub(crate) struct SimpleFontPlan {
 /// and re-tags the font names — `/Encoding`, `/Widths`, and `/ToUnicode`
 /// never change, so text extraction is bit-identical.
 pub(crate) struct Type1FontPlan {
-    font_id: ObjectId,
+    /// Every font dictionary served by this descriptor. Usually one; more
+    /// when a producer points several `/Encoding` variants at one program.
+    font_ids: Vec<ObjectId>,
     descriptor_id: ObjectId,
     font_file_id: ObjectId,
     /// Flate-compressed CFF font program.
@@ -3860,18 +5060,15 @@ pub(crate) fn plan_font_subsets(
         .used
         .iter()
         .filter(|(id, cids)| !walker.ineligible.contains(id) && !cids.is_empty())
-        .filter_map(|(&id, cids)| {
-            plan_one(
-                doc,
-                id,
-                cids,
-                &refcounts,
-                subset_fonts,
-                convert_type1,
-                strip_hinting,
-            )
-        })
+        .filter_map(|(&id, cids)| plan_one(doc, id, cids, &refcounts, subset_fonts, strip_hinting))
         .collect();
+    if convert_type1 {
+        plans.extend(
+            plan_type1_conversions(doc, &walker, &refcounts)
+                .into_iter()
+                .map(FontPlan::Type1),
+        );
+    }
     // HashMap iteration order is arbitrary; sort so output is reproducible.
     plans.sort_by_key(FontPlan::font_id);
     plans
@@ -3879,14 +5076,12 @@ pub(crate) fn plan_font_subsets(
 
 /// Dispatch a used font to the planner matching its subtype (each planner
 /// gated by its own option).
-#[allow(clippy::too_many_arguments)]
 fn plan_one(
     doc: &Document,
     id: ObjectId,
     codes: &BTreeSet<u16>,
     refcounts: &HashMap<ObjectId, usize>,
     subset_fonts: bool,
-    convert_type1: bool,
     strip_hinting: bool,
 ) -> Option<FontPlan> {
     let dict = doc.get_object(id).ok()?.as_dict().ok()?;
@@ -3896,9 +5091,6 @@ fn plan_one(
         }
         Ok(Object::Name(n)) if n == b"TrueType" && subset_fonts => {
             plan_one_simple_font(doc, id, codes, refcounts, strip_hinting).map(FontPlan::Simple)
-        }
-        Ok(Object::Name(n)) if n == b"Type1" && convert_type1 => {
-            plan_one_type1_font(doc, id, codes, refcounts).map(FontPlan::Type1)
         }
         _ => None,
     }
@@ -4292,8 +5484,10 @@ fn apply_type1_plan(doc: &mut Document, plan: Type1FontPlan) {
         d.set("FontFile3", Object::Reference(plan.font_file_id));
         d.set("FontName", Object::Name(plan.tagged_name.clone()));
     }
-    if let Ok(Object::Dictionary(d)) = doc.get_object_mut(plan.font_id) {
-        d.set("BaseFont", Object::Name(plan.tagged_name));
+    for font_id in plan.font_ids {
+        if let Ok(Object::Dictionary(d)) = doc.get_object_mut(font_id) {
+            d.set("BaseFont", Object::Name(plan.tagged_name.clone()));
+        }
     }
 }
 
@@ -4310,7 +5504,7 @@ fn strict_stream_bytes(doc: &Document, stream: &Stream) -> Option<Vec<u8>> {
     match stream.dict.get(b"Filter") {
         Err(_) => Some(stream.content.clone()),
         Ok(Object::Null) => Some(stream.content.clone()),
-        Ok(filter) => match crate::amatl::classify_filter(doc, filter) {
+        Ok(filter) => match super::classify_filter(doc, filter) {
             FilterClass::FlateOnly => {
                 if !matches!(stream.dict.get(b"DecodeParms"), Err(_) | Ok(Object::Null)) {
                     return None;
@@ -4486,7 +5680,7 @@ impl<'a> Walker<'a> {
 
     fn walk_page(&mut self, page_id: ObjectId) {
         let mut path: Vec<ObjectId> = Vec::new();
-        let resources = crate::amatl::page_resources(self.doc, page_id);
+        let resources = super::page_resources(self.doc, page_id);
 
         // Concatenate the page's content streams (operators may span stream
         // boundaries, so they are parsed as one unit, per spec).
@@ -4656,7 +5850,7 @@ impl<'a> Walker<'a> {
 
         // Strict parsing: the lenient `Content::decode` silently drops a
         // trailing unparseable region, which could hide show operators.
-        let Ok(parsed) = Content::decode_strict(content) else {
+        let Some(parsed) = decode_content_strict(content) else {
             self.abort();
             return fallback;
         };
@@ -5547,20 +6741,65 @@ fn parse_type1_encoding(
     }
 }
 
-/// Validate one used Type1 font end to end and build its Type1C conversion
-/// plan. Any failure — unparseable font program, unknown encoding shape,
-/// charstring anomalies, shared structure, not strictly smaller — returns
-/// `None` and the font ships untouched.
-fn plan_one_type1_font(
+/// Group every used Type1 font by the descriptor that carries its program,
+/// and plan one conversion per group.
+///
+/// Producers routinely point several font dictionaries — same program,
+/// different `/Encoding` — at a single `/FontDescriptor`. Planning per font
+/// dictionary meant a shared descriptor failed the "referenced exactly once"
+/// soundness test and the whole program shipped as Type1 (measured: all
+/// 331,824 B of `corpus-expanded/arxiv-diffusion.pdf`'s font bytes). Planning
+/// per descriptor keeps the same guarantee — every reference to the
+/// descriptor must be one of the font dictionaries whose usage we attributed
+/// — while letting the group's glyph sets union into one conversion.
+fn plan_type1_conversions(
     doc: &Document,
-    font_id: ObjectId,
-    codes: &BTreeSet<u16>,
+    walker: &Walker,
+    refcounts: &HashMap<ObjectId, usize>,
+) -> Vec<Type1FontPlan> {
+    let mut groups: BTreeMap<ObjectId, Vec<(ObjectId, BTreeSet<u16>)>> = BTreeMap::new();
+    for (&font_id, codes) in &walker.used {
+        if walker.ineligible.contains(&font_id) || codes.is_empty() {
+            continue;
+        }
+        let Ok(Object::Dictionary(dict)) = doc.get_object(font_id) else {
+            continue;
+        };
+        if !matches!(dict.get(b"Subtype").map(|s| resolve(doc, s)),
+            Ok(Object::Name(n)) if n == b"Type1")
+        {
+            continue;
+        }
+        let Ok(descriptor) = dict.get(b"FontDescriptor") else {
+            continue;
+        };
+        if let (Some(descriptor_id), _) = resolve_ref(doc, descriptor) {
+            groups
+                .entry(descriptor_id)
+                .or_default()
+                .push((font_id, codes.clone()));
+        }
+    }
+    groups
+        .into_iter()
+        .filter_map(|(descriptor_id, mut members)| {
+            members.sort_by_key(|(id, _)| *id);
+            plan_type1_group(doc, descriptor_id, &members, refcounts)
+        })
+        .collect()
+}
+
+/// Validate one descriptor's worth of used Type1 fonts end to end and build
+/// their shared Type1C conversion plan. Any failure — unparseable font
+/// program, unknown encoding shape, charstring anomalies, shared structure,
+/// not strictly smaller — returns `None` and the fonts ship untouched.
+fn plan_type1_group(
+    doc: &Document,
+    descriptor_id: ObjectId,
+    members: &[(ObjectId, BTreeSet<u16>)],
     refcounts: &HashMap<ObjectId, usize>,
 ) -> Option<Type1FontPlan> {
-    let font = doc.get_object(font_id).ok()?.as_dict().ok()?;
-    let (descriptor_id, descriptor) = resolve_ref(doc, font.get(b"FontDescriptor").ok()?);
-    let descriptor_id = descriptor_id?;
-    let descriptor = descriptor.as_dict().ok()?;
+    let descriptor = doc.get_object(descriptor_id).ok()?.as_dict().ok()?;
     // Exactly one font program, of the Type1 kind: a descriptor already
     // carrying a `/FontFile3` (or a TrueType program) is not ours to touch.
     if descriptor.get(b"FontFile2").is_ok() || descriptor.get(b"FontFile3").is_ok() {
@@ -5569,68 +6808,163 @@ fn plan_one_type1_font(
     let (font_file_id, font_file) = resolve_ref(doc, descriptor.get(b"FontFile").ok()?);
     let font_file_id = font_file_id?;
     let font_file = font_file.as_stream().ok()?;
-    // Shared descriptor/font-program structure could serve fonts whose usage
-    // was not attributed here; mutating it would be unsound.
-    if refcounts.get(&descriptor_id) != Some(&1) || refcounts.get(&font_file_id) != Some(&1) {
+    // Every reference to the descriptor must be one of the font dictionaries
+    // in this group, and the program must belong to this descriptor alone —
+    // otherwise some font whose usage was never attributed here shares the
+    // structure, and rewriting it would be unsound.
+    if refcounts.get(&descriptor_id) != Some(&members.len())
+        || refcounts.get(&font_file_id) != Some(&1)
+    {
         return None;
     }
 
     let font_bytes = strict_stream_bytes(doc, font_file)?;
     let t1 = type1::parse(&font_bytes)?;
-    let (base, diffs) = parse_type1_encoding(doc, font)?;
 
     // Resolve every used code to a glyph name through the same encoding the
-    // viewer applies (`/Differences`, then the base). A code that resolves
-    // to no name, or to a glyph the font does not carry, renders `.notdef`
-    // before AND after conversion (the encoding objects never change), so it
-    // constrains nothing.
+    // viewer applies (`/Differences`, then the base), once per member: they
+    // share a program but not necessarily an `/Encoding`. A code that
+    // resolves to no name, or to a glyph the font does not carry, renders
+    // `.notdef` before AND after conversion (the encoding objects never
+    // change), so it constrains nothing.
     let mut keep: BTreeSet<Vec<u8>> = BTreeSet::new();
-    for &code in codes {
-        let code = u8::try_from(code).ok()?;
-        let name: Option<Vec<u8>> = match diffs.get(&code) {
-            Some(n) => Some(n.clone()),
-            None => match &base {
-                Type1Base::Table(table) => {
-                    let n = table[usize::from(code)];
-                    (!n.is_empty()).then(|| n.as_bytes().to_vec())
+    let mut base_name: Option<Vec<u8>> = None;
+    for (font_id, codes) in members {
+        let font = doc.get_object(*font_id).ok()?.as_dict().ok()?;
+        let (base, diffs) = parse_type1_encoding(doc, font)?;
+        for &code in codes {
+            let code = u8::try_from(code).ok()?;
+            let name: Option<Vec<u8>> = match diffs.get(&code) {
+                Some(n) => Some(n.clone()),
+                None => match &base {
+                    Type1Base::Table(table) => {
+                        let n = table[usize::from(code)];
+                        (!n.is_empty()).then(|| n.as_bytes().to_vec())
+                    }
+                    Type1Base::Builtin => t1.builtin_name(code).map(<[u8]>::to_vec),
+                },
+            };
+            if let Some(name) = name {
+                if t1.has_glyph(&name) {
+                    keep.insert(name);
                 }
-                Type1Base::Builtin => t1.builtin_name(code).map(<[u8]>::to_vec),
+            }
+        }
+        // One name is written back to every member and to the descriptor, so
+        // the members must agree on it modulo their subset tags.
+        let this_name = match font.get(b"BaseFont").map(|o| resolve(doc, o)) {
+            Ok(Object::Name(n)) => strip_subset_tag(n).to_vec(),
+            _ => match descriptor.get(b"FontName").map(|o| resolve(doc, o)) {
+                Ok(Object::Name(n)) => strip_subset_tag(n).to_vec(),
+                _ => return None,
             },
         };
-        if let Some(name) = name {
-            if t1.has_glyph(&name) {
-                keep.insert(name);
-            }
+        match &base_name {
+            None => base_name = Some(this_name),
+            Some(seen) if *seen == this_name => {}
+            Some(_) => return None,
         }
     }
 
     let cff = type1::convert_to_cff(&t1, &keep)?;
     let deflated_cff = deflate_level9(&cff)?;
-    // Strict-smaller guard on stored bytes, per font: never regress one.
+    // Strict-smaller guard on stored bytes, per program: never regress one.
     if deflated_cff.len() >= font_file.content.len() {
         return None;
     }
 
-    let base_name = match font.get(b"BaseFont").map(|o| resolve(doc, o)) {
-        Ok(Object::Name(n)) => n.clone(),
-        _ => match descriptor.get(b"FontName").map(|o| resolve(doc, o)) {
-            Ok(Object::Name(n)) => n.clone(),
-            _ => return None,
-        },
-    };
     let tag = subset_tag(&cff);
+    let base_name = base_name?;
     let mut tagged_name = Vec::with_capacity(base_name.len() + 7);
     tagged_name.extend_from_slice(&tag);
     tagged_name.push(b'+');
-    tagged_name.extend_from_slice(strip_subset_tag(&base_name));
+    tagged_name.extend_from_slice(&base_name);
 
     Some(Type1FontPlan {
-        font_id,
+        font_ids: members.iter().map(|(id, _)| *id).collect(),
         descriptor_id,
         font_file_id,
         deflated_cff,
         tagged_name,
     })
+}
+
+/// Strict content decode, with the one tolerance `lopdf`'s parser needs.
+///
+/// `lopdf` does not know `d0`/`d1` — the two glyph-metric operators that, per
+/// PDF 32000-1 §9.6.5, open a Type3 `/CharProcs` stream. It tokenizes `d1` as
+/// the operator `d` plus a stray number `1`, which then binds as the *first
+/// operand of the next operator*; a char proc that ends right after `d1`
+/// fails outright. Either way the walk used to abort, and one abort discards
+/// every font plan in the document (measured on a LaTeX paper: 713 KB of font
+/// programs left untouched because of one 22-byte char proc).
+///
+/// So the metrics prefix is split off before parsing, not after a failure:
+/// a stream that "parses" with the stray number attached is misparsed, and
+/// the walker's operand checks are what stands between that and a wrong
+/// glyph attribution. The tolerance is deliberately narrow — only a
+/// *leading* run of numeric tokens followed by `d0`/`d1` at the matching
+/// arity is removed, and neither operator shows text or selects a font, so
+/// the operation sequence the walker inspects is unchanged. Every other
+/// parse failure still declines, exactly as before.
+fn decode_content_strict(content: &[u8]) -> Option<Content> {
+    let body = strip_type3_metrics(content).unwrap_or(content);
+    Content::decode_strict(body).ok()
+}
+
+/// Split off a leading `wx wy d0` / `wx wy llx lly urx ury d1` prefix,
+/// returning the rest of the stream. `None` unless the stream opens with
+/// exactly that: only numeric tokens may precede the operator, the operand
+/// count must match it, and any delimiter (`(`, `<`, `[`, `/`, `%`, ...)
+/// before it means this is not a Type3 metrics prefix.
+fn strip_type3_metrics(content: &[u8]) -> Option<&[u8]> {
+    fn is_ws(b: u8) -> bool {
+        matches!(b, b'\0' | b'\t' | b'\n' | b'\x0c' | b'\r' | b' ')
+    }
+    fn is_delim(b: u8) -> bool {
+        matches!(
+            b,
+            b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'/' | b'%'
+        )
+    }
+    let mut i = 0usize;
+    let mut operands = 0usize;
+    loop {
+        while i < content.len() && is_ws(content[i]) {
+            i += 1;
+        }
+        let start = i;
+        while i < content.len() && !is_ws(content[i]) && !is_delim(content[i]) {
+            i += 1;
+        }
+        if i == start {
+            // A delimiter, or end of stream, before any `d0`/`d1`.
+            return None;
+        }
+        let token = &content[start..i];
+        match token {
+            b"d0" => return (operands == 2).then(|| &content[i..]),
+            b"d1" => return (operands == 6).then(|| &content[i..]),
+            _ => {
+                if !is_number(token) || operands >= 6 {
+                    return None;
+                }
+                operands += 1;
+            }
+        }
+    }
+}
+
+/// A PDF numeric object token: optional sign, digits and at most one point,
+/// with at least one digit.
+fn is_number(token: &[u8]) -> bool {
+    let body = match token.first() {
+        Some(b'+' | b'-') => &token[1..],
+        _ => token,
+    };
+    body.iter().filter(|&&b| b == b'.').count() <= 1
+        && body.iter().any(u8::is_ascii_digit)
+        && body.iter().all(|&b| b.is_ascii_digit() || b == b'.')
 }
 
 #[cfg(test)]
@@ -6224,6 +7558,345 @@ mod tests {
         }
     }
 
+    // -- Type1 -> Type1C conversion -----------------------------------------
+
+    /// Type1 encryption (`eexec` and charstrings share the algorithm).
+    fn t1_encrypt(plain: &[u8], key: u16, pad: usize) -> Vec<u8> {
+        let mut r = key;
+        let mut out = Vec::with_capacity(plain.len() + pad);
+        for &p in std::iter::repeat_n(&0u8, pad).chain(plain.iter()) {
+            let c = p ^ (r >> 8) as u8;
+            r = (u16::from(c).wrapping_add(r))
+                .wrapping_mul(52845)
+                .wrapping_add(22719);
+            out.push(c);
+        }
+        out
+    }
+
+    /// A Type1 charstring drawing one filled box, with `width` as the advance.
+    fn t1_charstring(width: i32, size: i32) -> Vec<u8> {
+        fn num(v: i32, out: &mut Vec<u8>) {
+            // Type1 integers: the 255 form is always valid and keeps this
+            // helper trivial.
+            out.push(255);
+            out.extend_from_slice(&v.to_be_bytes());
+        }
+        let mut cs = Vec::new();
+        num(0, &mut cs);
+        num(width, &mut cs);
+        cs.push(13); // hsbw
+        num(0, &mut cs);
+        num(0, &mut cs);
+        cs.push(21); // rmoveto
+        for (dx, dy) in [(size, 0), (0, size), (-size, 0)] {
+            num(dx, &mut cs);
+            num(dy, &mut cs);
+            cs.push(5); // rlineto
+        }
+        cs.push(9); // closepath
+        cs.push(14); // endchar
+        cs
+    }
+
+    /// A minimal but real Type1 font program carrying `glyphs`.
+    fn build_type1_program(name: &str, glyphs: &[(&str, i32)]) -> Vec<u8> {
+        let mut clear = Vec::new();
+        clear.extend_from_slice(b"%!PS-AdobeFont-1.0: ");
+        clear.extend_from_slice(name.as_bytes());
+        clear.extend_from_slice(b"\n/FontName /");
+        clear.extend_from_slice(name.as_bytes());
+        clear.extend_from_slice(b" def\n/PaintType 0 def\n/FontType 1 def\n");
+        clear.extend_from_slice(b"/FontMatrix [0.001 0 0 0.001 0 0] readonly def\n");
+        clear.extend_from_slice(b"/FontBBox {0 0 700 700} readonly def\n");
+        clear.extend_from_slice(b"/Encoding 256 array\n");
+        clear.extend_from_slice(b"0 1 255 {1 index exch /.notdef put} for\n");
+        for (i, (glyph, _)) in glyphs.iter().enumerate() {
+            clear.extend_from_slice(format!("dup {} /{glyph} put\n", 65 + i).as_bytes());
+        }
+        clear.extend_from_slice(b"readonly def\ncurrentdict end\ncurrentfile eexec\n");
+
+        let mut private = Vec::new();
+        private.extend_from_slice(b"dup /Private 8 dict dup begin\n/lenIV 4 def\n");
+        private.extend_from_slice(b"/BlueValues [0 0] ND\n/Subrs 0 array\nND\n");
+        private.extend_from_slice(
+            format!("/CharStrings {} dict dup begin\n", glyphs.len() + 1).as_bytes(),
+        );
+        for (glyph, width) in std::iter::once(&(".notdef", 0)).chain(glyphs.iter()) {
+            let cs = t1_encrypt(&t1_charstring(*width, 600), 4330, 4);
+            private.extend_from_slice(format!("/{glyph} {} RD ", cs.len()).as_bytes());
+            private.extend_from_slice(&cs);
+            private.extend_from_slice(b" ND\n");
+        }
+        private.extend_from_slice(b"end\nend\nmark currentfile closefile\n");
+
+        let mut out = clear;
+        out.extend_from_slice(&t1_encrypt(&private, 55665, 4));
+        out
+    }
+
+    /// Build a PDF where `dicts` font dictionaries share ONE descriptor and
+    /// one `/FontFile`, each with its own `/Differences`, each drawn on its
+    /// own page.
+    fn build_shared_type1_pdf(dicts: usize) -> Vec<u8> {
+        let program = build_type1_program("TestFont", &[("A", 600), ("B", 500)]);
+        let mut doc = Document::with_version("1.7");
+        let pages_id = doc.new_object_id();
+        let file_id = doc.add_object(Stream::new(
+            dictionary! {
+                "Length1" => program.len() as i64,
+                "Length2" => 0,
+                "Length3" => 0,
+            },
+            program,
+        ));
+        let descriptor_id = doc.add_object(dictionary! {
+            "Type" => "FontDescriptor",
+            "FontName" => "TestFont",
+            "Flags" => 4,
+            "FontBBox" => vec![0.into(), 0.into(), 700.into(), 700.into()],
+            "ItalicAngle" => 0,
+            "Ascent" => 700,
+            "Descent" => 0,
+            "CapHeight" => 700,
+            "StemV" => 80,
+            "FontFile" => file_id,
+        });
+        let mut page_ids = Vec::new();
+        for i in 0..dicts {
+            let glyph = if i % 2 == 0 { "A" } else { "B" };
+            let font_id = doc.add_object(dictionary! {
+                "Type" => "Font",
+                "Subtype" => "Type1",
+                "BaseFont" => "TestFont",
+                "FirstChar" => 65,
+                "LastChar" => 66,
+                "Widths" => vec![600.into(), 500.into()],
+                "FontDescriptor" => descriptor_id,
+                // A distinct /Differences per member: same program, different
+                // encodings, which is exactly why producers share descriptors.
+                "Encoding" => dictionary! {
+                    "Type" => "Encoding",
+                    "Differences" => vec![(65 + i as i64).into(), glyph.into()],
+                },
+            });
+            let content_id = doc.add_object(Stream::new(
+                dictionary! {},
+                b"BT /F1 24 Tf 72 720 Td (A) Tj ET".to_vec(),
+            ));
+            page_ids.push(doc.add_object(dictionary! {
+                "Type" => "Page",
+                "Parent" => pages_id,
+                "Contents" => content_id,
+                "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+                "Resources" => dictionary! { "Font" => dictionary! { "F1" => font_id } },
+            }));
+        }
+        finish_pdf(&mut doc, pages_id, page_ids)
+    }
+
+    /// The descriptor of a converted font: `/FontFile` gone, `/FontFile3`
+    /// present, plus every `/BaseFont` in the file.
+    fn type1c_view(pdf: &[u8]) -> (usize, usize, Vec<Vec<u8>>) {
+        let doc = Document::load_mem(pdf).expect("output must load");
+        let mut type1c = 0;
+        let mut type1 = 0;
+        let mut names = Vec::new();
+        for obj in doc.objects.values() {
+            match obj {
+                Object::Stream(s) => {
+                    if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Type1C") {
+                        type1c += 1;
+                    }
+                    if s.dict.get(b"Length1").is_ok() {
+                        type1 += 1;
+                    }
+                }
+                Object::Dictionary(d) => {
+                    if let Ok(Object::Name(n)) = d.get(b"BaseFont") {
+                        names.push(n.clone());
+                    }
+                }
+                _ => {}
+            }
+        }
+        (type1c, type1, names)
+    }
+
+    /// One descriptor, three font dictionaries: the group converts once and
+    /// every member is re-tagged to the same name.
+    #[test]
+    fn type1_conversion_handles_a_shared_font_descriptor() {
+        let pdf = build_shared_type1_pdf(3);
+        let opts = OptimizeOptions::default().with_convert_type1(true);
+        let out = optimize_with_options(&pdf, opts);
+        let (type1c, type1, names) = type1c_view(&out);
+        assert_eq!(type1c, 1, "one shared Type1C program");
+        assert_eq!(type1, 0, "no Type1 program may survive");
+        assert_eq!(names.len(), 3, "all three font dictionaries kept");
+        assert!(
+            names.windows(2).all(|w| w[0] == w[1]),
+            "every member re-tagged to the same subset name: {names:?}"
+        );
+        assert!(out.len() < pdf.len(), "conversion must shrink the file");
+    }
+
+    /// The single-dictionary case still works, and is what the group path
+    /// degenerates to.
+    #[test]
+    fn type1_conversion_still_handles_an_unshared_descriptor() {
+        let pdf = build_shared_type1_pdf(1);
+        let opts = OptimizeOptions::default().with_convert_type1(true);
+        let out = optimize_with_options(&pdf, opts);
+        let (type1c, type1, _) = type1c_view(&out);
+        assert_eq!((type1c, type1), (1, 0));
+    }
+
+    /// A descriptor reference the walk did not attribute to a used font (here
+    /// an extra font dictionary that is never drawn) still declines: its
+    /// glyphs are not in the union, so converting could drop them.
+    #[test]
+    fn type1_conversion_declines_an_unattributed_sharer() {
+        let pdf = build_shared_type1_pdf(2);
+        let mut doc = Document::load_mem(&pdf).unwrap();
+        let (descriptor_id, _) = doc
+            .objects
+            .iter()
+            .find(|(_, o)| {
+                matches!(o, Object::Dictionary(d)
+                    if matches!(d.get(b"Type"), Ok(Object::Name(n)) if n == b"FontDescriptor"))
+            })
+            .map(|(id, o)| (*id, o.clone()))
+            .unwrap();
+        // A third font dictionary, referenced from nowhere a page can reach.
+        let orphan = doc.add_object(dictionary! {
+            "Type" => "Font",
+            "Subtype" => "Type1",
+            "BaseFont" => "TestFont",
+            "FontDescriptor" => descriptor_id,
+        });
+        doc.catalog_mut()
+            .unwrap()
+            .set("AA", Object::Reference(orphan));
+        let mut with_extra: Vec<u8> = Vec::new();
+        doc.save_to(&mut with_extra).unwrap();
+
+        let opts = OptimizeOptions::default().with_convert_type1(true);
+        let out = optimize_with_options(&with_extra, opts);
+        let (type1c, type1, _) = type1c_view(&out);
+        assert_eq!(
+            (type1c, type1),
+            (0, 1),
+            "an unattributed sharer must leave the program as Type1"
+        );
+    }
+
+    #[test]
+    fn type3_metrics_prefix_is_split_off_only_when_well_formed() {
+        // d1: six operands. d0: two.
+        assert_eq!(
+            strip_type3_metrics(b"0.27 0 0 0 0 0 d1\n1 0 0 1 0 0 cm"),
+            Some(&b"\n1 0 0 1 0 0 cm"[..])
+        );
+        assert_eq!(strip_type3_metrics(b"12 0 d0 BT"), Some(&b" BT"[..]));
+        // Wrong operand count for the operator: not a metrics prefix.
+        assert_eq!(strip_type3_metrics(b"0 0 0 d1 BT"), None);
+        assert_eq!(strip_type3_metrics(b"1 2 3 d0"), None);
+        // A delimiter or a non-numeric token before the operator.
+        assert_eq!(strip_type3_metrics(b"BT /F1 12 Tf"), None);
+        assert_eq!(strip_type3_metrics(b"1 2 (s) Tj"), None);
+        assert_eq!(strip_type3_metrics(b"0 0 0 0 0 0 0 0 d1"), None);
+        // No operator at all.
+        assert_eq!(strip_type3_metrics(b"1 2 3 4"), None);
+        assert_eq!(strip_type3_metrics(b""), None);
+    }
+
+    #[test]
+    fn type3_char_procs_parse_instead_of_aborting_the_walk() {
+        // lopdf rejects `d1` outright, so the tolerance is what makes this
+        // stream readable at all; the remaining operators must survive.
+        let charproc = b"0.277832 0 0 0 0 0 d1\nBT /F1 12 Tf (Hi) Tj ET".to_vec();
+        // lopdf reads `d1` as operator `d` plus a stray `1` that binds to the
+        // next operator -- a misparse, not a parse.
+        let lopdf_ops: Vec<(String, usize)> = Content::decode_strict(&charproc)
+            .expect("lopdf accepts it, wrongly")
+            .operations
+            .iter()
+            .map(|o| (o.operator.clone(), o.operands.len()))
+            .collect();
+        assert_eq!(lopdf_ops[0], ("d".to_string(), 6));
+        assert_eq!(lopdf_ops[1], ("BT".to_string(), 1), "stray operand shifted");
+        // A char proc that ends at `d1` does not parse at all.
+        assert!(Content::decode_strict(b"0.277832 0 0 0 0 0 d1\n").is_err());
+
+        let parsed = decode_content_strict(&charproc).expect("d1 prefix split off");
+        let ops: Vec<&str> = parsed
+            .operations
+            .iter()
+            .map(|o| o.operator.as_str())
+            .collect();
+        assert_eq!(ops, ["BT", "Tf", "Tj", "ET"]);
+        // Still strict about everything else.
+        assert!(decode_content_strict(b"(unterminated").is_none());
+        assert!(decode_content_strict(b"0 0 0 0 0 0 d1 (unterminated").is_none());
+    }
+
+    #[test]
+    fn a_type3_glyph_no_longer_disables_subsetting_document_wide() {
+        let cids = gids_for("Hello");
+        let pairs: Vec<(u16, char)> = cids.iter().copied().zip("Hello".chars()).collect();
+        let mut doc = Document::with_version("1.7");
+        let pages_id = doc.new_object_id();
+        let font_id = add_type0_font(&mut doc, &FontSpec::identity(pairs));
+        let text_page = add_text_page(&mut doc, pages_id, font_id, show_text_ops("F1", &cids));
+
+        // A Type3 font whose one char proc opens with `d1`, drawn on its own
+        // page. Nothing about it constrains the Type0 font on page 1.
+        let proc_id = doc.add_object(Stream::new(
+            dictionary! {},
+            b"10 0 0 0 10 10 d1\n0 0 10 10 re f".to_vec(),
+        ));
+        let t3_id = doc.add_object(dictionary! {
+            "Type" => "Font",
+            "Subtype" => "Type3",
+            "FontBBox" => vec![0.into(), 0.into(), 10.into(), 10.into()],
+            "FontMatrix" => vec![
+                0.001.into(), 0.into(), 0.into(), 0.001.into(), 0.into(), 0.into(),
+            ],
+            "CharProcs" => dictionary! { "a" => proc_id },
+            "Encoding" => dictionary! {
+                "Type" => "Encoding",
+                "Differences" => vec![97.into(), "a".into()],
+            },
+            "FirstChar" => 97,
+            "LastChar" => 97,
+            "Widths" => vec![10.into()],
+        });
+        let t3_content = doc.add_object(Stream::new(
+            dictionary! {},
+            b"BT /T3 12 Tf (a) Tj ET".to_vec(),
+        ));
+        let t3_page = doc.add_object(dictionary! {
+            "Type" => "Page",
+            "Parent" => pages_id,
+            "Contents" => t3_content,
+            "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+            "Resources" => dictionary! { "Font" => dictionary! { "T3" => t3_id } },
+        });
+        let pdf = finish_pdf(&mut doc, pages_id, vec![text_page, t3_page]);
+
+        let out = optimize_with_options(&pdf, subset_opts());
+        assert!(
+            out.len() < pdf.len(),
+            "the Type0 font must still be subsetted alongside a Type3 glyph"
+        );
+        let view = subset_view(&out);
+        assert!(
+            view.font.len() < noto_bytes().len(),
+            "font program should have shrunk"
+        );
+    }
+
     #[test]
     fn unparseable_content_stream_disables_all_subsetting() {
         let cids = gids_for("Hello");
@@ -6651,7 +8324,6 @@ mod tests {
         );
     }
 }
-
 }
 
 mod jpeghuff {
@@ -6733,7 +8405,10 @@ fn push_raw_bit(run: &mut Vec<Token>, bit: u32) {
             return;
         }
     }
-    run.push(Token::Raw { bits: bit, nbits: 1 });
+    run.push(Token::Raw {
+        bits: bit,
+        nbits: 1,
+    });
 }
 
 /// A frame component as declared in `SOF`.
@@ -7608,14 +9283,8 @@ fn parse(data: &[u8]) -> Option<Parsed> {
                 }
                 let mut blocks = Vec::with_capacity(nf);
                 for c in &comps {
-                    let bw = ceil_div(
-                        ceil_div(usize::from(x) * usize::from(c.h), hmax)?,
-                        8,
-                    )?;
-                    let bh = ceil_div(
-                        ceil_div(usize::from(y) * usize::from(c.v), vmax)?,
-                        8,
-                    )?;
+                    let bw = ceil_div(ceil_div(usize::from(x) * usize::from(c.h), hmax)?, 8)?;
+                    let bh = ceil_div(ceil_div(usize::from(y) * usize::from(c.v), vmax)?, 8)?;
                     blocks.push(bw.checked_mul(bh)?);
                 }
                 let progressive = m == 0xC2;
@@ -7695,10 +9364,7 @@ fn rebuild(p: &Parsed) -> Option<Vec<u8>> {
 
 /// The rebuild, parameterized by table generator so tests can substitute a
 /// deliberately bad one.
-fn rebuild_with(
-    p: &Parsed,
-    gen: fn(&[u64; 256]) -> Option<EncodeTable>,
-) -> Option<Vec<u8>> {
+fn rebuild_with(p: &Parsed, gen: fn(&[u64; 256]) -> Option<EncodeTable>) -> Option<Vec<u8>> {
     let mut out: Vec<u8> = Vec::new();
     let mut in_effect: [TableState; 8] = Default::default();
     let mut next_scan = 0usize;
@@ -7763,8 +9429,8 @@ mod tests {
     /// Fixtures live at `fixtures/jpeg`; regenerate with
     /// `python3 fixtures/jpeg/generate.py`.
     fn fixture(name: &str) -> Vec<u8> {
-        let path = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/jpeg"))
-            .join(name);
+        let path =
+            std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/jpeg")).join(name);
         std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
     }
 
@@ -7935,7 +9601,11 @@ mod tests {
                         }
                         let mut b = 0usize;
                         for (k, &(idx, td, ta)) in sel.iter().enumerate() {
-                            let n = if ns == 1 { 1 } else { comps[idx].h * comps[idx].v };
+                            let n = if ns == 1 {
+                                1
+                            } else {
+                                comps[idx].h * comps[idx].v
+                            };
                             let _ = k;
                             for _ in 0..n {
                                 let (ci, bi) = blocks[b];
@@ -8015,7 +9685,8 @@ mod tests {
                 blk[k] = extend(r.bits(sz).unwrap(), sz) << al;
                 k += 1;
             } else if run != 15 {
-                *eobrun = (1u32 << run) + u32::from(r.bits(u8::try_from(run).unwrap()).unwrap()) - 1;
+                *eobrun =
+                    (1u32 << run) + u32::from(r.bits(u8::try_from(run).unwrap()).unwrap()) - 1;
                 return;
             } else {
                 k += 16;
@@ -8045,8 +9716,8 @@ mod tests {
                     assert_eq!(sz, 1, "refinement magnitude must be 1");
                     newval = if r.bit().unwrap() != 0 { p1 } else { m1 };
                 } else if run != 15 {
-                    *eobrun = (1u32 << run)
-                        + u32::from(r.bits(u8::try_from(run).unwrap()).unwrap());
+                    *eobrun =
+                        (1u32 << run) + u32::from(r.bits(u8::try_from(run).unwrap()).unwrap());
                     break;
                 }
                 while k <= se {
@@ -8262,7 +9933,7 @@ mod tests {
             let orig = fixture(name);
             // Both the fixture as shipped and a deliberately de-optimized
             // copy of it, so the optimizer is exercised on a stream it will
-                // actually accept.
+            // actually accept.
             let flat = deoptimize(&orig);
             let before = decode_coefficients(&orig);
             assert_eq!(before, decode_coefficients(&flat), "{name}: de-optimize");
@@ -8295,7 +9966,12 @@ mod tests {
         for name in FIXTURES {
             let flat = deoptimize(&fixture(name));
             let out = optimize(&flat).unwrap();
-            assert!(out.len() < flat.len(), "{name}: {} vs {}", out.len(), flat.len());
+            assert!(
+                out.len() < flat.len(),
+                "{name}: {} vs {}",
+                out.len(),
+                flat.len()
+            );
         }
     }
 
@@ -8307,7 +9983,10 @@ mod tests {
         for name in FIXTURES {
             let flat = deoptimize(&fixture(name));
             let once = optimize(&flat).unwrap();
-            assert!(optimize(&once).is_none(), "{name}: second pass must decline");
+            assert!(
+                optimize(&once).is_none(),
+                "{name}: second pass must decline"
+            );
         }
     }
 
@@ -8486,7 +10165,1040 @@ mod tests {
         assert!(optimize(&[0xFFu8; 512]).is_none());
     }
 }
+}
 
+mod reals {
+//! Exact restoration of PDF real literals that lopdf's `f32` object model
+//! cannot round-trip.
+//!
+//! `Object::Real` holds an `f32` (lopdf 0.44 `src/object.rs:42`) and the writer
+//! prints it with `{}` (`src/writer.rs:594`), i.e. Rust's shortest decimal that
+//! round-trips *as an `f32`*. A literal needing more than ~7 significant digits
+//! is therefore a different number after a load/save:
+//!
+//! ```text
+//!   841.91998  ->  f32 841.9199829101562  ->  written back as "841.92"
+//! ```
+//!
+//! Viewers parse reals as doubles, so to them the value simply moved by 2e-5.
+//! On `/MediaBox` that shifts the page-to-device origin and re-grid-fits every
+//! glyph on the page; on `/BBox`, `/Rect`, `/W` and `/Bounds` it moves a clip,
+//! a hit region, an advance or a shading stop by the same amount. See
+//! `docs/upstream-lopdf-f32-reals.md` for the upstream report.
+//!
+//! The digits are destroyed at parse time, so there is nothing to fix inside
+//! the `Document`: no `Object` variant can hold `841.91998`, and no writer
+//! setting can print it. The only place both the original literal and the
+//! finished file exist is around the save, so that is where this works:
+//!
+//! 1. [`capture`] reads the *raw input bytes* and records, for every real
+//!    literal lopdf cannot round-trip, the exact decimal text, keyed by the
+//!    `f32` bit pattern lopdf will hold.
+//! 2. [`restore`] rewrites the just-serialized output, replacing lopdf's
+//!    shortened print of those `f32`s with the captured literal — inside
+//!    object streams as well as plain object bodies — and repairs every byte
+//!    offset the length change invalidates.
+//!
+//! Both halves are keyed by *value*, not by dictionary key or object id, so
+//! this covers every real in the document (the corpus census in
+//! `docs/upstream-lopdf-f32-reals.md` finds `/Rect`, `/XYZ`, `/BBox`, `/W`,
+//! `/MediaBox`, `/FontBBox`, `/Bounds`, `/Domain`, ... in that order of
+//! frequency) rather than a hand-maintained list of "load-bearing" keys.
+//!
+//! Safety posture, in order of strength:
+//!
+//! * Every replacement has the *same `f32` bits* as what it replaces. Nothing
+//!   that reads the file as `f32` — including lopdf itself — sees any change;
+//!   the only readers affected are the ones that parse reals as doubles, and
+//!   for those the value moves from lopdf's rounding back to the input's.
+//! * A value is restored only when the input maps it *unambiguously*: if two
+//!   different literals share one `f32`, or if the shortened form itself also
+//!   occurs literally in the input, that value is dropped from the map and
+//!   left exactly as lopdf wrote it.
+//! * An empty map is an early return, so a document with no drifting literal
+//!   is byte-identical to what it was before this pass existed.
+//! * The patched bytes must re-parse, and must parse to the same objects as
+//!   the unpatched bytes, or the unpatched bytes are handed back.
+
+use std::collections::{HashMap, HashSet};
+
+use lopdf::{Document, Object};
+
+use super::{deflate_level9, find_sub, inflate_capped, MAX_REDEFLATE_BYTES};
+
+/// The exact decimal text of every real literal in the input whose value
+/// lopdf's `f32` cannot represent, keyed by that `f32`'s bit pattern.
+#[derive(Default, Debug)]
+pub(crate) struct RealLiterals {
+    exact: HashMap<u32, Vec<u8>>,
+}
+
+impl RealLiterals {
+    pub(crate) fn is_empty(&self) -> bool {
+        self.exact.is_empty()
+    }
+
+    /// The literal to emit in place of `printed`, when `printed` is exactly
+    /// lopdf's shortest `f32` print of a captured value and differs from the
+    /// input's own text for it.
+    fn replacement(&self, printed: &[u8]) -> Option<&[u8]> {
+        // Integer-valued reals print without a fraction — lopdf writes
+        // `Real(1.0)` as `1`, indistinguishable from `Integer(1)`. Restoring
+        // there would rewrite every `/Length 1`, `/Count 1` and `/Size 1` in
+        // the file into a real, so a literal that rounds to a whole number
+        // (`0.999999999` -> `1`) is simply left rounded. The value it would
+        // move is a billionth of a unit; the damage would be a broken
+        // document.
+        if !printed.contains(&b'.') {
+            return None;
+        }
+        let text = std::str::from_utf8(printed).ok()?;
+        let value: f32 = text.parse().ok()?;
+        if !value.is_finite() {
+            return None;
+        }
+        let exact = self.exact.get(&value.to_bits())?;
+        // Only ever lengthen lopdf's own shortest print: a token that is
+        // already the full literal (or any other spelling) is left alone.
+        if format!("{value}").as_bytes() != printed || exact.as_slice() == printed {
+            return None;
+        }
+        Some(exact)
+    }
+}
+
+/// Record the input's real literals that will not survive lopdf's `f32`.
+///
+/// Scans the raw bytes — plain object bodies plus the inflated payload of
+/// every `FlateDecode` object stream — for real tokens, skipping comments,
+/// strings and stream payloads. Anything that cannot be read (an encrypted or
+/// predictor-filtered object stream, a `/Length` this scanner cannot follow)
+/// simply contributes nothing: the reals inside it are then left as lopdf
+/// writes them, which is the behaviour without this pass at all.
+pub(crate) fn capture(input: &[u8]) -> RealLiterals {
+    let mut exact: HashMap<u32, (f64, Vec<u8>)> = HashMap::new();
+    let mut poisoned: HashSet<u32> = HashSet::new();
+
+    let mut note = |token: &[u8]| {
+        let Ok(text) = std::str::from_utf8(token) else {
+            return;
+        };
+        if !text.contains('.') {
+            return;
+        }
+        let (Ok(wide), Ok(narrow)) = (text.parse::<f64>(), text.parse::<f32>()) else {
+            return;
+        };
+        if !narrow.is_finite() {
+            return;
+        }
+        let bits = narrow.to_bits();
+        if format!("{narrow}").parse::<f64>() == Ok(wide) {
+            // lopdf round-trips this literal exactly. Restoring some *other*
+            // literal for the same f32 would rewrite these occurrences too, so
+            // this value is off limits.
+            poisoned.insert(bits);
+            return;
+        }
+        match exact.get(&bits) {
+            Some((seen, _)) if *seen == wide => {}
+            Some(_) => {
+                poisoned.insert(bits);
+            }
+            None => {
+                exact.insert(bits, (wide, token.to_vec()));
+            }
+        }
+    };
+
+    scan_reals(input, true, &mut note);
+    for payload in objstm_payloads(input) {
+        scan_reals(&payload, false, &mut note);
+    }
+
+    RealLiterals {
+        exact: exact
+            .into_iter()
+            .filter(|(bits, _)| !poisoned.contains(bits))
+            .map(|(bits, (_, text))| (bits, text))
+            .collect(),
+    }
+}
+
+/// Put the captured literals back into a just-serialized document.
+///
+/// Returns `out` untouched whenever there is nothing to restore or anything at
+/// all about the file's shape is not what lopdf's writer emits.
+pub(crate) fn restore(out: Vec<u8>, literals: &RealLiterals) -> Vec<u8> {
+    if literals.is_empty() {
+        return out;
+    }
+    match try_restore(&out, literals) {
+        Some(patched) => patched,
+        None => out,
+    }
+}
+
+/// One byte-range replacement in the output.
+#[derive(Debug)]
+struct Edit {
+    at: usize,
+    len: usize,
+    text: Vec<u8>,
+}
+
+fn try_restore(out: &[u8], literals: &RealLiterals) -> Option<Vec<u8>> {
+    let mut edits: Vec<Edit> = Vec::new();
+
+    // Plain object bodies: page dicts on the unpacked save path, and every
+    // stream dictionary (`/BBox`, `/Matrix`, `/Decode`, ...) on both paths,
+    // since streams are never packed into an object stream.
+    scan_reals_positions(out, true, &mut |at, token| {
+        if let Some(text) = literals.replacement(token) {
+            edits.push(Edit {
+                at,
+                len: token.len(),
+                text: text.to_vec(),
+            });
+        }
+    });
+
+    // Packed objects live inside `ObjStm` payloads; each one that changes is
+    // re-packed, re-deflated and its `/Length` and `/First` rewritten.
+    let mut from = 0;
+    while let Some(tag_at) = find_sub(out, b"/Type/ObjStm", from) {
+        from = tag_at + 1;
+        if let Some(mut more) = objstm_edits(out, tag_at, literals) {
+            edits.append(&mut more);
+        }
+    }
+
+    if edits.is_empty() {
+        return None;
+    }
+    edits.sort_by_key(|e| e.at);
+    // Overlapping edits would make the shift map ambiguous; the two producers
+    // above work on disjoint regions, so this is a structural check.
+    for pair in edits.windows(2) {
+        if pair[0].at + pair[0].len > pair[1].at {
+            return None;
+        }
+    }
+
+    let patched = apply_edits(out, &edits);
+    let patched = repair_offsets(patched, out, &edits)?;
+
+    // Proof, in the same shape as the crate's other byte patches: the result
+    // must re-parse, and must parse to the same objects as the bytes we
+    // started from. The literals differ; every `f32` lopdf holds does not.
+    let before = Document::load_mem(out).ok()?;
+    let after = Document::load_mem(&patched).ok()?;
+    if !same_objects(&before, &after) {
+        return None;
+    }
+    Some(patched)
+}
+
+/// Rebuild one object stream with its reals restored.
+///
+/// Yields edits for the deflated payload plus the `/Length` and `/First` values
+/// that describe it, or `None` when nothing inside it changed (or the stream is
+/// not shaped the way lopdf writes one).
+fn objstm_edits(out: &[u8], tag_at: usize, literals: &RealLiterals) -> Option<Vec<Edit>> {
+    let (dict_start, dict_end, content_start, content_len) = locate_stream(out, tag_at)?;
+    let dict = out.get(dict_start..dict_end)?;
+    if find_sub(dict, b"/Filter/FlateDecode", 0).is_none()
+        || find_sub(dict, b"/DecodeParms", 0).is_some()
+    {
+        return None;
+    }
+    let content = out.get(content_start..content_start.checked_add(content_len)?)?;
+    let payload = inflate_capped(content, MAX_REDEFLATE_BYTES)?;
+
+    let count = usize::try_from(int_value(dict, b"/N ")?.0).ok()?;
+    let first = usize::try_from(int_value(dict, b"/First ")?.0).ok()?;
+    let header = std::str::from_utf8(payload.get(..first)?).ok()?;
+    let mut pairs = header.split_ascii_whitespace();
+    let mut ids: Vec<i64> = Vec::with_capacity(count);
+    let mut offsets: Vec<usize> = Vec::with_capacity(count);
+    for _ in 0..count {
+        ids.push(pairs.next()?.parse().ok()?);
+        offsets.push(pairs.next()?.parse().ok()?);
+    }
+    if pairs.next().is_some() || offsets.first() != Some(&0) {
+        return None;
+    }
+
+    // Slice the payload into per-object bodies and restore inside each. The
+    // slices are contiguous, so whatever separators lopdf wrote between
+    // objects travel along with the body they follow.
+    let bodies_at = first;
+    let mut bodies: Vec<Vec<u8>> = Vec::with_capacity(count);
+    let mut changed = false;
+    for i in 0..offsets.len() {
+        let start = bodies_at.checked_add(offsets[i])?;
+        let end = match offsets.get(i + 1) {
+            Some(next) => bodies_at.checked_add(*next)?,
+            None => payload.len(),
+        };
+        let body = payload.get(start..end)?;
+        let mut inner: Vec<Edit> = Vec::new();
+        scan_reals_positions(body, false, &mut |at, token| {
+            if let Some(text) = literals.replacement(token) {
+                inner.push(Edit {
+                    at,
+                    len: token.len(),
+                    text: text.to_vec(),
+                });
+            }
+        });
+        if inner.is_empty() {
+            bodies.push(body.to_vec());
+        } else {
+            changed = true;
+            bodies.push(apply_edits(body, &inner));
+        }
+    }
+    if !changed {
+        return None;
+    }
+
+    // Re-emit the offset header. Offsets are relative to `/First`, so the
+    // header's own new length only moves `/First` itself.
+    let mut new_header: Vec<u8> = Vec::with_capacity(first);
+    let mut running = 0usize;
+    for (i, id) in ids.iter().enumerate() {
+        if i > 0 {
+            new_header.push(b' ');
+        }
+        new_header.extend_from_slice(id.to_string().as_bytes());
+        new_header.push(b' ');
+        new_header.extend_from_slice(running.to_string().as_bytes());
+        running = running.checked_add(bodies[i].len())?;
+    }
+    new_header.push(b'\n');
+
+    let mut new_payload = new_header;
+    let new_first = new_payload.len();
+    for body in &bodies {
+        new_payload.extend_from_slice(body);
+    }
+    let new_content = deflate_level9(&new_payload)?;
+    if inflate_capped(&new_content, new_payload.len())?.as_slice() != new_payload.as_slice() {
+        return None;
+    }
+
+    let (_, len_at, len_len) = int_value(dict, b"/Length ")?;
+    let (_, first_at, first_len) = int_value(dict, b"/First ")?;
+    Some(vec![
+        Edit {
+            at: dict_start + len_at,
+            len: len_len,
+            text: new_content.len().to_string().into_bytes(),
+        },
+        Edit {
+            at: dict_start + first_at,
+            len: first_len,
+            text: new_first.to_string().into_bytes(),
+        },
+        Edit {
+            at: content_start,
+            len: content_len,
+            text: new_content,
+        },
+    ])
+}
+
+/// `(dict_start, dict_end, content_start, content_len)` for the stream object
+/// whose dictionary contains `inside`. Shaped for exactly what lopdf's writer
+/// emits: `<id> <gen> obj\n<<...>>stream\n<payload>\nendstream`.
+fn locate_stream(out: &[u8], inside: usize) -> Option<(usize, usize, usize, usize)> {
+    // Same bound as `objstm_payloads`: the object header is right there.
+    let window = inside.saturating_sub(4096);
+    let hdr = window
+        + out
+            .get(window..inside)?
+            .windows(b" obj\n<<".len())
+            .rposition(|w| w == b" obj\n<<")?;
+    let dict_start = hdr + b" obj\n".len();
+    let dict_end = find_sub(out, b">>stream\n", dict_start)? + 2;
+    if inside >= dict_end {
+        return None;
+    }
+    let content_start = dict_end + b"stream\n".len();
+    let dict = out.get(dict_start..dict_end)?;
+    let (len, _, _) = int_value(dict, b"/Length ")?;
+    let content_len = usize::try_from(len).ok()?;
+    let content_end = content_start.checked_add(content_len)?;
+    if !out.get(content_end..)?.starts_with(b"\nendstream") {
+        return None;
+    }
+    Some((dict_start, dict_end, content_start, content_len))
+}
+
+/// `(value, index_just_past_the_digits)` for the non-negative integer at `at`.
+fn parse_int_at(data: &[u8], at: usize) -> Option<(i64, usize)> {
+    let mut end = at;
+    while data.get(end).is_some_and(u8::is_ascii_digit) {
+        end += 1;
+    }
+    if end == at {
+        return None;
+    }
+    let value = std::str::from_utf8(data.get(at..end)?).ok()?.parse().ok()?;
+    Some((value, end))
+}
+
+/// `(value, offset_of_digits_in_dict, digit_count)` for `key` followed by a
+/// non-negative integer.
+fn int_value(dict: &[u8], key: &[u8]) -> Option<(i64, usize, usize)> {
+    let at = find_sub(dict, key, 0)? + key.len();
+    let mut end = at;
+    while dict.get(end).is_some_and(u8::is_ascii_digit) {
+        end += 1;
+    }
+    if end == at {
+        return None;
+    }
+    let value: i64 = std::str::from_utf8(dict.get(at..end)?).ok()?.parse().ok()?;
+    Some((value, at, end - at))
+}
+
+/// Splice `edits` (sorted, non-overlapping) into `data`.
+fn apply_edits(data: &[u8], edits: &[Edit]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(data.len());
+    let mut cursor = 0;
+    for edit in edits {
+        out.extend_from_slice(&data[cursor..edit.at]);
+        out.extend_from_slice(&edit.text);
+        cursor = edit.at + edit.len;
+    }
+    out.extend_from_slice(&data[cursor..]);
+    out
+}
+
+/// Where a byte offset into the pre-patch file lands after the edits.
+/// `None` if the offset points *inside* something that was rewritten.
+fn shift(edits: &[Edit], offset: usize) -> Option<usize> {
+    let mut moved = offset as i64;
+    for edit in edits {
+        if edit.at + edit.len <= offset {
+            moved += edit.text.len() as i64 - edit.len as i64;
+        } else if edit.at < offset {
+            return None;
+        } else {
+            break;
+        }
+    }
+    usize::try_from(moved).ok()
+}
+
+/// Rewrite every byte offset the patch invalidated: the cross-reference
+/// section's object offsets and the trailing `startxref`.
+fn repair_offsets(patched: Vec<u8>, original: &[u8], edits: &[Edit]) -> Option<Vec<u8>> {
+    let sx = original.windows(9).rposition(|w| w == b"startxref")?;
+    let mut p = sx + 9;
+    while original.get(p).is_some_and(u8::is_ascii_whitespace) {
+        p += 1;
+    }
+    let digits_at = p;
+    let mut digits_end = p;
+    while original.get(digits_end).is_some_and(u8::is_ascii_digit) {
+        digits_end += 1;
+    }
+    if digits_end == digits_at {
+        return None;
+    }
+    let xref_at: usize = std::str::from_utf8(original.get(digits_at..digits_end)?)
+        .ok()?
+        .parse()
+        .ok()?;
+
+    // The cross-reference section is the last thing lopdf writes, so it sits
+    // after every edit and moves as a whole.
+    let new_xref_at = shift(edits, xref_at)?;
+    let sx_shift = shift(edits, digits_at)?;
+
+    let mut patched = patched;
+    if original.get(xref_at..xref_at + 4) == Some(b"xref") {
+        rewrite_classic_xref(&mut patched, new_xref_at, edits)?;
+    } else {
+        rewrite_xref_stream(&mut patched, new_xref_at, edits)?;
+    }
+
+    // `startxref`'s own digit count can change; splice it last so the offsets
+    // computed above are still valid while the table is rewritten.
+    let tail_edit = Edit {
+        at: sx_shift,
+        len: digits_end - digits_at,
+        text: new_xref_at.to_string().into_bytes(),
+    };
+    Some(apply_edits(&patched, std::slice::from_ref(&tail_edit)))
+}
+
+/// Classic `xref` table: fixed-width `nnnnnnnnnn ggggg n` rows, so every
+/// offset is rewritten in place.
+fn rewrite_classic_xref(patched: &mut [u8], xref_at: usize, edits: &[Edit]) -> Option<()> {
+    let mut p = xref_at + 4;
+    loop {
+        while patched.get(p).is_some_and(u8::is_ascii_whitespace) {
+            p += 1;
+        }
+        if patched.get(p..p + 7) == Some(b"trailer") {
+            return Some(());
+        }
+        // "<start> <count>" subsection header
+        let (_, start_end) = parse_int_at(patched, p)?;
+        if patched.get(start_end) != Some(&b' ') {
+            return None;
+        }
+        let (count, mut q) = parse_int_at(patched, start_end + 1)?;
+        while patched.get(q).is_some_and(u8::is_ascii_whitespace) {
+            q += 1;
+        }
+        for _ in 0..count {
+            let row = patched.get(q..q + 20)?;
+            if row[17] == b'n' {
+                let offset: usize = std::str::from_utf8(&row[..10]).ok()?.parse().ok()?;
+                let moved = shift(edits, offset)?;
+                if moved > 9_999_999_999 {
+                    return None;
+                }
+                let text = format!("{moved:010}");
+                patched.get_mut(q..q + 10)?.copy_from_slice(text.as_bytes());
+            } else if row[17] != b'f' {
+                return None;
+            }
+            q += 20;
+        }
+        p = q;
+    }
+}
+
+/// Cross-reference stream, still uncompressed at this point in the save (the
+/// crate deflates it in a later pass). Type-1 rows carry byte offsets.
+fn rewrite_xref_stream(patched: &mut [u8], xref_at: usize, edits: &[Edit]) -> Option<()> {
+    let mut q = xref_at;
+    while patched.get(q).is_some_and(u8::is_ascii_digit) {
+        q += 1;
+    }
+    if patched.get(q) != Some(&b' ') {
+        return None;
+    }
+    q += 1;
+    while patched.get(q).is_some_and(u8::is_ascii_digit) {
+        q += 1;
+    }
+    if patched.get(q..q + 5)? != b" obj\n" {
+        return None;
+    }
+    let dict_start = q + 5;
+    if patched.get(dict_start..dict_start + 2)? != b"<<" {
+        return None;
+    }
+    let dict_end = find_sub(patched, b">>stream\n", dict_start)? + 2;
+    let dict = patched.get(dict_start..dict_end)?.to_vec();
+    if find_sub(&dict, b"/Type/XRef", 0).is_none() || find_sub(&dict, b"/Filter", 0).is_some() {
+        return None;
+    }
+    let content_start = dict_end + b"stream\n".len();
+    let (len, _, _) = int_value(&dict, b"/Length ")?;
+    let content_len = usize::try_from(len).ok()?;
+    let content_end = content_start.checked_add(content_len)?;
+    if !patched.get(content_end..)?.starts_with(b"\nendstream") {
+        return None;
+    }
+
+    let widths = width_array(&dict)?;
+    let [w0, w1, w2] = widths.as_slice() else {
+        return None;
+    };
+    if *w0 != 1 || *w1 == 0 || *w1 > 8 {
+        return None;
+    }
+    let row = w0 + w1 + w2;
+    let content = patched.get_mut(content_start..content_end)?;
+    if row == 0 || content.len() % row != 0 {
+        return None;
+    }
+    for chunk in content.chunks_mut(row) {
+        if chunk[0] != 1 {
+            continue;
+        }
+        let mut offset: u64 = 0;
+        for &b in &chunk[*w0..w0 + w1] {
+            offset = (offset << 8) | u64::from(b);
+        }
+        let moved = shift(edits, usize::try_from(offset).ok()?)? as u64;
+        let mut value = moved;
+        for b in chunk[*w0..w0 + w1].iter_mut().rev() {
+            *b = (value & 0xff) as u8;
+            value >>= 8;
+        }
+        if value != 0 {
+            return None;
+        }
+    }
+    Some(())
+}
+
+/// `/W[a b c]` out of a cross-reference stream dictionary.
+fn width_array(dict: &[u8]) -> Option<Vec<usize>> {
+    let at = find_sub(dict, b"/W[", 0)? + b"/W[".len();
+    let close = find_sub(dict, b"]", at)?;
+    std::str::from_utf8(dict.get(at..close)?)
+        .ok()?
+        .split_ascii_whitespace()
+        .map(|t| t.parse().ok())
+        .collect()
+}
+
+/// Do two parsed documents hold the same objects?
+///
+/// `Stream::start_position` records where the payload sat in the file, which
+/// this patch moves by design, so streams are compared on their dictionary and
+/// content only.
+fn same_objects(a: &Document, b: &Document) -> bool {
+    if a.objects.len() != b.objects.len() || a.trailer != b.trailer {
+        return false;
+    }
+    a.objects.iter().all(|(id, left)| match b.objects.get(id) {
+        // The object stream and the cross-reference stream are the containers
+        // this patch deliberately rewrites, so their own bytes differ by
+        // construction. Skipping them costs nothing: lopdf hands back every
+        // object they carry as a first-class entry of `objects`, and each of
+        // those IS compared — which is the stronger statement anyway.
+        Some(_) if is_container(left) => true,
+        Some(right) => equivalent(left, right),
+        None => false,
+    })
+}
+
+/// An `ObjStm` or `XRef` stream — file structure rather than document content.
+fn is_container(object: &Object) -> bool {
+    matches!(object, Object::Stream(stream)
+        if stream.dict.has_type(b"ObjStm") || stream.dict.has_type(b"XRef"))
+}
+
+fn equivalent(left: &Object, right: &Object) -> bool {
+    match (left, right) {
+        (Object::Stream(l), Object::Stream(r)) => l.dict == r.dict && l.content == r.content,
+        (Object::Array(l), Object::Array(r)) => {
+            l.len() == r.len() && l.iter().zip(r).all(|(a, b)| equivalent(a, b))
+        }
+        (Object::Dictionary(l), Object::Dictionary(r)) => {
+            l.len() == r.len()
+                && l.iter()
+                    .zip(r.iter())
+                    .all(|((lk, lv), (rk, rv))| lk == rk && equivalent(lv, rv))
+        }
+        _ => left == right,
+    }
+}
+
+/// Inflated payload of every `FlateDecode` object stream in a raw PDF.
+///
+/// Deliberately crude: `/Length` may be an indirect reference at this point, so
+/// the payload is handed to the inflater from `stream` onwards and the zlib
+/// stream ends where it ends. Anything that does not inflate is skipped.
+fn objstm_payloads(input: &[u8]) -> Vec<Vec<u8>> {
+    let mut out = Vec::new();
+    let mut from = 0;
+    while let Some(tag_at) = find_sub(input, b"/ObjStm", from) {
+        from = tag_at + 1;
+        // An object header sits a few dozen bytes before its `/ObjStm` entry;
+        // bounding the backward search keeps this linear over the whole file
+        // rather than quadratic in the number of object streams.
+        let window = tag_at.saturating_sub(4096);
+        let Some(dict_start) = input
+            .get(window..tag_at)
+            .and_then(|head| head.windows(3).rposition(|w| w == b"obj"))
+            .map(|at| window + at)
+        else {
+            continue;
+        };
+        let Some(stream_at) = find_sub(input, b"stream", tag_at) else {
+            continue;
+        };
+        let Some(dict) = input.get(dict_start..stream_at) else {
+            continue;
+        };
+        if find_sub(dict, b"FlateDecode", 0).is_none()
+            || find_sub(dict, b"/DecodeParms", 0).is_some()
+        {
+            continue;
+        }
+        let mut at = stream_at + b"stream".len();
+        if input.get(at) == Some(&b'\r') {
+            at += 1;
+        }
+        if input.get(at) == Some(&b'\n') {
+            at += 1;
+        }
+        let Some(rest) = input.get(at..) else {
+            continue;
+        };
+        if let Some(payload) = inflate_capped(rest, MAX_REDEFLATE_BYTES) {
+            out.push(payload);
+        }
+    }
+    out
+}
+
+/// Call `on_real` with the text of every real-number token in `data`.
+fn scan_reals(data: &[u8], skip_streams: bool, on_real: &mut dyn FnMut(&[u8])) {
+    scan_reals_positions(data, skip_streams, &mut |_, token| on_real(token));
+}
+
+/// Walk PDF syntax and report every real-number token as `(offset, text)`.
+///
+/// Comments, literal strings and hex strings are skipped so their contents
+/// cannot be mistaken for numbers (pdfTeX's `/PTEX.Fullbanner` famously
+/// contains `3.14159265`). With `skip_streams`, stream payloads are skipped
+/// too — binary image data is full of byte sequences that look like reals.
+/// This is a lexer, not a parser: it has no opinion about dictionaries,
+/// because the restoration is keyed by value rather than by key.
+fn scan_reals_positions(data: &[u8], skip_streams: bool, on_real: &mut dyn FnMut(usize, &[u8])) {
+    let mut i = 0;
+    while i < data.len() {
+        match data[i] {
+            b'%' => {
+                while i < data.len() && data[i] != b'\n' && data[i] != b'\r' {
+                    i += 1;
+                }
+            }
+            b'(' => {
+                let mut depth = 1usize;
+                i += 1;
+                while i < data.len() && depth > 0 {
+                    match data[i] {
+                        b'\\' => i += 2,
+                        b'(' => {
+                            depth += 1;
+                            i += 1;
+                        }
+                        b')' => {
+                            depth -= 1;
+                            i += 1;
+                        }
+                        _ => i += 1,
+                    }
+                }
+            }
+            b'<' => {
+                if data.get(i + 1) == Some(&b'<') {
+                    i += 2;
+                } else {
+                    i += 1;
+                    while i < data.len() && data[i] != b'>' {
+                        i += 1;
+                    }
+                    i += 1;
+                }
+            }
+            b's' if skip_streams
+                && data[i..].starts_with(b"stream")
+                && is_boundary(data, i)
+                && data
+                    .get(i + b"stream".len())
+                    .is_some_and(|b| matches!(*b, b'\r' | b'\n')) =>
+            {
+                match find_sub(data, b"endstream", i) {
+                    Some(end) => i = end + b"endstream".len(),
+                    None => return,
+                }
+            }
+            b'0'..=b'9' | b'+' | b'-' | b'.' if is_boundary(data, i) => {
+                let start = i;
+                while i < data.len() && matches!(data[i], b'0'..=b'9' | b'+' | b'-' | b'.') {
+                    i += 1;
+                }
+                // A token glued to a letter (`1e-5`, `12R`) is not a plain
+                // real; leave it to whoever wrote it.
+                if i >= data.len() || is_delimiter(data[i]) {
+                    on_real(start, &data[start..i]);
+                }
+            }
+            _ => i += 1,
+        }
+    }
+}
+
+/// Is the byte before `at` a delimiter, i.e. does a token start here?
+fn is_boundary(data: &[u8], at: usize) -> bool {
+    at == 0 || is_delimiter(data[at - 1])
+}
+
+/// PDF white-space and delimiter characters (ISO 32000-1 table 1 and 2).
+fn is_delimiter(byte: u8) -> bool {
+    byte.is_ascii_whitespace()
+        || byte == 0
+        || byte == 0x0c
+        || matches!(
+            byte,
+            b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'/' | b'%'
+        )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lopdf::{dictionary, Object, Stream};
+
+    /// The `f32` lopdf ends up holding for a literal. Spelling these out as
+    /// float literals would trip `clippy::excessive_precision` — which is the
+    /// whole bug, stated by the lint.
+    fn as_f32(literal: &str) -> f32 {
+        literal.parse().unwrap()
+    }
+
+    fn captured(input: &[u8]) -> Vec<(f32, String)> {
+        let mut out: Vec<(f32, String)> = capture(input)
+            .exact
+            .iter()
+            .map(|(bits, text)| {
+                (
+                    f32::from_bits(*bits),
+                    String::from_utf8_lossy(text).into_owned(),
+                )
+            })
+            .collect();
+        out.sort_by(|a, b| a.1.cmp(&b.1));
+        out
+    }
+
+    #[test]
+    fn captures_only_the_literals_f32_cannot_hold() {
+        // 595.91998 needs eight significant digits; 595.92, 0.5 and the
+        // integers are all exactly what lopdf would write back.
+        let input = b"<</MediaBox[0 0 595.91998 841.92]/Width 612/Alpha 0.5>>";
+        assert_eq!(
+            captured(input),
+            vec![(as_f32("595.91998"), "595.91998".to_string())]
+        );
+    }
+
+    #[test]
+    fn declines_a_value_two_literals_share() {
+        // Both spell the same f32, so there is no single right answer for the
+        // occurrences lopdf will shorten to `595.92`.
+        let same_f32 = b"<</A 595.91998/B 595.919983>>";
+        assert!(capture(same_f32).is_empty());
+    }
+
+    #[test]
+    fn declines_a_value_whose_shortened_form_also_occurs() {
+        // Restoring 841.91998 here would also rewrite the document's own
+        // literal 841.92, which is a different number that lopdf round-trips.
+        let both = b"<</A 841.91998>><</B 841.92>>";
+        assert!(capture(both).is_empty());
+    }
+
+    #[test]
+    fn does_not_read_numbers_out_of_strings_comments_or_streams() {
+        // pdfTeX's /PTEX.Fullbanner is the real-world case: a string whose
+        // text contains `3.14159265`.
+        let string = b"<</PTEX.Fullbanner(This is pdfTeX, Version 3.14159265-2.6)>>";
+        assert!(capture(string).is_empty());
+        let comment = b"% 595.91998 is not an object\n<</Width 612>>";
+        assert!(capture(comment).is_empty());
+        let hex = b"<</A<595.91998>>>";
+        assert!(capture(hex).is_empty());
+        let stream = b"<</Length 12>>stream\n595.91998 x\nendstream";
+        assert!(capture(stream).is_empty());
+    }
+
+    /// A one-page document whose `/MediaBox` carries LibreOffice's A4, written
+    /// through lopdf and then spliced back to the literals lopdf cannot hold.
+    ///
+    /// The placeholders are chosen so that lopdf prints them at exactly the
+    /// width of the literals that replace them: the splice is byte-for-byte
+    /// length-preserving, so the cross-reference table stays valid.
+    /// LibreOffice's A4 page box, `[0 0 595.91998 841.91998]`.
+    fn a4_fixture() -> Vec<u8> {
+        undrift(&a4_placeholders())
+    }
+
+    /// The same document written with a classic `xref` table instead of a
+    /// cross-reference stream. lopdf carries the input's cross-reference kind
+    /// through a load/save, so this is what a file from a PDF 1.4 producer
+    /// looks like on the way out.
+    fn a4_fixture_classic_xref() -> Vec<u8> {
+        let mut doc = lopdf::Document::load_mem(&a4_placeholders()).unwrap();
+        doc.reference_table.cross_reference_type = lopdf::xref::XrefType::CrossReferenceTable;
+        let mut bytes: Vec<u8> = Vec::new();
+        doc.save_to(&mut bytes).unwrap();
+        undrift(&bytes)
+    }
+
+    /// Swap the round-trip-safe placeholders for the literals lopdf's `f32`
+    /// cannot hold. Both replacements are the same width as what they replace,
+    /// so every byte offset in the file stays valid.
+    fn undrift(bytes: &[u8]) -> Vec<u8> {
+        let bytes = splice(bytes, format!("{PLACEHOLDER_W}").as_bytes(), b"595.91998");
+        splice(&bytes, format!("{PLACEHOLDER_H}").as_bytes(), b"841.91998")
+    }
+
+    /// Chosen so lopdf prints them at exactly the width of the literals that
+    /// replace them, and so it prints them back unchanged (nothing to capture
+    /// until `undrift` runs).
+    const PLACEHOLDER_W: f32 = 1007.1234;
+    const PLACEHOLDER_H: f32 = 1014.2468;
+
+    fn a4_placeholders() -> Vec<u8> {
+        let (width, height) = (PLACEHOLDER_W, PLACEHOLDER_H);
+        assert_eq!(
+            (format!("{width}").len(), format!("{height}").len()),
+            (9, 9),
+            "same-width splice"
+        );
+
+        let mut doc = lopdf::Document::with_version("1.5");
+        let pages_id = doc.new_object_id();
+        // Two pages carrying byte-identical content streams, so the document
+        // has real work for amatl to do: without a win it hands the input
+        // straight back and there is nothing to restore into.
+        let body = b"BT /F1 12 Tf 72 720 Td (hello) Tj ET\n".repeat(200);
+        let kids: Vec<Object> = (0..2)
+            .map(|_| {
+                let content = doc.add_object(Stream::new(dictionary! {}, body.clone()));
+                doc.add_object(dictionary! {
+                    "Type" => "Page",
+                    "Parent" => pages_id,
+                    "Contents" => content,
+                })
+                .into()
+            })
+            .collect();
+        // The page box sits on the page *tree* node, inherited by both pages
+        // — the shape a producer uses for a uniform document, and one more
+        // reason a restoration keyed by dictionary key would have to know
+        // about `/Parent`.
+        doc.objects.insert(
+            pages_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Pages",
+                "Kids" => kids,
+                "Count" => 2,
+                "MediaBox" => vec![
+                    Object::Integer(0),
+                    Object::Integer(0),
+                    Object::Real(width),
+                    Object::Real(height),
+                ],
+            }),
+        );
+        let catalog = doc.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
+        doc.trailer.set("Root", catalog);
+
+        let mut bytes: Vec<u8> = Vec::new();
+        doc.save_to(&mut bytes).unwrap();
+        bytes
+    }
+
+    /// Byte-for-byte replacement of one equal-length token. The saved PDF is
+    /// not UTF-8 (binary header comment, binary cross-reference stream), so
+    /// this works on bytes.
+    fn splice(data: &[u8], from: &[u8], to: &[u8]) -> Vec<u8> {
+        assert_eq!(from.len(), to.len(), "length-preserving splice");
+        let at = find_sub(data, from, 0).expect("placeholder is in the file");
+        let mut out = data.to_vec();
+        out[at..at + to.len()].copy_from_slice(to);
+        out
+    }
+
+    #[test]
+    fn the_fixture_really_does_carry_undrifted_literals() {
+        assert_eq!(
+            captured(&a4_fixture()),
+            vec![
+                (as_f32("595.91998"), "595.91998".to_string()),
+                (as_f32("841.91998"), "841.91998".to_string()),
+            ]
+        );
+    }
+
+    /// The packed save path: the page dictionary is inside a deflated
+    /// `ObjStm`, so restoring reaches through the object stream's payload,
+    /// offset header, `/Length`, `/First` and the cross-reference stream.
+    #[test]
+    fn restores_a_page_box_packed_into_an_object_stream() {
+        let input = a4_fixture();
+        let out = super::super::optimize(&input);
+        assert!(find_sub(&out, b"/Type/ObjStm", 0).is_some(), "packed path");
+        assert_eq!(captured(&out), captured(&input));
+    }
+
+    /// The unpacked save path: plain object bodies and a classic `xref` table
+    /// of fixed-width offsets.
+    #[test]
+    fn restores_a_page_box_in_a_plain_object_body() {
+        let input = a4_fixture();
+        let out = super::super::optimize_with_options(
+            &input,
+            super::super::OptimizeOptions::default().with_pack_object_streams(false),
+        );
+        assert!(find_sub(&out, b"595.91998", 0).is_some(), "plain literal");
+        assert_eq!(captured(&out), captured(&input));
+    }
+
+    /// A PDF 1.4 document saves with a classic `xref` table — fixed-width
+    /// offset rows rather than a cross-reference stream — which is the other
+    /// half of `repair_offsets`.
+    #[test]
+    fn restores_a_page_box_under_a_classic_xref_table() {
+        let input = a4_fixture_classic_xref();
+        let out = super::super::optimize_with_options(
+            &input,
+            super::super::OptimizeOptions::default().with_pack_object_streams(false),
+        );
+        assert!(
+            find_sub(&out, b"\ntrailer", 0).is_some(),
+            "classic xref table"
+        );
+        assert_eq!(captured(&out), captured(&input));
+    }
+
+    /// `0.999999999` is a real that lopdf prints back as `1`. Restoring it
+    /// would turn every integer `1` in the output — `/Length`, `/Count`,
+    /// `/Size` — into a real, for a billionth of a unit of accuracy.
+    #[test]
+    fn never_turns_an_integer_back_into_a_real() {
+        let literals = capture(b"<</A 0.999999999>>");
+        assert!(!literals.is_empty(), "the literal is captured");
+        assert_eq!(literals.replacement(b"1"), None);
+        assert_eq!(
+            restore(b"<</Length 1/Count 1>>".to_vec(), &literals),
+            b"<</Length 1/Count 1>>".to_vec()
+        );
+    }
+
+    /// Restoring puts the input's own literals in the output, so the output
+    /// is a document that drifts too — and a second run has to reach exactly
+    /// the same fixed point rather than oscillating between the two spellings.
+    #[test]
+    fn restoring_keeps_the_pipeline_idempotent() {
+        let once = super::super::optimize(&a4_fixture());
+        let twice = super::super::optimize(&once);
+        assert_eq!(once, twice);
+    }
+
+    /// The whole pass is keyed on the input's literals, so a document with
+    /// none of them comes out exactly as it did before this existed. This is
+    /// what makes the pass byte-invisible to the 12 of 16 corpus documents
+    /// that carry no drifting real.
+    #[test]
+    fn a_document_with_nothing_to_restore_is_byte_identical() {
+        // The fixture *without* the splice: lopdf prints these two literals
+        // back exactly, so there is nothing to capture and nothing to patch.
+        let undrifted = a4_placeholders();
+        let literals = capture(&undrifted);
+        assert!(literals.is_empty());
+
+        let out = super::super::optimize(&undrifted);
+        assert_eq!(restore(out.clone(), &literals), out);
+    }
+}
 }
 
 mod truetype {
@@ -9185,7 +11897,6 @@ mod tests {
         assert_eq!(parse_subtable(&build_format6(&map)).unwrap(), map);
     }
 }
-
 }
 
 mod type1 {
@@ -10865,10 +13576,369 @@ pub(crate) fn convert_to_cff(
     Some(out)
 }
 
+// ---------------------------------------------------------------------------
+// Charstring-interpreter tests.
+//
+// These drive `interpret_glyph` on hand-built charstrings rather than on a
+// parsed font program, because the two constructs that carry the most decline
+// branches — `callothersubr` (flex, hint replacement) and `seac` (accent
+// composition) — are exactly the ones real corpus fonts exercise least. Every
+// case below pins a specific `None`: for a converter whose contract is
+// "convert or leave the font alone", a missed decline is a corrupt glyph.
+// ---------------------------------------------------------------------------
+#[cfg(test)]
+mod tests {
+    use super::*;
 
+    /// Charstring builder. Numbers always take the 5-byte 255 form — the
+    /// interpreter's other three number encodings are covered by real fonts;
+    /// what these tests are after is the operators.
+    #[derive(Default)]
+    struct Cs(Vec<u8>);
 
+    impl Cs {
+        fn n(mut self, v: i32) -> Self {
+            self.0.push(255);
+            self.0.extend_from_slice(&v.to_be_bytes());
+            self
+        }
+        fn op(mut self, bytes: &[u8]) -> Self {
+            self.0.extend_from_slice(bytes);
+            self
+        }
+        /// `sbx wx hsbw`
+        fn hsbw(self, sbx: i32, wx: i32) -> Self {
+            self.n(sbx).n(wx).op(&[13])
+        }
+        fn rmoveto(self, dx: i32, dy: i32) -> Self {
+            self.n(dx).n(dy).op(&[21])
+        }
+        fn rlineto(self, dx: i32, dy: i32) -> Self {
+            self.n(dx).n(dy).op(&[5])
+        }
+        /// `args... n othersubr callothersubr`
+        fn othersubr(mut self, args: &[i32], othersubr: i32) -> Self {
+            for a in args {
+                self = self.n(*a);
+            }
+            self.n(args.len() as i32).n(othersubr).op(&[12, 16])
+        }
+        fn endchar(self) -> Vec<u8> {
+            self.op(&[14]).0
+        }
+    }
+
+    /// A font carrying exactly the named charstrings and no subrs.
+    fn font(glyphs: &[(&str, Vec<u8>)]) -> Type1Font {
+        Type1Font {
+            font_name: b"Test".to_vec(),
+            font_matrix: [0.001, 0.0, 0.0, 0.001, 0.0, 0.0],
+            font_bbox: [0.0, 0.0, 1000.0, 1000.0],
+            paint_type: 0.0,
+            encoding: vec![None; 256],
+            charstrings: glyphs
+                .iter()
+                .map(|(name, cs)| (name.as_bytes().to_vec(), cs.clone()))
+                .collect(),
+            subrs: Vec::new(),
+            private: PrivateHints::default(),
+        }
+    }
+
+    /// The seven `rmoveto`s a flex sequence collects, each bracketed by
+    /// OtherSubr 2. `points` is truncated to whatever the caller wants, so a
+    /// test can hand the interpreter a short flex.
+    fn flex_points(mut cs: Cs, points: &[(i32, i32)]) -> Cs {
+        for (dx, dy) in points {
+            cs = cs.rmoveto(*dx, *dy).othersubr(&[], 2);
+        }
+        cs
+    }
+
+    const SEVEN: [(i32, i32); 7] = [
+        (10, 0),
+        (20, 10),
+        (20, 10),
+        (20, 0),
+        (20, -10),
+        (20, -10),
+        (10, 0),
+    ];
+
+    /// The whole flex protocol, in the reduced 3-argument form dvips-embedded
+    /// fonts use: two curves come out, and nothing is left half-open.
+    #[test]
+    fn othersubr_zero_folds_a_flex_into_two_curves() {
+        let glyph = Cs::default()
+            .hsbw(0, 500)
+            .rmoveto(100, 100)
+            .othersubr(&[], 1);
+        let glyph = flex_points(glyph, &SEVEN)
+            .othersubr(&[50, 240, 100], 0)
+            .op(&[12, 17]) // pop
+            .op(&[12, 17]) // pop
+            .op(&[12, 33]) // setcurrentpoint
+            .endchar();
+        let f = font(&[("a", glyph)]);
+        let g = interpret_glyph(&f, b"a", true).expect("flex glyph interprets");
+        let ops: Vec<&PathOp> = g.segments.iter().flat_map(|s| s.ops.iter()).collect();
+        assert_eq!(ops.len(), 3, "moveto + two flex curves");
+        assert!(matches!(ops[0], PathOp::Move(..)));
+        // p[0] is the reference point; its delta folds into the first
+        // curve's first control point (10 + 20, 0 + 10).
+        assert!(matches!(ops[1], PathOp::Curve(a, b, ..) if *a == 30.0 && *b == 10.0));
+        assert!(matches!(ops[2], PathOp::Curve(..)));
+    }
+
+    /// The 17-argument Adobe form is accepted on the same terms.
+    #[test]
+    fn othersubr_zero_accepts_the_seventeen_argument_form() {
+        let glyph = Cs::default()
+            .hsbw(0, 500)
+            .rmoveto(100, 100)
+            .othersubr(&[], 1);
+        let glyph = flex_points(glyph, &SEVEN)
+            .othersubr(&[0; 17], 0)
+            .op(&[12, 17])
+            .op(&[12, 17])
+            .op(&[12, 33])
+            .endchar();
+        let f = font(&[("a", glyph)]);
+        assert!(interpret_glyph(&f, b"a", true).is_some());
+    }
+
+    /// Every way the flex protocol can arrive malformed. Each one is a
+    /// decline, never a guess at what the producer meant.
+    #[test]
+    fn malformed_flex_declines() {
+        // Fewer than seven collected points.
+        let short = flex_points(
+            Cs::default()
+                .hsbw(0, 500)
+                .rmoveto(100, 100)
+                .othersubr(&[], 1),
+            &SEVEN[..5],
+        )
+        .othersubr(&[50, 240, 100], 0)
+        .endchar();
+
+        // OtherSubr 0 with no OtherSubr 1 to open the flex.
+        let unopened = Cs::default()
+            .hsbw(0, 500)
+            .rmoveto(100, 100)
+            .othersubr(&[50, 240, 100], 0)
+            .endchar();
+
+        // An argument count the protocol does not define.
+        let wrong_argc = flex_points(
+            Cs::default()
+                .hsbw(0, 500)
+                .rmoveto(100, 100)
+                .othersubr(&[], 1),
+            &SEVEN,
+        )
+        .othersubr(&[50, 240], 0)
+        .endchar();
+
+        // OtherSubr 1 twice: a nested flex is not a shape we model.
+        let nested = flex_points(
+            Cs::default()
+                .hsbw(0, 500)
+                .rmoveto(100, 100)
+                .othersubr(&[], 1),
+            &SEVEN[..1],
+        )
+        .othersubr(&[], 1)
+        .endchar();
+
+        // OtherSubr 1 before the path is open (no current point to flex from).
+        let no_current_point = Cs::default().hsbw(0, 500).othersubr(&[], 1).endchar();
+
+        // OtherSubr 2 outside a flex.
+        let stray_two = Cs::default()
+            .hsbw(0, 500)
+            .rmoveto(100, 100)
+            .othersubr(&[], 2)
+            .endchar();
+
+        // A flex that never closes: `interpret_glyph` catches this after exec.
+        let unterminated = flex_points(
+            Cs::default()
+                .hsbw(0, 500)
+                .rmoveto(100, 100)
+                .othersubr(&[], 1),
+            &SEVEN,
+        )
+        .endchar();
+
+        // An OtherSubr this interpreter does not implement. Declining rather
+        // than ignoring is the point: an unknown OtherSubr can move the pen.
+        let unknown = Cs::default()
+            .hsbw(0, 500)
+            .rmoveto(100, 100)
+            .othersubr(&[1], 14)
+            .endchar();
+
+        // Hint replacement with the wrong argument count.
+        let bad_hint_replace = Cs::default()
+            .hsbw(0, 500)
+            .rmoveto(100, 100)
+            .othersubr(&[1, 2], 3)
+            .endchar();
+
+        for (label, cs) in [
+            ("short flex", short),
+            ("unopened flex", unopened),
+            ("wrong argc", wrong_argc),
+            ("nested flex", nested),
+            ("no current point", no_current_point),
+            ("stray othersubr 2", stray_two),
+            ("unterminated flex", unterminated),
+            ("unknown othersubr", unknown),
+            ("bad hint replace", bad_hint_replace),
+        ] {
+            let f = font(&[("a", cs)]);
+            assert!(
+                interpret_glyph(&f, b"a", true).is_none(),
+                "{label} must decline"
+            );
+        }
+    }
+
+    /// `pop` with nothing on the PostScript stack has no value to produce.
+    #[test]
+    fn pop_without_a_pending_othersubr_result_declines() {
+        let cs = Cs::default().hsbw(0, 500).op(&[12, 17]).endchar();
+        let f = font(&[("a", cs)]);
+        assert!(interpret_glyph(&f, b"a", true).is_none());
+    }
+
+    /// `asb adx ady bchar achar seac` — the accent's outline is appended to
+    /// the base's, re-based so the two land in one contour list.
+    fn seac_glyph(asb: i32, adx: i32, ady: i32, bchar: i32, achar: i32) -> Vec<u8> {
+        Cs::default()
+            .hsbw(0, 500)
+            .n(asb)
+            .n(adx)
+            .n(ady)
+            .n(bchar)
+            .n(achar)
+            .op(&[12, 6])
+            .endchar()
+    }
+
+    fn outline(name: &str) -> (&str, Vec<u8>) {
+        (
+            name,
+            Cs::default()
+                .hsbw(0, 500)
+                .rmoveto(50, 0)
+                .rlineto(100, 0)
+                .rlineto(0, 100)
+                .endchar(),
+        )
+    }
+
+    #[test]
+    fn seac_composes_base_and_accent() {
+        let f = font(&[
+            ("Aacute", seac_glyph(0, 100, 200, 65, 194)),
+            outline("A"),
+            outline("acute"),
+        ]);
+        let g = interpret_glyph(&f, b"Aacute", true).expect("composite interprets");
+        let ops: Vec<&PathOp> = g.segments.iter().flat_map(|s| s.ops.iter()).collect();
+        // Both components' three ops, in one segment, with no stems (the
+        // components' hints are only valid in their own frames).
+        assert_eq!(ops.len(), 6);
+        assert_eq!(g.segments.len(), 1);
+        assert!(g.stems.is_empty());
+        assert!(g.seac.is_none());
+    }
+
+    /// Every seac decline. The dangerous one is the last: a composite that
+    /// silently dropped its accent would render as a bare base letter.
+    #[test]
+    fn malformed_seac_declines() {
+        let blank = Cs::default().hsbw(0, 500).endchar();
+
+        for (label, f) in [
+            // bchar has no StandardEncoding name (code 0 is unassigned).
+            (
+                "unnamed bchar",
+                font(&[
+                    ("g", seac_glyph(0, 0, 0, 0, 194)),
+                    outline("A"),
+                    outline("acute"),
+                ]),
+            ),
+            // achar names a glyph the font does not carry.
+            (
+                "missing accent",
+                font(&[("g", seac_glyph(0, 0, 0, 65, 194)), outline("A")]),
+            ),
+            // The base is present but the accent draws nothing: the result
+            // would be a base letter wearing no accent.
+            (
+                "empty accent",
+                font(&[
+                    ("g", seac_glyph(0, 0, 0, 65, 194)),
+                    outline("A"),
+                    ("acute", blank.clone()),
+                ]),
+            ),
+            // A component that is itself a composite: not recursed into.
+            (
+                "nested composite",
+                font(&[
+                    ("g", seac_glyph(0, 0, 0, 65, 194)),
+                    ("A", seac_glyph(0, 0, 0, 65, 200)),
+                    outline("acute"),
+                    outline("dieresis"),
+                ]),
+            ),
+        ] {
+            assert!(
+                interpret_glyph(&f, b"g", true).is_none(),
+                "{label} must decline"
+            );
+        }
+
+        // seac after the path has already been opened: not the conforming
+        // `sb w hsbw asb adx ady bchar achar seac` shape.
+        let after_path = Cs::default()
+            .hsbw(0, 500)
+            .rmoveto(10, 10)
+            .n(0)
+            .n(0)
+            .n(0)
+            .n(65)
+            .n(194)
+            .op(&[12, 6])
+            .endchar();
+        let f = font(&[("g", after_path), outline("A"), outline("acute")]);
+        assert!(interpret_glyph(&f, b"g", true).is_none(), "seac after path");
+
+        // A composite reached as a seac component (`allow_seac == false`).
+        let f = font(&[
+            ("g", seac_glyph(0, 0, 0, 65, 194)),
+            outline("A"),
+            outline("acute"),
+        ]);
+        assert!(
+            interpret_glyph(&f, b"g", false).is_none(),
+            "composite as a component"
+        );
+    }
+
+    /// A charstring that never declares its width has no glyph to emit.
+    #[test]
+    fn a_charstring_without_hsbw_declines() {
+        let f = font(&[("a", Cs::default().rmoveto(10, 10).endchar())]);
+        assert!(interpret_glyph(&f, b"a", true).is_none());
+    }
 }
-
+}
 use std::collections::HashMap;
 
 use image::{DynamicImage, ImageFormat};
@@ -10913,7 +13983,7 @@ const DPI_MARGIN: f32 = 1.15;
 /// # Example
 ///
 /// ```ignore
-/// use talaria_lib::amatl::OptimizeOptions;
+/// use amatl::OptimizeOptions;
 /// let opts = OptimizeOptions::default()
 ///     .with_strip_accessibility(true)
 ///     .with_target_dpi(110.0);
@@ -10941,6 +14011,28 @@ pub struct OptimizeOptions {
     /// a minimum of 1.0 at use. Default: 1.15.
     pub dpi_margin: f32,
 
+    /// Optional higher target resolution, in DPI, for images that a cheap
+    /// pixel-statistic heuristic classifies as *figure-like*: charts, graphs,
+    /// and diagrams carrying rendered text, where `target_dpi` turns axis
+    /// labels to mush while a photograph at the same DPI looks fine. See
+    /// [`image_is_figure_like`] for the classifier and its calibration.
+    ///
+    /// This is a QUALITY knob, not a consent tier: it only ever raises the
+    /// target geometry of an image the pipeline was already going to
+    /// downsample, so output is more faithful and (at most) larger than with
+    /// it unset — never lossier. The never-larger-than-the-original contract
+    /// is untouched: a candidate at the higher target that fails the
+    /// strictly-smaller guard is declined and the image is left alone.
+    ///
+    /// Only values ABOVE `target_dpi` do anything; at or below it the knob is
+    /// inert, which is what keeps the "never lossier" promise true. It also
+    /// requires a positive `target_dpi` — `target_dpi <= 0` means "do not
+    /// downsample at all" and returns before any of this is consulted.
+    ///
+    /// Costs one full-resolution decode per over-resolution image to classify,
+    /// so it is off by default. Default: `None`.
+    pub figure_dpi: Option<f32>,
+
     /// If true, remove the PDF's structure tree (accessibility metadata) for
     /// additional size reduction. Visually lossless; accessibility-lossy.
     /// Default: `false`.
@@ -10953,6 +14045,18 @@ pub struct OptimizeOptions {
     /// full XMP packet per page/XObject can spend a double-digit percentage of
     /// the file on it (adobe-spec: 860 KB, 12%). Default: `false`.
     pub strip_metadata: bool,
+
+    /// If true, remove every `/PieceInfo` entry — the "page-piece"
+    /// dictionaries of ISO 32000-1 14.5, where an authoring application
+    /// stashes its own private data (Illustrator's `AIPrivateData`,
+    /// InDesign's, Photoshop's). Conforming readers ignore them entirely, so
+    /// this is visually lossless and changes no page content; what it costs
+    /// is round-trip editability in the producing application, which is why
+    /// it is opt-in like `strip_metadata`. Illustrator-authored figures carry
+    /// the whole editable artwork alongside the flattened page: measured at
+    /// 295 KB of a 374 KB file, and 307 KB inside a 2.2 MB paper.
+    /// Default: `false`.
+    pub strip_private_data: bool,
 
     /// If true, pack eligible non-stream objects into PDF 1.5 `ObjStm` streams
     /// with a binary cross-reference stream (additional structural
@@ -11067,6 +14171,33 @@ pub struct OptimizeOptions {
     /// when the gray stream is strictly smaller. Default: `false`.
     pub collapse_gray_images: bool,
 
+    /// Flatten interactive forms: paint every widget annotation's appearance
+    /// stream into its page's content stream at the position ISO 32000-1
+    /// 12.5.5 places it, then remove the whole form layer — `/AcroForm`, the
+    /// field tree, the XFA packet set (template, datasets, and the rest), and
+    /// every `/Widget` annotation. Non-widget annotations (`/Link`, markup,
+    /// popups) are not form machinery and are never touched.
+    ///
+    /// This is a **semantic** change, which is why it is opt-in: the output is
+    /// no longer a form. It cannot be filled in, exported, or signed. What it
+    /// is not, and will never be, is a silent loss of entered data. A field's
+    /// value survives only if the appearance stream that *shows* it becomes
+    /// page content, or if the field has no value to lose (`/V` absent, empty,
+    /// or a button's `/Off`); anything else declines the entire document and
+    /// the run proceeds byte-for-byte as if the flag were off. Dynamic XFA
+    /// forms (`/NeedsRendering true`) always decline — their pages are a
+    /// placeholder the reader builds from the XFA template, and amatl does not
+    /// render XFA. XFA data that the AcroForm field tree does not mirror
+    /// declines. So does a value with no appearance to burn, a hidden field
+    /// carrying data, `/NeedAppearances true` over a filled form, a signature
+    /// field holding a signature, and an optional-content widget. The full
+    /// decline table is `docs/FORMS-PLAN.md`.
+    ///
+    /// The win is the removed machinery: `corpus-expanded/irs-w2.pdf` spends
+    /// 1.58 MB of its 2.15 MB on an XFA packet set whose AcroForm layer draws
+    /// no ink at all. Default: `false`.
+    pub flatten_forms: bool,
+
     /// Deflate implementation for the final serialization passes: the
     /// whole-document re-deflate (`redeflate_flate_streams`) and the
     /// cross-reference stream. [`DeflateBackend::Zopfli`] spends ~30× the CPU
@@ -11102,20 +14233,19 @@ impl Default for OptimizeOptions {
             target_dpi: TARGET_DPI,
             jpeg_quality: JPEG_QUALITY,
             dpi_margin: DPI_MARGIN,
+            figure_dpi: None,
             strip_accessibility: false,
             strip_metadata: false,
+            strip_private_data: false,
             pack_object_streams: true,
             downsample_flate_images: true,
-            // `subset_fonts` is default-ON, matching upstream 0.3.x: it is
-            // rendering-preserving (text extraction bit-identical) and
-            // verified in the standalone crate's suite. Opt out via
-            // `.with_subset_fonts(false)`.
             subset_fonts: true,
             convert_type1: false,
             strip_hinting: false,
             recompress_bitonal_images: false,
             allow_lossy_reencode: false,
             collapse_gray_images: false,
+            flatten_forms: false,
             deflate_backend: DeflateBackend::Zlib,
         }
     }
@@ -11147,6 +14277,19 @@ impl OptimizeOptions {
         self
     }
 
+    /// Set the figure-detection target resolution in DPI. See the
+    /// [`figure_dpi`](OptimizeOptions::figure_dpi) field docs.
+    ///
+    /// Validated at the setter rather than at use, so the stored `Option` is
+    /// always a usable DPI: a non-finite or non-positive `dpi` means "off" and
+    /// stores `None`. That makes `with_figure_dpi(0.0)` the natural CLI
+    /// default for an absent flag.
+    #[must_use]
+    pub fn with_figure_dpi(mut self, dpi: f32) -> Self {
+        self.figure_dpi = (dpi.is_finite() && dpi > 0.0).then_some(dpi);
+        self
+    }
+
     /// Enable/disable stripping the PDF structure tree (accessibility metadata).
     #[must_use]
     pub fn with_strip_accessibility(mut self, strip: bool) -> Self {
@@ -11158,6 +14301,14 @@ impl OptimizeOptions {
     #[must_use]
     pub fn with_strip_metadata(mut self, strip: bool) -> Self {
         self.strip_metadata = strip;
+        self
+    }
+
+    /// Enable/disable stripping every `/PieceInfo` (private application data)
+    /// entry. See [`OptimizeOptions::strip_private_data`].
+    #[must_use]
+    pub fn with_strip_private_data(mut self, strip: bool) -> Self {
+        self.strip_private_data = strip;
         self
     }
 
@@ -11223,6 +14374,14 @@ impl OptimizeOptions {
     #[must_use]
     pub fn with_collapse_gray_images(mut self, collapse: bool) -> Self {
         self.collapse_gray_images = collapse;
+        self
+    }
+
+    /// Enable/disable interactive-form flattening (off by default). See
+    /// [`OptimizeOptions::flatten_forms`].
+    #[must_use]
+    pub fn with_flatten_forms(mut self, flatten: bool) -> Self {
+        self.flatten_forms = flatten;
         self
     }
 
@@ -11323,6 +14482,15 @@ impl Mat {
     }
 }
 
+/// A content-stream operand as a number, with 0.0 standing in for anything
+/// that is not one.
+///
+/// The zero is a deliberate conservative guess, not an oversight: these
+/// operands feed `cm`/`Tm` matrices whose only use is estimating how large an
+/// image is *rendered*. A malformed operand collapses that estimate toward a
+/// smaller rendered size, which raises the effective DPI and — at worst —
+/// makes an image look under-resolved, i.e. leaves it untouched. Guessing
+/// large would do the opposite and downsample something that is drawn big.
 fn num(obj: &Object) -> f32 {
     match obj {
         Object::Integer(i) => *i as f32,
@@ -11362,10 +14530,16 @@ fn page_resources(doc: &Document, page_id: ObjectId) -> Option<&lopdf::Dictionar
     None
 }
 
-/// Map of image-XObject resource names to their object id for one page.
-fn page_image_names(doc: &Document, page_id: ObjectId) -> HashMap<Vec<u8>, ObjectId> {
+/// Depth bound for nested Form XObjects during placement collection.
+const MAX_FORM_DEPTH: usize = 12;
+
+/// The `/XObject` sub-dictionary of a resource dictionary, resolved.
+fn xobject_map(
+    doc: &Document,
+    resources: Option<&lopdf::Dictionary>,
+) -> HashMap<Vec<u8>, ObjectId> {
     let mut map = HashMap::new();
-    let Some(resources) = page_resources(doc, page_id) else {
+    let Some(resources) = resources else {
         return map;
     };
     let Ok(xobjects) = resources.get(b"XObject").map(|x| resolve(doc, x)) else {
@@ -11385,57 +14559,138 @@ fn page_image_names(doc: &Document, page_id: ObjectId) -> HashMap<Vec<u8>, Objec
 /// Largest on-page rendered size (in points) for each image object id, across
 /// every placement on every page. We size to the largest use so a shared image
 /// is never under-resolved.
+///
+/// Placements inside Form XObjects count: a producer that wraps its page in a
+/// form (Illustrator, LaTeX `\includegraphics`, IRS's XFA-rendered forms) used
+/// to hide every image it draws from this scan, and an image with no recorded
+/// placement is never downsampled. On `corpus/irs-1040gi.pdf` that hid a
+/// 5120x3413 scan drawn at 405 effective DPI — 1.45 MB, half the optimized
+/// file — behind one form.
+///
+/// Failing to see a placement is safe (the image is left alone); *under*-
+/// stating one is not, so anything unparseable simply contributes no
+/// placement, and a form's `/BBox` clip is deliberately ignored — clipping can
+/// only ever make the visible area smaller than what we record.
 fn collect_placements(doc: &Document) -> HashMap<ObjectId, (f32, f32)> {
     let mut sizes: HashMap<ObjectId, (f32, f32)> = HashMap::new();
 
     for (_, page_id) in doc.get_pages() {
-        let names = page_image_names(doc, page_id);
-        if names.is_empty() {
-            continue;
-        }
+        let resources = page_resources(doc, page_id);
         let content_bytes = doc.get_page_content(page_id);
-        let Ok(content) = Content::decode(&content_bytes) else {
-            continue;
-        };
-
-        let mut ctm = Mat::IDENTITY;
-        let mut stack: Vec<Mat> = Vec::new();
-
-        for op in content.operations {
-            match op.operator.as_str() {
-                "q" => stack.push(ctm),
-                "Q" => {
-                    if let Some(prev) = stack.pop() {
-                        ctm = prev;
-                    }
-                }
-                "cm" if op.operands.len() == 6 => {
-                    let m = Mat {
-                        a: num(&op.operands[0]),
-                        b: num(&op.operands[1]),
-                        c: num(&op.operands[2]),
-                        d: num(&op.operands[3]),
-                        e: num(&op.operands[4]),
-                        f: num(&op.operands[5]),
-                    };
-                    ctm = m.concat(ctm);
-                }
-                "Do" => {
-                    if let Some(Object::Name(name)) = op.operands.first() {
-                        if let Some(id) = names.get(name) {
-                            let (w, h) = (ctm.rendered_width(), ctm.rendered_height());
-                            let entry = sizes.entry(*id).or_insert((0.0, 0.0));
-                            entry.0 = entry.0.max(w);
-                            entry.1 = entry.1.max(h);
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
+        let mut path: Vec<ObjectId> = Vec::new();
+        walk_placements(
+            doc,
+            &content_bytes,
+            resources,
+            Mat::IDENTITY,
+            &mut sizes,
+            &mut path,
+        );
     }
 
     sizes
+}
+
+/// Walk one content stream's operators in its resource context, recording
+/// image placements and recursing into the Form XObjects it draws.
+fn walk_placements(
+    doc: &Document,
+    content_bytes: &[u8],
+    resources: Option<&lopdf::Dictionary>,
+    initial_ctm: Mat,
+    sizes: &mut HashMap<ObjectId, (f32, f32)>,
+    path: &mut Vec<ObjectId>,
+) {
+    let names = xobject_map(doc, resources);
+    if names.is_empty() {
+        return;
+    }
+    let Ok(content) = Content::decode(content_bytes) else {
+        return;
+    };
+
+    let mut ctm = initial_ctm;
+    let mut stack: Vec<Mat> = Vec::new();
+
+    for op in content.operations {
+        match op.operator.as_str() {
+            "q" => stack.push(ctm),
+            "Q" => {
+                if let Some(prev) = stack.pop() {
+                    ctm = prev;
+                }
+            }
+            "cm" if op.operands.len() == 6 => {
+                let m = Mat {
+                    a: num(&op.operands[0]),
+                    b: num(&op.operands[1]),
+                    c: num(&op.operands[2]),
+                    d: num(&op.operands[3]),
+                    e: num(&op.operands[4]),
+                    f: num(&op.operands[5]),
+                };
+                ctm = m.concat(ctm);
+            }
+            "Do" => {
+                let Some(Object::Name(name)) = op.operands.first() else {
+                    continue;
+                };
+                let Some(&id) = names.get(name) else { continue };
+                let Ok(Object::Stream(stream)) = doc.get_object(id) else {
+                    continue;
+                };
+                match stream.dict.get(b"Subtype").map(|s| resolve(doc, s)) {
+                    Ok(Object::Name(n)) if n == b"Image" => {
+                        let (w, h) = (ctm.rendered_width(), ctm.rendered_height());
+                        let entry = sizes.entry(id).or_insert((0.0, 0.0));
+                        entry.0 = entry.0.max(w);
+                        entry.1 = entry.1.max(h);
+                    }
+                    Ok(Object::Name(n)) if n == b"Form" => {
+                        // Cycle guard and depth bound: a malformed form
+                        // reachable from itself must not loop.
+                        if path.contains(&id) || path.len() >= MAX_FORM_DEPTH {
+                            continue;
+                        }
+                        let form_ctm = match stream.dict.get(b"Matrix").map(|m| resolve(doc, m)) {
+                            Ok(Object::Array(items)) if items.len() == 6 => Mat {
+                                a: num(&items[0]),
+                                b: num(&items[1]),
+                                c: num(&items[2]),
+                                d: num(&items[3]),
+                                e: num(&items[4]),
+                                f: num(&items[5]),
+                            }
+                            .concat(ctm),
+                            // No /Matrix means the identity; anything else is
+                            // unreadable, and guessing a scale here could
+                            // UNDER-state the placement. Skip the form.
+                            Err(_) | Ok(Object::Null) => ctm,
+                            _ => continue,
+                        };
+                        // A form without its own /Resources inherits the
+                        // context it is drawn in (ISO 32000-1 8.10.2).
+                        let own = match stream.dict.get(b"Resources").map(|r| resolve(doc, r)) {
+                            Ok(Object::Dictionary(_)) => {
+                                resolve(doc, stream.dict.get(b"Resources").unwrap())
+                                    .as_dict()
+                                    .ok()
+                            }
+                            _ => resources,
+                        };
+                        let Some(bytes) = content_stream_plain(doc, stream) else {
+                            continue;
+                        };
+                        path.push(id);
+                        walk_placements(doc, &bytes, own, form_ctm, sizes, path);
+                        path.pop();
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 /// Dictionary edits that accompany a replacement's new stream bytes, beyond
@@ -11513,6 +14768,48 @@ enum FilterClass {
 /// anything else. The exotic classes are recognized-and-declined: they are
 /// never handed to a re-encode path (which has no decoder for them). Both the
 /// scalar-name and one-element-array forms are recognized.
+/// The number of colour components an image dict DECLARES, or `None` when the
+/// colour space is one we cannot count with certainty (an unresolvable
+/// reference, a pattern, a name we do not know).
+///
+/// Used only as a consistency cross-check against the payload's own frame
+/// header — never to decide how to decode anything.
+fn colorspace_component_count(doc: &Document, dict: &lopdf::Dictionary) -> Option<usize> {
+    let cs = resolve(doc, dict.get(b"ColorSpace").ok()?);
+    match cs {
+        Object::Name(n) => match n.as_slice() {
+            b"DeviceGray" | b"CalGray" | b"G" => Some(1),
+            b"DeviceRGB" | b"CalRGB" | b"RGB" => Some(3),
+            b"DeviceCMYK" | b"CMYK" => Some(4),
+            _ => None,
+        },
+        Object::Array(items) => {
+            let Object::Name(family) = resolve(doc, items.first()?) else {
+                return None;
+            };
+            match family.as_slice() {
+                b"CalGray" => Some(1),
+                b"CalRGB" | b"Lab" => Some(3),
+                // The ICC profile's own /N is authoritative for the stream.
+                b"ICCBased" => {
+                    let Object::Stream(profile) = resolve(doc, items.get(1)?) else {
+                        return None;
+                    };
+                    usize::try_from(profile.dict.get(b"N").ok()?.as_i64().ok()?).ok()
+                }
+                // Indexed and Separation are both one sample per pixel.
+                b"Indexed" | b"I" | b"Separation" => Some(1),
+                b"DeviceN" => match resolve(doc, items.get(1)?) {
+                    Object::Array(names) => Some(names.len()),
+                    _ => None,
+                },
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
 fn classify_filter(doc: &Document, filter: &Object) -> FilterClass {
     let name = match resolve(doc, filter) {
         Object::Name(n) => n.as_slice(),
@@ -11637,14 +14934,23 @@ fn plan_replacement(
     options: OptimizeOptions,
 ) -> Option<Replacement> {
     let (rendered_w_pts, rendered_h_pts) = rendered;
-    if rendered_w_pts <= 0.0 || rendered_h_pts <= 0.0 {
+    // The finiteness half matters as much as the sign: a content stream whose
+    // matrix arithmetic overflowed to ±inf, or whose operands multiplied out
+    // to NaN, must decline here rather than reach the target geometry below
+    // (NaN survives `<= 0.0`, and `f32::max` would then quietly turn it into a
+    // 1px target).
+    if !rendered_w_pts.is_finite()
+        || !rendered_h_pts.is_finite()
+        || rendered_w_pts <= 0.0
+        || rendered_h_pts <= 0.0
+    {
         return None;
     }
 
     // Defensive: a non-positive target DPI means "do not downsample".
     // Without this guard, target_w/target_h below would collapse toward 1px.
     let target_dpi = options.target_dpi;
-    if target_dpi <= 0.0 {
+    if !target_dpi.is_finite() || target_dpi <= 0.0 {
         return None;
     }
     let dpi_margin = options.dpi_margin.max(1.0);
@@ -11692,6 +14998,34 @@ fn plan_replacement(
         return None;
     }
 
+    // Dict/payload consistency for four-component JPEGs. The dict says how
+    // many samples a pixel has; the frame header says how many the payload
+    // carries. When those disagree the image is already broken, and any
+    // re-encode picks a side — which is exactly how the pre-0.3.2 CMYK bug
+    // wrote three RGB channels back under an unchanged /DeviceCMYK.
+    //
+    // `jpeg_route` handles the common case, but it reads the frame header,
+    // and a payload damaged badly enough to defeat the structural walk while
+    // a lenient decoder keeps going would slip past it (the mutation sweep in
+    // `mutated_cmyk_streams_never_corrupt_or_escape` finds exactly that).
+    // Hence `actual != Some(4)` rather than `actual == Some(n)`: an
+    // unreadable header under a four-component colour space is a decline.
+    //
+    // Deliberately narrowed to mismatches INVOLVING four components. A
+    // grayscale JPEG under /DeviceRGB is a long-standing, benign shape this
+    // pipeline already handles (`build_pdf_gray_in_rgb`), and widening the
+    // check would change behaviour on files that were never broken.
+    if matches!(class, FilterClass::DctOnly) {
+        let declared = colorspace_component_count(doc, dict);
+        let actual = jpeg_component_count(&stream.content);
+        if declared == Some(4) && actual != Some(4) {
+            return None;
+        }
+        if actual == Some(4) && declared.is_some_and(|d| d != 4) {
+            return None;
+        }
+    }
+
     let px_w = dict.get(b"Width").ok().and_then(|o| o.as_i64().ok())? as u32;
     let px_h = dict.get(b"Height").ok().and_then(|o| o.as_i64().ok())? as u32;
     if px_w == 0 || px_h == 0 {
@@ -11708,10 +15042,54 @@ fn plan_replacement(
     // `non_uniform_placement_is_downsampled` pins the both-axes rule.
     let eff_dpi_w = px_w as f32 / (rendered_w_pts / 72.0);
     let eff_dpi_h = px_h as f32 / (rendered_h_pts / 72.0);
-    let target_w = ((rendered_w_pts / 72.0) * target_dpi).round().max(1.0) as u32;
-    let target_h = ((rendered_h_pts / 72.0) * target_dpi).round().max(1.0) as u32;
-    let over_resolution =
-        eff_dpi_w.max(eff_dpi_h) > target_dpi * dpi_margin && target_w < px_w && target_h < px_h;
+    // Target geometry and the over-resolution verdict for a given DPI. Both
+    // inputs are finite and positive by the guards above, so the products can
+    // only leave the finite range by overflowing to +inf — which `as u32`
+    // would saturate to u32::MAX, an "upscale to 4 billion pixels" target.
+    // Decline instead of clamping: a placement that large is not a real page.
+    let geometry_at = |dpi: f32| -> Option<(u32, u32, bool)> {
+        let target_w_f = (rendered_w_pts / 72.0) * dpi;
+        let target_h_f = (rendered_h_pts / 72.0) * dpi;
+        if !target_w_f.is_finite() || !target_h_f.is_finite() {
+            return None;
+        }
+        let target_w = target_w_f.round().max(1.0) as u32;
+        let target_h = target_h_f.round().max(1.0) as u32;
+        let over =
+            eff_dpi_w.max(eff_dpi_h) > dpi * dpi_margin && target_w < px_w && target_h < px_h;
+        Some((target_w, target_h, over))
+    };
+    let (mut target_w, mut target_h, mut over_resolution) = geometry_at(target_dpi)?;
+
+    // `--figure-dpi`: charts/diagrams with rendered text get a HIGHER target so
+    // their axis labels stay legible, while photographic content keeps
+    // compressing at the ordinary one. The ONLY semantic change is which DPI
+    // feeds the three values above.
+    //
+    // Two gates before the classifier runs, and both are free:
+    //   - `fig_dpi > target_dpi`. At or below the ordinary target the knob is
+    //     documented as inert, which is what makes "only ever more faithful"
+    //     true rather than aspirational.
+    //   - `over_resolution` at the ORDINARY target. Being over-resolution at a
+    //     higher DPI strictly implies being over-resolution at a lower one, so
+    //     an image that already fails this gate cannot pass it at `fig_dpi`;
+    //     and `target_w`/`target_h` are read only on the over-resolution
+    //     branches below. Skipping here is therefore not an approximation —
+    //     it is the same answer without the full-resolution decode.
+    let promote = options
+        .figure_dpi
+        .is_some_and(|fig_dpi| fig_dpi > target_dpi)
+        && over_resolution
+        && image_is_figure_like(doc, stream, &class, px_w, px_h);
+    if promote {
+        // `promote` is only true when `figure_dpi` is `Some`; `??` declines
+        // rather than panicking if that ever stops holding, matching the
+        // "any doubt leaves the image untouched" contract.
+        let (w, h, over) = geometry_at(options.figure_dpi?)?;
+        target_w = w;
+        target_h = h;
+        over_resolution = over;
+    }
 
     // D-M1 / D-M2 / D-M3 masked-image handling.
     //   - DCTDecode bases: OVER-RESOLUTION pairs are downsampled as a unit
@@ -11740,7 +15118,11 @@ fn plan_replacement(
     // churn is 1-4% and decays each pass. This makes optimize(optimize(x)) a
     // no-op in practice without blocking genuine wins.
     if smask_present {
-        let mask_id = smask_id.expect("smask_id is set whenever smask_present");
+        // `smask_present && smask_id.is_none()` already returned above, so this
+        // is `Some` — but the invariant lives 60 lines away, and a panic here
+        // would be a page-wide DoS on untrusted input. `?` declines instead:
+        // the outer contract is "any doubt leaves the image untouched".
+        let mask_id = smask_id?;
         // Resize eligibility (Phase 6 P-M1 split): the shared-mask refcount
         // guard applies only to the branches that would change the mask's
         // geometry. Evaluated lazily — the requant branch never needs it.
@@ -11929,6 +15311,30 @@ fn plan_replacement(
     })
 }
 
+/// Which pipeline a DCTDecode payload belongs to, decided from its frame
+/// header's component count alone.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum JpegRoute {
+    /// 1 or 3 components — the historical gray/RGB pipeline, byte-for-byte
+    /// unchanged. An unparseable header also lands here so that streams the
+    /// real decoders have always accepted keep being accepted.
+    GrayOrRgb,
+    /// 4 components — CMYK or YCCK, handled by [`plan_dct_cmyk`].
+    Cmyk,
+    /// Anything else (2 components, or a frame header claiming 0). Nothing
+    /// here knows what those channels mean, so the stream is left untouched
+    /// rather than passed to a decoder that would guess.
+    Decline,
+}
+
+fn jpeg_route(data: &[u8]) -> JpegRoute {
+    match jpeg_component_count(data) {
+        Some(4) => JpegRoute::Cmyk,
+        Some(1) | Some(3) | None => JpegRoute::GrayOrRgb,
+        Some(_) => JpegRoute::Decline,
+    }
+}
+
 /// The JPEG re-encode path: decode (scaled when possible), resize, re-encode
 /// via mozjpeg. Channel count is preserved to match the unchanged /ColorSpace.
 fn plan_dct(
@@ -11939,18 +15345,17 @@ fn plan_dct(
 ) -> Option<Vec<u8>> {
     let quality = options.jpeg_quality.clamp(1, 100);
 
-    // Prefer scaled decoding; fall back to a full decode for color spaces the
-    // scaled path declines (CMYK/YCCK) or if libjpeg refuses the stream.
-    let (decoded, is_gray) =
-        decode_jpeg_scaled(&stream.content, target_w, target_h).or_else(|| {
-            let decoded =
-                image::load_from_memory_with_format(&stream.content, ImageFormat::Jpeg).ok()?;
-            let is_gray = matches!(
-                decoded,
-                DynamicImage::ImageLuma8(_) | DynamicImage::ImageLuma16(_)
-            );
-            Some((decoded, is_gray))
-        })?;
+    match jpeg_route(&stream.content) {
+        // CMYK/YCCK downsample in native four-component space and come back
+        // out as YCCK. This MUST be routed before the code below: the general
+        // `image` fallback converts CMYK to RGB, and a 3-component payload
+        // under an unchanged 4-component /ColorSpace is a corrupt page.
+        JpegRoute::Cmyk => return plan_dct_cmyk(stream, quality, target_w, target_h, false),
+        JpegRoute::Decline => return None,
+        JpegRoute::GrayOrRgb => {}
+    }
+
+    let (decoded, is_gray) = decode_jpeg(&stream.content, target_w, target_h)?;
     let resized = decoded.resize_exact(target_w, target_h, image::imageops::FilterType::Lanczos3);
 
     // Preserve the original component count so the PDF /ColorSpace (which we
@@ -11970,15 +15375,61 @@ const DECODE_BACK_MAX_MAD: f64 = 96.0;
 /// scale covers the target), falling back to a full decode for color spaces
 /// the scaled path declines (CMYK/YCCK) or streams libjpeg refuses. Returns
 /// `(image, is_grayscale)`, or `None` on any decode doubt.
+///
+/// This is the ONLY place the full-decode fallback lives, so the
+/// decompression-bomb budget below is applied once for every caller. The
+/// fallback is the dangerous half: unlike the scaled path it is bounded by
+/// nothing but the frame header, so a tiny crafted stream that libjpeg-turbo
+/// refuses and `jpeg-decoder` accepts would allocate gigabytes — an OOM abort,
+/// which is a process kill that `catch_unwind` cannot contain.
 fn decode_jpeg(data: &[u8], target_w: u32, target_h: u32) -> Option<(DynamicImage, bool)> {
-    decode_jpeg_scaled(data, target_w, target_h).or_else(|| {
-        let decoded = image::load_from_memory_with_format(data, ImageFormat::Jpeg).ok()?;
-        let is_gray = matches!(
-            decoded,
-            DynamicImage::ImageLuma8(_) | DynamicImage::ImageLuma16(_)
-        );
-        Some((decoded, is_gray))
-    })
+    if let Some(decoded) = decode_jpeg_scaled(data, target_w, target_h) {
+        return Some(decoded);
+    }
+    // libjpeg refused the stream. Before handing the same bytes to a more
+    // permissive decoder, price the allocation it would make from the frame
+    // header alone. An unreadable header declines: without dimensions there is
+    // no ceiling to check, and "we cannot tell" is the decline case
+    // everywhere else in this crate.
+    let frame = jpeg_frame_info(data)?;
+    if !jpeg_decode_within_budget(frame.width, frame.height, frame.components) {
+        return None;
+    }
+    let decoded = image::load_from_memory_with_format(data, ImageFormat::Jpeg).ok()?;
+    let is_gray = matches!(
+        decoded,
+        DynamicImage::ImageLuma8(_) | DynamicImage::ImageLuma16(_)
+    );
+    Some((decoded, is_gray))
+}
+
+/// True when a raster of `width * height * channels` bytes is small enough to
+/// materialize. Mirrors [`MAX_FLATE_PIXEL_BYTES`] — the same 256 MiB ceiling
+/// the Flate path applies before inflating, for the same reason, and shared by
+/// every decoder that allocates from numbers a file told it (JPEG frame
+/// headers, JPEG2000 codestream headers).
+///
+/// Overflowing the multiplication is itself a decline: a raster whose size
+/// does not fit in a u64 is not one we are going to decode.
+fn raster_within_budget(width: u64, height: u64, channels: u64) -> bool {
+    width
+        .checked_mul(height)
+        .and_then(|px| px.checked_mul(channels))
+        .is_some_and(|bytes| bytes <= MAX_FLATE_PIXEL_BYTES)
+}
+
+/// [`raster_within_budget`] for a JPEG frame header.
+///
+/// A zero component count is priced as 4 (the widest this crate ever decodes)
+/// rather than as free: a frame header claiming zero components is already
+/// nonsense, and pricing it at zero would wave it straight through.
+fn jpeg_decode_within_budget(width: u16, height: u16, components: u8) -> bool {
+    let channels = if components == 0 {
+        4u64
+    } else {
+        u64::from(components)
+    };
+    raster_within_budget(u64::from(width), u64::from(height), channels)
 }
 
 /// Phase 5 D-M1: dimension-preserving JPEG requantization for a base image
@@ -11994,6 +15445,16 @@ fn plan_dct_requant(
     px_h: u32,
 ) -> Option<Vec<u8>> {
     let quality = options.jpeg_quality.clamp(1, 100);
+
+    match jpeg_route(&stream.content) {
+        // CMYK/YCCK: the same dimension-preserving contract, enforced inside
+        // `plan_dct_cmyk` by its exact-source-geometry mode. It carries the
+        // decode-back verification and the quantization-table idempotence
+        // guard too, so this branch is complete as written.
+        JpegRoute::Cmyk => return plan_dct_cmyk(stream, quality, px_w, px_h, true),
+        JpegRoute::Decline => return None,
+        JpegRoute::GrayOrRgb => {}
+    }
 
     // Full decode: same path as the resize pipeline, with the target set to
     // the stream's own geometry (libjpeg then picks the unscaled 8/8 DCT
@@ -12174,6 +15635,15 @@ fn plan_dct_resize_verified(
     target_h: u32,
 ) -> Option<Vec<u8>> {
     let quality = options.jpeg_quality.clamp(1, 100);
+    match jpeg_route(&stream.content) {
+        // A CMYK base under an /SMask: the mask half is an independent
+        // single-channel stream, so the pair only needs the base to land on
+        // the same target geometry — which `plan_dct_cmyk` guarantees, along
+        // with the decode-back verification this function is named for.
+        JpegRoute::Cmyk => return plan_dct_cmyk(stream, quality, target_w, target_h, false),
+        JpegRoute::Decline => return None,
+        JpegRoute::GrayOrRgb => {}
+    }
     let (decoded, is_gray) = decode_jpeg(&stream.content, target_w, target_h)?;
     let resized = decoded.resize_exact(target_w, target_h, image::imageops::FilterType::Lanczos3);
     // Reference pixels are the exact buffer handed to the encoder; the
@@ -12672,13 +16142,35 @@ struct LineArtMetrics {
 /// Channel step that counts as a sharp edge between neighboring samples.
 const EDGE_STEP: u8 = 48;
 
+/// Widest buffer [`line_art_metrics`] will histogram. The quantized key packs
+/// 5 bits per channel, so four channels — CMYK, the widest thing any decode
+/// route in this crate produces — is a 20-bit key, i.e. a 4 MiB `Vec<u32>`
+/// that `calloc` hands back as zero pages. Nothing here decodes wider.
+const METRICS_MAX_CHANNELS: usize = 4;
+
 /// Compute the [`LineArtMetrics`] of an interleaved 8-bit buffer (`channels`
 /// samples per pixel, `w * h * channels` bytes). Colors are quantized to 5 bits
 /// per channel before histogramming, so anti-aliasing fringes and mild noise do
 /// not shatter a flat region into thousands of distinct "colors".
 fn line_art_metrics(pixels: &[u8], channels: usize, w: u32, h: u32) -> LineArtMetrics {
+    // A channel count outside the key width has no metrics we can compute, so
+    // report the all-zero shape — which fails every gate built on top of this
+    // ([`looks_like_line_art`] needs a HIGH background, [`image_is_figure_like`]
+    // a mid-band one). Unreachable today (callers pass 1, 3, or 4); it is the
+    // "any doubt declines" default the rest of the pipeline uses.
+    if channels == 0 || channels > METRICS_MAX_CHANNELS {
+        return LineArtMetrics {
+            background: 0.0,
+            palette: 0.0,
+            edges: 0.0,
+        };
+    }
     let total = (w as usize) * (h as usize);
-    let mut histogram: std::collections::HashMap<u32, u32> = std::collections::HashMap::new();
+    // Direct-indexed array rather than a `HashMap`: the quantized key is dense
+    // and bounded (5 bits per channel), so the counts are byte-identical at a
+    // fraction of the cost. Worth doing because this runs over every decoded
+    // pixel of every candidate on the `--allow-lossy` and `--figure-dpi` paths.
+    let mut histogram = vec![0u32; 1usize << (5 * channels)];
     let quantized = |i: usize| -> u32 {
         let px = &pixels[i * channels..i * channels + channels];
         px.iter()
@@ -12688,7 +16180,7 @@ fn line_art_metrics(pixels: &[u8], channels: usize, w: u32, h: u32) -> LineArtMe
     for y in 0..h as usize {
         for x in 0..w as usize {
             let i = y * w as usize + x;
-            *histogram.entry(quantized(i)).or_insert(0) += 1;
+            histogram[quantized(i) as usize] += 1;
             let here = &pixels[i * channels..i * channels + channels];
             let step = |other: &[u8]| {
                 here.iter()
@@ -12706,9 +16198,23 @@ fn line_art_metrics(pixels: &[u8], channels: usize, w: u32, h: u32) -> LineArtMe
             }
         }
     }
-    let mut counts: Vec<u32> = histogram.into_values().collect();
-    counts.sort_unstable_by(|a, b| b.cmp(a));
-    let sum_top = |n: usize| -> u64 { counts.iter().take(n).map(|c| u64::from(*c)).sum() };
+    // Only the top-1 and top-8 sums are ever needed, so keep a descending
+    // 8-slot ladder in one linear scan instead of sorting a table that is
+    // mostly zeros (and, for CMYK, a million entries long). Equal counts may
+    // land in either order; the SUM of the top n does not care.
+    let mut top = [0u32; 8];
+    for &count in &histogram {
+        if count <= top[7] {
+            continue;
+        }
+        top[7] = count;
+        let mut k = 7;
+        while k > 0 && top[k] > top[k - 1] {
+            top.swap(k, k - 1);
+            k -= 1;
+        }
+    }
+    let sum_top = |n: usize| -> u64 { top.iter().take(n).map(|c| u64::from(*c)).sum() };
     let total_f = total.max(1) as f64;
     LineArtMetrics {
         background: sum_top(1) as f64 / total_f,
@@ -12756,6 +16262,136 @@ fn looks_like_line_art(pixels: &[u8], channels: usize, w: u32, h: u32) -> bool {
 const LINE_ART_MIN_BACKGROUND: f64 = 0.75;
 const LINE_ART_MIN_PALETTE: f64 = 0.90;
 const LINE_ART_MAX_EDGES: f64 = 0.08;
+
+/// Lower background bound for the `--figure-dpi` promotion. Below this the
+/// image's color mass is spread across gradients — a photograph, a rendered
+/// 3D surface, a filled velocity field — and there is no flat paper for
+/// rendered text to sit on. Measured on the NASA reference (2026-08-25):
+/// photographic objs 100/133/47 land at background ≤ 0.077.
+const FIGURE_MIN_BACKGROUND: f64 = 0.25;
+
+/// Upper background bound, deliberately equal to [`LINE_ART_MIN_BACKGROUND`]:
+/// at/above 0.75 the image is [`looks_like_line_art`] territory — sparse ink
+/// on flat paper, which the resampler already handles well at the ordinary
+/// target — so the promotion defers rather than overlapping.
+const FIGURE_MAX_BACKGROUND: f64 = 0.75;
+
+/// Minimum fraction of pixels sitting on a sharp transition. Rendered text and
+/// plot rules are exactly this: many short high-contrast runs. NASA's largest
+/// worst offenders (objs 353/336/343 — charts whose axis labels turned to mush
+/// at 130 DPI) sit at background 0.49-0.67 with edges above this line.
+const FIGURE_MIN_EDGES: f64 = 0.10;
+
+/// Decode a candidate's SOURCE pixels for [`image_is_figure_like`], at FULL
+/// resolution. Returns `(pixels, channels, w, h)` for the interleaved 8-bit
+/// buffer, or `None` when the stream cannot be decoded with confidence.
+///
+/// Full resolution is not negotiable here. A DCT-scaled decode at `n/8` divides
+/// the pixel count by `(8/n)²` while preserving nearly every edge, which
+/// inflates `LineArtMetrics::edges` several-fold and blows straight through the
+/// calibrated [`FIGURE_MIN_EDGES`] gate. Hence `u32::MAX` as the requested
+/// geometry: it pins [`dct_scale_numerator`] at 8/8 no matter what the dict
+/// claims, so a dict/frame-header disagreement cannot quietly shrink the
+/// decode either. The decompression-bomb budgets inside each decoder still
+/// apply — they are what bounds this.
+///
+/// Three routes, because the JPEG decoders are not interchangeable:
+/// [`decode_jpeg_scaled`] hard-declines CMYK/YCCK, so four-component payloads
+/// go to [`decode_cmyk_jpeg_scaled`] and come back as an interleaved 4-channel
+/// buffer that [`line_art_metrics`] handles via its `channels` parameter.
+fn figure_metrics_source(
+    doc: &Document,
+    stream: &lopdf::Stream,
+    class: &FilterClass,
+    px_w: u32,
+    px_h: u32,
+) -> Option<(Vec<u8>, usize, u32, u32)> {
+    match class {
+        FilterClass::DctOnly => match jpeg_route(&stream.content) {
+            JpegRoute::Cmyk => {
+                let img = decode_cmyk_jpeg_scaled(&stream.content, u32::MAX, u32::MAX)?;
+                Some((img.data, 4, img.width, img.height))
+            }
+            JpegRoute::GrayOrRgb => {
+                let (img, is_gray) = decode_jpeg(&stream.content, u32::MAX, u32::MAX)?;
+                let (w, h) = (img.width(), img.height());
+                let (pixels, channels) = if is_gray {
+                    (img.to_luma8().into_raw(), 1)
+                } else {
+                    (img.to_rgb8().into_raw(), 3)
+                };
+                Some((pixels, channels, w, h))
+            }
+            JpegRoute::Decline => None,
+        },
+        // `decode_flate_image` already guarantees the buffer is exactly
+        // `px_w * px_h * channels` bytes, so the dict geometry is the truth here.
+        FilterClass::FlateOnly => {
+            let (img, channels) = decode_flate_image(doc, stream, px_w, px_h)?;
+            let pixels = if channels == 1 {
+                img.to_luma8().into_raw()
+            } else {
+                img.to_rgb8().into_raw()
+            };
+            Some((pixels, channels, px_w, px_h))
+        }
+        _ => None,
+    }
+}
+
+/// The `--figure-dpi` classifier: does this image look like a chart, graph, or
+/// diagram with rendered text in it, rather than a photograph?
+///
+/// Heuristic only — no OCR, no new dependencies, and it reuses the
+/// [`line_art_metrics`] pass that already exists for the line-art guard. The
+/// signature is "meaningful flat background, but not ONLY background, with a
+/// dense scattering of sharp transitions on top": rendered axis labels, tick
+/// marks, and plot rules produce many short high-contrast runs, while a
+/// photograph's tonal gradients produce almost no flat background at all.
+///
+/// Calibrated 2026-08-25 against 85 hand-labelled images from the NASA
+/// reference and cross-checked on `arxiv-diffusion` / `arxiv-gpt4`. The
+/// operating point below is FALSE-POSITIVE-FREE on that labelled set — no
+/// photograph is promoted — which is the property that matters: a false
+/// positive spends bytes on content that gains nothing, a false negative just
+/// leaves today's behavior in place.
+///
+/// KNOWN LIMITATION, accepted for v1: a chart drawn over a busy colored
+/// background (background < [`FIGURE_MIN_BACKGROUND`]) is not promoted. Closing
+/// that band needs word boxes, i.e. OCR, which is deliberately out of scope.
+///
+/// FAIL-OPEN: every decode failure, unsupported filter class, and unreadable
+/// payload returns `false`, which means "use the ordinary `--target-dpi`" —
+/// exactly today's behavior. Classification never produces an error, and it
+/// adds no new exposure to hostile payloads: it decodes the SAME bytes the
+/// over-resolution branch below was already going to hand the same decoders,
+/// under the same [`optimize_with_options`] `catch_unwind` boundary.
+fn image_is_figure_like(
+    doc: &Document,
+    stream: &lopdf::Stream,
+    class: &FilterClass,
+    px_w: u32,
+    px_h: u32,
+) -> bool {
+    let Some((pixels, channels, w, h)) = figure_metrics_source(doc, stream, class, px_w, px_h)
+    else {
+        return false;
+    };
+    // `line_art_metrics` indexes `w * h * channels` bytes unconditionally; a
+    // decoder that returned a shorter buffer than its own reported geometry
+    // would panic there. Decline instead.
+    if (w as usize)
+        .checked_mul(h as usize)
+        .and_then(|px| px.checked_mul(channels))
+        .is_none_or(|need| pixels.len() < need)
+    {
+        return false;
+    }
+    let m = line_art_metrics(&pixels, channels, w, h);
+    m.background >= FIGURE_MIN_BACKGROUND
+        && m.background < FIGURE_MAX_BACKGROUND
+        && m.edges >= FIGURE_MIN_EDGES
+}
 
 /// Phase 7 spike: the consent-gated lossy Flate→JPEG candidate. Decodes the
 /// Flate pixels through the exact same gates as the format-preserving path
@@ -13072,6 +16708,31 @@ fn deflate_backend(data: &[u8], backend: DeflateBackend) -> Option<Vec<u8>> {
 /// Returns `(image, is_grayscale)`, or `None` for anything that is not plain
 /// RGB or grayscale (e.g. CMYK/YCCK) so the caller can fall back to the
 /// general-purpose decoder rather than risk mis-handling color.
+/// The smallest `n/8` DCT scale whose output still covers the target in BOTH
+/// axes (never upscale), so the caller's resampling step always downsamples.
+/// Falls back to 8/8 — an unscaled decode — when no smaller scale covers the
+/// target. Shared by both scaled decoders so the two stay in lockstep.
+fn dct_scale_numerator(full_w: usize, full_h: usize, target_w: u32, target_h: u32) -> u8 {
+    for n in 1..=8u8 {
+        let scaled_w = (full_w * n as usize).div_ceil(8);
+        let scaled_h = (full_h * n as usize).div_ceil(8);
+        if scaled_w >= target_w as usize && scaled_h >= target_h as usize {
+            return n;
+        }
+    }
+    8
+}
+
+/// True when the raster libjpeg would hand back at scale `numerator/8` fits
+/// inside the [`MAX_FLATE_PIXEL_BYTES`] budget. The scaled path is bounded by
+/// the target geometry in the ordinary case, but its floor is 1/8 of the
+/// source, and 1/8 of a bomb is still a bomb.
+fn scaled_decode_within_budget(full_w: usize, full_h: usize, numerator: u8, channels: u64) -> bool {
+    let scaled_w = (full_w as u64 * numerator as u64).div_ceil(8);
+    let scaled_h = (full_h as u64 * numerator as u64).div_ceil(8);
+    raster_within_budget(scaled_w, scaled_h, channels)
+}
+
 fn decode_jpeg_scaled(data: &[u8], target_w: u32, target_h: u32) -> Option<(DynamicImage, bool)> {
     let mut dec = mozjpeg::Decompress::new_mem(data).ok()?;
     let (full_w, full_h) = (dec.width(), dec.height());
@@ -13079,16 +16740,7 @@ fn decode_jpeg_scaled(data: &[u8], target_w: u32, target_h: u32) -> Option<(Dyna
         return None;
     }
 
-    // Smallest n/8 that still covers the target in BOTH axes (never upscale).
-    let mut numerator = 8u8;
-    for n in 1..=8u8 {
-        let scaled_w = (full_w * n as usize).div_ceil(8);
-        let scaled_h = (full_h * n as usize).div_ceil(8);
-        if scaled_w >= target_w as usize && scaled_h >= target_h as usize {
-            numerator = n;
-            break;
-        }
-    }
+    let numerator = dct_scale_numerator(full_w, full_h, target_w, target_h);
     // Decide the channel count from the JPEG's OWN colorspace and then request
     // that output explicitly. Do NOT rely on `image()`/`out_color_space`: for a
     // grayscale JPEG libjpeg's default can still hand back RGB, which would
@@ -13101,6 +16753,11 @@ fn decode_jpeg_scaled(data: &[u8], target_w: u32, target_h: u32) -> Option<(Dyna
         dec.color_space(),
         ColorSpace::JCS_CMYK | ColorSpace::JCS_YCCK
     ) {
+        return None;
+    }
+
+    // Even the scaled path allocates: 1/8 of an absurd source is still absurd.
+    if !scaled_decode_within_budget(full_w, full_h, numerator, if is_gray { 1 } else { 3 }) {
         return None;
     }
 
@@ -13145,6 +16802,411 @@ fn encode_jpeg(img: DynamicImage, is_gray: bool, quality: u8) -> Option<Vec<u8>>
     let mut started = comp.start_compress(Vec::new()).ok()?;
     started.write_scanlines(&data).ok()?;
     started.finish().ok()
+}
+
+// ---------------------------------------------------------------------------
+// CMYK / YCCK JPEG support.
+//
+// Four-component DCTDecode streams (PDF `/ColorSpace /DeviceCMYK`, ICCBased
+// N=4, DeviceN, ...) used to be handled by accident rather than on purpose:
+// `decode_jpeg_scaled` declined them, and the caller then fell back to the
+// general-purpose `image` decoder, which converts CMYK to RGB. Re-encoding
+// that as a 3-component JPEG under an unchanged 4-component `/ColorSpace`
+// produces a corrupt page. The code below handles them deliberately instead.
+//
+// THE CENTRAL INVARIANT: everything here works in RAW STORED SAMPLE SPACE and
+// never interprets it. libjpeg is the only thing that touches the Adobe APP14
+// transform: on decode it maps YCCK (transform 2) back to stored CMYK samples,
+// on encode it maps them forward again and emits the matching APP14 marker.
+// We never parse APP14 ourselves and never invert a channel.
+//
+// That is what makes the classic CMYK-JPEG bug class unreachable here. The
+// "is it inverted?" question — Adobe writes CMYK JPEGs with 255-x samples,
+// most other producers do not, and PDF producers sometimes bolt a
+// `/Decode [1 0 1 0 1 0 1 0]` array on top to compensate — is a property of
+// the SAMPLE VALUES, and we pass those through unchanged. Whatever convention
+// the input used, the output uses the same one, so the unchanged dict keeps
+// meaning exactly what it meant before.
+// ---------------------------------------------------------------------------
+
+/// Per-channel mean-absolute-difference ceiling for the CMYK decode-back
+/// verification, and deliberately much tighter than `DECODE_BACK_MAX_MAD`.
+///
+/// The loose shared ceiling exists because a three-channel catastrophe is
+/// dramatic; four-channel damage is not. Measured on the fixtures here, a
+/// C/M swap sits at MAD 37, a C/K swap at 29 and a whole-image inversion at
+/// 106 — the 96 ceiling would wave the first two through. A legitimate
+/// resample-plus-q78 round trip in raw sample space lands in the single
+/// digits, so 24.0 leaves generous headroom for genuinely noisy content while
+/// still refusing anything that looks like a rearranged channel.
+///
+/// The ceiling is a backstop, not the guarantee: nothing in this pipeline ever
+/// reorders or inverts a channel, because libjpeg owns the whole Adobe
+/// transform. This is what catches a mistake made anyway.
+const CMYK_DECODE_BACK_MAX_MAD: f64 = 24.0;
+
+/// A decoded four-component JPEG in raw stored-sample space, interleaved
+/// C,M,Y,K. Deliberately NOT a `DynamicImage`: the `image` crate has no CMYK
+/// variant, and smuggling four channels through `Rgba8` would hand them to
+/// resampling code that may treat the fourth channel as alpha.
+struct CmykImage {
+    width: u32,
+    height: u32,
+    /// The geometry of the SOURCE frame header, before any `n/8` DCT-scaled
+    /// decoding shrank it. Callers with a dimension-preserving contract have
+    /// to check the dict against this, not against `width`/`height`: a dict
+    /// claiming half the true size would otherwise be "confirmed" by the
+    /// scaled decoder obligingly producing exactly half.
+    source_width: u32,
+    source_height: u32,
+    /// `width * height * 4` bytes, interleaved.
+    data: Vec<u8>,
+}
+
+/// The component count declared by a JPEG's frame header (SOF), or `None` if
+/// the marker structure does not parse cleanly.
+///
+/// This is a purely STRUCTURAL walk — it never looks at APP14 — used only to
+/// route a stream to the right pipeline: 1 or 3 components take the untouched
+/// gray/RGB path, 4 takes the CMYK path below, anything else is declined
+/// outright rather than guessed at. `None` deliberately keeps the historical
+/// gray/RGB behaviour: an unparseable header means the real decoders get the
+/// same shot at the stream they have always had.
+fn jpeg_component_count(data: &[u8]) -> Option<u8> {
+    jpeg_frame_info(data).map(|f| f.components)
+}
+
+/// What a JPEG's frame header (SOF) declares: geometry and component count.
+///
+/// Read straight off the marker structure, WITHOUT decoding — which is the
+/// whole point. A decompression-bomb JPEG is a handful of bytes declaring a
+/// 60000x60000 frame; every decoder in this crate materializes
+/// `width * height * channels` from these three numbers, so they have to be
+/// checked before a decoder is handed the stream (see
+/// [`jpeg_decode_within_budget`]).
+#[derive(Clone, Copy, Debug)]
+struct JpegFrameInfo {
+    width: u16,
+    height: u16,
+    components: u8,
+}
+
+/// Parse the frame header, or `None` if the marker structure does not parse
+/// cleanly. See [`jpeg_component_count`] for what `None` means to callers.
+fn jpeg_frame_info(data: &[u8]) -> Option<JpegFrameInfo> {
+    if data.len() < 2 || data[0] != 0xFF || data[1] != 0xD8 {
+        return None;
+    }
+    let mut i = 2usize;
+    while i + 2 <= data.len() {
+        if data[i] != 0xFF {
+            return None;
+        }
+        let marker = data[i + 1];
+        match marker {
+            // Fill bytes before a marker.
+            0xFF => {
+                i += 1;
+                continue;
+            }
+            // Standalone markers (no length field).
+            0x01 | 0xD0..=0xD7 => {
+                i += 2;
+                continue;
+            }
+            // A scan before any frame header: malformed, draw no conclusion.
+            0xDA => return None,
+            _ => {}
+        }
+        if i + 4 > data.len() {
+            return None;
+        }
+        let len = ((data[i + 2] as usize) << 8) | data[i + 3] as usize;
+        if len < 2 || i + 2 + len > data.len() {
+            return None;
+        }
+        // Every SOF flavour (baseline, extended, progressive, lossless,
+        // arithmetic) shares the same header layout; DHT (0xC4), JPG (0xC8)
+        // and DAC (0xCC) sit in the same numeric range and are not frames.
+        if matches!(marker, 0xC0..=0xCF) && !matches!(marker, 0xC4 | 0xC8 | 0xCC) {
+            // precision(1) + height(2) + width(2) + component count(1)
+            if len < 8 {
+                return None;
+            }
+            return Some(JpegFrameInfo {
+                height: u16::from_be_bytes([data[i + 5], data[i + 6]]),
+                width: u16::from_be_bytes([data[i + 7], data[i + 8]]),
+                components: data[i + 9],
+            });
+        }
+        i += 2 + len;
+    }
+    None
+}
+
+/// True if this image dict carries a `/Decode` array.
+///
+/// A `/Decode` array remaps every sample after decoding, and for DeviceCMYK
+/// the common one is `[1 0 1 0 1 0 1 0]` — a producer inverting the whole
+/// image. Passing raw samples through unchanged would still be correct under
+/// such a remap in exact arithmetic, because inversion and a linear resampling
+/// kernel commute; they do NOT commute once Lanczos3's ringing overshoot is
+/// clamped to 0..=255, since the clamp happens on the pre-`/Decode` values.
+/// The asymmetry is small but real, and it lands on exactly the images where a
+/// channel-polarity mistake is invisible to us and glaring to a reader — so
+/// this declines instead. `plan_mask_resample` declines on `/Decode` for the
+/// same reason.
+fn has_decode_array(dict: &lopdf::Dictionary) -> bool {
+    !matches!(dict.get(b"Decode"), Err(_) | Ok(Object::Null))
+}
+
+/// True if the payload ends with an end-of-image marker (allowing a little
+/// trailing padding, which PDF producers do emit).
+///
+/// libjpeg is deliberately lenient about truncation: it fills the missing
+/// scan with flat grey, raises a WARNING rather than an error, and hands back
+/// a perfectly decodable image. The decode-back verification then compares
+/// that grey against itself and agrees, so a truncated stream would sail
+/// through and be replaced by a "repaired" one. Whether that is an
+/// improvement is not ours to decide — a stream that does not contain a whole
+/// image is exactly the "any uncertainty declines" case.
+fn ends_with_eoi(data: &[u8]) -> bool {
+    // Enough slack for the handful of padding bytes seen in the wild, not
+    // enough to accept a stream that merely happens to contain FFD9 somewhere.
+    const SLACK: usize = 16;
+    if data.len() < 4 {
+        return false;
+    }
+    let tail = &data[data.len().saturating_sub(2 + SLACK)..];
+    tail.windows(2).any(|w| w == [0xFF, 0xD9])
+}
+
+/// Decode a four-component JPEG to raw CMYK samples, using the same `n/8`
+/// DCT-scaled decoding trick as [`decode_jpeg_scaled`] so a heavily
+/// over-resolution source is never materialized at full size.
+///
+/// Requesting `JCS_CMYK` output explicitly is the whole point: for a YCCK
+/// stream libjpeg applies the inverse Adobe transform for us, and for a plain
+/// CMYK stream it passes samples through. Either way we get stored-sample
+/// space. Returns `None` unless the stream really is CMYK or YCCK — a caller
+/// that routed a 3-component stream here must not silently get RGB back.
+fn decode_cmyk_jpeg_scaled(data: &[u8], target_w: u32, target_h: u32) -> Option<CmykImage> {
+    use mozjpeg::ColorSpace;
+
+    let mut dec = mozjpeg::Decompress::new_mem(data).ok()?;
+    let (full_w, full_h) = (dec.width(), dec.height());
+    if full_w == 0 || full_h == 0 {
+        return None;
+    }
+    if !matches!(
+        dec.color_space(),
+        ColorSpace::JCS_CMYK | ColorSpace::JCS_YCCK
+    ) {
+        return None;
+    }
+
+    let numerator = dct_scale_numerator(full_w, full_h, target_w, target_h);
+    if !scaled_decode_within_budget(full_w, full_h, numerator, 4) {
+        return None;
+    }
+    dec.scale(numerator);
+
+    let mut started = dec.to_colorspace(ColorSpace::JCS_CMYK).ok()?;
+    let (w, h) = (started.width(), started.height());
+    let data: Vec<u8> = started.read_scanlines::<u8>().ok()?;
+    started.finish().ok()?;
+
+    let (w, h) = (u32::try_from(w).ok()?, u32::try_from(h).ok()?);
+    // Guard the arithmetic before trusting the buffer length.
+    let expected = (w as usize).checked_mul(h as usize)?.checked_mul(4)?;
+    if w == 0 || h == 0 || data.len() != expected {
+        return None;
+    }
+    Some(CmykImage {
+        width: w,
+        height: h,
+        source_width: u32::try_from(full_w).ok()?,
+        source_height: u32::try_from(full_h).ok()?,
+        data,
+    })
+}
+
+/// Resample all four channels to `(target_w, target_h)` with the Lanczos3
+/// kernel — the same filter, and the same `image` implementation, the RGB path
+/// gets from `resize_exact`.
+///
+/// Each channel is resampled independently as an 8-bit gray plane. That is
+/// exactly what `image` does internally for a multi-channel image (its
+/// resampler is separable and per-channel), and doing it explicitly keeps the
+/// fourth channel from ever being mistaken for alpha by an image type that has
+/// one.
+fn resize_cmyk_lanczos3(img: &CmykImage, target_w: u32, target_h: u32) -> Option<CmykImage> {
+    if target_w == 0 || target_h == 0 {
+        return None;
+    }
+    let (sw, sh) = (img.width as usize, img.height as usize);
+    let pixels = sw.checked_mul(sh)?;
+    let out_pixels = (target_w as usize).checked_mul(target_h as usize)?;
+    let mut out = vec![0u8; out_pixels.checked_mul(4)?];
+    let mut plane = vec![0u8; pixels];
+    for c in 0..4usize {
+        for (dst, src) in plane.iter_mut().zip(img.data.as_chunks::<4>().0.iter()) {
+            *dst = src[c];
+        }
+        let gray = image::GrayImage::from_raw(img.width, img.height, std::mem::take(&mut plane))?;
+        let resized = image::imageops::resize(
+            &gray,
+            target_w,
+            target_h,
+            image::imageops::FilterType::Lanczos3,
+        );
+        if resized.len() != out_pixels {
+            return None;
+        }
+        for (dst, src) in out.as_chunks_mut::<4>().0.iter_mut().zip(resized.iter()) {
+            dst[c] = *src;
+        }
+        // Reuse the source plane buffer for the next channel.
+        plane = gray.into_raw();
+    }
+    Some(CmykImage {
+        width: target_w,
+        height: target_h,
+        source_width: img.source_width,
+        source_height: img.source_height,
+        data: out,
+    })
+}
+
+/// Encode raw CMYK samples as a four-component YCCK JPEG.
+///
+/// `in_color_space = JCS_CMYK` tells libjpeg what we are handing it;
+/// `jpeg_set_colorspace(JCS_YCCK)` tells it what to write. libjpeg then applies
+/// the forward Adobe transform and emits the APP14 marker with transform = 2
+/// itself — the marker and the pixel transform can therefore never disagree,
+/// which is the failure mode that produces channel-swapped CMYK JPEGs. YCCK
+/// (rather than re-emitting plain CMYK) is chosen for the same reason YCbCr
+/// beats RGB: it decorrelates the chromatic channels and subsamples them, and
+/// it is what Adobe's own encoders write.
+fn encode_cmyk_jpeg(img: &CmykImage, quality: u8) -> Option<Vec<u8>> {
+    use mozjpeg::{ColorSpace, Compress};
+
+    if img.data.len() != (img.width as usize) * (img.height as usize) * 4 {
+        return None;
+    }
+    let mut comp = Compress::new(ColorSpace::JCS_CMYK);
+    comp.set_size(img.width as usize, img.height as usize);
+    comp.set_color_space(ColorSpace::JCS_YCCK);
+    comp.set_quality(quality as f32);
+
+    let mut started = comp.start_compress(Vec::new()).ok()?;
+    started.write_scanlines(&img.data).ok()?;
+    started.finish().ok()
+}
+
+/// The CMYK counterpart of [`decode_back_matches`]: re-decoding `out` must
+/// reproduce the reference's geometry, its four-component nature, and its raw
+/// samples within `max_mad`.
+///
+/// Comparing in raw stored-sample space is what makes this a polarity check
+/// and not just a quality check: a channel inversion or a C/M/Y/K reordering
+/// anywhere in the round trip moves the mean absolute difference to roughly
+/// half of full scale, an order of magnitude past the ceiling.
+fn cmyk_decode_back_matches(out: &[u8], reference: &CmykImage, max_mad: f64) -> bool {
+    let Some(decoded) = decode_cmyk_jpeg_scaled(out, reference.width, reference.height) else {
+        return false;
+    };
+    if decoded.width != reference.width || decoded.height != reference.height {
+        return false;
+    }
+    if decoded.data.len() != reference.data.len() || reference.data.is_empty() {
+        return false;
+    }
+    // PER CHANNEL, not pooled. A pooled average lets one wrecked channel hide
+    // behind three intact ones: measured on the fixture corpus, a C/K swap
+    // pools to MAD 29 and a full C,M,Y,K rotation to 73 — both under the
+    // shared `DECODE_BACK_MAX_MAD` of 96, which was sized for three-channel
+    // catastrophes. Per channel those same swaps blow past `max_mad`.
+    let per_channel = reference.data.len() / 4;
+    for c in 0..4usize {
+        let sad: u64 = reference
+            .data
+            .iter()
+            .skip(c)
+            .step_by(4)
+            .zip(decoded.data.iter().skip(c).step_by(4))
+            .map(|(a, b)| u64::from(a.abs_diff(*b)))
+            .sum();
+        if sad as f64 / per_channel as f64 > max_mad {
+            return false;
+        }
+    }
+    true
+}
+
+/// The whole CMYK pipeline as one fail-safe unit: eligibility, scaled decode,
+/// Lanczos3 resample to the exact target geometry, YCCK re-encode, decode-back
+/// verification. Any doubt returns `None` and the stream is left untouched.
+///
+/// `target_w`/`target_h` are the caller's intent: the over-resolution
+/// downsample passes its computed target, the dimension-preserving requant
+/// passes the stream's own geometry. In BOTH cases the output is required to
+/// land exactly on that geometry, so a stream whose dict lies about its size
+/// can never desynchronize the dict from the payload.
+fn plan_dct_cmyk(
+    stream: &lopdf::Stream,
+    quality: u8,
+    target_w: u32,
+    target_h: u32,
+    require_exact_source_geometry: bool,
+) -> Option<Vec<u8>> {
+    if has_decode_array(&stream.dict) {
+        return None;
+    }
+    if !ends_with_eoi(&stream.content) {
+        return None;
+    }
+    let decoded = decode_cmyk_jpeg_scaled(&stream.content, target_w, target_h)?;
+    // Never upscale: the DCT-scaled decode already refuses to go below the
+    // target, so a source smaller than the target means the dict's geometry
+    // and the payload disagree. Decline rather than invent samples.
+    if decoded.width < target_w || decoded.height < target_h {
+        return None;
+    }
+    // The dimension-preserving callers additionally require the payload to BE
+    // the declared geometry, not merely cover it: a dict that lies about its
+    // size would otherwise be silently "corrected" by the resample, which for
+    // a masked base means breaking alignment with a mask nobody resized.
+    if require_exact_source_geometry
+        && (decoded.source_width != target_w || decoded.source_height != target_h)
+    {
+        return None;
+    }
+    let resized = if decoded.width == target_w && decoded.height == target_h {
+        decoded
+    } else {
+        resize_cmyk_lanczos3(&decoded, target_w, target_h)?
+    };
+
+    let out = encode_cmyk_jpeg(&resized, quality)?;
+
+    // Same idempotence guard as the RGB requant path: byte-identical
+    // quantization tables mean the source is ALREADY at this quality and a
+    // re-encode would be pure generation loss. (A plain-CMYK source and a YCCK
+    // candidate never collide here — `jpeg_set_colorspace` gives CMYK one
+    // shared table and YCCK two, so the DQT payloads differ by construction.)
+    if let (Some(src_tables), Some(out_tables)) =
+        (jpeg_quant_tables(&stream.content), jpeg_quant_tables(&out))
+    {
+        if src_tables == out_tables {
+            return None;
+        }
+    }
+
+    if !cmyk_decode_back_matches(&out, &resized, CMYK_DECODE_BACK_MAX_MAD) {
+        return None;
+    }
+    Some(out)
 }
 
 /// A planned `/JPXDecode` → `/DCTDecode` conversion (strictly opt-in via
@@ -13235,10 +17297,19 @@ fn plan_jpx_conversions(doc: &Document, options: OptimizeOptions) -> Vec<JpxConv
                 }
             }
         }
+        let channels = if is_gray { 1usize } else { 3 };
+        // Price the raster BEFORE decoding. `decode()` allocates whatever the
+        // codestream header declares, so a JPEG2000 decompression bomb — a few
+        // KB claiming 60000x60000 — is an OOM abort, and an abort is a process
+        // kill no `catch_unwind` can contain. Same 256 MiB ceiling the Flate
+        // and DCT paths apply, for the same reason. The length check below
+        // stays: it catches a codestream that lied the other way.
+        if !raster_within_budget(u64::from(w), u64::from(h), channels as u64) {
+            continue;
+        }
         let Ok(pixels) = jpx.decode() else {
             continue;
         };
-        let channels = if is_gray { 1usize } else { 3 };
         if pixels.len() != (w as usize) * (h as usize) * channels {
             continue;
         }
@@ -13809,7 +17880,7 @@ fn replan_content(
 /// Declined wholesale for encrypted, PDF/A-declared, and signed documents,
 /// same posture as `redeflate_flate_streams`.
 fn minify_content_streams(doc: &mut Document, backend: DeflateBackend) -> bool {
-    if doc.is_encrypted() || fonts::pdfa_blocked(doc) || signature_present(doc) {
+    if doc.is_encrypted() || fonts::pdfa_blocked(doc) {
         return false;
     }
     let refcounts = count_object_references(doc);
@@ -14026,6 +18097,12 @@ fn dedup_streams(doc: &mut Document) -> bool {
 /// hand back the original bytes without anyone allocating a throwaway copy of
 /// them. `Ok(Some(bytes))` is a real, rewritten document.
 fn try_optimize(input: &[u8], options: OptimizeOptions) -> Result<Option<Vec<u8>>, lopdf::Error> {
+    // Read the input's own real literals BEFORE lopdf parses them into f32s
+    // that cannot hold their digits. Empty for the overwhelming majority of
+    // documents, in which case the restoration pass at save time is a no-op
+    // and the output is byte-identical to what it would be without it. See
+    // src/reals.rs.
+    let literals = reals::capture(input);
     let mut doc = Document::load_mem(input)?;
 
     // Fail-safe: if any page's /Contents cannot be resolved to stream objects
@@ -14062,6 +18139,22 @@ fn try_optimize(input: &[u8], options: OptimizeOptions) -> Result<Option<Vec<u8>
     // streams — the dominant duplication on text-heavy LaTeX exports. Neither
     // pass can undo the other's merges, so both run and both count as work.
     let merged_decoded = dedup_decoded_streams(&mut doc);
+
+    // Opt-in form flattening, BEFORE every other planner: the appearance
+    // streams it moves into page content must then be minified, re-deflated
+    // and (if they carry images) planned like any other page content, and the
+    // XFA / field-tree objects it orphans must already be unreferenced when
+    // `prune_objects()` runs. A `None` plan is a decline — the document is
+    // optimized exactly as it would have been with the flag off. Counts as
+    // work: dropping a megabyte of XFA is the whole point.
+    let flattened = options.flatten_forms
+        && match forms::plan_flatten(&doc) {
+            Some(plan) => {
+                forms::apply_flatten(&mut doc, plan);
+                true
+            }
+            None => false,
+        };
 
     // Minify page/Form content streams before anything parses them: the
     // planners below then read the same (verified-equivalent) operations from
@@ -14142,7 +18235,7 @@ fn try_optimize(input: &[u8], options: OptimizeOptions) -> Result<Option<Vec<u8>
     // may have collapsed repeated images or identical embedded font programs
     // even when nothing needed downsampling, and discarding that would throw
     // away a real size win.
-    if replacements.is_empty()
+    let nothing_else_qualified = replacements.is_empty()
         && font_plans.is_empty()
         && bitonal_plans.is_empty()
         && jpx_plans.is_empty()
@@ -14150,14 +18243,23 @@ fn try_optimize(input: &[u8], options: OptimizeOptions) -> Result<Option<Vec<u8>
         && !merged_streams
         && !merged_decoded
         && !minified
-        && !gray_work
-        // Evaluated last, and only for a document with no other work: the
-        // probe redoes the entropy analysis `reoptimize_jpeg_streams` will
-        // do at the end, so short-circuiting keeps it off the common path.
-        // It has to be asked, though — a PDF whose only win is pass-through
-        // JPEGs with unoptimized Huffman tables is a real win, not a
-        // serialization detail, and must not be declined.
-        && !any_jpeg_huffman_work(&doc)
+        && !flattened
+        && !gray_work;
+
+    // The JPEG Huffman re-optimizer normally runs at the end of the pipeline,
+    // after every stream this pass replaces is in place. But for a document
+    // nothing else qualified to touch there is nothing to wait for, and the
+    // question "is there any work at all" can only be answered by doing the
+    // entropy analysis anyway — so run the real pass here and keep its answer,
+    // instead of probing with a throwaway analysis and then redoing it below.
+    // It has to be asked: a PDF whose only win is pass-through JPEGs with
+    // unoptimized Huffman tables is a real win, not a serialization detail,
+    // and must not be declined.
+    let jpeg_huffman_done = nothing_else_qualified;
+    let jpeg_huffman_work = jpeg_huffman_done && reoptimize_jpeg_streams(&mut doc);
+
+    if nothing_else_qualified
+        && !jpeg_huffman_work
         // Same story for the opt-in Type1C hint strip: it is real work, and
         // it is the only thing that happens in a `--strip-hinting` run over a
         // document whose fonts nothing else qualifies to touch.
@@ -14321,6 +18423,25 @@ fn try_optimize(input: &[u8], options: OptimizeOptions) -> Result<Option<Vec<u8>
         }
     }
 
+    // Optionally drop every page-piece dictionary (ISO 32000-1 14.5): private
+    // data an authoring application keeps beside the page it rendered.
+    // Illustrator's is the extreme case — the entire editable artwork,
+    // PostScript-encoded, next to the flattened page that draws it (295 KB of
+    // a 374 KB corpus file). No conforming reader consults it to render;
+    // dropping it costs round-trip editability in the producing application
+    // and nothing else, which is why it is opt-in. As with `/Metadata`, only
+    // the reference is removed here — `prune_objects()` below collects the
+    // orphaned streams.
+    if options.strip_private_data {
+        for object in doc.objects.values_mut() {
+            match object {
+                Object::Dictionary(dict) => dict.remove(b"PieceInfo"),
+                Object::Stream(stream) => stream.dict.remove(b"PieceInfo"),
+                _ => None,
+            };
+        }
+    }
+
     // Merge true duplicate objects (identical serialized bytes -> same
     // canonical id, references redirected, duplicates removed) — iterated to a
     // FIXPOINT, alternating the non-stream and stream passes. One generation
@@ -14353,7 +18474,12 @@ fn try_optimize(input: &[u8], options: OptimizeOptions) -> Result<Option<Vec<u8>
     // src/jpeghuff.rs), so it needs no consent flag and runs unconditionally.
     // Placed here, after every image decision, for the same reason as the
     // re-deflate below: it is a pure re-serialization of bytes already chosen.
-    reoptimize_jpeg_streams(&mut doc);
+    // Skipped when the "is there any work at all" check above already ran it —
+    // which it only does for a document where nothing else qualified, so no
+    // image decision came after it there either.
+    if !jpeg_huffman_done {
+        reoptimize_jpeg_streams(&mut doc);
+    }
 
     // Last planning-free pass: re-deflate every already-Flate stream with the
     // configured backend (zlib level 9, or zopfli when opted in).
@@ -14370,7 +18496,7 @@ fn try_optimize(input: &[u8], options: OptimizeOptions) -> Result<Option<Vec<u8>
 
     strip_stale_xref_trailer_keys(&mut doc);
 
-    save_document(&mut doc, options).map(Some)
+    save_document(&mut doc, options, &literals).map(Some)
 }
 
 /// Drop trailer entries that describe the *input's* cross-reference section.
@@ -14409,44 +18535,11 @@ fn strip_stale_xref_trailer_keys(doc: &mut Document) {
 /// `inflate_capped` enforces everywhere else in the crate.
 const MAX_REDEFLATE_BYTES: usize = 128 * 1024 * 1024;
 
-/// Final lossless re-deflate pass: every stream whose `/Filter` is exactly
-/// `FlateDecode` is inflated and re-deflated at zlib level 9, keeping the
-/// result only when it is STRICTLY smaller and verified to inflate back to the
-/// original bytes.
-///
-/// This is a serialization change and nothing else. `/Filter` and
-/// `/DecodeParms` are untouched, so any PNG/TIFF predictor still applies to
-/// exactly the same post-inflate bytes: every reader decodes what it decoded
-/// before, byte for byte. No pixel is resampled and no encoding class moves,
-/// which is why it needs no consent flag — it is the same class of work
-/// `doc.compress()` already does by default, extended to streams that arrived
-/// with a producer's (often weaker) deflate output.
-///
-/// Idempotent: a second pass re-deflates already-level-9 output to the same
-/// size, which fails the strictly-smaller test and changes nothing.
-///
-/// Declined wholesale for encrypted documents (stream bytes are ciphertext),
-/// PDF/A-declared documents, and signed documents — a signature's byte range
-/// covers offsets this pass would move.
-/// True when at least one raw `/DCTDecode` payload has Huffman tables worth
-/// rebuilding. Read-only; used only to answer "is there any work at all" for
-/// a document nothing else touches (see `try_optimize`). Stops at the first
-/// stream that improves.
-fn any_jpeg_huffman_work(doc: &Document) -> bool {
-    doc.objects.values().any(|obj| {
-        let Object::Stream(stream) = obj else {
-            return false;
-        };
-        let Ok(filter) = stream.dict.get(b"Filter") else {
-            return false;
-        };
-        matches!(classify_filter(doc, filter), FilterClass::DctOnly)
-            && jpeghuff::optimize(&stream.content).is_some()
-    })
-}
-
 /// Re-optimize the Huffman tables of every raw `/DCTDecode` payload in the
-/// document.
+/// document. Returns true when at least one stream was replaced — the answer
+/// `try_optimize` needs for a document nothing else qualified to touch, where
+/// this pass is the only thing standing between "hand back the input bytes"
+/// and a real win.
 ///
 /// This is the JPEG analogue of [`redeflate_flate_streams`]: an entropy-coding
 /// improvement over bytes whose *content* is already decided. It is strictly
@@ -14458,9 +18551,9 @@ fn any_jpeg_huffman_work(doc: &Document) -> bool {
 /// simply decline (nothing is smaller). The headroom is in the JPEGs the image
 /// path passes through untouched: CMYK/Separation payloads, and any image
 /// whose effective DPI is already at target.
-fn reoptimize_jpeg_streams(doc: &mut Document) {
-    if doc.is_encrypted() || fonts::pdfa_blocked(doc) || signature_present(doc) {
-        return;
+fn reoptimize_jpeg_streams(doc: &mut Document) -> bool {
+    if doc.is_encrypted() || fonts::pdfa_blocked(doc) {
+        return false;
     }
 
     // Collect first (classification resolves references against the immutable
@@ -14483,15 +18576,40 @@ fn reoptimize_jpeg_streams(doc: &mut Document) {
         .filter_map(|(id, content)| jpeghuff::optimize(&content).map(|out| (id, out)))
         .collect();
 
+    let mut changed = false;
     for (id, content) in shrunk {
         if let Ok(Object::Stream(stream)) = doc.get_object_mut(id) {
             stream.set_content(content); // keeps /Length in sync
+                                         // Counted only when a stream really was rewritten: an id that no
+                                         // longer resolves is not work done.
+            changed = true;
         }
     }
+    changed
 }
 
+/// Final lossless re-deflate pass: every stream whose `/Filter` is exactly
+/// `FlateDecode` is inflated and re-deflated at zlib level 9, keeping the
+/// result only when it is STRICTLY smaller and verified to inflate back to the
+/// original bytes.
+///
+/// This is a serialization change and nothing else. `/Filter` and
+/// `/DecodeParms` are untouched, so any PNG/TIFF predictor still applies to
+/// exactly the same post-inflate bytes: every reader decodes what it decoded
+/// before, byte for byte. No pixel is resampled and no encoding class moves,
+/// which is why it needs no consent flag — it is the same class of work
+/// `doc.compress()` already does by default, extended to streams that arrived
+/// with a producer's (often weaker) deflate output.
+///
+/// Idempotent: a second pass re-deflates already-level-9 output to the same
+/// size, which fails the strictly-smaller test and changes nothing.
+///
+/// Declined wholesale for encrypted documents (stream bytes are ciphertext)
+/// and PDF/A-declared documents. Signed documents are NOT declined: see the
+/// note above `save_document` for why a signature guard here protects
+/// nothing.
 fn redeflate_flate_streams(doc: &mut Document, backend: DeflateBackend) {
-    if doc.is_encrypted() || fonts::pdfa_blocked(doc) || signature_present(doc) {
+    if doc.is_encrypted() || fonts::pdfa_blocked(doc) {
         return;
     }
 
@@ -14543,38 +18661,32 @@ fn replan_deflate(content: &[u8], backend: DeflateBackend) -> Option<Vec<u8>> {
     (inflate_capped(&out, plain.len())? == plain).then_some(out)
 }
 
-/// True when the document carries a digital signature. A signature dictionary
-/// pins a `/ByteRange` over the file's bytes; AcroForm `/SigFlags` declares one
-/// exists. Rather than reason about which bytes a range covers, the re-deflate
-/// pass declines such documents entirely.
-fn signature_present(doc: &Document) -> bool {
-    if let Ok(catalog) = doc.catalog() {
-        if let Ok(acroform) = catalog.get(b"AcroForm") {
-            if let Object::Dictionary(d) = resolve(doc, acroform) {
-                if d.get(b"SigFlags").is_ok() {
-                    return true;
-                }
-            }
-        }
-    }
-    doc.objects.values().any(|obj| match obj {
-        Object::Dictionary(d) => is_signature_dict(d),
-        Object::Stream(s) => is_signature_dict(&s.dict),
-        _ => false,
-    })
-}
-
-fn is_signature_dict(dict: &lopdf::Dictionary) -> bool {
-    dict.get(b"ByteRange").is_ok()
-        || matches!(dict.get(b"Type"),
-            Ok(Object::Name(n)) if n == b"Sig" || n == b"DocTimeStamp")
-}
-
+/// Why there is no signature guard here (there used to be).
+///
+/// A `/ByteRange` digest covers file offsets, so it cannot survive *any*
+/// amatl output: every run re-serializes the whole document from scratch,
+/// moving every offset, and font subsetting, image downsampling, object-stream
+/// packing and metadata stripping were never gated on signatures in the first
+/// place. Gating only the three entropy-level passes (JPEG Huffman
+/// re-optimization, whole-document re-deflate, content minification) therefore
+/// protected nothing while costing real bytes -- measured at 477 KB on a
+/// Reader-extended IRS form whose 1.5 MB XFA attachment ships with a weak
+/// deflate.
+///
+/// The honest contract is the one amatl already had in practice: optimizing a
+/// signed PDF invalidates its signature, exactly as it does with every other
+/// PDF optimizer. That is documented in the README; the fail-safe contract
+/// covers rendered content, not offset-pinned digests. Callers who must keep a
+/// signature intact must not optimize the file at all.
 /// Serialize the document, optionally using PDF 1.5 object-stream packing when
 /// `options.pack_object_streams` is true. The packed path produces smaller
 /// output for object-heavy documents but is more complex; the classic path is
 /// the always-available fallback and matches what lopdf ships.
-fn save_document(doc: &mut Document, options: OptimizeOptions) -> Result<Vec<u8>, lopdf::Error> {
+fn save_document(
+    doc: &mut Document,
+    options: OptimizeOptions,
+    literals: &reals::RealLiterals,
+) -> Result<Vec<u8>, lopdf::Error> {
     let out = if options.pack_object_streams {
         pack_and_save(doc)?
     } else {
@@ -14582,6 +18694,10 @@ fn save_document(doc: &mut Document, options: OptimizeOptions) -> Result<Vec<u8>
         doc.save_to(&mut out)?;
         out
     };
+    // Put back every real literal lopdf's f32 object model rounded off, while
+    // the cross-reference section this shifts is still uncompressed. A no-op
+    // unless the input actually carried a literal f32 cannot hold.
+    let out = reals::restore(out, literals);
     // The zopfli backend can re-deflate the ObjStm the writer just emitted
     // (lopdf deflates it internally at zlib level 9, out of reach of the
     // final re-deflate pass). Must run BEFORE the xref compression below:
@@ -16532,6 +20648,396 @@ mod tests {
         );
     }
 
+    /// Chart pixels: a flat plot panel on flat paper, gridlines, and dense
+    /// rendered-text-like ink — the `--figure-dpi` class. Two large flat
+    /// fields rather than one keep the dominant-color share in the mid band
+    /// (no single color owns ≥ 75% of the image, so this is NOT line art),
+    /// while the text rows push the sharp-edge fraction well past
+    /// `FIGURE_MIN_EDGES`.
+    fn chart_pixels(w: u32, h: u32) -> Vec<u8> {
+        let mut buf = vec![255u8; (w * h * 3) as usize];
+        let idx = |x: u32, y: u32| ((y * w + x) * 3) as usize;
+        // Plot panel over the lower ~45%: a second flat field, far enough from
+        // white to land in its own 5-bit quantization bucket. Every flat value
+        // here is ≡ 7 (mod 8), i.e. at the TOP of its bucket, so the paper
+        // grain applied at the end (≤ 6 counts down) cannot split a field
+        // across two buckets and move the background metric.
+        let panel_top = h * 55 / 100;
+        for y in panel_top..h {
+            for x in 0..w {
+                buf[idx(x, y)..idx(x, y) + 3].copy_from_slice(&[231, 231, 239]);
+            }
+        }
+        // Gridlines inside the panel.
+        for y in panel_top..h {
+            for x in 0..w {
+                if x % 17 == 0 || y % 13 == 0 {
+                    buf[idx(x, y)..idx(x, y) + 3].copy_from_slice(&[151, 151, 159]);
+                }
+            }
+        }
+        // Rendered text: bands of 1-2 px high-contrast strokes at irregular
+        // spacing, the way axis labels, tick numbers, and a legend read to a
+        // per-pixel edge count.
+        let mut state = 0x1357_9BDF_u32;
+        for band in 0..h / 5 {
+            let y0 = band * 5 + 1;
+            if y0 + 2 >= h {
+                break;
+            }
+            for x in 0..w {
+                state ^= state << 13;
+                state ^= state >> 17;
+                state ^= state << 5;
+                if state % 5 < 2 {
+                    continue; // inter-glyph and inter-word gaps
+                }
+                for y in y0..y0 + 2 {
+                    buf[idx(x, y)..idx(x, y) + 3].copy_from_slice(&[15, 15, 15]);
+                }
+            }
+        }
+        // Faint deterministic paper grain, the same trick `line_art_pixels`
+        // uses: ≤ 6 counts below each flat value, so it is invisible to all
+        // three metrics (same quantization bucket, far below `EDGE_STEP`) but
+        // deflate-hostile. Without it the full-size stream compresses so well
+        // that the never-larger guard declines the downsample outright and the
+        // fixture proves nothing about targets.
+        for (i, byte) in buf.iter_mut().enumerate() {
+            let mut x = i as u32 ^ 0x9E37_79B9;
+            x ^= x << 13;
+            x ^= x >> 17;
+            x ^= x << 5;
+            *byte -= (x % 7) as u8;
+        }
+        buf
+    }
+
+    /// The classifier's operating point, stated as metrics rather than as a
+    /// bare boolean: charts sit in the mid background band with dense edges,
+    /// photographs have no flat background at all, and line art is above the
+    /// upper bound where `looks_like_line_art` already owns it.
+    #[test]
+    fn figure_metrics_separate_charts_from_photos_and_line_art() {
+        let chart = line_art_metrics(&chart_pixels(400, 400), 3, 400, 400);
+        assert!(
+            chart.background >= FIGURE_MIN_BACKGROUND
+                && chart.background < FIGURE_MAX_BACKGROUND
+                && chart.edges >= FIGURE_MIN_EDGES,
+            "chart fixture must sit in the figure band (bg {:.3} edge {:.4})",
+            chart.background,
+            chart.edges
+        );
+
+        let photo = line_art_metrics(&photo_pixels(400, 400, 3), 3, 400, 400);
+        assert!(
+            photo.background < FIGURE_MIN_BACKGROUND,
+            "photographic content must fail the background floor (bg {:.3})",
+            photo.background
+        );
+
+        // Line art is vetoed by the upper bound, not by the edge floor — the
+        // two gates deliberately meet at 0.75 with no overlap and no gap.
+        let art = line_art_metrics(&line_art_pixels(400, 400), 3, 400, 400);
+        assert!(
+            art.background >= FIGURE_MAX_BACKGROUND,
+            "line art must be above the figure band, not inside it (bg {:.3})",
+            art.background
+        );
+    }
+
+    /// The array histogram must reproduce the `HashMap` + sort it replaced.
+    /// Recomputed here the slow, obvious way on a buffer with a known answer.
+    #[test]
+    fn line_art_metrics_histogram_matches_the_reference_computation() {
+        for (pixels, channels, w, h) in [
+            (chart_pixels(64, 64), 3, 64u32, 64u32),
+            (photo_pixels(64, 64, 3), 3, 64, 64),
+            (photo_pixels(64, 64, 1), 1, 64, 64),
+        ] {
+            let mut reference: std::collections::HashMap<u32, u32> =
+                std::collections::HashMap::new();
+            for i in 0..(w as usize * h as usize) {
+                let key = pixels[i * channels..i * channels + channels]
+                    .iter()
+                    .fold(0u32, |acc, s| (acc << 5) | u32::from(s >> 3));
+                *reference.entry(key).or_insert(0) += 1;
+            }
+            let mut counts: Vec<u32> = reference.into_values().collect();
+            counts.sort_unstable_by(|a, b| b.cmp(a));
+            let total = (w as usize * h as usize) as f64;
+            let sum: u64 = counts.iter().take(8).map(|c| u64::from(*c)).sum();
+
+            let m = line_art_metrics(&pixels, channels, w, h);
+            assert_eq!(m.background, u64::from(counts[0]) as f64 / total);
+            assert_eq!(m.palette, sum as f64 / total);
+        }
+    }
+
+    /// A four-channel buffer is a real input now (CMYK JPEGs route through
+    /// `decode_cmyk_jpeg_scaled`), so the 20-bit key width has to work; and a
+    /// width the histogram cannot represent must decline rather than panic.
+    #[test]
+    fn line_art_metrics_handles_cmyk_width_and_declines_beyond_it() {
+        let flat = vec![7u8; 32 * 32 * 4];
+        let m = line_art_metrics(&flat, 4, 32, 32);
+        assert_eq!(m.background, 1.0, "a flat CMYK field is all background");
+        assert_eq!(m.edges, 0.0);
+
+        for channels in [0usize, METRICS_MAX_CHANNELS + 1] {
+            let m = line_art_metrics(&flat, channels, 32, 32);
+            assert_eq!((m.background, m.palette, m.edges), (0.0, 0.0, 0.0));
+            assert!(!looks_like_line_art(&flat, channels, 32, 32));
+        }
+    }
+
+    /// The single image stream of a single-image PDF, as a `(dict, content)`
+    /// pair, for the classifier tests below.
+    fn only_image_of(pdf: &[u8]) -> (Document, ObjectId) {
+        let doc = Document::load_mem(pdf).unwrap();
+        let id = doc
+            .objects
+            .iter()
+            .find(|(_, o)| {
+                matches!(o, Object::Stream(s)
+                    if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image"))
+            })
+            .map(|(id, _)| *id)
+            .expect("an image stream");
+        (doc, id)
+    }
+
+    #[test]
+    fn figure_dpi_defaults_off_and_validates_at_the_setter() {
+        assert_eq!(OptimizeOptions::default().figure_dpi, None);
+        // <= 0 and non-finite mean "off", so the CLI's absent-flag sentinel
+        // (0.0) and a fat-fingered value both land on today's behavior.
+        for bad in [0.0f32, -1.0, -195.0, f32::NAN, f32::INFINITY] {
+            assert_eq!(
+                OptimizeOptions::default().with_figure_dpi(bad).figure_dpi,
+                None,
+                "{bad} must disable the knob"
+            );
+        }
+        assert_eq!(
+            OptimizeOptions::default().with_figure_dpi(195.0).figure_dpi,
+            Some(195.0)
+        );
+    }
+
+    #[test]
+    fn figure_dpi_promotes_a_chart_to_the_higher_target() {
+        // 400 px into 100 pt ⇒ 288 effective DPI, over-resolution at both the
+        // 130 default (181 px) and a 195 figure target (271 px).
+        let pdf = build_pdf_flate_raw(&chart_pixels(400, 400), 400, 100, 3);
+        assert_eq!(
+            image_dims(&optimize(&pdf)),
+            (181, 181),
+            "the flag-off shape"
+        );
+
+        let opts = OptimizeOptions::default().with_figure_dpi(195.0);
+        assert_eq!(
+            image_dims(&optimize_with_options(&pdf, opts)),
+            (271, 271),
+            "a chart must land at the figure target, not the ordinary one"
+        );
+    }
+
+    #[test]
+    fn figure_dpi_leaves_photographic_content_at_the_ordinary_target() {
+        // The false-positive case, which is the one that matters: promoting a
+        // photograph spends bytes on content that gains nothing from them.
+        let pdf = build_pdf_flate_raw(&photo_pixels(400, 400, 3), 400, 100, 3);
+        let opts = OptimizeOptions::default().with_figure_dpi(195.0);
+        assert_eq!(
+            optimize_with_options(&pdf, opts),
+            optimize(&pdf),
+            "a photograph must get byte-identical output with the flag on"
+        );
+    }
+
+    #[test]
+    fn figure_dpi_at_or_below_the_ordinary_target_is_inert() {
+        // Documented contract: the knob only ever RAISES a target. At or below
+        // `target_dpi` it must not fire at all — not even to re-derive the same
+        // geometry — so the output stays byte-identical AND the classifier's
+        // full-resolution decode is never paid for.
+        let pdf = build_pdf_flate_raw(&chart_pixels(400, 400), 400, 100, 3);
+        let baseline = optimize(&pdf);
+        for dpi in [1.0f32, 72.0, 129.9, 130.0] {
+            let opts = OptimizeOptions::default().with_figure_dpi(dpi);
+            assert_eq!(
+                optimize_with_options(&pdf, opts),
+                baseline,
+                "--figure-dpi {dpi} is at or below the 130 target and must be inert"
+            );
+        }
+    }
+
+    #[test]
+    fn figure_dpi_needs_a_positive_target_dpi() {
+        // `target_dpi <= 0` means "do not downsample", and it returns before
+        // the promotion is consulted. A figure target cannot revive it.
+        let pdf = build_pdf_flate_raw(&chart_pixels(400, 400), 400, 100, 3);
+        let opts = OptimizeOptions::default()
+            .with_target_dpi(0.0)
+            .with_figure_dpi(195.0);
+        assert_eq!(
+            optimize_with_options(&pdf, opts),
+            optimize_with_options(&pdf, OptimizeOptions::default().with_target_dpi(0.0)),
+            "--figure-dpi must not downsample when --target-dpi is disabled"
+        );
+    }
+
+    #[test]
+    fn figure_dpi_promotes_a_masked_chart_pair_to_one_geometry() {
+        // D-M3 interaction: classification reads the BASE image only, and the
+        // /SMask follows the base's target exactly as it does today — both
+        // streams land on the SAME promoted geometry, atomically.
+        let base = chart_pixels(400, 400);
+        let mask = flate_pixels(400, 400, 1);
+        let pdf = build_pdf_smask_flate_ext(400, 100, &base, &mask, |_| {}, |_| {});
+
+        let (_, dw, dh, dmask) = smask_base_info(&optimize(&pdf));
+        assert_eq!((dw, dh), (181, 181), "the flag-off pair shape");
+        assert_eq!(mask_shape(&optimize(&pdf), dmask).1, 181);
+
+        let opts = OptimizeOptions::default().with_figure_dpi(195.0);
+        let out = optimize_with_options(&pdf, opts);
+        let (_, w, h, mask_id) = smask_base_info(&out);
+        assert_eq!((w, h), (271, 271), "the base takes the figure target");
+        let (_, mw, mh) = mask_shape(&out, mask_id);
+        assert_eq!((mw, mh), (271, 271), "the mask follows its base, as always");
+    }
+
+    #[test]
+    fn figure_dpi_never_grows_a_stream() {
+        // The never-larger contract is unchanged by construction: the higher
+        // target only changes the geometry fed to the existing candidates, and
+        // the per-stream strictly-smaller guard still decides. A checkerboard
+        // is figure-like by the metrics (mid background, dense edges) but
+        // deflates to almost nothing at full size and far worse resampled, so
+        // BOTH targets are declined and the image is left untouched.
+        let raw = checkerboard_pixels(400, 4, 3);
+        let m = line_art_metrics(&raw, 3, 400, 400);
+        assert!(
+            m.background >= FIGURE_MIN_BACKGROUND
+                && m.background < FIGURE_MAX_BACKGROUND
+                && m.edges >= FIGURE_MIN_EDGES,
+            "fixture must be classified as figure-like (bg {:.3} edge {:.4})",
+            m.background,
+            m.edges
+        );
+        let pdf = build_pdf_flate_raw(&raw, 400, 100, 3);
+        let opts = OptimizeOptions::default().with_figure_dpi(195.0);
+        let out = optimize_with_options(&pdf, opts);
+        assert_eq!(
+            image_dims(&out),
+            (400, 400),
+            "declined ⇒ untouched geometry"
+        );
+        assert!(
+            out.len() <= pdf.len(),
+            "output must never exceed the input ({} -> {})",
+            pdf.len(),
+            out.len()
+        );
+    }
+
+    #[test]
+    fn figure_dpi_classifies_cmyk_jpegs_through_the_four_channel_route() {
+        // `decode_jpeg_scaled` hard-declines CMYK/YCCK, so the classifier has
+        // its own route to `decode_cmyk_jpeg_scaled`. Pin that it produces a
+        // FULL-RESOLUTION four-channel buffer — the DCT-scaled shortcut would
+        // quarter the pixel count while preserving the edges, which is exactly
+        // what breaks the calibrated edge gate.
+        for name in ["cmyk_plain.jpg", "cmyk_ycck.jpg", "cmyk_large.jpg"] {
+            let src = jpeg_fixture(name);
+            let (w, h) = {
+                let f = jpeg_frame_info(&src).unwrap();
+                (u32::from(f.width), u32::from(f.height))
+            };
+            let pdf = build_pdf_cmyk(src, w, h, 144, 108, None);
+            let (doc, id) = only_image_of(&pdf);
+            let stream = doc.get_object(id).unwrap().as_stream().unwrap();
+            let (pixels, channels, dw, dh) =
+                figure_metrics_source(&doc, stream, &FilterClass::DctOnly, w, h)
+                    .unwrap_or_else(|| panic!("{name} must decode for classification"));
+            assert_eq!(channels, 4, "{name} keeps its four components");
+            assert_eq!((dw, dh), (w, h), "{name} must decode at full resolution");
+            assert_eq!(pixels.len(), (w as usize) * (h as usize) * 4, "{name}");
+            // The gate itself must run without panicking on a 20-bit key.
+            let _ = image_is_figure_like(&doc, stream, &FilterClass::DctOnly, w, h);
+        }
+    }
+
+    #[test]
+    fn figure_dpi_classification_is_fail_open_on_undecodable_payloads() {
+        // Every decode failure means "not figure-like", i.e. the ordinary
+        // target — never an error, never a panic.
+        let pdf = build_pdf_flate_raw(&chart_pixels(64, 64), 64, 100, 3);
+        let (doc, id) = only_image_of(&pdf);
+        let stream = doc.get_object(id).unwrap().as_stream().unwrap();
+        // Right stream, wrong class: JPX/JBIG2/CCITT/Other have no route.
+        for class in [
+            FilterClass::CcittOnly,
+            FilterClass::JpxOnly,
+            FilterClass::Jbig2Only,
+            FilterClass::Other,
+        ] {
+            assert!(!image_is_figure_like(&doc, stream, &class, 64, 64));
+        }
+        // Right class, undecodable payload — on both routes.
+        let junk = Stream::new(
+            stream.dict.clone(),
+            b"\xff\xd8\xff not a real jpeg payload".to_vec(),
+        );
+        assert!(!image_is_figure_like(
+            &doc,
+            &junk,
+            &FilterClass::FlateOnly,
+            64,
+            64
+        ));
+        // (The DCT route's malformed-payload behavior is covered end-to-end by
+        // `figure_dpi_returns_the_original_bytes_on_a_corrupt_over_resolution_jpeg`
+        // instead: mozjpeg PANICS on a malformed stream rather than returning
+        // an error, so `decode_jpeg` is only safe to exercise from inside the
+        // `optimize_with_options` `catch_unwind` boundary — which is equally
+        // true of the `plan_dct` call this classifier sits next to.)
+        //
+        // Lying geometry: the dict claims a size the payload cannot fill.
+        assert!(!image_is_figure_like(
+            &doc,
+            stream,
+            &FilterClass::FlateOnly,
+            4096,
+            4096
+        ));
+    }
+
+    #[test]
+    fn figure_dpi_returns_the_original_bytes_on_a_corrupt_over_resolution_jpeg() {
+        // The classifier decodes the same bytes `plan_dct` was already going to
+        // decode, so it adds no new exposure — but pin the end-to-end contract
+        // anyway: with the flag on, a corrupt over-resolution DCT stream still
+        // yields the exact input bytes.
+        let mut doc = Document::load_mem(&build_pdf(400, 100)).unwrap();
+        for obj in doc.objects.values_mut() {
+            if let Object::Stream(s) = obj {
+                if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image") {
+                    s.set_content(b"\xff\xd8\xff not a real jpeg payload".to_vec());
+                }
+            }
+        }
+        let mut input: Vec<u8> = Vec::new();
+        doc.save_to(&mut input).unwrap();
+
+        let opts = OptimizeOptions::default().with_figure_dpi(195.0);
+        assert_eq!(optimize_with_options(&input, opts), input);
+    }
+
     #[test]
     fn lossy_reencode_declines_over_resolution_line_art() {
         // The p12 shape as it actually occurs: the line-art profiles are
@@ -17073,53 +21579,80 @@ mod tests {
         assert_eq!(reloaded, twice, "a second zopfli pass must change nothing");
     }
 
+    /// Stored length of the (single) image stream in a loaded document.
+    fn image_stream_len_of(doc: &Document) -> usize {
+        doc.objects
+            .values()
+            .find_map(|o| match o {
+                Object::Stream(s)
+                    if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image") =>
+                {
+                    Some(s.content.len())
+                }
+                _ => None,
+            })
+            .unwrap()
+    }
+
     /// A PDF/A conformance claim disables the pass wholesale (same posture as
     /// font subsetting), so a weakly-deflated stream ships untouched.
     #[test]
-    fn redeflate_declines_pdfa_and_signed_documents() {
-        for marker in ["pdfa", "signed"] {
-            let pdf = build_pdf_weakly_deflated(120, 120);
-            let mut doc = Document::load_mem(&pdf).unwrap();
-            let before = image_stream_len(&pdf);
-            match marker {
-                "pdfa" => {
-                    let meta = doc.add_object(Stream::new(
-                        dictionary! { "Type" => "Metadata", "Subtype" => "XML" },
-                        b"<x:xmpmeta><pdfaid:part>2</pdfaid:part></x:xmpmeta>".to_vec(),
-                    ));
-                    doc.catalog_mut().unwrap().set("Metadata", meta);
-                }
-                _ => {
-                    let sig = doc.add_object(dictionary! {
-                        "Type" => "Sig",
-                        "ByteRange" => vec![0.into(), 0.into(), 0.into(), 0.into()],
-                    });
-                    doc.catalog_mut().unwrap().set("Perms", sig);
-                }
-            }
-            let mut marked: Vec<u8> = Vec::new();
-            doc.save_to(&mut marked).unwrap();
+    fn redeflate_declines_pdfa_documents() {
+        let pdf = build_pdf_weakly_deflated(120, 120);
+        let before = image_stream_len(&pdf);
+        let mut doc = Document::load_mem(&pdf).unwrap();
+        let meta = doc.add_object(Stream::new(
+            dictionary! { "Type" => "Metadata", "Subtype" => "XML" },
+            b"<x:xmpmeta><pdfaid:part>2</pdfaid:part></x:xmpmeta>".to_vec(),
+        ));
+        doc.catalog_mut().unwrap().set("Metadata", meta);
+        let mut marked: Vec<u8> = Vec::new();
+        doc.save_to(&mut marked).unwrap();
 
-            redeflate_flate_streams(
-                &mut Document::load_mem(&marked).unwrap(),
-                DeflateBackend::Zlib,
-            );
-            let mut reloaded = Document::load_mem(&marked).unwrap();
-            redeflate_flate_streams(&mut reloaded, DeflateBackend::Zlib);
-            let after = reloaded
-                .objects
-                .values()
-                .find_map(|o| match o {
-                    Object::Stream(s)
-                        if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image") =>
-                    {
-                        Some(s.content.len())
-                    }
-                    _ => None,
-                })
-                .unwrap();
-            assert_eq!(after, before, "{marker}: stream must be untouched");
-        }
+        let mut reloaded = Document::load_mem(&marked).unwrap();
+        redeflate_flate_streams(&mut reloaded, DeflateBackend::Zlib);
+        assert_eq!(
+            image_stream_len_of(&reloaded),
+            before,
+            "PDF/A: stream must be untouched"
+        );
+    }
+
+    /// A signature is NOT a reason to decline: amatl re-serializes the whole
+    /// document either way, so the `/ByteRange` digest is already broken by
+    /// the passes that were never gated. Declining here only cost bytes.
+    #[test]
+    fn redeflate_runs_on_signed_documents_and_keeps_the_signature_object() {
+        let pdf = build_pdf_weakly_deflated(120, 120);
+        let before = image_stream_len(&pdf);
+        let mut doc = Document::load_mem(&pdf).unwrap();
+        let sig = doc.add_object(dictionary! {
+            "Type" => "Sig",
+            "ByteRange" => vec![0.into(), 0.into(), 0.into(), 0.into()],
+        });
+        doc.catalog_mut().unwrap().set("Perms", sig);
+        doc.catalog_mut().unwrap().set(
+            "AcroForm",
+            dictionary! { "SigFlags" => 3, "Fields" => Object::Array(vec![]) },
+        );
+        let mut marked: Vec<u8> = Vec::new();
+        doc.save_to(&mut marked).unwrap();
+
+        let mut reloaded = Document::load_mem(&marked).unwrap();
+        redeflate_flate_streams(&mut reloaded, DeflateBackend::Zlib);
+        assert!(
+            image_stream_len_of(&reloaded) < before,
+            "signed: the weakly-deflated stream must still be re-deflated"
+        );
+        // The signature dictionary itself is data like any other: carried
+        // through untouched, never rewritten or dropped.
+        assert!(
+            reloaded.objects.values().any(|o| matches!(
+                o,
+                Object::Dictionary(d) if matches!(d.get(b"Type"), Ok(Object::Name(n)) if n == b"Sig")
+            )),
+            "the /Sig object must survive"
+        );
     }
 
     /// Task 3: the flipped default really produces ObjStm-packed output, and
@@ -17502,6 +22035,11 @@ mod tests {
             "RGB→Gray collapse rewrites /ColorSpace, so it is opt-in \
              (same posture as bitonal G4)"
         );
+        assert!(
+            !d.flatten_forms,
+            "form flattening is a semantic change (the output is no longer a \
+             form) and must stay opt-in"
+        );
     }
 
     #[test]
@@ -17515,7 +22053,8 @@ mod tests {
             .with_downsample_flate_images(false)
             .with_subset_fonts(true)
             .with_recompress_bitonal_images(true)
-            .with_allow_lossy_reencode(true);
+            .with_allow_lossy_reencode(true)
+            .with_flatten_forms(true);
         assert_eq!(o.target_dpi, 96.0);
         assert_eq!(o.jpeg_quality, 60);
         assert_eq!(o.dpi_margin, 1.5);
@@ -17525,6 +22064,7 @@ mod tests {
         assert!(o.subset_fonts);
         assert!(o.recompress_bitonal_images);
         assert!(o.allow_lossy_reencode);
+        assert!(o.flatten_forms);
     }
 
     #[test]
@@ -17826,6 +22366,64 @@ mod tests {
             catalog.get(b"MarkInfo").is_err(),
             "MarkInfo must be removed"
         );
+    }
+
+    /// Page-piece dictionaries hold private authoring data no reader renders.
+    /// Opt-in, and the flag must take the referenced private stream with it.
+    #[test]
+    fn strip_private_data_drops_piece_info_and_is_opt_in() {
+        let pdf = build_pdf(80, 100);
+        let mut doc = Document::load_mem(&pdf).unwrap();
+        let page_id = doc.get_pages().values().copied().next().unwrap();
+        // Incompressible payload, so its removal cannot be confused with a
+        // deflate improvement elsewhere.
+        let private: Vec<u8> = (0..8192u32)
+            .map(|i| (i.wrapping_mul(2654435761) >> 24) as u8)
+            .collect();
+        let blob = doc.add_object(Stream::new(dictionary! {}, private));
+        let piece = dictionary! {
+            "Illustrator" => dictionary! {
+                "LastModified" => Object::string_literal("D:20260101000000Z"),
+                "Private" => Object::Reference(blob),
+            },
+        };
+        if let Ok(Object::Dictionary(page)) = doc.get_object_mut(page_id) {
+            page.set("PieceInfo", piece.clone());
+        }
+        doc.catalog_mut().unwrap().set("PieceInfo", piece);
+        let mut reencoded: Vec<u8> = Vec::new();
+        doc.save_to(&mut reencoded).unwrap();
+
+        let kept = optimize_with_options(&reencoded, OptimizeOptions::default());
+        let kept_doc = Document::load_mem(&kept).expect("default output must load");
+        assert!(
+            kept_doc.catalog().unwrap().get(b"PieceInfo").is_ok(),
+            "default must keep /PieceInfo"
+        );
+
+        let opts = OptimizeOptions::default().with_strip_private_data(true);
+        let out = optimize_with_options(&reencoded, opts);
+        let out_doc = Document::load_mem(&out).expect("stripped output must load");
+        for object in out_doc.objects.values() {
+            let dict = match object {
+                Object::Dictionary(d) => d,
+                Object::Stream(s) => &s.dict,
+                _ => continue,
+            };
+            assert!(dict.get(b"PieceInfo").is_err(), "no /PieceInfo may survive");
+        }
+        // The private payload itself must be gone, not merely unreferenced.
+        assert!(
+            !out_doc
+                .objects
+                .values()
+                .any(|o| matches!(o, Object::Stream(s) if s.content.len() > 4096)),
+            "the orphaned private stream must be pruned"
+        );
+        assert!(out.len() < kept.len(), "stripping must shrink the output");
+
+        // Page content is untouched: same page count, same content bytes.
+        assert_eq!(kept_doc.get_pages().len(), out_doc.get_pages().len());
     }
 
     #[test]
@@ -19293,10 +23891,1012 @@ mod tests {
             "output must remain a valid PDF"
         );
     }
+
+    // -----------------------------------------------------------------------
+    // CMYK / YCCK JPEGs.
+    //
+    // Every check below lives in RAW STORED-SAMPLE space, which is what makes
+    // it a channel-polarity test and not merely a quality test: an inverted or
+    // rotated channel moves the mean absolute difference to ~85-128, an order
+    // of magnitude past anything requantization produces. The two negative
+    // controls at the end pin that sensitivity explicitly, so the positive
+    // tests cannot pass by being blind.
+    // -----------------------------------------------------------------------
+
+    /// Fixtures live at `fixtures/jpeg`; regenerate with
+    /// `python3 fixtures/jpeg/generate_cmyk.py` plus
+    /// `cargo run --release --example gen_cmyk_ycck -- \
+    ///      fixtures/jpeg/cmyk_plain.jpg fixtures/jpeg/cmyk_ycck.jpg`.
+    fn jpeg_fixture(name: &str) -> Vec<u8> {
+        let path =
+            std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/jpeg")).join(name);
+        std::fs::read(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()))
+    }
+
+    /// Mean absolute difference between two equal-length sample buffers.
+    fn sample_mad(a: &[u8], b: &[u8]) -> f64 {
+        assert_eq!(a.len(), b.len(), "buffers must be the same length");
+        let sad: u64 = a
+            .iter()
+            .zip(b)
+            .map(|(x, y)| u64::from(x.abs_diff(*y)))
+            .sum();
+        sad as f64 / a.len() as f64
+    }
+
+    /// One page embedding `jpeg` as a `/DeviceCMYK` `/DCTDecode` image of the
+    /// given pixel geometry, drawn into a `draw_w_pts`x`draw_h_pts` box.
+    /// `decode` optionally attaches a `/Decode` array.
+    fn build_pdf_cmyk(
+        jpeg: Vec<u8>,
+        px_w: u32,
+        px_h: u32,
+        draw_w_pts: i64,
+        draw_h_pts: i64,
+        decode: Option<Vec<Object>>,
+    ) -> Vec<u8> {
+        let mut dict = dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => px_w as i64,
+            "Height" => px_h as i64,
+            "ColorSpace" => "DeviceCMYK",
+            "BitsPerComponent" => 8,
+            "Filter" => "DCTDecode",
+        };
+        if let Some(d) = decode {
+            dict.set("Decode", Object::Array(d));
+        }
+        let mut doc = Document::with_version("1.5");
+        let img_id = doc.add_object(Stream::new(dict, jpeg));
+
+        let content = Content {
+            operations: vec![
+                Operation::new("q", vec![]),
+                Operation::new(
+                    "cm",
+                    vec![
+                        draw_w_pts.into(),
+                        0.into(),
+                        0.into(),
+                        draw_h_pts.into(),
+                        0.into(),
+                        0.into(),
+                    ],
+                ),
+                Operation::new("Do", vec![Object::Name(b"Im0".to_vec())]),
+                Operation::new("Q", vec![]),
+            ],
+        };
+        let content_id = doc.add_object(Stream::new(dictionary! {}, content.encode().unwrap()));
+        let pages_id = doc.new_object_id();
+        let page_id = doc.add_object(dictionary! {
+            "Type" => "Page",
+            "Parent" => pages_id,
+            "Contents" => content_id,
+            "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+            "Resources" => dictionary! {
+                "XObject" => dictionary! { "Im0" => img_id },
+            },
+        });
+        doc.objects.insert(
+            pages_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Pages",
+                "Kids" => vec![page_id.into()],
+                "Count" => 1,
+            }),
+        );
+        let catalog_id = doc.add_object(dictionary! {
+            "Type" => "Catalog",
+            "Pages" => pages_id,
+        });
+        doc.trailer.set("Root", catalog_id);
+        let mut out: Vec<u8> = Vec::new();
+        doc.save_to(&mut out).unwrap();
+        out
+    }
+
+    /// The one image stream of a single-image PDF, as (dict, content).
+    fn only_image_stream(pdf: &[u8]) -> (lopdf::Dictionary, Vec<u8>) {
+        let doc = Document::load_mem(pdf).expect("valid PDF");
+        let mut found = None;
+        for obj in doc.objects.values() {
+            if let Object::Stream(s) = obj {
+                if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image") {
+                    assert!(found.is_none(), "expected exactly one image");
+                    found = Some((s.dict.clone(), s.content.clone()));
+                }
+            }
+        }
+        found.expect("an image stream")
+    }
+
+    /// Routing is decided from the frame header alone, and it must not have
+    /// moved for the gray/RGB fixtures the untouched pipeline owns.
+    #[test]
+    fn jpeg_route_reads_the_frame_header() {
+        assert_eq!(jpeg_route(&jpeg_fixture("cmyk_plain.jpg")), JpegRoute::Cmyk);
+        assert_eq!(jpeg_route(&jpeg_fixture("cmyk_ycck.jpg")), JpegRoute::Cmyk);
+        assert_eq!(jpeg_route(&jpeg_fixture("cmyk_large.jpg")), JpegRoute::Cmyk);
+        for rgb in ["seq_color.jpg", "prog_color.jpg", "prog_color444.jpg"] {
+            assert_eq!(jpeg_component_count(&jpeg_fixture(rgb)), Some(3), "{rgb}");
+            assert_eq!(
+                jpeg_route(&jpeg_fixture(rgb)),
+                JpegRoute::GrayOrRgb,
+                "{rgb}"
+            );
+        }
+        assert_eq!(
+            jpeg_component_count(&jpeg_fixture("prog_gray.jpg")),
+            Some(1)
+        );
+        assert_eq!(
+            jpeg_route(&jpeg_fixture("prog_gray.jpg")),
+            JpegRoute::GrayOrRgb
+        );
+        // Garbage never routes to CMYK, and an unparseable header keeps the
+        // historical gray/RGB behaviour rather than declining outright.
+        assert_eq!(jpeg_component_count(b"not a jpeg"), None);
+        assert_eq!(jpeg_route(b"not a jpeg"), JpegRoute::GrayOrRgb);
+    }
+
+    /// The two source fixtures carry the same picture in the two Adobe APP14
+    /// flavours, and libjpeg hands both back as the SAME raw samples. This is
+    /// the property the whole design rests on: transform handling is entirely
+    /// libjpeg's, so we never have to know which flavour we are looking at.
+    #[test]
+    fn plain_cmyk_and_ycck_decode_to_the_same_samples() {
+        let a = decode_cmyk_jpeg_scaled(&jpeg_fixture("cmyk_plain.jpg"), 96, 64).unwrap();
+        let b = decode_cmyk_jpeg_scaled(&jpeg_fixture("cmyk_ycck.jpg"), 96, 64).unwrap();
+        assert_eq!((a.width, a.height), (96, 64));
+        assert_eq!((b.width, b.height), (96, 64));
+        assert_eq!(a.data.len(), 96 * 64 * 4);
+        // Only one extra requantization separates them.
+        assert!(
+            sample_mad(&a.data, &b.data) < 4.0,
+            "MAD {}",
+            sample_mad(&a.data, &b.data)
+        );
+        // Per channel too, so a swap cannot average itself away.
+        for c in 0..4 {
+            let (ca, cb): (Vec<u8>, Vec<u8>) = (
+                a.data.iter().skip(c).step_by(4).copied().collect(),
+                b.data.iter().skip(c).step_by(4).copied().collect(),
+            );
+            assert!(sample_mad(&ca, &cb) < 4.0, "channel {c}");
+        }
+    }
+
+    /// Encode-then-decode is sample-preserving for BOTH input flavours, and
+    /// the output is always a four-component YCCK JPEG carrying the Adobe
+    /// APP14 marker libjpeg wrote for us.
+    #[test]
+    fn cmyk_reencode_round_trips_in_raw_sample_space() {
+        for name in ["cmyk_plain.jpg", "cmyk_ycck.jpg"] {
+            let src = decode_cmyk_jpeg_scaled(&jpeg_fixture(name), 96, 64).unwrap();
+            let out = encode_cmyk_jpeg(&src, 78).expect("encode");
+            assert_eq!(jpeg_component_count(&out), Some(4), "{name}");
+            assert_eq!(adobe_transform(&out), Some(2), "{name} must be YCCK");
+            let back = decode_cmyk_jpeg_scaled(&out, 96, 64).unwrap();
+            for c in 0..4 {
+                let (ca, cb): (Vec<u8>, Vec<u8>) = (
+                    src.data.iter().skip(c).step_by(4).copied().collect(),
+                    back.data.iter().skip(c).step_by(4).copied().collect(),
+                );
+                let mad = sample_mad(&ca, &cb);
+                // q78 on a 96x64 synthetic: a handful of levels. An inverted
+                // or rotated channel would be 85+.
+                assert!(mad < 12.0, "{name} channel {c} MAD {mad}");
+            }
+            assert!(cmyk_decode_back_matches(
+                &out,
+                &src,
+                CMYK_DECODE_BACK_MAX_MAD
+            ));
+        }
+    }
+
+    /// The APP14 transform byte, read for TESTS ONLY — the library never
+    /// parses this marker, which is the point of the design.
+    fn adobe_transform(data: &[u8]) -> Option<u8> {
+        let mut i = 2usize;
+        while i + 4 <= data.len() {
+            let marker = data[i + 1];
+            let len = ((data[i + 2] as usize) << 8) | data[i + 3] as usize;
+            if marker == 0xEE && len >= 13 && data.get(i + 4..i + 9) == Some(b"Adobe") {
+                return data.get(i + 15).copied();
+            }
+            if marker == 0xDA {
+                return None;
+            }
+            i += 2 + len;
+        }
+        None
+    }
+
+    /// Negative controls. `cmyk_decode_back_matches` must REJECT a reference
+    /// whose channels were inverted or rotated — otherwise every positive test
+    /// above would be vacuous.
+    #[test]
+    fn cmyk_verification_rejects_inverted_and_rotated_channels() {
+        let src = decode_cmyk_jpeg_scaled(&jpeg_fixture("cmyk_plain.jpg"), 96, 64).unwrap();
+        let out = encode_cmyk_jpeg(&src, 78).expect("encode");
+        assert!(cmyk_decode_back_matches(
+            &out,
+            &src,
+            CMYK_DECODE_BACK_MAX_MAD
+        ));
+
+        let inverted = CmykImage {
+            data: src.data.iter().map(|b| 255 - b).collect(),
+            width: src.width,
+            height: src.height,
+            source_width: src.source_width,
+            source_height: src.source_height,
+        };
+        assert!(!cmyk_decode_back_matches(
+            &out,
+            &inverted,
+            CMYK_DECODE_BACK_MAX_MAD
+        ));
+
+        // C,M,Y,K -> M,Y,K,C: the classic component-order slip.
+        let mut rotated = src.data.clone();
+        for px in rotated.as_chunks_mut::<4>().0.iter_mut() {
+            px.rotate_left(1);
+        }
+        let rotated = CmykImage {
+            data: rotated,
+            ..src
+        };
+        assert!(!cmyk_decode_back_matches(
+            &out,
+            &rotated,
+            CMYK_DECODE_BACK_MAX_MAD
+        ));
+    }
+
+    /// End to end: an over-resolution DeviceCMYK JPEG is downsampled, shrinks,
+    /// stays four-component YCCK, keeps its `/ColorSpace`, gets a truthful
+    /// `/Width`//`/Height`, and still decodes to the same picture.
+    #[test]
+    fn over_resolution_cmyk_downsamples_and_stays_cmyk() {
+        let src = jpeg_fixture("cmyk_large.jpg");
+        // 640/(144/72) = 320 effective DPI against a 130 DPI target.
+        let pdf = build_pdf_cmyk(src.clone(), 640, 480, 144, 108, None);
+        let out = optimize_with_options(&pdf, OptimizeOptions::default());
+        let (dict, content) = only_image_stream(&out);
+
+        assert_eq!(dict.get(b"Width").unwrap().as_i64().unwrap(), 260);
+        assert_eq!(dict.get(b"Height").unwrap().as_i64().unwrap(), 195);
+        assert!(matches!(dict.get(b"ColorSpace"), Ok(Object::Name(n)) if n == b"DeviceCMYK"));
+        assert!(matches!(dict.get(b"Filter"), Ok(Object::Name(n)) if n == b"DCTDecode"));
+        assert_eq!(jpeg_component_count(&content), Some(4));
+        assert_eq!(adobe_transform(&content), Some(2));
+        assert!(
+            content.len() < src.len(),
+            "{} !< {}",
+            content.len(),
+            src.len()
+        );
+
+        // The picture survived: compare the optimized payload against the
+        // ORIGINAL resampled to the same geometry, per channel.
+        let full = decode_cmyk_jpeg_scaled(&src, 640, 480).unwrap();
+        let expect = resize_cmyk_lanczos3(&full, 260, 195).unwrap();
+        let actual = decode_cmyk_jpeg_scaled(&content, 260, 195).unwrap();
+        assert_eq!((actual.width, actual.height), (260, 195));
+        for c in 0..4 {
+            let (ea, aa): (Vec<u8>, Vec<u8>) = (
+                expect.data.iter().skip(c).step_by(4).copied().collect(),
+                actual.data.iter().skip(c).step_by(4).copied().collect(),
+            );
+            let mad = sample_mad(&ea, &aa);
+            assert!(mad < 12.0, "channel {c} MAD {mad}");
+        }
+    }
+
+    /// A declined image may still have been through the LOSSLESS Huffman
+    /// re-optimizer (`reoptimize_jpeg_streams` runs on every `/DCTDecode`
+    /// payload, including the ones the image path passes over), so byte
+    /// equality is the wrong assertion. What must hold is that nothing lossy
+    /// happened: same geometry, same quantization tables, and raw samples that
+    /// are IDENTICAL rather than merely close.
+    fn assert_not_reencoded(original: &[u8], actual: &[u8], w: u32, h: u32) {
+        assert_eq!(
+            jpeg_component_count(original),
+            jpeg_component_count(actual),
+            "component count changed"
+        );
+        assert_eq!(
+            jpeg_quant_tables(original),
+            jpeg_quant_tables(actual),
+            "quantization tables changed - the image was requantized"
+        );
+        let before = decode_cmyk_jpeg_scaled(original, w, h).expect("decode original");
+        let after = decode_cmyk_jpeg_scaled(actual, w, h).expect("decode result");
+        assert_eq!(
+            (before.source_width, before.source_height),
+            (after.source_width, after.source_height),
+            "geometry changed"
+        );
+        assert_eq!(before.data, after.data, "samples changed - not lossless");
+    }
+
+    /// A `/Decode` array is a per-sample remap we decline to reason about
+    /// through a clamped resample — the stream must come out byte-identical.
+    /// `[1 0 1 0 1 0 1 0]` is the inverting one real producers attach.
+    #[test]
+    fn cmyk_with_decode_array_is_left_untouched() {
+        let src = jpeg_fixture("cmyk_large.jpg");
+        let decode: Vec<Object> = [1, 0, 1, 0, 1, 0, 1, 0]
+            .iter()
+            .map(|v| Object::Integer(*v))
+            .collect();
+        let pdf = build_pdf_cmyk(src.clone(), 640, 480, 144, 108, Some(decode));
+        let out = optimize_with_options(&pdf, OptimizeOptions::default());
+        let (dict, content) = only_image_stream(&out);
+        assert_not_reencoded(&src, &content, 640, 480);
+        assert_eq!(dict.get(b"Width").unwrap().as_i64().unwrap(), 640);
+        assert_eq!(dict.get(b"Height").unwrap().as_i64().unwrap(), 480);
+        assert!(dict.get(b"Decode").is_ok(), "/Decode must survive");
+    }
+
+    /// A truncated CMYK payload declines, and the guard that stops it is the
+    /// EOI check rather than the decoder: libjpeg happily "repairs" a
+    /// truncated scan with flat grey and reports only a warning, so the
+    /// decode-back verification would compare that grey against itself and
+    /// agree. Both halves are asserted here so the decline cannot silently
+    /// start depending on a leniency that is not ours to control.
+    #[test]
+    fn truncated_cmyk_declines() {
+        let full = jpeg_fixture("cmyk_large.jpg");
+        let truncated = full[..full.len() / 3].to_vec();
+        assert!(!ends_with_eoi(&truncated));
+        assert!(ends_with_eoi(&full));
+        // Documenting libjpeg's leniency, which is exactly why we need the
+        // structural check above.
+        assert!(decode_cmyk_jpeg_scaled(&truncated, 260, 195).is_some());
+
+        let stream = Stream::new(dictionary! { "Filter" => "DCTDecode" }, truncated.clone());
+        assert!(plan_dct_cmyk(&stream, 78, 260, 195, false).is_none());
+
+        let pdf = build_pdf_cmyk(truncated.clone(), 640, 480, 144, 108, None);
+        let out = optimize_with_options(&pdf, OptimizeOptions::default());
+        let (dict, content) = only_image_stream(&out);
+        assert_eq!(dict.get(b"Width").unwrap().as_i64().unwrap(), 640);
+        assert_not_reencoded(&truncated, &content, 640, 480);
+    }
+
+    /// A truncated APP14 segment makes the frame header unreachable. The
+    /// structural walk reports that honestly (`None`), the CMYK decoder
+    /// refuses the stream, and the payload survives untouched — no panic on
+    /// bytes we did not write.
+    #[test]
+    fn corrupt_app14_declines() {
+        let full = jpeg_fixture("cmyk_large.jpg");
+        let mut corrupt = full.clone();
+        // The APP14 segment is the first marker after SOI in these fixtures;
+        // overstate its length so the walk runs off the end of the file.
+        assert_eq!(&corrupt[2..4], &[0xFF, 0xEE], "APP14 expected at offset 2");
+        corrupt[4] = 0xFF;
+        corrupt[5] = 0xFF;
+        assert_eq!(jpeg_component_count(&corrupt), None);
+        assert!(decode_cmyk_jpeg_scaled(&corrupt, 260, 195).is_none());
+        let pdf = build_pdf_cmyk(corrupt.clone(), 640, 480, 144, 108, None);
+        let out = optimize_with_options(&pdf, OptimizeOptions::default());
+        let (_, content) = only_image_stream(&out);
+        assert_eq!(content, corrupt);
+    }
+
+    /// A component count nothing here understands (2) is declined outright
+    /// rather than handed to a decoder that would guess at the channels.
+    #[test]
+    fn two_component_jpeg_declines() {
+        let mut data = jpeg_fixture("cmyk_large.jpg");
+        // Rewrite the SOF component count in place. The stream is now
+        // nonsense, which is exactly the point: routing must refuse it before
+        // any decoder is asked.
+        let sof = data
+            .windows(2)
+            .position(|w| w[0] == 0xFF && w[1] == 0xC0)
+            .expect("SOF0");
+        data[sof + 9] = 2;
+        assert_eq!(jpeg_component_count(&data), Some(2));
+        assert_eq!(jpeg_route(&data), JpegRoute::Decline);
+        let pdf = build_pdf_cmyk(data.clone(), 640, 480, 144, 108, None);
+        let out = optimize_with_options(&pdf, OptimizeOptions::default());
+        let (_, content) = only_image_stream(&out);
+        assert_eq!(content, data);
+    }
+
+    /// Idempotence: a second pass over an already-optimized CMYK image must
+    /// not churn the payload. The shared quantization-table guard covers this
+    /// exactly as it does for RGB.
+    #[test]
+    fn cmyk_optimize_is_idempotent() {
+        let src = jpeg_fixture("cmyk_large.jpg");
+        let pdf = build_pdf_cmyk(src, 640, 480, 144, 108, None);
+        let once = optimize_with_options(&pdf, OptimizeOptions::default());
+        let twice = optimize_with_options(&once, OptimizeOptions::default());
+        let (_, a) = only_image_stream(&once);
+        let (_, b) = only_image_stream(&twice);
+        assert_eq!(a, b, "second pass must not re-encode the image");
+    }
+
+    /// An UNDER-resolution CMYK image takes the dimension-preserving requant
+    /// path (P-M2), which must keep the geometry exactly and stay CMYK.
+    #[test]
+    fn under_resolution_cmyk_requantizes_without_resizing() {
+        let src = jpeg_fixture("cmyk_large.jpg");
+        // 640/(432/72) = ~107 DPI: under the 130 DPI target.
+        let pdf = build_pdf_cmyk(src.clone(), 640, 480, 432, 324, None);
+        let out = optimize_with_options(&pdf, OptimizeOptions::default());
+        let (dict, content) = only_image_stream(&out);
+        assert_eq!(dict.get(b"Width").unwrap().as_i64().unwrap(), 640);
+        assert_eq!(dict.get(b"Height").unwrap().as_i64().unwrap(), 480);
+        assert_eq!(jpeg_component_count(&content), Some(4));
+        assert_eq!(adobe_transform(&content), Some(2));
+        assert!(content.len() < src.len());
+        let expect = decode_cmyk_jpeg_scaled(&src, 640, 480).unwrap();
+        let actual = decode_cmyk_jpeg_scaled(&content, 640, 480).unwrap();
+        assert_eq!((actual.width, actual.height), (640, 480));
+        for c in 0..4 {
+            let (ea, aa): (Vec<u8>, Vec<u8>) = (
+                expect.data.iter().skip(c).step_by(4).copied().collect(),
+                actual.data.iter().skip(c).step_by(4).copied().collect(),
+            );
+            assert!(sample_mad(&ea, &aa) < 12.0, "channel {c}");
+        }
+    }
+
+    /// A dict that LIES about its geometry cannot reach the
+    /// dimension-preserving path: the exact-source-geometry mode declines, so
+    /// nothing gets silently "corrected" into a different size.
+    #[test]
+    fn cmyk_requant_refuses_a_lying_dict() {
+        let src = jpeg_fixture("cmyk_large.jpg");
+        let stream = Stream::new(
+            dictionary! {
+                "Type" => "XObject",
+                "Subtype" => "Image",
+                "Width" => 640_i64,
+                "Height" => 480_i64,
+                "ColorSpace" => "DeviceCMYK",
+                "BitsPerComponent" => 8,
+                "Filter" => "DCTDecode",
+            },
+            src,
+        );
+        // Truthful geometry: accepted.
+        assert!(plan_dct_cmyk(&stream, 78, 640, 480, true).is_some());
+        // A dict claiming a size the payload does not have: declined.
+        assert!(plan_dct_cmyk(&stream, 78, 320, 240, true).is_none());
+        assert!(plan_dct_cmyk(&stream, 78, 800, 600, true).is_none());
+        // The resizing callers still accept a smaller target...
+        assert!(plan_dct_cmyk(&stream, 78, 320, 240, false).is_some());
+        // ...but never upscale.
+        assert!(plan_dct_cmyk(&stream, 78, 800, 600, false).is_none());
+    }
+
+    /// The dict/payload consistency guard, from both directions. A dict that
+    /// declares four components over a three-component payload (or the
+    /// reverse) is already broken, and re-encoding it would pick a side.
+    #[test]
+    fn component_count_mismatch_declines() {
+        // Three-component payload under /DeviceCMYK — the exact shape the old
+        // RGB fallback used to CREATE.
+        let rgb = jpeg_fixture("seq_color.jpg");
+        assert_eq!(jpeg_component_count(&rgb), Some(3));
+        let pdf = build_pdf_cmyk(rgb.clone(), 96, 64, 24, 16, None);
+        let out = optimize_with_options(&pdf, OptimizeOptions::default());
+        let (_, content) = only_image_stream(&out);
+        assert_eq!(
+            jpeg_component_count(&content),
+            Some(3),
+            "must stay as found"
+        );
+        assert_eq!(
+            jpeg_quant_tables(&rgb),
+            jpeg_quant_tables(&content),
+            "must not be requantized"
+        );
+
+        // And the reverse: a four-component payload under /DeviceRGB.
+        let cmyk = jpeg_fixture("cmyk_plain.jpg");
+        let doc_bytes = {
+            let mut doc =
+                Document::load_mem(&build_pdf_cmyk(cmyk.clone(), 96, 64, 24, 16, None)).unwrap();
+            let id = *doc
+                .objects
+                .iter()
+                .find(|(_, o)| {
+                    matches!(o, Object::Stream(s)
+                        if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image"))
+                })
+                .unwrap()
+                .0;
+            if let Ok(Object::Stream(s)) = doc.get_object_mut(id) {
+                s.dict
+                    .set("ColorSpace", Object::Name(b"DeviceRGB".to_vec()));
+            }
+            let mut v = Vec::new();
+            doc.save_to(&mut v).unwrap();
+            v
+        };
+        let out = optimize_with_options(&doc_bytes, OptimizeOptions::default());
+        let (_, content) = only_image_stream(&out);
+        assert_eq!(
+            jpeg_component_count(&content),
+            Some(4),
+            "must stay as found"
+        );
+        assert_eq!(jpeg_quant_tables(&cmyk), jpeg_quant_tables(&content));
+    }
+
+    /// The declared-component-count reader, over the colour-space shapes a
+    /// four-component JPEG realistically appears under.
+    #[test]
+    fn colorspace_component_counts() {
+        let doc = Document::with_version("1.5");
+        let count = |cs: Object| {
+            let mut d = lopdf::Dictionary::new();
+            d.set("ColorSpace", cs);
+            colorspace_component_count(&doc, &d)
+        };
+        assert_eq!(count(Object::Name(b"DeviceCMYK".to_vec())), Some(4));
+        assert_eq!(count(Object::Name(b"DeviceRGB".to_vec())), Some(3));
+        assert_eq!(count(Object::Name(b"DeviceGray".to_vec())), Some(1));
+        assert_eq!(count(Object::Name(b"Pattern".to_vec())), None);
+        assert_eq!(
+            count(Object::Array(vec![
+                Object::Name(b"DeviceN".to_vec()),
+                Object::Array(vec![
+                    Object::Name(b"C".to_vec()),
+                    Object::Name(b"M".to_vec()),
+                    Object::Name(b"Y".to_vec()),
+                    Object::Name(b"K".to_vec()),
+                ]),
+            ])),
+            Some(4)
+        );
+        assert_eq!(
+            count(Object::Array(vec![
+                Object::Name(b"Separation".to_vec()),
+                Object::Name(b"Spot".to_vec()),
+            ])),
+            Some(1)
+        );
+        // An ICC profile stream's own /N is authoritative.
+        let mut doc2 = Document::with_version("1.5");
+        let icc = doc2.add_object(Stream::new(dictionary! { "N" => 4_i64 }, vec![0u8; 4]));
+        let mut d = lopdf::Dictionary::new();
+        d.set(
+            "ColorSpace",
+            Object::Array(vec![
+                Object::Name(b"ICCBased".to_vec()),
+                Object::Reference(icc),
+            ]),
+        );
+        assert_eq!(colorspace_component_count(&doc2, &d), Some(4));
+        // No /ColorSpace at all: no conclusion either way.
+        assert_eq!(
+            colorspace_component_count(&doc2, &lopdf::Dictionary::new()),
+            None
+        );
+    }
+
+    /// Deterministic byte-mutation sweep over the CMYK path. libjpeg reports
+    /// fatal errors by UNWINDING through C code (mozjpeg's own docs say to
+    /// wrap every call in `catch_unwind`), so the contract that matters for
+    /// untrusted bytes is the one `optimize_with_options` already provides:
+    /// whatever happens inside, the caller gets valid PDF bytes back and the
+    /// image is either untouched or a genuine four-component replacement.
+    #[test]
+    fn mutated_cmyk_streams_never_corrupt_or_escape() {
+        let base = jpeg_fixture("cmyk_plain.jpg");
+        // xorshift, so the sweep is reproducible without a dependency.
+        let mut state = 0x2545_F491_4F6C_DD1Du64;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        let mut replaced = 0usize;
+        for _ in 0..400 {
+            let mut data = base.clone();
+            for _ in 0..3 {
+                let at = (next() as usize) % data.len();
+                data[at] ^= (next() % 255) as u8 + 1;
+            }
+            let pdf = build_pdf_cmyk(data.clone(), 96, 64, 24, 16, None);
+            let out = optimize_with_options(&pdf, OptimizeOptions::default());
+            let (dict, content) = only_image_stream(&out);
+            assert!(!content.is_empty());
+            // Geometry in the dict and the payload's own frame header must
+            // never disagree, and a replacement must never drop to three
+            // channels the way the old RGB fallback did.
+            let (w, h) = (
+                dict.get(b"Width").unwrap().as_i64().unwrap(),
+                dict.get(b"Height").unwrap().as_i64().unwrap(),
+            );
+            if content != data {
+                replaced += 1;
+                assert_eq!(
+                    jpeg_component_count(&content),
+                    Some(4),
+                    "a replacement under /DeviceCMYK must stay four-component"
+                );
+                let back = decode_cmyk_jpeg_scaled(&content, 1, 1)
+                    .expect("a replacement must decode as CMYK");
+                assert_eq!(
+                    (back.source_width as i64, back.source_height as i64),
+                    (w, h)
+                );
+                assert_eq!(
+                    jpeg_component_count(&content),
+                    Some(4),
+                    "a replacement must stay four-component"
+                );
+                let back = decode_cmyk_jpeg_scaled(&content, 1, 1)
+                    .expect("a replacement must decode as CMYK");
+                assert_eq!(
+                    (back.source_width as i64, back.source_height as i64),
+                    (w, h)
+                );
+            } else {
+                assert_eq!((w, h), (96, 64));
+            }
+        }
+        // Sanity: the sweep has to actually exercise the replacement branch,
+        // not just watch 400 declines go by.
+        assert!(replaced > 0, "no mutation reached a replacement");
+    }
+
+    /// Cross-decoder verification against Pillow and libjpeg-turbo's `djpeg`.
+    /// Ignored by default because it shells out to tools that are not build
+    /// dependencies; run with
+    /// `cargo test --release -- --ignored cmyk_cross_decoder`.
+    /// Results as run on 2026-08-24 are recorded in `docs/CMYK-JPEG.md`.
+    #[test]
+    #[ignore = "requires python3+Pillow and djpeg on PATH"]
+    fn cmyk_cross_decoder_check() {
+        let src = jpeg_fixture("cmyk_large.jpg");
+        let pdf = build_pdf_cmyk(src.clone(), 640, 480, 144, 108, None);
+        let out = optimize_with_options(&pdf, OptimizeOptions::default());
+        let (_, content) = only_image_stream(&out);
+
+        let dir = std::env::temp_dir().join("amatl-cmyk-crosscheck");
+        std::fs::create_dir_all(&dir).unwrap();
+        let (a, b) = (dir.join("src.jpg"), dir.join("out.jpg"));
+        std::fs::write(&a, &src).unwrap();
+        std::fs::write(&b, &content).unwrap();
+
+        // Pillow: decode both, resample the source down to the output's
+        // geometry with its own Lanczos, and compare per channel. An inverted
+        // or rotated channel lands near 85-128; requantization plus a
+        // different Lanczos implementation lands in the single digits.
+        let script = format!(
+            r#"
+import subprocess, sys
+from PIL import Image
+a = Image.open({a:?}); b = Image.open({b:?})
+assert a.mode == "CMYK" and b.mode == "CMYK", (a.mode, b.mode)
+assert b.size == (260, 195), b.size
+ar = a.resize(b.size, Image.LANCZOS)
+for i, ch in enumerate("CMYK"):
+    pa, pb = ar.getchannel(i).tobytes(), b.getchannel(i).tobytes()
+    mad = sum(abs(x - y) for x, y in zip(pa, pb)) / len(pa)
+    print("PIL", ch, round(mad, 3))
+    assert mad < 12.0, (ch, mad)
+# djpeg is a second, independent libjpeg-turbo build; its CMYK->RGB path
+# exercises the Adobe transform handling end to end.
+def rgb(p):
+    d = subprocess.run(["djpeg", "-pnm", p], capture_output=True, check=True).stdout
+    assert d[:2] == b"P6", d[:20]
+    return d.split(b"\n", 3)[3]
+ra, rb = rgb({a:?}), rgb({b:?})
+print("djpeg sizes", len(ra), len(rb))
+"#
+        );
+        let status = std::process::Command::new("python3")
+            .arg("-c")
+            .arg(&script)
+            .status()
+            .expect("run python3");
+        assert!(status.success(), "cross-decoder check failed");
+    }
+
+    // -----------------------------------------------------------------------
+    // Decompression-bomb guards.
+    //
+    // Every decoder this crate reaches for allocates `w * h * channels` from
+    // numbers the FILE supplied. A few dozen crafted bytes can therefore ask
+    // for gigabytes, and an allocation failure in Rust is an abort — a process
+    // kill, not a panic, so the `catch_unwind` that contains every other kind
+    // of decoder misbehaviour cannot contain it. These pin the ceilings.
+    // -----------------------------------------------------------------------
+
+    /// A JPEG that is a few dozen bytes and declares a `w` x `h` frame: SOI,
+    /// an optional Adobe APP14 (which makes libjpeg read four components as
+    /// CMYK), SOF0, SOS, a scrap of entropy data, EOI. Structurally valid
+    /// enough for a decoder to believe the geometry; nowhere near enough data
+    /// to fill it.
+    fn bomb_jpeg(w: u16, h: u16, comps: u8, adobe: bool) -> Vec<u8> {
+        let mut v = vec![0xFF, 0xD8];
+        if adobe {
+            v.extend_from_slice(&[0xFF, 0xEE, 0x00, 0x0E]);
+            v.extend_from_slice(b"Adobe");
+            // version(2) flags0(2) flags1(2) transform(1) = the 12-byte
+            // payload the declared length above promises.
+            v.extend_from_slice(&[0, 100, 0, 0, 0, 0, 0]);
+        }
+        let ncomp = comps as usize;
+        v.extend_from_slice(&[0xFF, 0xC0]);
+        v.extend_from_slice(&((8 + 3 * ncomp) as u16).to_be_bytes());
+        v.push(8); // sample precision
+        v.extend_from_slice(&h.to_be_bytes());
+        v.extend_from_slice(&w.to_be_bytes());
+        v.push(comps);
+        for c in 0..comps {
+            v.extend_from_slice(&[c + 1, 0x11, 0]);
+        }
+        v.extend_from_slice(&[0xFF, 0xDA]);
+        v.extend_from_slice(&((6 + 2 * ncomp) as u16).to_be_bytes());
+        v.push(comps);
+        for c in 0..comps {
+            v.extend_from_slice(&[c + 1, 0x00]);
+        }
+        v.extend_from_slice(&[0x00, 0x3F, 0x00]);
+        v.extend_from_slice(&[0x12, 0x34, 0x56, 0x78]);
+        v.extend_from_slice(&[0xFF, 0xD9]);
+        v
+    }
+
+    #[test]
+    fn jpeg_frame_info_reads_the_declared_geometry() {
+        let f = jpeg_frame_info(&bomb_jpeg(60000, 40000, 3, false)).expect("frame parses");
+        assert_eq!((f.width, f.height, f.components), (60000, 40000, 3));
+        // The component-count wrapper still answers what it always did.
+        assert_eq!(jpeg_component_count(&bomb_jpeg(8, 8, 4, true)), Some(4));
+        assert_eq!(jpeg_component_count(b"not a jpeg"), None);
+    }
+
+    #[test]
+    fn the_raster_budget_mirrors_the_flate_ceiling() {
+        // Exactly at the ceiling is fine; one byte over is not.
+        assert!(raster_within_budget(MAX_FLATE_PIXEL_BYTES, 1, 1));
+        assert!(!raster_within_budget(MAX_FLATE_PIXEL_BYTES + 1, 1, 1));
+        // An ordinary page image is nowhere near it.
+        assert!(raster_within_budget(2000, 2000, 3));
+        // 60000 x 60000 RGB is 10 GB.
+        assert!(!raster_within_budget(60000, 60000, 3));
+        // Overflow declines rather than wrapping into a small number.
+        assert!(!raster_within_budget(u64::MAX, u64::MAX, 4));
+        // A frame header claiming zero components is priced as four, not free.
+        assert!(!jpeg_decode_within_budget(u16::MAX, u16::MAX, 0));
+        assert!(jpeg_decode_within_budget(1000, 1000, 3));
+    }
+
+    /// The window the full-decode fallback opens: `decode_jpeg_scaled`
+    /// declines CMYK cleanly (it will not hand-roll the colour conversion), so
+    /// the bytes go on to the general-purpose decoder, which would otherwise
+    /// allocate straight from the frame header. This is the path a `/SMask`
+    /// stream takes, and the one a crafted PDF would aim at.
+    ///
+    /// Honest about what this pins: the `image` version in use carries its own
+    /// (larger, ~512 MiB) default allocation limit, so today it would refuse
+    /// the first case on its own. Ours is the ceiling that does not move when
+    /// a dependency's default does — the second case sits between the two, and
+    /// only our budget rules it out.
+    #[test]
+    fn decode_jpeg_declines_a_bomb_before_the_fallback_allocates() {
+        for (w, h) in [(60000, 60000), (10000, 9000)] {
+            let bomb = bomb_jpeg(w, h, 4, true);
+            assert!(
+                decode_jpeg_scaled(&bomb, 100, 100).is_none(),
+                "{w}x{h}: the CMYK scaled path declines, opening the fallback"
+            );
+            assert!(
+                !jpeg_decode_within_budget(w, h, 4),
+                "{w}x{h}: must be priced out of the fallback"
+            );
+            assert!(
+                decode_jpeg(&bomb, 100, 100).is_none(),
+                "{w}x{h}: the fallback must decline, not try to hold the frame"
+            );
+        }
+        // The control: the same shape at a size a real page produces is NOT
+        // priced out — the guard rules out bombs, not CMYK.
+        assert!(jpeg_decode_within_budget(2000, 1500, 4));
+    }
+
+    /// End to end: a page whose image is a decompression bomb comes back as
+    /// the input bytes. What is really being pinned is that the process is
+    /// still alive to return them.
+    #[test]
+    fn a_decompression_bomb_jpeg_returns_the_input_bytes() {
+        for (label, comps, cs) in [("rgb", 3u8, "DeviceRGB"), ("cmyk", 4, "DeviceCMYK")] {
+            let mut doc = Document::with_version("1.5");
+            let img_id = doc.add_object(Stream::new(
+                dictionary! {
+                    "Type" => "XObject",
+                    "Subtype" => "Image",
+                    "Width" => 60000_i64,
+                    "Height" => 60000_i64,
+                    "ColorSpace" => cs,
+                    "BitsPerComponent" => 8_i64,
+                    "Filter" => "DCTDecode",
+                },
+                bomb_jpeg(60000, 60000, comps, comps == 4),
+            ));
+            let pdf = wrap_image_pdf(&mut doc, img_id, 72);
+            let out = optimize_with_options(&pdf, OptimizeOptions::default());
+            assert_eq!(out, pdf, "{label} bomb must leave the file untouched");
+        }
+    }
+
+    /// A bare JPEG2000 codestream (SOC/SIZ/COD/QCD/SOT/SOD/EOC) declaring
+    /// `w` x `h` in `comps` 8-bit components. Header-valid, content-free.
+    fn bomb_jpx(w: u32, h: u32, comps: u16) -> Vec<u8> {
+        let mut v = vec![0xFF, 0x4F]; // SOC
+        v.extend_from_slice(&[0xFF, 0x51]); // SIZ
+        v.extend_from_slice(&(38u16 + 3 * comps).to_be_bytes());
+        v.extend_from_slice(&0u16.to_be_bytes()); // Rsiz
+        v.extend_from_slice(&w.to_be_bytes()); // Xsiz
+        v.extend_from_slice(&h.to_be_bytes()); // Ysiz
+        v.extend_from_slice(&0u32.to_be_bytes()); // XOsiz
+        v.extend_from_slice(&0u32.to_be_bytes()); // YOsiz
+        v.extend_from_slice(&w.to_be_bytes()); // XTsiz (one tile)
+        v.extend_from_slice(&h.to_be_bytes()); // YTsiz
+        v.extend_from_slice(&0u32.to_be_bytes()); // XTOsiz
+        v.extend_from_slice(&0u32.to_be_bytes()); // YTOsiz
+        v.extend_from_slice(&comps.to_be_bytes()); // Csiz
+        for _ in 0..comps {
+            v.extend_from_slice(&[7, 1, 1]); // 8-bit unsigned, no subsampling
+        }
+        // COD: no precincts, LRCP, 1 layer, 5 decomposition levels, 5/3.
+        v.extend_from_slice(&[
+            0xFF, 0x52, 0x00, 0x0C, 0x00, 0x00, 0x00, 0x01, 0x00, 0x05, 0x04, 0x04, 0x00, 0x01,
+        ]);
+        // QCD: 2 guard bits, no quantization, 3 * 5 + 1 subbands.
+        v.extend_from_slice(&[0xFF, 0x5C, 0x00, 0x13, 0x40]);
+        v.extend_from_slice(&[0x40u8; 16]);
+        // SOT / SOD / EOC.
+        v.extend_from_slice(&[
+            0xFF, 0x90, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0E, 0x00, 0x01,
+        ]);
+        v.extend_from_slice(&[0xFF, 0x93, 0x00, 0x00]);
+        v.extend_from_slice(&[0xFF, 0xD9]);
+        v
+    }
+
+    /// The JPX→JPEG conversion is opt-in, but consent to a lossy re-encode is
+    /// not consent to allocate 10 GB from a header. The codestream below is
+    /// header-valid — `JpxImage::new` accepts it and reports its geometry —
+    /// so nothing before the size check would have turned it away.
+    #[test]
+    fn an_oversized_jpx_declines_under_allow_lossy() {
+        let mut doc = Document::with_version("1.6");
+        let payload = bomb_jpx(60000, 60000, 3);
+        let img_id = doc.add_object(Stream::new(
+            dictionary! {
+                "Type" => "XObject",
+                "Subtype" => "Image",
+                "Width" => 60000_i64,
+                "Height" => 60000_i64,
+                "BitsPerComponent" => 8_i64,
+                "Filter" => "JPXDecode",
+            },
+            payload.clone(),
+        ));
+        let pdf = wrap_image_pdf(&mut doc, img_id, 72);
+
+        let options = OptimizeOptions {
+            allow_lossy_reencode: true,
+            ..OptimizeOptions::default()
+        };
+        let doc = Document::load_mem(&pdf).unwrap();
+        assert!(
+            plan_jpx_conversions(&doc, options).is_empty(),
+            "a 10 GB raster must be priced out before decode()"
+        );
+
+        // And end to end: the payload survives the run byte for byte.
+        let out = optimize_with_options(&pdf, options);
+        let survived = Document::load_mem(&out).unwrap().objects.values().any(|o| {
+            matches!(o, Object::Stream(s)
+                if matches!(s.dict.get(b"Filter"), Ok(Object::Name(n)) if n == b"JPXDecode")
+                    && s.content == payload)
+        });
+        assert!(survived, "the JPX stream must come through untouched");
+    }
+
+    /// The `/SMask` invariant `plan_replacement` relies on: a mask that fails
+    /// eligibility takes the WHOLE pair out of consideration, so the code
+    /// downstream never sees `smask_present` without an id. Pinned here
+    /// because the two live sixty lines apart.
+    #[test]
+    fn an_ineligible_smask_takes_the_whole_pair_out() {
+        type Mutate<'a> = &'a dyn Fn(&mut lopdf::Dictionary);
+        let mutations: [(&str, Mutate); 4] = [
+            // A stencil mask, not a soft mask.
+            ("ImageMask", &|d| d.set("ImageMask", Object::Boolean(true))),
+            // Not 8-bit gray samples.
+            ("BitsPerComponent 1", &|d| {
+                d.set("BitsPerComponent", Object::Integer(1))
+            }),
+            ("ColorSpace DeviceRGB", &|d| {
+                d.set("ColorSpace", Object::Name(b"DeviceRGB".to_vec()))
+            }),
+            // A /Decode array remaps the mask's samples.
+            ("Decode array", &|d| {
+                d.set("Decode", vec![Object::Integer(1), Object::Integer(0)])
+            }),
+        ];
+        for (label, mutate) in mutations {
+            let pdf = build_pdf_smask_ext(600, 72, 92, |_| {}, mutate);
+            let doc = Document::load_mem(&pdf).unwrap();
+            for (&id, obj) in doc.objects.iter() {
+                let Object::Stream(s) = obj else { continue };
+                if s.dict.get(b"SMask").is_err() {
+                    continue;
+                }
+                assert!(
+                    plan_replacement(&doc, id, (72.0, 72.0), OptimizeOptions::default()).is_none(),
+                    "{label}: an ineligible mask must decline the pair"
+                );
+            }
+            let out = optimize_with_options(&pdf, OptimizeOptions::default());
+            assert_eq!(out, pdf, "{label}: the file must be untouched");
+        }
+    }
+
+    /// Rogue placement geometry declines instead of collapsing to a 1px
+    /// target (NaN) or saturating to a 4-billion-pixel one (+inf).
+    #[test]
+    fn non_finite_placement_geometry_declines() {
+        let pdf = build_pdf(600, 72);
+        let doc = Document::load_mem(&pdf).unwrap();
+        let id = doc
+            .objects
+            .iter()
+            .find(|(_, o)| {
+                matches!(o, Object::Stream(s)
+                    if matches!(s.dict.get(b"Subtype"), Ok(Object::Name(n)) if n == b"Image"))
+            })
+            .map(|(&id, _)| id)
+            .expect("the fixture has one image");
+
+        // The control: an ordinary placement of this fixture is planned.
+        assert!(
+            plan_replacement(&doc, id, (72.0, 72.0), OptimizeOptions::default()).is_some(),
+            "control: a sane placement is still planned"
+        );
+        for (label, rendered) in [
+            ("NaN", (f32::NAN, 72.0)),
+            ("+inf", (f32::INFINITY, 72.0)),
+            ("-inf", (f32::NEG_INFINITY, 72.0)),
+            ("NaN height", (72.0, f32::NAN)),
+        ] {
+            assert!(
+                plan_replacement(&doc, id, rendered, OptimizeOptions::default()).is_none(),
+                "{label} placement must decline"
+            );
+        }
+        // A non-finite target DPI is the same story from the other side.
+        for dpi in [f32::NAN, f32::INFINITY] {
+            let options = OptimizeOptions {
+                target_dpi: dpi,
+                ..OptimizeOptions::default()
+            };
+            assert!(plan_replacement(&doc, id, (72.0, 72.0), options).is_none());
+        }
+    }
 }
 
-
-#[cfg(test)]
 mod vendor_smoke {
     /// End-to-end smoke: real promo PDF through the app's exact call shape.
     #[test]

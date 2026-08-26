@@ -30,8 +30,8 @@ serde_json = "1"
 dirs = "5"
 log = "0.4"
 base64 = "0.22"
-# amatl deps below mirror /home/xcheljd/Labs/amatl Cargo.toml at c182e03
-# (synced 2026-08-24). Keep them aligned when re-syncing src/amatl.rs.
+# amatl deps below mirror /home/xcheljd/Labs/amatl Cargo.toml at v0.4.0
+# (15d24af, synced 2026-08-26). Keep them aligned when re-syncing src/amatl.rs.
 # lopdf 0.44 with default-features off drops the chrono/jiff/time datetime
 # backends from the tree entirely; amatl never parses PDF datetimes itself.
 lopdf = { version = "0.44", default-features = false }
