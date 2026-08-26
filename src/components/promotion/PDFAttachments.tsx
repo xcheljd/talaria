@@ -18,7 +18,7 @@ import {
   useEffect,
   type DragEvent,
 } from 'react';
-import { Upload, FileText, X, Download } from 'lucide-react';
+import { Upload, FileText, X, Download, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -39,6 +39,16 @@ import { saveBlob, getSaveAsDialog } from '@/lib/file-save';
 import { AlertTriangle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Tooltip,
   TooltipContent,
@@ -61,11 +71,13 @@ export function PDFAttachments() {
       attachedPDFs: s.attachedPDFs,
       addPDF: s.addPDF,
       removePDF: s.removePDF,
+      clearAllPDFs: s.clearAllPDFs,
       saveStatus: s.saveStatus,
     }))
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [previewPDF, setPreviewPDF] = useState<AttachedPDF | null>(null);
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
 
@@ -262,6 +274,22 @@ export function PDFAttachments() {
     [store]
   );
 
+  const clearAll = useCallback(async () => {
+    const count = store.attachedPDFs.length;
+    await store.clearAllPDFs();
+    toast.success(count === 1 ? 'PDF removed' : `${count} PDFs removed`);
+  }, [store]);
+
+  // Clearing several attachments at once is destructive and can't be undone, so
+  // confirm first. A single PDF is cheap to re-attach, so it clears directly.
+  const handleClearAll = useCallback(() => {
+    if (store.attachedPDFs.length >= 2) {
+      setConfirmClearOpen(true);
+      return;
+    }
+    clearAll();
+  }, [store, clearAll]);
+
   const openPreview = useCallback((pdf: AttachedPDF) => {
     if (!pdf.data) {
       toast.error('PDF data not available for preview');
@@ -324,6 +352,16 @@ export function PDFAttachments() {
             <TooltipContent>Last save may not have completed</TooltipContent>
           </Tooltip>
         )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto h-7 flex-shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive"
+          onClick={handleClearAll}
+          disabled={store.attachedPDFs.length === 0}
+        >
+          <Trash2 className="h-3 w-3" />
+          Clear all
+        </Button>
       </div>
 
       {/* Drop Zone */}
@@ -417,6 +455,24 @@ export function PDFAttachments() {
           ))}
         </div>
       )}
+
+      {/* Clear All confirmation */}
+      <AlertDialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove all attachments?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove all {store.attachedPDFs.length} attached PDFs
+              from this promotion and cannot be undone. You&apos;ll need to
+              upload them again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={clearAll}>Clear all</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* PDF Preview Dialog */}
       <Dialog

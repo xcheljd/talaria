@@ -6,7 +6,7 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -20,7 +20,8 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Plus, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, X, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 
 import {
@@ -29,6 +30,16 @@ import {
   type PromotionState,
 } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
 
@@ -38,6 +49,7 @@ const selectHoursListState = (s: PromotionState) => ({
   specialHours: s.specialHours,
   addSpecialHour: s.addSpecialHour,
   reorderSpecialHours: s.reorderSpecialHours,
+  clearSpecialHours: s.clearSpecialHours,
 });
 
 /**
@@ -174,9 +186,27 @@ export function SpecialHoursEditor() {
   const store = usePromotionStore(useShallow(selectHoursListState));
   const hours = store.specialHours;
 
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+
   const handleAdd = useCallback(() => {
     store.addSpecialHour();
   }, [store]);
+
+  const clearAll = useCallback(() => {
+    const count = hours.length;
+    store.clearSpecialHours();
+    toast.success(count === 1 ? 'Hour removed' : `${count} hours removed`);
+  }, [store, hours]);
+
+  // Clearing several rows at once is destructive and can't be undone, so
+  // confirm first. A single row is cheap to re-add, so it clears directly.
+  const handleClearAll = useCallback(() => {
+    if (hours.length >= 2) {
+      setConfirmClearOpen(true);
+      return;
+    }
+    clearAll();
+  }, [hours, clearAll]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -205,11 +235,21 @@ export function SpecialHoursEditor() {
 
   return (
     <div className="space-y-3">
-      {/* Add Hour Button */}
-      <div className="flex justify-end">
+      {/* Add Hours + Clear All Buttons */}
+      <div className="flex items-center gap-2">
         <Button size="sm" onClick={handleAdd} className="gap-1.5">
           <Plus className="h-3.5 w-3.5" />
           Add Hours
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto h-7 flex-shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive"
+          onClick={handleClearAll}
+          disabled={hours.length === 0}
+        >
+          <Trash2 className="h-3 w-3" />
+          Clear all
         </Button>
       </div>
 
@@ -242,6 +282,24 @@ export function SpecialHoursEditor() {
           </SortableContext>
         </DndContext>
       )}
+
+      {/* Clear All confirmation */}
+      <AlertDialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove all special hours?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove all {hours.length} special hours from this
+              promotion and cannot be undone. You&apos;ll need to add them
+              again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={clearAll}>Clear all</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -8,7 +8,7 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -22,7 +22,15 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Plus, X, ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  Plus,
+  X,
+  ChevronUp,
+  ChevronDown,
+  ChevronRight,
+  Trash2,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -32,6 +40,16 @@ import {
   type PromotionState,
 } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
 
@@ -41,6 +59,7 @@ const selectEntryListState = (s: PromotionState) => ({
   promotionEntries: s.promotionEntries,
   addPromotionEntry: s.addPromotionEntry,
   reorderPromotionEntries: s.reorderPromotionEntries,
+  clearPromotionEntries: s.clearPromotionEntries,
 });
 
 /**
@@ -249,9 +268,27 @@ export function DiscountEntriesEditor() {
   const store = usePromotionStore(useShallow(selectEntryListState));
   const entries = store.promotionEntries;
 
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+
   const handleAdd = useCallback(() => {
     store.addPromotionEntry();
   }, [store]);
+
+  const clearAll = useCallback(() => {
+    const count = entries.length;
+    store.clearPromotionEntries();
+    toast.success(count === 1 ? 'Entry removed' : `${count} entries removed`);
+  }, [store, entries]);
+
+  // Clearing several entries at once is destructive and can't be undone, so
+  // confirm first. A single entry is cheap to re-add, so it clears directly.
+  const handleClearAll = useCallback(() => {
+    if (entries.length >= 2) {
+      setConfirmClearOpen(true);
+      return;
+    }
+    clearAll();
+  }, [entries, clearAll]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -280,11 +317,21 @@ export function DiscountEntriesEditor() {
 
   return (
     <div className="space-y-3">
-      {/* Add Entry Button */}
-      <div className="flex justify-end">
+      {/* Add Entry + Clear All Buttons */}
+      <div className="flex items-center gap-2">
         <Button size="sm" onClick={handleAdd} className="gap-1.5">
           <Plus className="h-3.5 w-3.5" />
           Add Entry
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto h-7 flex-shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive"
+          onClick={handleClearAll}
+          disabled={entries.length === 0}
+        >
+          <Trash2 className="h-3 w-3" />
+          Clear all
         </Button>
       </div>
 
@@ -316,6 +363,24 @@ export function DiscountEntriesEditor() {
           </SortableContext>
         </DndContext>
       )}
+
+      {/* Clear All confirmation */}
+      <AlertDialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove all discount entries?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove all {entries.length} discount entries from this
+              promotion and cannot be undone. You&apos;ll need to add them
+              again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={clearAll}>Clear all</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

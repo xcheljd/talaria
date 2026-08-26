@@ -204,6 +204,7 @@ function HowToShopEditor() {
       moveHowToShopItemDown: s.moveHowToShopItemDown,
       toggleHowToShopFormat: s.toggleHowToShopFormat,
       reorderHowToShopItems: s.reorderHowToShopItems,
+      clearHowToShopItems: s.clearHowToShopItems,
     }))
   );
   // Actions object is memoized on the (referentially stable) store actions so
@@ -217,6 +218,7 @@ function HowToShopEditor() {
       moveItemDown: store.moveHowToShopItemDown,
       toggleFormat: store.toggleHowToShopFormat,
       reorderItems: store.reorderHowToShopItems,
+      clearAllItems: store.clearHowToShopItems,
     }),
     [
       store.addHowToShopItem,
@@ -226,6 +228,7 @@ function HowToShopEditor() {
       store.moveHowToShopItemDown,
       store.toggleHowToShopFormat,
       store.reorderHowToShopItems,
+      store.clearHowToShopItems,
     ]
   );
   return (
@@ -270,6 +273,7 @@ function ImportantNotesEditor() {
       moveImportantNotesItemDown: s.moveImportantNotesItemDown,
       toggleImportantNotesFormat: s.toggleImportantNotesFormat,
       reorderImportantNotesItems: s.reorderImportantNotesItems,
+      clearImportantNotesItems: s.clearImportantNotesItems,
     }))
   );
   // Actions object is memoized on the (referentially stable) store actions so
@@ -283,6 +287,7 @@ function ImportantNotesEditor() {
       moveItemDown: store.moveImportantNotesItemDown,
       toggleFormat: store.toggleImportantNotesFormat,
       reorderItems: store.reorderImportantNotesItems,
+      clearAllItems: store.clearImportantNotesItems,
     }),
     [
       store.addImportantNotesItem,
@@ -292,6 +297,7 @@ function ImportantNotesEditor() {
       store.moveImportantNotesItemDown,
       store.toggleImportantNotesFormat,
       store.reorderImportantNotesItems,
+      store.clearImportantNotesItems,
     ]
   );
   return (

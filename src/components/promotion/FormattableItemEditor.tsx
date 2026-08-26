@@ -7,7 +7,7 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -29,9 +29,21 @@ import {
   Bold,
   Italic,
   Underline,
+  Trash2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
 
@@ -53,6 +65,8 @@ export interface FormattableItemActions {
   moveItemDown: (id: number) => void;
   reorderItems?: (oldIndex: number, newIndex: number) => void;
   toggleFormat: (id: number, format: 'bold' | 'italic' | 'underline') => void;
+  /** When provided, the header renders a "Clear all" button wired to this. */
+  clearAllItems?: () => void;
 }
 
 export interface FormattableItemEditorProps {
@@ -211,9 +225,34 @@ export function FormattableItemEditor({
   itemLabel,
   emptyMessage,
 }: FormattableItemEditorProps) {
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+
+  // Toast/dialog copy follows the caller's label: "Item" → item/items,
+  // "Note" → note/notes.
+  const singular = itemLabel.toLowerCase();
+  const plural = `${singular}s`;
+
   const handleAdd = useCallback(() => {
     actions.addItem();
   }, [actions]);
+
+  const clearAll = useCallback(() => {
+    const count = items.length;
+    actions.clearAllItems?.();
+    toast.success(
+      count === 1 ? `${itemLabel} removed` : `${count} ${plural} removed`
+    );
+  }, [actions, items, itemLabel, plural]);
+
+  // Clearing several items at once is destructive and can't be undone, so
+  // confirm first. A single item is cheap to re-add, so it clears directly.
+  const handleClearAll = useCallback(() => {
+    if (items.length >= 2) {
+      setConfirmClearOpen(true);
+      return;
+    }
+    clearAll();
+  }, [items, clearAll]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -242,12 +281,24 @@ export function FormattableItemEditor({
 
   return (
     <div className="space-y-3">
-      {/* Add Item Button */}
-      <div className="flex justify-end">
+      {/* Add Item + Clear All Buttons */}
+      <div className="flex items-center gap-2">
         <Button size="sm" onClick={handleAdd} className="gap-1.5">
           <Plus className="h-3.5 w-3.5" />
           Add {itemLabel}
         </Button>
+        {actions.clearAllItems && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-7 flex-shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive"
+            onClick={handleClearAll}
+            disabled={items.length === 0}
+          >
+            <Trash2 className="h-3 w-3" />
+            Clear all
+          </Button>
+        )}
       </div>
 
       {/* Items List */}
@@ -280,6 +331,23 @@ export function FormattableItemEditor({
           </SortableContext>
         </DndContext>
       )}
+
+      {/* Clear All confirmation */}
+      <AlertDialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove all {plural}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove all {items.length} {plural} from this promotion
+              and cannot be undone. You&apos;ll need to add them again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={clearAll}>Clear all</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

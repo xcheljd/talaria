@@ -253,6 +253,7 @@ export interface PromotionState {
   movePromotionEntryUp: (id: number) => void;
   movePromotionEntryDown: (id: number) => void;
   reorderPromotionEntries: (oldIndex: number, newIndex: number) => void;
+  clearPromotionEntries: () => void;
   toggleEntryCollapse: (id: number) => void;
 
   // Special hours actions
@@ -266,6 +267,7 @@ export interface PromotionState {
   moveSpecialHourUp: (id: number) => void;
   moveSpecialHourDown: (id: number) => void;
   reorderSpecialHours: (oldIndex: number, newIndex: number) => void;
+  clearSpecialHours: () => void;
 
   // How-to-shop actions
   addHowToShopItem: () => void;
@@ -278,6 +280,7 @@ export interface PromotionState {
     id: number,
     format: 'bold' | 'italic' | 'underline'
   ) => void;
+  clearHowToShopItems: () => void;
 
   // Important notes actions
   addImportantNotesItem: () => void;
@@ -290,6 +293,7 @@ export interface PromotionState {
     id: number,
     format: 'bold' | 'italic' | 'underline'
   ) => void;
+  clearImportantNotesItems: () => void;
 
   // Section box style actions
   setHowToShopStyle: (style: Partial<SectionBoxStyle>) => void;
@@ -678,6 +682,19 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
 
   // ===== List CRUD Actions (entries, hours, how-to-shop, notes) =====
   ...createPromotionListActions(set),
+
+  // Not part of createPromotionListActions: dropping every entry also has to
+  // drop the per-entry collapse flags, which are keyed by entry id and live
+  // outside the list itself. Leaving them behind would leak ids forever, since
+  // nothing else prunes entryCollapsedStates.
+  clearPromotionEntries: () =>
+    set({ promotionEntries: [], entryCollapsedStates: {} }),
+
+  // The other lists have no side-state keyed by item id, so clearing them is
+  // just an empty-array set.
+  clearSpecialHours: () => set({ specialHours: [] }),
+  clearHowToShopItems: () => set({ howToShopItems: [] }),
+  clearImportantNotesItems: () => set({ importantNotesItems: [] }),
 
   toggleEntryCollapse: (id: number) =>
     set((state) => ({
