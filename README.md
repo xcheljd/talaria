@@ -7,6 +7,8 @@ It's a single-page React app built with Vite 8, React 19, TypeScript, Tailwind C
 ## Quick Start
 
 ```bash
+git clone https://github.com/xcheljd/talaria.git
+cd talaria
 npm install
 npm run dev          # Start dev server on http://localhost:5173
 ```
