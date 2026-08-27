@@ -63,3 +63,6 @@ coverage/
 # Agent skills (installed via `skills add`; prefer global installs)
 .agents/
 skills-lock.json
+
+# Agent guidance docs (local-only, project-specific)
+**/AGENTS.md
