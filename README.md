@@ -31,13 +31,10 @@ npm run dev          # Start dev server on http://localhost:5173
 
 | Page | Route | Description |
 |---|---|---|
-| Templates landing | `/` | Pick a template category |
-| Template generator | `/templates` | Main template generator |
-| Promotions | `/promotion` | Promotion email generator with collapsible editors |
-| Profile (read-only) | `/profile` | View current profile |
-| Profile settings | `/profile/settings` | Edit profile + app settings |
-| Legacy redirect | `/start` | Redirects to `/profile/settings` |
-| Components showcase | `/components` | Dev-only shadcn component preview |
+| Template picker | `/` | Choose a template category (promotions, emails, text, phone) |
+| Settings | `/settings` | Fill in profile + app settings (brand, contact info) |
+| Promotion builder | `/promotion` | Campaign email builder with collapsible editors, bulk export, PDF attachments |
+| Component showcase | `/components` | Dev-only shadcn component preview |
 
 See [docs/ARCHITECTURE-MAP.md](docs/ARCHITECTURE-MAP.md) for the canonical, up-to-date architecture overview.
 
@@ -75,35 +72,72 @@ npm run tauri:build:mac    # Build for macOS
 ```
 src/
 ├── main.tsx                    # React entry point
-├── App.tsx                     # BrowserRouter with 3 routes
+├── App.tsx                     # BrowserRouter with 4 routes
 ├── index.css                   # Tailwind v4 + CSS variable tokens (oklch)
 ├── components/
 │   ├── Layout.tsx              # Shared header/navigation shell
 │   ├── ThemeToggle.tsx         # Light/dark mode + palette switcher
-│   ├── ui/                     # shadcn/ui components
-│   └── promotion/              # Promotion page components
-│       ├── CollapsibleCard.tsx
-│       ├── SkinnyColumnBar.tsx
-│       └── ...                 # Editors, previews, etc.
+│   ├── ui/                     # shadcn/ui primitives
+│   ├── promotion/              # Promotion builder components
+│   │   ├── CollapsibleCard.tsx
+│   │   ├── PromotionCards.tsx  # Card editors (entries, hours, shopping, notes)
+│   │   ├── PreviewColumn.tsx   # Live preview panel
+│   │   ├── BulkEmailTools.tsx  # Bulk export + BCC batching
+│   │   ├── PDFAttachments.tsx  # Upload, preview, optimize PDFs
+│   │   ├── FormattableItemEditor.tsx  # Reusable list editor (shopping/notes)
+│   │   ├── SpecialHoursEditor.tsx   # Dynamic special-hours rows
+│   │   ├── DiscountEntriesEditor.tsx # Dynamic discount entries
+│   │   ├── NewsletterEditor.tsx
+│   │   ├── email-data-source.ts
+│   │   ├── usePreviewActions.ts
+│   │   └── ...
+│   ├── AccessibilityChecker.tsx
+│   ├── BasicDetailsEditor.tsx
+│   ├── ExportOptionsDialog.tsx
+│   ├── IconToolbar.tsx
+│   ├── OutlookChecker.tsx
+│   ├── SortableItem.tsx
+│   ├── SubjectLineGenerator.tsx
+│   └── VersionHistory.tsx
 ├── pages/
-│   ├── TemplatesPage.tsx       # Main template generator
-│   ├── ProfilePage.tsx         # Profile setup
-│   └── PromotionPage.tsx       # Promotion email builder
+│   ├── TemplatesPage.tsx       # Template category picker
+│   ├── ProfileSettingsPage.tsx # Profile + app settings (/settings)
+│   ├── PromotionPage.tsx       # Promotion email builder (/promotion)
+│   └── ComponentsShowcase.tsx  # Dev-only component preview (/components)
 ├── contexts/
 │   ├── ThemeProvider.tsx        # Light/dark + 16 color palettes
 │   └── ProfileProvider.tsx     # User profile context
 ├── stores/
-│   └── promotion-store.ts      # Zustand store (IndexedDB persistence)
+│   ├── promotion-store.ts      # Zustand promotion builder (IndexedDB persistence)
+│   ├── bulk-email-store.ts     # Bulk email recipient state
+│   └── newsletter-store.ts     # Newsletter composition state
 ├── lib/                        # Pure utility modules
-│   ├── emailUtils.ts           # EML/EMLTPL generation (RFC 5322/2045)
+│   ├── emailUtils.ts           # EML/EMLTPL assembly (RFC 5322/2045)
+│   ├── bulk-email-generation.ts # BCC batch EML + ZIP packaging
 │   ├── html-utils.ts           # XSS sanitization
 │   ├── signature.ts            # Email signature generation
-│   ├── db.ts                   # IndexedDB wrapper
+│   ├── db.ts                   # IndexedDB wrappers
+│   ├── file-save.ts            # SaveBlob routes (Tauri / browser-anchor)
 │   ├── profile.ts              # Profile data helpers
+│   ├── profile-validation.ts   # Zod validation schemas for profile
 │   ├── templates.ts            # 15+ communication template definitions
-│   └── theme-utils.ts          # Palette/theme utilities
+│   ├── theme-utils.ts          # Palette/theme utilities
+│   ├── ui-utils.ts             # cn(), class merging utilities
+│   ├── utils.ts                # General helpers
+│   ├── holiday-dates.ts        # US holiday date calculations
+│   ├── newsletter-utils.ts     # Newsletter formatting helpers
+│   ├── pdf-utils.ts            # PDF optimization + DPI helpers
+│   ├── promotion-config.ts     # Export/import config round-trip
+│   ├── promotion-config-schema.ts # Zod schemas for promo config
+│   ├── promotion-email-html.ts # Promotion email HTML + dark-mode palette
+│   ├── storage-keys.ts         # Typed localStorage key registry
+│   ├── subject-line-generator.ts # Subject line suggestions
+│   └── emailPreviewUtils.ts    # EML preview helpers
 ├── hooks/
+│   ├── useDevMode.ts           # Dev-mode feature gates
+│   ├── useGlobalDropGuard.ts   # Drag-drop file handling across app
 │   ├── useMediaQuery.ts        # Responsive breakpoint hook
+│   ├── usePreviewThemeSync.ts  # Theme sync between editor + preview iframe
 │   └── useTauri.ts             # Tauri IPC hook
 └── vite-env.d.ts               # Vite type declarations
 ```
