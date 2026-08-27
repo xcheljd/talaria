@@ -216,7 +216,7 @@ Tested and verified in:
 
 ### Plain Text
 ```
-Xchel Dominguez │ General Manager
+Employee Name │ General Manager
 ______________________________________________________________________
 Acme Inc.
 Acme Store - the South Premium Outlets

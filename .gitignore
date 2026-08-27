@@ -66,3 +66,9 @@ skills-lock.json
 
 # Agent guidance docs (local-only, project-specific)
 **/AGENTS.md
+
+# Plans folder (local-only task tracking, not part of the committed codebase)
+plans/
+
+# Documentation archive (internal dev artifacts, not for public consumption)
+docs/archive/
