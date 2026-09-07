@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talaria — Campaign Email & Communication Template Generator</title>
+  <meta name="description" content="Talaria is a campaign email and customer-communication template generator that any brand can configure to its own store, products, and branding. React web app + optional Tauri desktop build.">
+  <meta property="og:title" content="Talaria — Campaign Email & Communication Template Generator">
+  <meta property="og:description" content="Campaign email builder, brand-agnostic profiles, PDF optimization via amatl Rust library, bulk BCC email export.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="https://raw.githubusercontent.com/xcheljd/talaria/main/dist/icon-512.png" type="image/png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      line-height: 1.6;
+    }
+    a { color: #60a5fa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    
+    .hero {
+      background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 50%, #020617 100%);
+      padding: 80px 24px 60px;
+      text-align: center;
+      border-bottom: 1px solid #1e293b;
+    }
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      color: #f8fafc;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    .hero .subtitle {
+      font-size: 1.25rem;
+      color: #94a3b8;
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
+    .hero .badges {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .hero .badge {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 8px 16px;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      color: #60a5fa;
+      font-weight: 500;
+    }
+    .hero .links {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .hero .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .hero .btn-primary {
+      background: #2563eb;
+      color: white;
+    }
+    .hero .btn-primary:hover {
+      background: #3b82f6;
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+    .hero .btn-secondary {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+    }
+    .hero .btn-secondary:hover {
+      background: #334155;
+      text-decoration: none;
+    }
+    
+    .content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 60px 24px;
+    }
+    .section {
+      margin-bottom: 60px;
+    }
+    .section h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .section p {
+      font-size: 1.125rem;
+      color: #cbd5e1;
+      max-width: 700px;
+    }
+    
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 32px;
+    }
+    .feature {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.2s;
+    }
+    .feature:hover {
+      border-color: #60a5fa;
+      transform: translateY(-2px);
+    }
+    .feature h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #f8fafc;
+      margin-bottom: 8px;
+    }
+    .feature p {
+      font-size: 0.9375rem;
+      color: #94a3b8;
+    }
+    
+    .screenshots {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 32px;
+      margin-top: 32px;
+    }
+    .screenshot {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+    .screenshot:hover {
+      border-color: #60a5fa;
+      transform: translateY(-2px);
+    }
+    .screenshot img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .screenshot .caption {
+      padding: 16px 20px;
+      font-size: 0.9375rem;
+      color: #94a3b8;
+      border-top: 1px solid #334155;
+    }
+    .screenshot .caption strong {
+      color: #e2e8f0;
+      display: block;
+      margin-bottom: 4px;
+      font-size: 1rem;
+    }
+    
+    .docs-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .doc-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #e2e8f0;
+      transition: all 0.2s;
+    }
+    .doc-link:hover {
+      border-color: #60a5fa;
+      text-decoration: none;
+      color: #60a5fa;
+    }
+    .doc-link .icon {
+      font-size: 1.5rem;
+    }
+    .doc-link .text {
+      font-weight: 500;
+    }
+    .doc-link .desc {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    
+    .footer {
+      background: #020617;
+      padding: 40px 24px;
+      text-align: center;
+      color: #64748b;
+      font-size: 0.875rem;
+      border-top: 1px solid #1e293b;
+    }
+    .footer a {
+      color: #60a5fa;
+    }
+    
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2rem; }
+      .hero .subtitle { font-size: 1rem; }
+      .screenshots { grid-template-columns: 1fr; }
+      .content { padding: 40px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>Talaria</h1>
+    <p class="subtitle">Campaign email & communication template generator that any brand can configure to its own store, products, and branding.</p>
+    <div class="badges">
+      <span class="badge">React 19</span>
+      <span class="badge">TypeScript</span>
+      <span class="badge">Tauri 2</span>
+      <span class="badge">Tailwind v4</span>
+      <span class="badge">shadcn/ui</span>
+      <span class="badge">amatl PDF optimizer</span>
+    </div>
+    <div class="links">
+      <a href="https://github.com/xcheljd/talaria" class="btn btn-primary">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <a href="https://github.com/xcheljd/talaria/blob/main/README.md" class="btn btn-secondary">
+        Documentation
+      </a>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="section">
+      <h2>Features</h2>
+      <p>A modern, secure web application for generating professional communication templates for retail and brand operations.</p>
+      <div class="features">
+        <div class="feature">
+          <h3>📧 Campaign Email Builder</h3>
+          <p>Advanced HTML email builder with collapsible editor cards, live preview, PDF attachments, and drag-and-drop reordering.</p>
+        </div>
+        <div class="feature">
+          <h3>🏷️ Brand-Agnostic Profiles</h3>
+          <p>Configure company, store, products, and branding once — then generate campaigns for any brand with zero hardcoded assumptions.</p>
+        </div>
+        <div class="feature">
+          <h3>📄 PDF Optimization</h3>
+          <p>Attach PDFs and get automatic size reduction (~59% typical) via the embedded amatl Rust library — lossy compression, DPI downscaling, stream packing.</p>
+        </div>
+        <div class="feature">
+          <h3>📬 Bulk Email Export</h3>
+          <p>BCC batch generation with configurable batch sizing, ZIP packaging, and EML/EMLTPL download for Outlook and other clients.</p>
+        </div>
+        <div class="feature">
+          <h3>🌗 16 Color Palettes</h3>
+          <p>Light and dark mode with 8 palettes each (oklch), accessible out of the box with WCAG AA contrast ratios.</p>
+        </div>
+        <div class="feature">
+          <h3>🖥️ Desktop App</h3>
+          <p>Optional Tauri 2 desktop build for Windows, macOS, and Linux with native file system access and faster PDF optimization.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Screenshots</h2>
+      <p>Real captures from the application — no mocks, no illustrations.</p>
+      <div class="screenshots">
+        <div class="screenshot">
+          <img src="screenshots/promotion-builder.png" alt="Promotion Email Builder showing the campaign email builder with editor cards and live preview">
+          <div class="caption">
+            <strong>Promotion Email Builder</strong>
+            Campaign email builder with collapsible editor cards, live preview, and bulk BCC export.
+          </div>
+        </div>
+        <div class="screenshot">
+          <img src="screenshots/profile-settings.png" alt="Profile Settings page showing store configuration">
+          <div class="caption">
+            <strong>Profile & Settings</strong>
+            Brand-agnostic profile configuration — company, store, employees, keywords, and preferences.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Documentation</h2>
+      <div class="docs-links">
+        <a href="README.md" class="doc-link">
+          <span class="icon">📖</span>
+          <div>
+            <div class="text">README.md</div>
+            <div class="desc">Getting started, tech stack, quick setup</div>
+          </div>
+        </a>
+        <a href="ARCHITECTURE-MAP.md" class="doc-link">
+          <span class="icon">🗺️</span>
+          <div>
+            <div class="text">ARCHITECTURE-MAP.md</div>
+            <div class="desc">Module-level architecture reference</div>
+          </div>
+        </a>
+        <a href="CHANGELOG.md" class="doc-link">
+          <span class="icon">📝</span>
+          <div>
+            <div class="text">CHANGELOG.md</div>
+            <div class="desc">Version history and release notes</div>
+          </div>
+        </a>
+        <a href="UI-DECISIONS.md" class="doc-link">
+          <span class="icon">🎨</span>
+          <div>
+            <div class="text">UI-DECISIONS.md</div>
+            <div class="desc">Deferred UI component decisions log</div>
+          </div>
+        </a>
+        <a href="SIGNATURE-FORMAT.md" class="doc-link">
+          <span class="icon">✉️</span>
+          <div>
+            <div class="text">SIGNATURE-FORMAT.md</div>
+            <div class="desc">Email signature structure & format</div>
+          </div>
+        </a>
+        <a href="https://github.com/xcheljd/amatl" class="doc-link">
+          <span class="icon">⚡</span>
+          <div>
+            <div class="text">amatl</div>
+            <div class="desc">PDF size optimization Rust library</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Talaria is MIT licensed — free for any use.</p>
+    <p style="margin-top: 8px;">
+      Built with
+      <a href="https://react.dev" target="_blank">React 19</a>,
+      <a href="https://tauri.app" target="_blank">Tauri 2</a>,
+      <a href="https://vitejs.dev" target="_blank">Vite</a>, and
+      <a href="https://tailwindcss.com" target="_blank">Tailwind CSS</a>.
+    </p>
+    <p style="margin-top: 12px;">
+      <a href="https://github.com/xcheljd/talaria" target="_blank">GitHub</a> ·
+      <a href="https://github.com/xcheljd/talaria/blob/main/LICENSE-MIT" target="_blank">MIT License</a>
+    </p>
+  </div>
+</body>
+</html>

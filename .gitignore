@@ -72,3 +72,9 @@ plans/
 
 # Documentation archive (internal dev artifacts, not for public consumption)
 docs/archive/
+
+# Remotion output directory (generated videos)
+remotion/output/
+
+# Screenshot capture script
+capture-screenshots.js
