@@ -61,8 +61,8 @@ and IndexedDB.
 ### Entry & structure
 - `index.html` → `src/main.tsx` mounts `<App />` (single SPA entry).
 - `src/App.tsx` composes providers (Theme, Profile, Sonner) and declares routes.
-- Routes: `/` (templates), `/templates` (generator), `/promotion` (builder),
-  `/profile` + `/profile/settings`, and `/components` (dev-only showcase).
+- Routes: `/` (templates), `/settings` (profile + settings), `/promotion` (builder),
+  and `/components` (dev-only showcase).
 - `src/pages/` – one container per route.
 - `src/components/` – shared components; `src/components/promotion/` – builder
   components; `src/components/ui/` – shadcn primitives.
@@ -172,5 +172,5 @@ See [CHANGELOG.md](CHANGELOG.md) for the authoritative changelog.
 
 ## 📄 License & Support
 
-Internal tool for retail operations. See Git history and
+MIT licensed — free for any use. See Git history and
 [CHANGELOG.md](CHANGELOG.md) for change tracking.

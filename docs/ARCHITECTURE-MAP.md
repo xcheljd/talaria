@@ -48,12 +48,10 @@ level.
 
 React Router v7 (`react-router-dom`), declared in `App.tsx`. Routes:
 
-- `/` → `TemplatesPage` (landing — pick a template category)
-- `/templates` → `TemplateGeneratorPage` (main template generator UI)
+- `/` → `TemplatesPage` (landing — pick a template category; dev-only) or
+  redirects to `/promotion` in production builds
+- `/settings` → `ProfileSettingsPage` (edit profile + app settings)
 - `/promotion` → `PromotionPage` (promotion email builder)
-- `/profile` → `ProfilePage` (read-only profile view)
-- `/profile/settings` → `ProfileSettingsPage` (edit profile + app settings)
-- `/start` → redirects to `/profile/settings` (legacy URL)
 - `/components` → `ComponentsShowcase` (shadcn component preview; route is
   registered only when `import.meta.env.DEV`, so it is absent from production builds)
 
@@ -287,22 +285,13 @@ Located in `src/lib/`:
   into the configured download dir. Powers `saveBlob()` for every download in
   the app.
 - `amatl_optimize(data_url, strip_accessibility, pack_object_streams)` — shrinks
-  an attached PDF at upload time by downsampling its embedded JPEG thumbnails
-  and (when `strip_accessibility` is true) removing the PDF structure tree, then
-  (when `pack_object_streams` is true) packing structural objects into object
-  streams (pure Rust + mozjpeg in `amatl.rs`, ~59% on real promo files). Wired
-  into both upload paths in `PDFAttachments.tsx`, so the stored bytes — and
-  therefore the list size and preview modal — reflect the optimized PDF.
-  Fail-safe: returns the original on any error or non-shrink. The TS wrapper
-  `amatl.optimize()` in `pdf-utils.ts` passes `stripAccessibility: true` and
-  `packObjectStreams: true` for this app; the Rust library defaults are both
-  `false` (accessibility-preserving, classic save). Fully permissive-licensed.
-  Ghostscript was rejected (AGPL + RCE surface for ~4 marginal points).
-  Object-stream packing is **strictly `qpdf --check`-clean** (lopdf's own
-  object/xref-stream save, made valid by `renumber_objects()`). The byte-patching
-  post-pass this used to need was removed when lopdf was bumped to 0.42, which
-  carries the upstream xref fix. See `src-tauri/src/AGENTS.md` for the
-  accessibility decision, the packing finding, and cost/benefit math.
+  an attached PDF at upload time by downsampling embedded JPEGs and packing
+  structural objects into object streams (pure Rust + mozjpeg; ~59% reduction
+  on real promo files). Wired into both upload paths in
+  `PDFAttachments.tsx`, so the stored bytes reflect the optimized PDF.
+  Fail-safe: returns the original on any error or non-shrink. This is powered
+  by the [`amatl`](https://github.com/xcheljd/amatl) Rust library, which ships
+  as a vendored crate in `src-tauri/src/amatl.rs`.
 
 `src/hooks/useTauri.ts` exposes `isTauri`, `invoke`, and `openFolderDialog`.
 
