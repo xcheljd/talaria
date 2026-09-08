@@ -3,8 +3,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tauri::Manager;
 
-use picamatl;
-
 #[derive(Serialize, Deserialize, Default)]
 struct DownloadConfig {
     download_base_dir: Option<String>,
