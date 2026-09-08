@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tauri::Manager;
 
-mod amatl;
+use picamatl;
 
 #[derive(Serialize, Deserialize, Default)]
 struct DownloadConfig {
@@ -310,11 +310,11 @@ async fn save_file_as(
     }
 }
 
-/// Optimize an attached PDF via amatl, returning a (possibly smaller) base64
+/// Optimize an attached PDF via picamatl, returning a (possibly smaller) base64
 /// data URL.
 ///
 /// Decodes the `data:application/pdf;base64,...` URL, downsamples
-/// over-resolution embedded JPEGs (see [`amatl`]), and re-encodes the result.
+/// over-resolution embedded JPEGs (see the `picamatl` crate), and re-encodes the result.
 /// On any failure — or if optimization doesn't shrink the file — the original
 /// data URL is returned unchanged, so callers can use the result directly
 /// without special-casing errors.
@@ -324,7 +324,7 @@ async fn save_file_as(
 /// additional size reduction. The communication-templates app passes `true`
 /// for promotion flyers (visual documents aimed at a sighted retail audience);
 /// this matches the behavior of Ghostscript's `/ebook` and `/screen` presets.
-/// A library consumer of amatl would default to `false` (accessibility-
+/// A library consumer of picamatl would default to `false` (accessibility-
 /// preserving) and opt in deliberately.
 ///
 /// `pack_object_streams` controls whether eligible non-stream objects are
@@ -333,7 +333,7 @@ async fn save_file_as(
 /// only ~1.5 points remain to pack). Exposed for library consumers and future
 /// product tiers that need the extra compression.
 #[tauri::command]
-fn amatl_optimize(
+fn picamatl_optimize(
     data_url: String,
     strip_accessibility: bool,
     pack_object_streams: bool,
@@ -348,10 +348,10 @@ fn amatl_optimize(
         .decode(b64.as_bytes())
         .map_err(|e| format!("Invalid base64 payload: {e}"))?;
 
-    let options = amatl::OptimizeOptions::default()
+    let options = picamatl::OptimizeOptions::default()
         .with_strip_accessibility(strip_accessibility)
         .with_pack_object_streams(pack_object_streams);
-    let optimized = amatl::optimize_with_options(&bytes, options);
+    let optimized = picamatl::optimize_with_options(&bytes, options);
 
     // Reuse the original (already-valid) data URL when nothing was saved.
     if optimized.len() >= bytes.len() {
@@ -375,7 +375,7 @@ pub fn run() {
             save_file_to_path,
             save_file_as,
             pick_folder,
-            amatl_optimize
+            picamatl_optimize
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -653,15 +653,15 @@ mod tests {
     }
 
     #[test]
-    fn amatl_optimize_passthroughs_garbage_payload() {
+    fn picamatl_optimize_passthroughs_garbage_payload() {
         // Fail-safe contract: input that decodes to bytes but isn't a real PDF
-        // comes back from amatl unchanged, so the command must return the
+        // comes back from picamatl unchanged, so the command must return the
         // original data URL verbatim (nothing was optimized).
         let garbage = b"this is not a pdf at all";
         let b64 = base64::engine::general_purpose::STANDARD.encode(garbage);
         let data_url = format!("data:application/pdf;base64,{b64}");
 
-        let result = amatl_optimize(data_url.clone(), true, false);
+        let result = picamatl_optimize(data_url.clone(), true, false);
         assert_eq!(
             result.unwrap(),
             data_url,

@@ -44,17 +44,17 @@ export function dataURLByteSize(dataURL: string): number {
 }
 
 /**
- * amatl — PDF size optimization (Tauri-backed).
+ * picamatl — PDF size optimization (Tauri-backed).
  *
- * Wraps the `amatl_optimize` IPC command, which downsamples over-resolution
- * embedded JPEGs via the Rust `amatl` module. Fail-safe by contract: on any
+ * Wraps the `picamatl_optimize` IPC command, which downsamples over-resolution
+ * embedded JPEGs via the Rust `picamatl` module. Fail-safe by contract: on any
  * error, outside Tauri, or when the backend can't shrink the file, the
  * original data URL is returned unchanged.
  *
  * The namespace shape mirrors the Rust crate so call sites read the same on
- * both sides (`amatl.optimize(bytes)`).
+ * both sides (`picamatl.optimize(bytes)`).
  */
-export const amatl = {
+export const picamatl = {
   /**
    * Optimize a PDF data URL. Returns the optimized data URL, or the original
    * unchanged on any error or non-shrink.
@@ -69,7 +69,7 @@ export const amatl = {
       // Imported lazily so non-Tauri contexts (browser preview, tests) don't
       // require the API to be present at module load.
       const { invoke } = await import('@tauri-apps/api/core');
-      const result = await invoke<string>('amatl_optimize', {
+      const result = await invoke<string>('picamatl_optimize', {
         dataUrl: dataURL,
         stripAccessibility,
         packObjectStreams: true, // strictly qpdf-clean; squeezes out the last ~2% structural bytes

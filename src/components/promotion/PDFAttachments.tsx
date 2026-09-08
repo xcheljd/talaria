@@ -31,7 +31,7 @@ import {
   readPDFAsDataURL,
   dataURLtoBlob,
   dataURLByteSize,
-  amatl,
+  picamatl,
   formatFileSize,
 } from '@/lib/pdf-utils';
 import { StorageKeys } from '@/lib/storage-keys';
@@ -122,7 +122,7 @@ export function PDFAttachments() {
         try {
           const original = await readPDFAsDataURL(file);
           const data = optimize
-            ? await amatl.optimize(original, stripAccessibility)
+            ? await picamatl.optimize(original, stripAccessibility)
             : original;
           const size = dataURLByteSize(data);
           if (optimize && size < file.size) {
@@ -221,7 +221,7 @@ export function PDFAttachments() {
                 localStorage.getItem(StorageKeys.pdfStripAccessibility) !==
                 'false';
               const dataUrl = shouldOptimize
-                ? await amatl.optimize(original, stripA)
+                ? await picamatl.optimize(original, stripA)
                 : original;
               const size = dataURLByteSize(dataUrl);
 

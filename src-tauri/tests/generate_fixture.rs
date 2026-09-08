@@ -12,7 +12,7 @@
 //!   box → effective ~400 DPI, well over the 130 DPI x 1.15 margin, so amatl
 //!   downsamples and re-encodes it.
 //! - Page 2 embeds a 200x200 JPEG drawn into a 150pt box → effective ~96 DPI,
-//!   under the target, so amatl must leave it untouched.
+//!   under the target, so picamatl must leave it untouched.
 
 use image::codecs::jpeg::JpegEncoder;
 use image::RgbImage;

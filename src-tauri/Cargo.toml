@@ -30,36 +30,16 @@ serde_json = "1"
 dirs = "5"
 log = "0.4"
 base64 = "0.22"
-# amatl deps below mirror /home/xcheljd/Labs/amatl Cargo.toml at v0.4.0
-# (15d24af, synced 2026-08-26). Keep them aligned when re-syncing src/amatl.rs.
-# lopdf 0.44 with default-features off drops the chrono/jiff/time datetime
-# backends from the tree entirely; amatl never parses PDF datetimes itself.
-lopdf = { version = "0.44", default-features = false }
-image = { version = "0.25", default-features = false, features = ["jpeg"] }
-mozjpeg = "0.10"
-# Parallel image work. Pure Rust, MIT OR Apache-2.0, no native deps — fits the
-# toolchain-purity axis in docs/amatl-roadmap.md.
-rayon = "1"
-# Re-deflate backend for downsampled FlateDecode images + xref streams; the
-# zlib-rs backend out-compresses miniz_oxide at the same level and is already
-# in the tree transitively via lopdf.
-flate2 = { version = "1", features = ["zlib-rs"] }
-# Opt-in exhaustive deflate for the final re-deflate + xref passes
-# (`deflate_backend: DeflateBackend::Zopfli`, default Zlib). gzip feature off.
-zopfli = { version = "0.8", default-features = false, features = ["std", "zlib"] }
-# Font subsetting (typst org). default-features off keeps the footprint to one
-# transitive crate (rustc-hash); `variable-fonts` deliberately off — variable
-# fonts then fail subsetting and are skipped, fail-safe. Off by default in the
-# vendored OptimizeOptions::default(); see amatl.rs.
-subsetter = { version = "0.2.6", default-features = false }
-# CCITT G3/G4 codec for opt-in lossless bitonal recompression
-# (`recompress_bitonal_images`, default false). MIT, zero transitive deps.
-fax = "0.3.0"
-# Pure-Rust JPEG 2000 decoder for the opt-in JPXDecode → DCTDecode conversion
-# under `allow_lossy_reencode` (default false). Decode-only use.
-dicom-toolkit-jpeg2000 = "0.5.0"
+# PDF optimization via the published picamatl crate (upstream of the old
+# vendored src/amatl.rs, which was a copy of amatl 0.4.0). The optimizer's
+# own dependency tree (lopdf, mozjpeg, rayon, flate2, zopfli, subsetter,
+# fax, dicom-toolkit-jpeg2000) is picamatl's problem now.
+# Pure Rust, no network calls, dual MIT OR Apache-2.0.
+picamatl = "0.4.3"
 
 [dev-dependencies]
-# Test-only verification oracle for the font-subsetting path in src/amatl.rs:
-# per-glyph outline + advance equality between original and subset font.
-ttf-parser = "0.25.1"
+# tests/generate_fixture.rs builds the committed fixture PDF directly with
+# lopdf + image (the optimizer itself is picamatl; these are test tooling).
+lopdf = { version = "0.44", default-features = false }
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+
