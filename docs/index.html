@@ -6,7 +6,7 @@
   <title>Talaria — Campaign Email & Communication Template Generator</title>
   <meta name="description" content="Talaria is a campaign email and customer-communication template generator that any brand can configure to its own store, products, and branding. React web app + optional Tauri desktop build.">
   <meta property="og:title" content="Talaria — Campaign Email & Communication Template Generator">
-  <meta property="og:description" content="Campaign email builder, brand-agnostic profiles, PDF optimization via amatl Rust library, bulk BCC email export.">
+  <meta property="og:description" content="Campaign email builder, brand-agnostic profiles, PDF optimization via the picamatl Rust crate, bulk BCC email export.">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="https://raw.githubusercontent.com/xcheljd/talaria/main/dist/icon-512.png" type="image/png">
@@ -242,7 +242,7 @@
       <span class="badge">Tauri 2</span>
       <span class="badge">Tailwind v4</span>
       <span class="badge">shadcn/ui</span>
-      <span class="badge">amatl PDF optimizer</span>
+      <span class="badge">picamatl PDF optimizer</span>
     </div>
     <div class="links">
       <a href="https://github.com/xcheljd/talaria" class="btn btn-primary">
@@ -270,7 +270,7 @@
         </div>
         <div class="feature">
           <h3>📄 PDF Optimization</h3>
-          <p>Attach PDFs and get automatic size reduction (~59% typical) via the embedded amatl Rust library — lossy compression, DPI downscaling, stream packing.</p>
+          <p>Attach PDFs and get automatic size reduction (~59% typical) via the picamatl Rust library — lossy compression, DPI downscaling, stream packing.</p>
         </div>
         <div class="feature">
           <h3>📬 Bulk Email Export</h3>
@@ -346,10 +346,10 @@
             <div class="desc">Email signature structure & format</div>
           </div>
         </a>
-        <a href="https://github.com/xcheljd/amatl" class="doc-link">
+        <a href="https://github.com/xcheljd/picamatl" class="doc-link">
           <span class="icon">⚡</span>
           <div>
-            <div class="text">amatl</div>
+            <div class="text">picamatl</div>
             <div class="desc">PDF size optimization Rust library</div>
           </div>
         </a>

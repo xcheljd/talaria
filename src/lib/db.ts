@@ -96,7 +96,7 @@ export function initIndexedDB(): Promise<boolean> {
         db = null;
         initPromise = null;
       };
-      console.log('IndexedDB initialized successfully');
+      // Initialization success is silent; failures log above.
       resolve(true);
     };
 

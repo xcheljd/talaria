@@ -284,14 +284,14 @@ Located in `src/lib/`:
 - `save_file_to_dir(app, filename, dataBase64)` — writes a base64-encoded blob
   into the configured download dir. Powers `saveBlob()` for every download in
   the app.
-- `amatl_optimize(data_url, strip_accessibility, pack_object_streams)` — shrinks
+- `picamatl_optimize(data_url, strip_accessibility, pack_object_streams)` — shrinks
   an attached PDF at upload time by downsampling embedded JPEGs and packing
   structural objects into object streams (pure Rust + mozjpeg; ~59% reduction
   on real promo files). Wired into both upload paths in
   `PDFAttachments.tsx`, so the stored bytes reflect the optimized PDF.
   Fail-safe: returns the original on any error or non-shrink. This is powered
-  by the [`amatl`](https://github.com/xcheljd/amatl) Rust library, which ships
-  as a vendored crate in `src-tauri/src/amatl.rs`.
+  by the published [`picamatl`](https://github.com/xcheljd/picamatl) crate
+  (dependency in `src-tauri/Cargo.toml`; formerly a vendored copy).
 
 `src/hooks/useTauri.ts` exposes `isTauri`, `invoke`, and `openFolderDialog`.
 
