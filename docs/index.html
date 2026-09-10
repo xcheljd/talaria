@@ -3,262 +3,432 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Talaria — Campaign Email & Communication Template Generator</title>
+  <title>Talaria — Campaign Email &amp; Communication Template Generator</title>
   <meta name="description" content="Talaria is a campaign email and customer-communication template generator that any brand can configure to its own store, products, and branding. React web app + optional Tauri desktop build.">
-  <meta property="og:title" content="Talaria — Campaign Email & Communication Template Generator">
+  <meta property="og:title" content="Talaria — Campaign Email &amp; Communication Template Generator">
   <meta property="og:description" content="Campaign email builder, brand-agnostic profiles, PDF optimization via the picamatl Rust crate, bulk BCC email export.">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="https://raw.githubusercontent.com/xcheljd/talaria/main/dist/icon-512.png" type="image/png">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg:        #0b1120;
+      --bg-raised: #111827;
+      --bg-card:   #0f172a;
+      --bg-hover:  #151f32;
+      --border:    #1e293b;
+      --border-hover: #334155;
+      --text:      #f1f5f9;
+      --text-muted:#94a3b8;
+      --text-dim:  #64748b;
+      --accent:    #3b82f6;
+      --accent-dark: #1e40af;
+      --accent-glow: rgba(59, 130, 246, 0.12);
+      --accent-wash: rgba(59, 130, 246, 0.06);
+      --green:     #34d399;
+      --green-wash: rgba(52, 211, 153, 0.06);
+
+      --space-xs:  0.35rem;
+      --space-sm:  0.7rem;
+      --space-md:  1.25rem;
+      --space-lg:  2.2rem;
+      --space-xl:  3.5rem;
+      --space-2xl: 5rem;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+      background: var(--bg);
+      color: var(--text);
       line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-    a { color: #60a5fa; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    
+
+    a { color: var(--accent); text-decoration: none; transition: color .12s; }
+    a:hover { text-decoration: underline; color: #60a5fa; }
+
+    /* ---- hero --------------------------------------------------- */
+
     .hero {
-      background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 50%, #020617 100%);
-      padding: 80px 24px 60px;
+      position: relative;
+      background: linear-gradient(170deg, #112240 0%, #0f172a 45%, #0b1120 100%);
+      padding: 72px 24px 56px;
       text-align: center;
-      border-bottom: 1px solid #1e293b;
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
     }
-    .hero h1 {
-      font-size: 3rem;
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -40%; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 600px;
+      background: radial-gradient(ellipse at center, var(--accent-glow), transparent 70%);
+      pointer-events: none;
+    }
+    .hero .wrap {
+      position: relative;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .hero-logo {
+      font-size: clamp(2.4rem, 6vw, 3.4rem);
       font-weight: 800;
-      color: #f8fafc;
-      letter-spacing: -0.02em;
-      margin-bottom: 16px;
+      color: var(--text);
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+      line-height: 1.1;
     }
-    .hero .subtitle {
-      font-size: 1.25rem;
-      color: #94a3b8;
-      max-width: 600px;
-      margin: 0 auto 32px;
+    .hero-logo .accent {
+      background: linear-gradient(135deg, var(--accent), #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
-    .hero .badges {
+
+    .hero-subtitle {
+      font-size: clamp(1.05rem, 2.5vw, 1.2rem);
+      color: var(--text-muted);
+      max-width: 580px;
+      margin: 0 auto 1.8rem;
+      line-height: 1.55;
+    }
+
+    /* ---- tech badges -------------------------------------------- */
+
+    .tech-stack {
       display: flex;
-      gap: 12px;
-      justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: 32px;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 2rem;
     }
-    .hero .badge {
-      background: rgba(59, 130, 246, 0.1);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      padding: 8px 16px;
-      border-radius: 9999px;
-      font-size: 0.875rem;
-      color: #60a5fa;
+    .tech-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 14px;
+      border-radius: 100px;
+      font-size: 0.8rem;
       font-weight: 500;
+      background: rgba(59, 130, 246, 0.07);
+      border: 1px solid rgba(59, 130, 246, 0.18);
+      color: #93bbfc;
+      letter-spacing: 0.01em;
+      transition: all .15s;
     }
-    .hero .links {
+    .tech-badge:hover {
+      background: rgba(59, 130, 246, 0.14);
+      border-color: rgba(59, 130, 246, 0.35);
+      color: #bfdbfe;
+      text-decoration: none;
+    }
+
+    /* ---- CTA buttons -------------------------------------------- */
+
+    .hero-cta {
       display: flex;
-      gap: 16px;
+      gap: 14px;
       justify-content: center;
       flex-wrap: wrap;
     }
-    .hero .btn {
+    .hero-cta .btn {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 1rem;
+      padding: 12px 26px;
+      border-radius: 10px;
+      font-size: 0.95rem;
       font-weight: 600;
       text-decoration: none;
-      transition: all 0.2s;
+      transition: all .18s ease;
+      letter-spacing: 0.01em;
     }
-    .hero .btn-primary {
-      background: #2563eb;
+    .hero-cta .btn svg { flex-shrink: 0; }
+    .hero-cta .btn-primary {
+      background: var(--accent);
       color: white;
+      border: 1px solid var(--accent);
     }
-    .hero .btn-primary:hover {
-      background: #3b82f6;
+    .hero-cta .btn-primary:hover {
+      background: #2563eb;
+      border-color: #2563eb;
+      text-decoration: none;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.25);
+    }
+    .hero-cta .btn-secondary {
+      background: var(--bg-raised);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .hero-cta .btn-secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-hover);
       text-decoration: none;
       transform: translateY(-1px);
     }
-    .hero .btn-secondary {
-      background: #1e293b;
-      color: #e2e8f0;
-      border: 1px solid #334155;
-    }
-    .hero .btn-secondary:hover {
-      background: #334155;
-      text-decoration: none;
-    }
-    
+
+    /* ---- content ------------------------------------------------ */
+
     .content {
-      max-width: 1200px;
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 60px 24px;
+      padding: 56px 24px;
     }
     .section {
-      margin-bottom: 60px;
+      margin-bottom: 64px;
     }
-    .section h2 {
-      font-size: 1.75rem;
+    .section:last-child { margin-bottom: 0; }
+
+    .section-header {
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-header h2 {
+      font-size: 1.5rem;
       font-weight: 700;
-      color: #f8fafc;
-      margin-bottom: 24px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #1e293b;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      margin: 0 0 0.4rem;
     }
-    .section p {
-      font-size: 1.125rem;
-      color: #cbd5e1;
-      max-width: 700px;
+    .section-header p {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 640px;
     }
-    
+
+    /* ---- feature cards ------------------------------------------ */
+
     .features {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
-      margin-top: 32px;
+      gap: 18px;
+      margin-top: 2rem;
     }
     .feature {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 24px;
-      transition: all 0.2s;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 26px;
+      transition: all .2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .feature::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity .2s;
     }
     .feature:hover {
-      border-color: #60a5fa;
+      border-color: var(--border-hover);
+      background: var(--bg-hover);
       transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
     }
+    .feature:hover::before { opacity: 1; }
     .feature h3 {
-      font-size: 1.125rem;
+      font-size: 1.05rem;
       font-weight: 600;
-      color: #f8fafc;
-      margin-bottom: 8px;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      line-height: 1.35;
     }
     .feature p {
-      font-size: 0.9375rem;
-      color: #94a3b8;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.55;
     }
-    
+
+    /* ---- screenshots -------------------------------------------- */
+
     .screenshots {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-      gap: 32px;
-      margin-top: 32px;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 24px;
+      margin-top: 2rem;
     }
-    .screenshot {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
+    .screenshot-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
       overflow: hidden;
-      transition: all 0.2s;
+      transition: all .2s ease;
     }
-    .screenshot:hover {
-      border-color: #60a5fa;
+    .screenshot-card:hover {
+      border-color: var(--border-hover);
       transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
     }
-    .screenshot img {
+    .screenshot-frame {
+      background: #070b14;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .screenshot-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #2a3441;
+    }
+    .screenshot-dot:first-child { background: #ff5f57; }
+    .screenshot-dot:nth-child(2) { background: #febc2e; }
+    .screenshot-dot:nth-child(3) { background: #28c840; }
+    .screenshot-frame .url-bar {
+      flex: 1;
+      background: #151c2a;
+      border-radius: 6px;
+      height: 22px;
+      margin-left: 10px;
+      margin-right: 12px;
+    }
+    .screenshot-frame img {
       width: 100%;
-      height: auto;
       display: block;
     }
-    .screenshot .caption {
+    .screenshot-caption {
       padding: 16px 20px;
-      font-size: 0.9375rem;
-      color: #94a3b8;
-      border-top: 1px solid #334155;
+      border-top: 1px solid var(--border);
     }
-    .screenshot .caption strong {
-      color: #e2e8f0;
+    .screenshot-caption strong {
+      color: var(--text);
       display: block;
-      margin-bottom: 4px;
-      font-size: 1rem;
+      margin-bottom: 3px;
+      font-size: 0.95rem;
+      font-weight: 600;
     }
-    
-    .docs-links {
+    .screenshot-caption span {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ---- doc links grid ----------------------------------------- */
+
+    .docs-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 16px;
-      margin-top: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 1.5rem;
     }
     .doc-link {
       display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 20px;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 8px;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 18px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
       text-decoration: none;
-      color: #e2e8f0;
-      transition: all 0.2s;
+      color: var(--text);
+      transition: all .18s ease;
     }
     .doc-link:hover {
-      border-color: #60a5fa;
+      border-color: var(--border-hover);
       text-decoration: none;
-      color: #60a5fa;
+      background: var(--bg-hover);
+      transform: translateY(-1px);
     }
     .doc-link .icon {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      margin-top: 1px;
     }
-    .doc-link .text {
-      font-weight: 500;
+    .doc-link .meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .doc-link .name {
+      font-weight: 600;
+      font-size: 0.92rem;
+      color: var(--text);
     }
     .doc-link .desc {
-      font-size: 0.875rem;
-      color: #64748b;
-      margin-top: 2px;
+      font-size: 0.83rem;
+      color: var(--text-dim);
+      line-height: 1.4;
     }
-    
+
+    /* ---- footer ------------------------------------------------- */
+
     .footer {
-      background: #020617;
-      padding: 40px 24px;
+      background: #060a12;
+      padding: 48px 24px;
       text-align: center;
-      color: #64748b;
+      color: var(--text-dim);
       font-size: 0.875rem;
-      border-top: 1px solid #1e293b;
+      border-top: 1px solid var(--border);
+      line-height: 1.6;
     }
-    .footer a {
-      color: #60a5fa;
-    }
-    
+    .footer a { color: var(--accent); }
+    .footer a:hover { text-decoration: underline; }
+    .footer .stack { margin-top: 6px; }
+    .footer .legal { margin-top: 14px; }
+    .footer .legal a { margin: 0 4px; }
+
+    /* ---- responsive --------------------------------------------- */
+
     @media (max-width: 768px) {
-      .hero h1 { font-size: 2rem; }
-      .hero .subtitle { font-size: 1rem; }
+      .hero { padding: 56px 18px 44px; }
+      .content { padding: 44px 18px; }
       .screenshots { grid-template-columns: 1fr; }
-      .content { padding: 40px 16px; }
+      .docs-grid { grid-template-columns: 1fr; }
+      .features { grid-template-columns: 1fr; }
+      .hero-cta { flex-direction: column; align-items: center; }
+      .hero-cta .btn { width: 100%; justify-content: center; max-width: 280px; }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .feature, .screenshot-card, .doc-link, .btn {
+        transition: all .2s ease;
+      }
     }
   </style>
 </head>
 <body>
   <div class="hero">
-    <h1>Talaria</h1>
-    <p class="subtitle">Campaign email & communication template generator that any brand can configure to its own store, products, and branding.</p>
-    <div class="badges">
-      <span class="badge">React 19</span>
-      <span class="badge">TypeScript</span>
-      <span class="badge">Tauri 2</span>
-      <span class="badge">Tailwind v4</span>
-      <span class="badge">shadcn/ui</span>
-      <span class="badge">picamatl PDF optimizer</span>
-    </div>
-    <div class="links">
-      <a href="https://github.com/xcheljd/talaria" class="btn btn-primary">
-        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-        GitHub
-      </a>
-      <a href="https://github.com/xcheljd/talaria/blob/main/README.md" class="btn btn-secondary">
-        Documentation
-      </a>
+    <div class="wrap">
+      <h1 class="hero-logo"><span class="accent">Talaria</span></h1>
+      <p class="hero-subtitle">Campaign email &amp; communication template generator that any brand can configure to its own store, products, and branding.</p>
+      <div class="tech-stack">
+        <span class="tech-badge">⚛️ React 19</span>
+        <span class="tech-badge">🔷 TypeScript</span>
+        <span class="tech-badge">🦀 Tauri 2</span>
+        <span class="tech-badge">🎨 Tailwind v4</span>
+        <span class="tech-badge">🧩 shadcn/ui</span>
+        <span class="tech-badge">⚡ picamatl PDF optimizer</span>
+      </div>
+      <div class="hero-cta">
+        <a href="https://github.com/xcheljd/talaria" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+        <a href="https://github.com/xcheljd/talaria/blob/main/README.md" class="btn btn-secondary">
+          Documentation
+        </a>
+      </div>
     </div>
   </div>
 
   <div class="content">
     <div class="section">
-      <h2>Features</h2>
-      <p>A modern, secure web application for generating professional communication templates for retail and brand operations.</p>
+      <div class="section-header">
+        <h2>Features</h2>
+        <p>A modern, secure web application for generating professional communication templates for retail and brand operations.</p>
+      </div>
       <div class="features">
         <div class="feature">
           <h3>📧 Campaign Email Builder</h3>
@@ -288,69 +458,86 @@
     </div>
 
     <div class="section">
-      <h2>Screenshots</h2>
-      <p>Real captures from the application — no mocks, no illustrations.</p>
+      <div class="section-header">
+        <h2>Screenshots</h2>
+        <p>Real captures from the application — no mocks, no illustrations.</p>
+      </div>
       <div class="screenshots">
-        <div class="screenshot">
+        <div class="screenshot-card">
+          <div class="screenshot-frame">
+            <span class="screenshot-dot"></span>
+            <span class="screenshot-dot"></span>
+            <span class="screenshot-dot"></span>
+            <span class="url-bar"></span>
+          </div>
           <img src="screenshots/promotion-builder.png" alt="Promotion Email Builder showing the campaign email builder with editor cards and live preview">
-          <div class="caption">
+          <div class="screenshot-caption">
             <strong>Promotion Email Builder</strong>
-            Campaign email builder with collapsible editor cards, live preview, and bulk BCC export.
+            <span>Campaign email builder with collapsible editor cards, live preview, and bulk BCC export.</span>
           </div>
         </div>
-        <div class="screenshot">
+        <div class="screenshot-card">
+          <div class="screenshot-frame">
+            <span class="screenshot-dot"></span>
+            <span class="screenshot-dot"></span>
+            <span class="screenshot-dot"></span>
+            <span class="url-bar"></span>
+          </div>
           <img src="screenshots/profile-settings.png" alt="Profile Settings page showing store configuration">
-          <div class="caption">
-            <strong>Profile & Settings</strong>
-            Brand-agnostic profile configuration — company, store, employees, keywords, and preferences.
+          <div class="screenshot-caption">
+            <strong>Profile &amp; Settings</strong>
+            <span>Brand-agnostic profile configuration — company, store, employees, keywords, and preferences.</span>
           </div>
         </div>
       </div>
     </div>
 
     <div class="section">
-      <h2>Documentation</h2>
-      <div class="docs-links">
+      <div class="section-header">
+        <h2>Documentation</h2>
+        <p>Getting started, architecture, and reference docs.</p>
+      </div>
+      <div class="docs-grid">
         <a href="README.md" class="doc-link">
           <span class="icon">📖</span>
-          <div>
-            <div class="text">README.md</div>
-            <div class="desc">Getting started, tech stack, quick setup</div>
+          <div class="meta">
+            <span class="name">README.md</span>
+            <span class="desc">Getting started, tech stack, quick setup</span>
           </div>
         </a>
         <a href="ARCHITECTURE-MAP.md" class="doc-link">
           <span class="icon">🗺️</span>
-          <div>
-            <div class="text">ARCHITECTURE-MAP.md</div>
-            <div class="desc">Module-level architecture reference</div>
+          <div class="meta">
+            <span class="name">ARCHITECTURE-MAP.md</span>
+            <span class="desc">Module-level architecture reference</span>
           </div>
         </a>
         <a href="CHANGELOG.md" class="doc-link">
           <span class="icon">📝</span>
-          <div>
-            <div class="text">CHANGELOG.md</div>
-            <div class="desc">Version history and release notes</div>
+          <div class="meta">
+            <span class="name">CHANGELOG.md</span>
+            <span class="desc">Version history and release notes</span>
           </div>
         </a>
         <a href="UI-DECISIONS.md" class="doc-link">
           <span class="icon">🎨</span>
-          <div>
-            <div class="text">UI-DECISIONS.md</div>
-            <div class="desc">Deferred UI component decisions log</div>
+          <div class="meta">
+            <span class="name">UI-DECISIONS.md</span>
+            <span class="desc">Deferred UI component decisions log</span>
           </div>
         </a>
         <a href="SIGNATURE-FORMAT.md" class="doc-link">
           <span class="icon">✉️</span>
-          <div>
-            <div class="text">SIGNATURE-FORMAT.md</div>
-            <div class="desc">Email signature structure & format</div>
+          <div class="meta">
+            <span class="name">SIGNATURE-FORMAT.md</span>
+            <span class="desc">Email signature structure &amp; format</span>
           </div>
         </a>
         <a href="https://github.com/xcheljd/picamatl" class="doc-link">
           <span class="icon">⚡</span>
-          <div>
-            <div class="text">picamatl</div>
-            <div class="desc">PDF size optimization Rust library</div>
+          <div class="meta">
+            <span class="name">picamatl</span>
+            <span class="desc">PDF size optimization Rust library</span>
           </div>
         </a>
       </div>
@@ -359,14 +546,14 @@
 
   <div class="footer">
     <p>Talaria is MIT licensed — free for any use.</p>
-    <p style="margin-top: 8px;">
+    <p class="stack">
       Built with
       <a href="https://react.dev" target="_blank">React 19</a>,
       <a href="https://tauri.app" target="_blank">Tauri 2</a>,
       <a href="https://vitejs.dev" target="_blank">Vite</a>, and
       <a href="https://tailwindcss.com" target="_blank">Tailwind CSS</a>.
     </p>
-    <p style="margin-top: 12px;">
+    <p class="legal">
       <a href="https://github.com/xcheljd/talaria" target="_blank">GitHub</a> ·
       <a href="https://github.com/xcheljd/talaria/blob/main/LICENSE-MIT" target="_blank">MIT License</a>
     </p>
