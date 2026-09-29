@@ -1,6 +1,6 @@
 {
   "name": "talaria",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -44,10 +44,11 @@
     "url": "https://github.com/xcheljd/talaria/issues"
   },
   "homepage": "https://github.com/xcheljd/talaria#readme",
-  "description": "Talaria — campaign email and communication template desktop app",
+  "description": "Talaria \u2014 campaign email and communication template desktop app",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.57.0",
+    "@remotion/cli": "^4.0.522",
     "@tauri-apps/cli": "^2.10.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -68,6 +69,7 @@
     "jsdom": "^29.0.2",
     "lint-staged": "^17.3.0",
     "prettier": "^3.6.2",
+    "remotion": "^4.0.522",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.58.0",
     "vite": "^8.0.7",
@@ -110,7 +112,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.2",
-    "zod": "^4.3.6",
+    "zod": "^4.5.4",
     "zustand": "^5.0.12"
   }
 }
