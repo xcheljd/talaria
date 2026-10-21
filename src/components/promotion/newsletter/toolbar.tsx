@@ -7,7 +7,13 @@ import React from 'react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Kbd } from '@/components/ui/kbd';
 import { Separator } from '@/components/ui/separator';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // ===== Toolbar Button =====
 
@@ -31,23 +37,30 @@ export function ToolbarButton({
   ...rest
 }: ToolbarButtonProps) {
   return (
-    <Button
-      ref={ref}
-      variant="ghost"
-      size="icon"
-      aria-label={label}
-      aria-pressed={active}
-      data-active={active}
-      title={shortcut ? `${label} (${shortcut})` : label}
-      className={cn(
-        'size-7',
-        active && 'bg-accent text-accent-foreground',
-        className
-      )}
-      {...rest}
-    >
-      {children}
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          ref={ref}
+          variant="ghost"
+          size="icon"
+          aria-label={label}
+          aria-pressed={active}
+          data-active={active}
+          className={cn(
+            'size-7',
+            active && 'bg-accent text-accent-foreground',
+            className
+          )}
+          {...rest}
+        >
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        {label}
+        {shortcut && <Kbd>{shortcut}</Kbd>}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 

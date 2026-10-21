@@ -171,21 +171,25 @@ export function NewsletterStylePanel() {
                         aria-label={`Pick ${picker.label}`}
                         data-testid={`picker-${picker.key}`}
                       />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 gap-1 px-2 text-[10px] text-muted-foreground"
-                        onClick={() =>
-                          store.setNewsletterStyle({ [picker.key]: null })
-                        }
-                        disabled={currentValue === null}
-                        aria-label={`Reset ${picker.label} to auto`}
-                        title={`Auto uses email ${picker.autoHint.toLowerCase()} color`}
-                        data-testid={`auto-${picker.key}`}
-                      >
-                        <RotateCcw className="size-2.5" />
-                        Auto
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 gap-1 px-2 text-[10px] text-muted-foreground"
+                            onClick={() =>
+                              store.setNewsletterStyle({ [picker.key]: null })
+                            }
+                            disabled={currentValue === null}
+                            aria-label={`Reset ${picker.label} to auto`}
+                            data-testid={`auto-${picker.key}`}
+                          >
+                            <RotateCcw className="size-2.5" />
+                            Auto
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{`Auto uses email ${picker.autoHint.toLowerCase()} color`}</TooltipContent>
+                      </Tooltip>
                     </div>
                     {/* Email palette swatches */}
                     <div className="flex items-center gap-1 ml-[98px]">
@@ -335,20 +339,26 @@ export function NewsletterStylePanel() {
                     aria-label="Pick table border color"
                     data-testid="picker-tableBorderColor"
                   />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 gap-1 px-2 text-[10px] text-muted-foreground"
-                    onClick={() =>
-                      store.setNewsletterStyle({ tableBorderColor: null })
-                    }
-                    disabled={store.newsletterStyle.tableBorderColor === null}
-                    aria-label="Reset table border color to auto"
-                    title="Auto uses email text color"
-                  >
-                    <RotateCcw className="size-2.5" />
-                    Auto
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 gap-1 px-2 text-[10px] text-muted-foreground"
+                        onClick={() =>
+                          store.setNewsletterStyle({ tableBorderColor: null })
+                        }
+                        disabled={
+                          store.newsletterStyle.tableBorderColor === null
+                        }
+                        aria-label="Reset table border color to auto"
+                      >
+                        <RotateCcw className="size-2.5" />
+                        Auto
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Auto uses email text color</TooltipContent>
+                  </Tooltip>
                 </div>
                 <div className="flex items-center gap-1 ml-[98px]">
                   {[
@@ -413,20 +423,26 @@ export function NewsletterStylePanel() {
                     aria-label="Pick table header background"
                     data-testid="picker-tableHeaderBg"
                   />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 gap-1 px-2 text-[10px] text-muted-foreground"
-                    onClick={() =>
-                      store.setNewsletterStyle({ tableHeaderBg: null })
-                    }
-                    disabled={store.newsletterStyle.tableHeaderBg === null}
-                    aria-label="Reset table header background to auto"
-                    title="Auto uses email section background"
-                  >
-                    <RotateCcw className="size-2.5" />
-                    Auto
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 gap-1 px-2 text-[10px] text-muted-foreground"
+                        onClick={() =>
+                          store.setNewsletterStyle({ tableHeaderBg: null })
+                        }
+                        disabled={store.newsletterStyle.tableHeaderBg === null}
+                        aria-label="Reset table header background to auto"
+                      >
+                        <RotateCcw className="size-2.5" />
+                        Auto
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Auto uses email section background
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <div className="flex items-center gap-1 ml-[98px]">
                   {[

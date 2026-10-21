@@ -412,32 +412,34 @@ export function PDFAttachments() {
             >
               <FileText className="size-5 flex-shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
-                <button
-                  type="button"
-                  className={cn(
-                    'truncate text-left text-sm font-medium',
-                    pdf.data
-                      ? 'cursor-pointer text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary'
-                      : 'cursor-default text-muted-foreground'
-                  )}
-                  title={
-                    pdf.data
-                      ? `Click to preview ${pdf.name}`
-                      : `${pdf.name} - Preview unavailable`
-                  }
-                  onClick={() => pdf.data && openPreview(pdf)}
-                  disabled={!pdf.data}
-                >
-                  {pdf.name}
-                  {!pdf.data && (
-                    <span
-                      className="ml-1 text-warning"
-                      title="Preview unavailable"
-                    >
-                      ⚠
+                <Tooltip>
+                  {/* span trigger: a disabled <button> emits no pointer events */}
+                  <TooltipTrigger asChild>
+                    <span className="block min-w-0">
+                      <button
+                        type="button"
+                        className={cn(
+                          'max-w-full truncate text-left text-sm font-medium',
+                          pdf.data
+                            ? 'cursor-pointer text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary'
+                            : 'cursor-default text-muted-foreground'
+                        )}
+                        onClick={() => pdf.data && openPreview(pdf)}
+                        disabled={!pdf.data}
+                      >
+                        {pdf.name}
+                        {!pdf.data && (
+                          <span className="ml-1 text-warning">⚠</span>
+                        )}
+                      </button>
                     </span>
-                  )}
-                </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {pdf.data
+                      ? `Click to preview ${pdf.name}`
+                      : `${pdf.name} - Preview unavailable`}
+                  </TooltipContent>
+                </Tooltip>
                 <p className="text-xs text-muted-foreground">
                   {formatFileSize(pdf.size)}
                 </p>

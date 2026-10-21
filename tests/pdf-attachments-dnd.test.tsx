@@ -21,6 +21,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 import { PDFAttachments } from '@/components/promotion/PDFAttachments';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { usePromotionStore } from '@/stores/promotion-store';
 
 // Mock ResizeObserver / scrollIntoView for Radix components (mirrors
@@ -107,7 +108,11 @@ function resetStore() {
 }
 
 function renderWithProviders(ui: React.ReactElement) {
-  return render(<ThemeProvider>{ui}</ThemeProvider>);
+  return render(
+    <ThemeProvider>
+      <TooltipProvider>{ui}</TooltipProvider>
+    </ThemeProvider>
+  );
 }
 
 /**
@@ -151,7 +156,7 @@ function makePDFFile(name = 'flyer.pdf'): File {
 // ===== Tests =====
 
 describe('PDFAttachments drag-and-drop', () => {
-  let toast: typeof import('sonner')['toast'];
+  let toast: (typeof import('sonner'))['toast'];
 
   beforeEach(async () => {
     resetStore();
@@ -182,7 +187,9 @@ describe('PDFAttachments drag-and-drop', () => {
     expect(attached.data).toBe('data:application/pdf;base64,QUJD');
 
     expect(readPDFAsDataURL).toHaveBeenCalledWith(file);
-    expect(toast.success).toHaveBeenCalledWith('flyer.pdf attached successfully');
+    expect(toast.success).toHaveBeenCalledWith(
+      'flyer.pdf attached successfully'
+    );
     // URI path must NOT run for direct-file drops.
     expect(invoke).not.toHaveBeenCalled();
   });
@@ -223,7 +230,9 @@ describe('PDFAttachments drag-and-drop', () => {
     });
     const attached = usePromotionStore.getState().attachedPDFs[0];
     expect(attached.name).toBe('report.pdf');
-    expect(toast.success).toHaveBeenCalledWith('report.pdf attached successfully');
+    expect(toast.success).toHaveBeenCalledWith(
+      'report.pdf attached successfully'
+    );
   });
 
   // ---- Branch B: Windows drive-letter handling ----
@@ -248,9 +257,7 @@ describe('PDFAttachments drag-and-drop', () => {
     await waitFor(() => {
       expect(usePromotionStore.getState().attachedPDFs).toHaveLength(1);
     });
-    expect(
-      usePromotionStore.getState().attachedPDFs[0].name
-    ).toBe('sale.pdf');
+    expect(usePromotionStore.getState().attachedPDFs[0].name).toBe('sale.pdf');
   });
 
   // ---- Branch B: text/html fallback ----
@@ -273,9 +280,7 @@ describe('PDFAttachments drag-and-drop', () => {
     await waitFor(() => {
       expect(usePromotionStore.getState().attachedPDFs).toHaveLength(1);
     });
-    expect(
-      usePromotionStore.getState().attachedPDFs[0].name
-    ).toBe('a.pdf');
+    expect(usePromotionStore.getState().attachedPDFs[0].name).toBe('a.pdf');
   });
 
   // ---- De-dupe by filename ----
