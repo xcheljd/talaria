@@ -419,15 +419,17 @@ export function SubjectLineGenerator() {
               {preheaderSuggestions.slice(0, 4).map((suggestion, i) => (
                 <Tooltip key={i}>
                   <TooltipTrigger asChild>
-                    <button
+                    <Button
+                      variant="ghost"
+                      static
                       type="button"
-                      className="text-left text-[11px] rounded border px-2 py-1 hover:bg-accent transition-colors truncate max-w-full"
+                      className="block h-auto max-w-full truncate border px-2 py-1 text-left text-[11px] font-normal hover:bg-accent"
                       onClick={() => store.setPreheaderText(suggestion)}
                     >
                       {suggestion.length > 60
                         ? suggestion.slice(0, 60) + '…'
                         : suggestion}
-                    </button>
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>{suggestion}</TooltipContent>
                 </Tooltip>

@@ -19,6 +19,7 @@ import {
   type PromotionState,
 } from '@/stores/promotion-store';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { BasicDetailsEditor } from '@/components/promotion/BasicDetailsEditor';
 import { DiscountEntriesEditor } from '@/components/promotion/DiscountEntriesEditor';
 import { FormattableItemEditor } from '@/components/promotion/FormattableItemEditor';
@@ -169,22 +170,26 @@ function SectionColorPicker({
             className="h-6 w-8 cursor-pointer rounded border-0 p-0"
             aria-label={`Pick ${label} color`}
           />
-          <button
+          <Button
+            variant="ghost"
+            static
             type="button"
-            className="text-[10px] text-muted-foreground hover:text-foreground"
+            className="h-auto px-1 py-0 text-[10px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
             onClick={() => onChange(null)}
           >
             reset
-          </button>
+          </Button>
         </>
       ) : (
-        <button
+        <Button
+          variant="ghost"
+          static
           type="button"
-          className="text-[10px] rounded border px-2 py-0.5 hover:bg-accent/50 transition-colors text-muted-foreground"
+          className="h-auto border px-2 py-0.5 text-[10px] font-normal text-muted-foreground hover:bg-accent/50"
           onClick={() => onChange('#cccccc')}
         >
           Set custom color
-        </button>
+        </Button>
       )}
     </div>
   );

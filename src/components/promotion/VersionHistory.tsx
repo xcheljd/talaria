@@ -259,13 +259,16 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
             {manualCount} saved · {autoCount} auto-saved
           </span>
           {autoCount > 0 && (
-            <button
+            <Button
+              variant="ghost"
+              size="xs"
+              static
               type="button"
-              className="text-[10px] text-muted-foreground hover:text-destructive ml-auto"
+              className="ml-auto h-auto px-1 py-0 text-[10px] font-normal text-muted-foreground hover:bg-transparent hover:text-destructive"
               onClick={handleClearAuto}
             >
               Clear auto-saves
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -301,9 +304,11 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                 >
                   {/* Header row */}
                   <CollapsibleTrigger asChild>
-                    <button
+                    <Button
+                      variant="ghost"
+                      static
                       type="button"
-                      className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left hover:bg-accent/20 transition-colors"
+                      className="h-auto w-full justify-start gap-2 rounded-none px-2.5 py-1.5 text-left font-normal hover:bg-accent/20"
                     >
                       {isExpanded ? (
                         <ChevronUp className="size-3 shrink-0 text-muted-foreground" />
@@ -324,7 +329,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                       <span className="text-[10px] text-muted-foreground shrink-0">
                         {formatTimestamp(snapshot.timestamp)}
                       </span>
-                    </button>
+                    </Button>
                   </CollapsibleTrigger>
 
                   {/* Expanded details */}

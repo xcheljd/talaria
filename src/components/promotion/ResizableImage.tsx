@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
   Tooltip,
@@ -101,46 +102,55 @@ function ImageNodeView({
         <div className="absolute -top-9 left-1/2 -translate-x-1/2 flex items-center gap-0.5 rounded-md border bg-background shadow-md px-1 py-0.5 z-20">
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                static
                 type="button"
                 className={cn(
-                  'size-6 flex items-center justify-center rounded text-xs hover:bg-accent',
+                  'rounded text-xs',
                   align === 'left' && 'bg-accent'
                 )}
                 onClick={() => updateAttributes({ align: 'left' })}
               >
                 <AlignLeft className="size-3" />
-              </button>
+              </Button>
             </TooltipTrigger>
             <TooltipContent>Align left</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                static
                 type="button"
                 className={cn(
-                  'size-6 flex items-center justify-center rounded text-xs hover:bg-accent',
+                  'rounded text-xs',
                   align === 'center' && 'bg-accent'
                 )}
                 onClick={() => updateAttributes({ align: 'center' })}
               >
                 <AlignCenter className="size-3" />
-              </button>
+              </Button>
             </TooltipTrigger>
             <TooltipContent>Align center</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                static
                 type="button"
                 className={cn(
-                  'size-6 flex items-center justify-center rounded text-xs hover:bg-accent',
+                  'rounded text-xs',
                   align === 'right' && 'bg-accent'
                 )}
                 onClick={() => updateAttributes({ align: 'right' })}
               >
                 <AlignRight className="size-3" />
-              </button>
+              </Button>
             </TooltipTrigger>
             <TooltipContent>Align right</TooltipContent>
           </Tooltip>
@@ -150,19 +160,19 @@ function ImageNodeView({
           />
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                static
                 type="button"
-                className={cn(
-                  'size-6 flex items-center justify-center rounded text-xs hover:bg-accent',
-                  href && 'text-primary'
-                )}
+                className={cn('rounded text-xs', href && 'text-primary')}
                 onClick={() => {
                   setLinkValue(href || 'https://');
                   setShowLinkInput(!showLinkInput);
                 }}
               >
                 <LinkIcon className="size-3" />
-              </button>
+              </Button>
             </TooltipTrigger>
             <TooltipContent>Add link</TooltipContent>
           </Tooltip>
@@ -172,13 +182,16 @@ function ImageNodeView({
           />
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                static
                 type="button"
-                className="size-6 flex items-center justify-center rounded text-xs hover:bg-accent text-destructive"
+                className="rounded text-xs text-destructive hover:text-destructive"
                 onClick={deleteNode}
               >
                 <Trash2 className="size-3" />
-              </button>
+              </Button>
             </TooltipTrigger>
             <TooltipContent>Delete image</TooltipContent>
           </Tooltip>
@@ -199,26 +212,31 @@ function ImageNodeView({
             className="h-6 w-48 rounded border bg-transparent px-2 text-xs outline-none"
             autoFocus
           />
-          <button
+          <Button
+            size="xs"
+            static
             type="button"
-            className="h-6 px-2 rounded bg-primary text-primary-foreground text-xs"
+            className="rounded bg-primary text-xs text-primary-foreground hover:bg-primary/90"
             onClick={handleLinkSubmit}
           >
             OK
-          </button>
+          </Button>
           {href && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  static
                   type="button"
-                  className="size-6 flex items-center justify-center rounded text-xs hover:bg-accent text-destructive"
+                  className="rounded text-xs text-destructive hover:text-destructive"
                   onClick={() => {
                     updateAttributes({ href: null });
                     setShowLinkInput(false);
                   }}
                 >
                   <X className="size-3" />
-                </button>
+                </Button>
               </TooltipTrigger>
               <TooltipContent>Remove link</TooltipContent>
             </Tooltip>

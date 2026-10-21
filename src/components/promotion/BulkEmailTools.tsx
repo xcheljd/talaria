@@ -276,9 +276,11 @@ export function BulkEmailTools() {
             onOpenChange={setShowInvalidEmails}
           >
             <CollapsibleTrigger asChild>
-              <button
+              <Button
+                variant="ghost"
+                static
                 type="button"
-                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                className="h-auto w-full justify-start rounded-none px-3 py-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
                 data-testid="toggle-invalid-emails"
               >
                 {showInvalidEmails ? (
@@ -288,7 +290,7 @@ export function BulkEmailTools() {
                 )}
                 {emailStats.invalid} invalid email
                 {emailStats.invalid > 1 ? 's' : ''}
-              </button>
+              </Button>
             </CollapsibleTrigger>
             {showInvalidEmails && (
               <div className="border-t border-destructive/20 px-3 py-2">

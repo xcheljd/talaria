@@ -41,9 +41,11 @@ export function NewsletterStylePanel() {
       <div className="rounded-md border">
         <Collapsible open={showCustomize} onOpenChange={setShowCustomize}>
           <CollapsibleTrigger asChild>
-            <button
+            <Button
+              variant="ghost"
+              static
               type="button"
-              className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
+              className="h-auto w-full justify-between rounded-none px-3 py-2 text-xs text-muted-foreground hover:bg-muted/50"
               data-testid="newsletter-customize-toggle"
             >
               <span>Customize Border & Background</span>
@@ -52,7 +54,7 @@ export function NewsletterStylePanel() {
               ) : (
                 <ChevronRight className="size-3" />
               )}
-            </button>
+            </Button>
           </CollapsibleTrigger>
           {showCustomize && (
             <div className="flex flex-col gap-3 border-t px-3 py-3">
@@ -70,14 +72,17 @@ export function NewsletterStylePanel() {
                       { value: 'top', label: 'Top', preview: 'border-t-4' },
                     ] as const
                   ).map((opt) => (
-                    <button
+                    <Button
+                      variant="ghost"
+                      static
                       key={opt.value}
                       type="button"
-                      className={`flex h-8 w-12 items-center justify-center rounded-md border text-[10px] transition-colors ${
+                      className={cn(
+                        'h-8 w-12 border text-[10px] font-normal',
                         store.newsletterStyle.borderStyle === opt.value
-                          ? 'border-primary bg-primary/10 text-primary'
+                          ? 'border-primary bg-primary/10 text-primary hover:bg-primary/10'
                           : 'border-border bg-background text-muted-foreground hover:bg-muted/50'
-                      }`}
+                      )}
                       onClick={() =>
                         store.setNewsletterStyle({ borderStyle: opt.value })
                       }
@@ -95,7 +100,7 @@ export function NewsletterStylePanel() {
                                 : ''
                         }`}
                       />
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -232,9 +237,11 @@ export function NewsletterStylePanel() {
       <div className="rounded-md border">
         <Collapsible open={showTableStyle} onOpenChange={setShowTableStyle}>
           <CollapsibleTrigger asChild>
-            <button
+            <Button
+              variant="ghost"
+              static
               type="button"
-              className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
+              className="h-auto w-full justify-between rounded-none px-3 py-2 text-xs text-muted-foreground hover:bg-muted/50"
               data-testid="newsletter-table-style-toggle"
             >
               <span>Customize Table Style</span>
@@ -243,7 +250,7 @@ export function NewsletterStylePanel() {
               ) : (
                 <ChevronRight className="size-3" />
               )}
-            </button>
+            </Button>
           </CollapsibleTrigger>
           {showTableStyle && (
             <div className="flex flex-col gap-3 border-t px-3 py-3">
@@ -261,14 +268,17 @@ export function NewsletterStylePanel() {
                       { value: 'none', label: 'None' },
                     ] as const
                   ).map((opt) => (
-                    <button
+                    <Button
+                      variant="ghost"
+                      static
                       key={opt.value}
                       type="button"
-                      className={`flex h-8 items-center justify-center rounded-md border px-3 text-[10px] transition-colors ${
+                      className={cn(
+                        'h-8 border px-3 text-[10px] font-normal',
                         store.newsletterStyle.tableBorderStyle === opt.value
-                          ? 'border-primary bg-primary/10 text-primary'
+                          ? 'border-primary bg-primary/10 text-primary hover:bg-primary/10'
                           : 'border-border bg-background text-muted-foreground hover:bg-muted/50'
-                      }`}
+                      )}
                       onClick={() =>
                         store.setNewsletterStyle({
                           tableBorderStyle: opt.value,
@@ -278,7 +288,7 @@ export function NewsletterStylePanel() {
                       data-testid={`table-border-style-${opt.value}`}
                     >
                       {opt.label}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -290,14 +300,17 @@ export function NewsletterStylePanel() {
                 </label>
                 <div className="flex gap-1.5">
                   {([1, 2, 3] as const).map((w) => (
-                    <button
+                    <Button
+                      variant="ghost"
+                      static
                       key={w}
                       type="button"
-                      className={`flex h-8 w-10 items-center justify-center rounded-md border text-[10px] transition-colors ${
+                      className={cn(
+                        'h-8 w-10 border px-0 text-[10px] font-normal',
                         store.newsletterStyle.tableBorderWidth === w
-                          ? 'border-primary bg-primary/10 text-primary'
+                          ? 'border-primary bg-primary/10 text-primary hover:bg-primary/10'
                           : 'border-border bg-background text-muted-foreground hover:bg-muted/50'
-                      }`}
+                      )}
                       onClick={() =>
                         store.setNewsletterStyle({ tableBorderWidth: w })
                       }
@@ -305,7 +318,7 @@ export function NewsletterStylePanel() {
                       data-testid={`table-border-width-${w}`}
                     >
                       {w}px
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>

@@ -220,12 +220,13 @@ export function ProfileSettingsPage() {
             {SECTIONS.map((s) => {
               const Icon = s.icon;
               return (
-                <button
+                <Button
+                  variant="ghost"
                   key={s.id}
                   type="button"
                   onClick={() => setSection(s.id)}
                   className={cn(
-                    'flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    'h-auto justify-start whitespace-nowrap px-3 py-2',
                     section === s.id
                       ? 'bg-accent text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
@@ -233,7 +234,7 @@ export function ProfileSettingsPage() {
                 >
                   <Icon className="size-4" />
                   {s.label}
-                </button>
+                </Button>
               );
             })}
           </nav>

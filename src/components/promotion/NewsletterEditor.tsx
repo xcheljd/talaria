@@ -488,15 +488,17 @@ export function NewsletterEditor() {
           role="menu"
           data-testid="newsletter-context-menu"
         >
-          <button
+          <Button
+            variant="ghost"
+            static
             type="button"
             role="menuitem"
-            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+            className="h-auto w-full justify-start rounded-sm px-2 py-1.5 text-left text-sm font-normal"
             onClick={handlePastePlainText}
           >
             <ClipboardPaste className="size-3.5" />
             Paste as plain text
-          </button>
+          </Button>
         </div>
       )}
 

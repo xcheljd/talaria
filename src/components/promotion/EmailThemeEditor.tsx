@@ -288,9 +288,11 @@ export function EmailThemeEditor() {
             {group.presets.map((preset) => (
               <Tooltip key={preset.name}>
                 <TooltipTrigger asChild>
-                  <button
+                  <Button
+                    variant="ghost"
+                    static
                     type="button"
-                    className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] hover:bg-accent/50 transition-colors"
+                    className="h-auto gap-1.5 border px-2 py-1 text-[11px] font-normal hover:bg-accent/50"
                     onClick={() => handleApplyPalette(preset.palette)}
                   >
                     <div className="flex gap-0.5">
@@ -308,7 +310,7 @@ export function EmailThemeEditor() {
                       ))}
                     </div>
                     <span>{preset.name}</span>
-                  </button>
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>{preset.name}</TooltipContent>
               </Tooltip>
@@ -328,9 +330,11 @@ export function EmailThemeEditor() {
               <div key={saved.name} className="flex items-center gap-0.5">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
+                    <Button
+                      variant="ghost"
+                      static
                       type="button"
-                      className="flex items-center gap-1.5 rounded-md border border-dashed px-2 py-1 text-[11px] hover:bg-accent/50 transition-colors"
+                      className="h-auto gap-1.5 border border-dashed px-2 py-1 text-[11px] font-normal hover:bg-accent/50"
                       onClick={() => handleApplyPalette(saved.palette)}
                     >
                       <div className="flex gap-0.5">
@@ -348,20 +352,22 @@ export function EmailThemeEditor() {
                         ))}
                       </div>
                       <span>{saved.name}</span>
-                    </button>
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>{saved.name}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
+                    <Button
+                      variant="ghost"
+                      static
                       type="button"
-                      className="p-0.5 text-muted-foreground hover:text-destructive"
+                      className="size-auto p-0.5 text-muted-foreground hover:bg-transparent hover:text-destructive"
                       onClick={() => handleDeleteSaved(saved.name)}
                       aria-label={`Delete palette ${saved.name}`}
                     >
                       <Trash2 className="size-2.5" />
-                    </button>
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>{`Delete "${saved.name}"`}</TooltipContent>
                 </Tooltip>
@@ -406,9 +412,11 @@ export function EmailThemeEditor() {
                 {!isFieldDefault && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button
+                      <Button
+                        variant="ghost"
+                        static
                         type="button"
-                        className="text-[9px] text-muted-foreground hover:text-foreground"
+                        className="h-auto px-1 py-0 text-[9px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
                         onClick={() =>
                           store.setEmailPalette({
                             [field.key]: DEFAULT_EMAIL_PALETTE[field.key],
@@ -416,7 +424,7 @@ export function EmailThemeEditor() {
                         }
                       >
                         reset
-                      </button>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent>{`Reset to ${DEFAULT_EMAIL_PALETTE[field.key]}`}</TooltipContent>
                   </Tooltip>

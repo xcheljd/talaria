@@ -259,11 +259,14 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         <PopoverContent className="w-24 p-1" side="bottom" align="start">
           <div className="flex flex-col gap-0.5">
             {FONT_SIZES.map((size) => (
-              <button
+              <Button
+                variant="ghost"
+                size="xs"
+                static
                 key={size}
                 type="button"
                 className={cn(
-                  'rounded px-2 py-1 text-xs text-left hover:bg-accent transition-colors',
+                  'h-auto justify-start px-2 py-1 font-normal',
                   editor?.getAttributes('textStyle')?.fontSize ===
                     `${size}px` && 'bg-accent font-medium'
                 )}
@@ -276,18 +279,21 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
                 }
               >
                 {size}px
-              </button>
+              </Button>
             ))}
             <Separator className="my-0.5" />
-            <button
+            <Button
+              variant="ghost"
+              size="xs"
+              static
               type="button"
-              className="rounded px-2 py-1 text-xs text-left text-muted-foreground hover:bg-accent transition-colors"
+              className="h-auto justify-start px-2 py-1 font-normal text-muted-foreground"
               onClick={() =>
                 (editor as any)?.chain().focus().unsetFontSize().run()
               }
             >
               Default
-            </button>
+            </Button>
           </div>
         </PopoverContent>
       </Popover>
@@ -738,9 +744,12 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               store.newsletterStyle.tableBorderColor ?? store.emailPalette.text;
             return (
               <div className="flex flex-col gap-0.5">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  static
                   type="button"
-                  className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                  className="h-auto justify-start gap-2 px-2 py-1.5 text-xs font-normal"
                   onClick={() => {
                     editor
                       ?.chain()
@@ -756,10 +765,13 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
                     style={{ borderColor: dividerColor }}
                   />
                   <span className="text-muted-foreground shrink-0">Solid</span>
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  static
                   type="button"
-                  className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                  className="h-auto justify-start gap-2 px-2 py-1.5 text-xs font-normal"
                   onClick={() => {
                     editor
                       ?.chain()
@@ -775,10 +787,13 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
                     style={{ borderColor: dividerColor }}
                   />
                   <span className="text-muted-foreground shrink-0">Dashed</span>
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  static
                   type="button"
-                  className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                  className="h-auto justify-start gap-2 px-2 py-1.5 text-xs font-normal"
                   onClick={() => {
                     editor
                       ?.chain()
@@ -794,10 +809,13 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
                     style={{ borderColor: dividerColor }}
                   />
                   <span className="text-muted-foreground shrink-0">Dotted</span>
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  static
                   type="button"
-                  className="flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-accent"
+                  className="h-auto justify-start gap-2 px-2 py-1.5 text-xs font-normal"
                   onClick={() => {
                     editor
                       ?.chain()
@@ -813,7 +831,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
                     style={{ borderColor: dividerColor }}
                   />
                   <span className="text-muted-foreground shrink-0">Thick</span>
-                </button>
+                </Button>
               </div>
             );
           })()}
