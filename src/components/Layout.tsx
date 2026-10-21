@@ -27,10 +27,10 @@ export function Layout() {
           here forces WebKit (Tauri's WKWebView) to recompute the blur every
           frame as the content scrolls beneath it, which jank's scrolling. */}
       <header className="sticky top-0 z-50 w-full border-b bg-background">
-        <div className="container mx-auto flex h-14 items-center px-4">
+        <div className="container mx-auto flex h-14 items-center gap-6 px-4">
           <Link
             to={devMode ? '/' : '/promotion'}
-            className="mr-6 flex items-center gap-2"
+            className="flex items-center gap-2"
           >
             <Layers className="size-5" />
             <span className="font-bold">Talaria</span>

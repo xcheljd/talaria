@@ -18,7 +18,7 @@ import { useProfile } from '@/contexts/ProfileProvider';
 import { Button } from '@/components/ui/button';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { ClearableTextarea } from '@/components/ui/clearable-textarea';
-import { Label } from '@/components/ui/label';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,8 +100,11 @@ export function TemplateFormFields({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)}>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <form
+      onSubmit={handleSubmit(handleFormSubmit)}
+      className="flex flex-col gap-6"
+    >
+      <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {template.fields.map((field, index) => {
           const config = fieldConfig[field] || {};
           const label = formatFieldLabel(field);
@@ -113,13 +116,13 @@ export function TemplateFormFields({
           // Yes/No radio field
           if (isRadio) {
             return (
-              <div key={field} className="flex flex-col gap-2">
-                <Label className="text-sm font-medium">
+              <Field key={field} className="gap-2">
+                <FieldLabel className="text-sm">
                   {label}
                   {config.required && (
                     <span className="ml-1 text-destructive">*</span>
                   )}
-                </Label>
+                </FieldLabel>
                 <div className="flex items-center gap-4">
                   <label className="flex items-center gap-1.5 text-sm">
                     <input
@@ -140,20 +143,20 @@ export function TemplateFormFields({
                     No
                   </label>
                 </div>
-              </div>
+              </Field>
             );
           }
 
           // Textarea field
           if (isTextarea) {
             return (
-              <div key={field} className="flex flex-col gap-2 sm:col-span-2">
-                <Label htmlFor={field} className="text-sm font-medium">
+              <Field key={field} className="gap-2 sm:col-span-2">
+                <FieldLabel htmlFor={field} className="text-sm">
                   {label}
                   {config.required && (
                     <span className="ml-1 text-destructive">*</span>
                   )}
-                </Label>
+                </FieldLabel>
                 <ClearableTextarea
                   id={field}
                   placeholder={config.example || ''}
@@ -161,19 +164,19 @@ export function TemplateFormFields({
                   onChange={(val: string) => setValue(field, val)}
                   className="min-h-[80px]"
                 />
-              </div>
+              </Field>
             );
           }
 
           // Regular input field
           return (
-            <div key={field} className="flex flex-col gap-2">
-              <Label htmlFor={field} className="text-sm font-medium">
+            <Field key={field} className="gap-2">
+              <FieldLabel htmlFor={field} className="text-sm">
                 {label}
                 {config.required && (
                   <span className="ml-1 text-destructive">*</span>
                 )}
-              </Label>
+              </FieldLabel>
               <div className="relative">
                 {suggestions.length > 0 ? (
                   <>
@@ -201,13 +204,13 @@ export function TemplateFormFields({
                   />
                 )}
               </div>
-            </div>
+            </Field>
           );
         })}
-      </div>
+      </FieldGroup>
 
       {/* Action buttons */}
-      <div className="mt-6 flex gap-2">
+      <div className="flex gap-2">
         <Button type="submit" size="default">
           Generate
         </Button>

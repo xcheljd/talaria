@@ -18,7 +18,7 @@ import { saveBlob } from '@/lib/file-save';
 import { Button } from '@/components/ui/button';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmailPreview } from '@/components/EmailPreview';
@@ -169,10 +169,10 @@ ${htmlSignature}
       <CardContent className="flex flex-col gap-4">
         {/* Subject line input (for enhanced templates) */}
         {hasEnhancedFeatures && (
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="subjectLine" className="text-sm font-medium">
+          <Field className="gap-2">
+            <FieldLabel htmlFor="subjectLine" className="text-sm">
               Subject
-            </Label>
+            </FieldLabel>
             <div className="flex items-center gap-2">
               <ClearableInput
                 id="subjectLine"
@@ -187,23 +187,23 @@ ${htmlSignature}
                 </Badge>
               )}
             </div>
-          </div>
+          </Field>
         )}
 
         {/* Preview / Text tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-4">
           <TabsList className="w-full">
             <TabsTrigger value="preview" className="flex-1">
-              <Eye className="mr-1.5 size-4" />
+              <Eye className="size-4" />
               Preview
             </TabsTrigger>
             <TabsTrigger value="text" className="flex-1">
-              <FileText className="mr-1.5 size-4" />
+              <FileText className="size-4" />
               Text
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="preview" className="mt-4">
+          <TabsContent value="preview">
             <div className="min-h-[300px] rounded-md border bg-background p-4">
               <EmailPreview
                 bodyContent={bodyContent}
@@ -212,7 +212,7 @@ ${htmlSignature}
             </div>
           </TabsContent>
 
-          <TabsContent value="text" className="mt-4">
+          <TabsContent value="text">
             <textarea
               className="min-h-[300px] w-full rounded-md border bg-background p-4 font-mono text-sm"
               readOnly
@@ -227,7 +227,7 @@ ${htmlSignature}
         {hasContent && (
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="default" onClick={handleCopy}>
-              <Copy className="mr-1.5 size-4" />
+              <Copy className="size-4" />
               Copy Message
             </Button>
             {hasEnhancedFeatures && (
@@ -236,7 +236,7 @@ ${htmlSignature}
                 variant="outline"
                 onClick={handleDownloadEML}
               >
-                <Download className="mr-1.5 size-4" />
+                <Download className="size-4" />
                 Download Email File
               </Button>
             )}
