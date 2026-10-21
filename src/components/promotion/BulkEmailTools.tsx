@@ -306,8 +306,8 @@ export function BulkEmailTools() {
       )}
 
       {/* Batch controls */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
           <Label className="text-sm whitespace-nowrap">Batch Size:</Label>
           <div className="flex items-center gap-1">
             <Button
@@ -351,7 +351,7 @@ export function BulkEmailTools() {
         </div>
 
         {/* Download format toggle */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Label className="text-sm whitespace-nowrap">Download Format:</Label>
           <ToggleGroup
             type="single"

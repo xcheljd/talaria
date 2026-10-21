@@ -280,7 +280,7 @@ export function FormattableItemEditor({
   );
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {/* Add Item + Clear All Buttons */}
       <div className="flex items-center gap-2">
         <Button size="sm" onClick={handleAdd} className="gap-1.5">

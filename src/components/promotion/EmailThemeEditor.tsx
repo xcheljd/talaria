@@ -272,7 +272,7 @@ export function EmailThemeEditor() {
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">
         Customize the email color scheme. Newsletter auto-colors follow this
         palette.

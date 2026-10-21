@@ -335,7 +335,7 @@ export function PDFAttachments() {
   }, [previewPDF]);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
         <p className="text-xs text-muted-foreground">
           Upload PDF files to attach to your promotional email (max 10MB per
@@ -369,7 +369,7 @@ export function PDFAttachments() {
         role="button"
         tabIndex={0}
         className={cn(
-          'flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors',
+          'flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-6 transition-colors',
           isDragOver
             ? 'border-primary bg-primary/5'
             : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
@@ -393,11 +393,11 @@ export function PDFAttachments() {
           className="hidden"
           onChange={handleFileInputChange}
         />
-        <Upload className="mb-2 size-10 text-muted-foreground/50" />
+        <Upload className="size-10 text-muted-foreground/50" />
         <p className="text-sm font-medium text-muted-foreground">
           Click to upload or drag and drop PDF files
         </p>
-        <p className="mt-1 text-xs text-muted-foreground/70">
+        <p className="text-xs text-muted-foreground/70">
           Maximum 10MB per file
         </p>
       </div>

@@ -237,7 +237,7 @@ function HowToShopEditor() {
     ]
   );
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <FormattableItemEditor
         items={store.howToShopItems}
         actions={actions}
@@ -247,7 +247,7 @@ function HowToShopEditor() {
           'No shopping instructions yet. Click "Add Item" to get started.'
         }
       />
-      <div className="border-t pt-3 flex flex-col gap-2">
+      <div className="flex flex-col gap-2 border-t pt-4">
         <p className="text-xs font-medium text-muted-foreground">Box Style</p>
         <SectionColorPicker
           label="Background"
@@ -306,7 +306,7 @@ function ImportantNotesEditor() {
     ]
   );
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <FormattableItemEditor
         items={store.importantNotesItems}
         actions={actions}
@@ -316,7 +316,7 @@ function ImportantNotesEditor() {
           'No important notes yet. Click "Add Note" to get started.'
         }
       />
-      <div className="border-t pt-3 flex flex-col gap-2">
+      <div className="flex flex-col gap-2 border-t pt-4">
         <p className="text-xs font-medium text-muted-foreground">Box Style</p>
         <SectionColorPicker
           label="Border"

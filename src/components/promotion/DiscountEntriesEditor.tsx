@@ -51,6 +51,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ClearableInput } from '@/components/ui/clearable-input';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
 
 // List container slice: the array itself plus the actions the container needs
@@ -209,14 +210,14 @@ const EntryItem = memo(function EntryItem({
 
         {/* Entry Fields (hidden when collapsed) */}
         {!collapsed && (
-          <div className="grid gap-3 px-3 pb-3">
-            <div className="flex flex-col gap-1">
-              <label
+          <FieldGroup className="gap-4 px-3 pb-3">
+            <Field className="gap-2">
+              <FieldLabel
                 htmlFor={`entry-${entry.id}-line`}
-                className="text-xs font-medium"
+                className="text-xs"
               >
                 Promotion Line *
-              </label>
+              </FieldLabel>
               <ClearableInput
                 id={`entry-${entry.id}-line`}
                 value={entry.line}
@@ -224,14 +225,14 @@ const EntryItem = memo(function EntryItem({
                 placeholder="BRAND – ADDITIONAL 20% OFF"
                 data-field="line"
               />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label
+            </Field>
+            <Field className="gap-2">
+              <FieldLabel
                 htmlFor={`entry-${entry.id}-collections`}
-                className="text-xs font-medium"
+                className="text-xs"
               >
                 Collections (comma-separated)
-              </label>
+              </FieldLabel>
               <ClearableInput
                 id={`entry-${entry.id}-collections`}
                 value={entry.collections}
@@ -239,14 +240,14 @@ const EntryItem = memo(function EntryItem({
                 placeholder="Collection A, Collection B"
                 data-field="collections"
               />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label
+            </Field>
+            <Field className="gap-2">
+              <FieldLabel
                 htmlFor={`entry-${entry.id}-callout`}
-                className="text-xs font-medium"
+                className="text-xs"
               >
                 Special Callout (optional)
-              </label>
+              </FieldLabel>
               <ClearableInput
                 id={`entry-${entry.id}-callout`}
                 value={entry.callout}
@@ -254,8 +255,8 @@ const EntryItem = memo(function EntryItem({
                 placeholder="Final sale items excluded"
                 data-field="callout"
               />
-            </div>
-          </div>
+            </Field>
+          </FieldGroup>
         )}
       </div>
     </SortableItem>
@@ -316,7 +317,7 @@ export function DiscountEntriesEditor() {
   );
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {/* Add Entry + Clear All Buttons */}
       <div className="flex items-center gap-2">
         <Button size="sm" onClick={handleAdd} className="gap-1.5">

@@ -216,7 +216,7 @@ export function AccessibilityChecker() {
     store.newsletterBody.trim() !== '<p></p>';
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">
         Scan your newsletter content for common accessibility issues that may
         affect screen reader users and email clients.
@@ -316,8 +316,8 @@ export function AccessibilityChecker() {
                         severityCfg.className
                       )}
                     />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 mb-0.5">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex items-center gap-1.5">
                         {CategoryIcon && (
                           <CategoryIcon className="size-3 text-muted-foreground" />
                         )}

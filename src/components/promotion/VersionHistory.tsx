@@ -223,7 +223,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
   const manualCount = snapshots.filter((s) => !s.auto).length;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">
         Save and restore promotion snapshots. Auto-saves every 5 minutes when
         content changes.
@@ -275,8 +275,8 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
 
       {/* Snapshot List */}
       {snapshots.length === 0 ? (
-        <div className="text-center py-4">
-          <Clock className="size-8 mx-auto text-muted-foreground/30 mb-2" />
+        <div className="flex flex-col items-center gap-2 py-4 text-center">
+          <Clock className="size-8 text-muted-foreground/30" />
           <p className="text-xs text-muted-foreground">
             No snapshots yet. Save one or wait for auto-save.
           </p>

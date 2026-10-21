@@ -21,6 +21,14 @@ import { useShallow } from 'zustand/react/shallow';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { Button } from '@/components/ui/button';
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from '@/components/ui/field';
 
 // ===== Date Formatting =====
 
@@ -263,21 +271,24 @@ export function BasicDetailsEditor() {
   );
 
   return (
-    <div className="flex flex-col gap-3">
+    <FieldGroup className="gap-4">
       {/* Date Range */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium flex items-center gap-1">
+      <FieldSet className="gap-2">
+        <FieldLegend
+          variant="label"
+          className="mb-0 flex items-center gap-1 text-xs"
+        >
           <CalendarDays className="size-3.5" />
           Date Range *
-        </label>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 flex flex-col gap-0.5">
-            <label
+        </FieldLegend>
+        <div className="flex items-end gap-2">
+          <Field className="flex-1 gap-1">
+            <FieldLabel
               htmlFor="promoStartDate"
-              className="text-[11px] text-muted-foreground"
+              className="text-[11px] font-normal text-muted-foreground"
             >
               Start
-            </label>
+            </FieldLabel>
             <input
               id="promoStartDate"
               type="date"
@@ -286,15 +297,17 @@ export function BasicDetailsEditor() {
               className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               data-testid="promo-start-date"
             />
-          </div>
-          <span className="text-xs text-muted-foreground pt-4">to</span>
-          <div className="flex-1 flex flex-col gap-0.5">
-            <label
+          </Field>
+          <span className="flex h-8 items-center text-xs text-muted-foreground">
+            to
+          </span>
+          <Field className="flex-1 gap-1">
+            <FieldLabel
               htmlFor="promoEndDate"
-              className="text-[11px] text-muted-foreground"
+              className="text-[11px] font-normal text-muted-foreground"
             >
               End
-            </label>
+            </FieldLabel>
             <input
               id="promoEndDate"
               type="date"
@@ -304,12 +317,12 @@ export function BasicDetailsEditor() {
               className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               data-testid="promo-end-date"
             />
-          </div>
+          </Field>
           {startDate && (
             <Button
               variant="ghost"
               size="sm"
-              className="size-8 p-0 mt-4 shrink-0"
+              className="size-8 shrink-0 p-0"
               onClick={handleClearDates}
               aria-label="Clear dates"
             >
@@ -329,13 +342,13 @@ export function BasicDetailsEditor() {
             )}
           </p>
         )}
-      </div>
+      </FieldSet>
 
       {/* Title Override */}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="promoTitle" className="text-xs font-medium">
+      <Field className="gap-2">
+        <FieldLabel htmlFor="promoTitle" className="text-xs">
           Title (optional)
-        </label>
+        </FieldLabel>
         <ClearableInput
           id="promoTitle"
           value={store.promoTitle}
@@ -343,10 +356,10 @@ export function BasicDetailsEditor() {
           placeholder="Leave blank for auto-generation"
           data-testid="promo-title"
         />
-        <p className="text-xs text-muted-foreground">
+        <FieldDescription className="text-xs">
           Auto-generates based on date (Black Friday, Holiday Sale, etc.)
-        </p>
-      </div>
-    </div>
+        </FieldDescription>
+      </Field>
+    </FieldGroup>
   );
 }

@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/tooltip';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { Badge } from '@/components/ui/badge';
+import { Field, FieldLabel } from '@/components/ui/field';
 import {
   Select,
   SelectContent,
@@ -345,10 +346,10 @@ export function SubjectLineGenerator() {
       )}
 
       {/* Editable subject line — always available */}
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="selected-subject-input" className="text-sm font-medium">
+      <Field className="gap-2">
+        <FieldLabel htmlFor="selected-subject-input" className="text-sm">
           Subject Line (customizable):
-        </label>
+        </FieldLabel>
         <Tooltip>
           <TooltipTrigger asChild>
             <ClearableInput
@@ -372,13 +373,13 @@ export function SubjectLineGenerator() {
           {charCount} chars{' '}
           {charCount > 0 && (isOptimal ? '✓' : `(>${OPTIMAL_LENGTH})`)}
         </Badge>
-      </div>
+      </Field>
 
       {/* Preheader Text */}
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="preheader-input" className="text-sm font-medium">
+      <Field className="gap-2">
+        <FieldLabel htmlFor="preheader-input" className="text-sm">
           Preheader Text (preview text):
-        </label>
+        </FieldLabel>
         <Tooltip>
           <TooltipTrigger asChild>
             <ClearableInput
@@ -437,7 +438,7 @@ export function SubjectLineGenerator() {
             </div>
           </div>
         )}
-      </div>
+      </Field>
 
       {/* Inbox Preview — always visible */}
       <InboxPreview
