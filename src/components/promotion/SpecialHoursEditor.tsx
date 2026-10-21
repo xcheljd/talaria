@@ -234,7 +234,7 @@ export function SpecialHoursEditor() {
   );
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       {/* Add Hours + Clear All Buttons */}
       <div className="flex items-center gap-2">
         <Button size="sm" onClick={handleAdd} className="gap-1.5">
@@ -269,7 +269,7 @@ export function SpecialHoursEditor() {
             items={hourIds}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               {hours.map((hour, index) => (
                 <HourRow
                   key={hour.id}

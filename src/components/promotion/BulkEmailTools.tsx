@@ -208,7 +208,7 @@ export function BulkEmailTools() {
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {/* Format status */}
       <FormatStatus />
 
@@ -304,7 +304,7 @@ export function BulkEmailTools() {
       )}
 
       {/* Batch controls */}
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
           <Label className="text-sm whitespace-nowrap">Batch Size:</Label>
           <div className="flex items-center gap-1">

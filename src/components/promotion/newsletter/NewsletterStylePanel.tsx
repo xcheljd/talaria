@@ -55,9 +55,9 @@ export function NewsletterStylePanel() {
             </button>
           </CollapsibleTrigger>
           {showCustomize && (
-            <div className="space-y-3 border-t px-3 py-3">
+            <div className="flex flex-col gap-3 border-t px-3 py-3">
               {/* Border Style Selector */}
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
                   Border Style
                 </label>
@@ -143,7 +143,7 @@ export function NewsletterStylePanel() {
               ).map((picker) => {
                 const currentValue = store.newsletterStyle[picker.key];
                 return (
-                  <div key={picker.key} className="space-y-1">
+                  <div key={picker.key} className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
                       <label className="text-xs text-muted-foreground min-w-[90px]">
                         {picker.label}
@@ -242,9 +242,9 @@ export function NewsletterStylePanel() {
             </button>
           </CollapsibleTrigger>
           {showTableStyle && (
-            <div className="space-y-3 border-t px-3 py-3">
+            <div className="flex flex-col gap-3 border-t px-3 py-3">
               {/* Border Style */}
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
                   Border Style
                 </label>
@@ -280,7 +280,7 @@ export function NewsletterStylePanel() {
               </div>
 
               {/* Border Width */}
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
                   Border Width
                 </label>
@@ -307,7 +307,7 @@ export function NewsletterStylePanel() {
               </div>
 
               {/* Border Color */}
-              <div className="space-y-1">
+              <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-muted-foreground min-w-[90px]">
                     Border Color
@@ -385,7 +385,7 @@ export function NewsletterStylePanel() {
               </div>
 
               {/* Header Background */}
-              <div className="space-y-1">
+              <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-muted-foreground min-w-[90px]">
                     Header Bg

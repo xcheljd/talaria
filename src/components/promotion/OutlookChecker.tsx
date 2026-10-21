@@ -314,7 +314,7 @@ export function OutlookChecker() {
   const infoCount = issues.filter((i) => i.severity === 'info').length;
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">
         Scan your generated email for known Outlook rendering issues. Outlook
         uses the Word engine which has limited CSS support.
@@ -375,7 +375,10 @@ export function OutlookChecker() {
               </AlertDescription>
             </Alert>
           ) : (
-            <div className="space-y-1.5" data-testid="outlook-issues-list">
+            <div
+              className="flex flex-col gap-1.5"
+              data-testid="outlook-issues-list"
+            >
               {issues.map((issue) => {
                 const severityCfg = SEVERITY_CONFIG[issue.severity];
                 const SeverityIcon = severityCfg.icon;

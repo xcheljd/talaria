@@ -380,7 +380,7 @@ export function NewsletterEditor() {
   }, [editor, store]);
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       {/* Show in Email Toggle */}
       <div className="flex items-center gap-2">
         <Checkbox
@@ -419,7 +419,7 @@ export function NewsletterEditor() {
       </p>
 
       {/* Position Toggle */}
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1">
         <label className="text-xs font-medium text-muted-foreground">
           Position in Email
         </label>

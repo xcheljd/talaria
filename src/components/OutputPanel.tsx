@@ -166,10 +166,10 @@ ${htmlSignature}
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Generated Message</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-col gap-4">
         {/* Subject line input (for enhanced templates) */}
         {hasEnhancedFeatures && (
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="subjectLine" className="text-sm font-medium">
               Subject
             </Label>

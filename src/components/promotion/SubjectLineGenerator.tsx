@@ -65,7 +65,7 @@ function InboxPreview({
       : preheader;
 
   return (
-    <div className="space-y-1.5">
+    <div className="flex flex-col gap-1.5">
       <label className="text-xs font-medium text-muted-foreground">
         Inbox Preview
       </label>
@@ -288,7 +288,7 @@ export function SubjectLineGenerator() {
   const hasLines = store.generatedSubjectLines.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {/* Suggestion controls — header + generate/regenerate */}
       <div className="flex items-center justify-between gap-2">
         <label className="text-sm font-medium">
@@ -345,7 +345,7 @@ export function SubjectLineGenerator() {
       )}
 
       {/* Editable subject line — always available */}
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-1.5">
         <label htmlFor="selected-subject-input" className="text-sm font-medium">
           Subject Line (customizable):
         </label>
@@ -366,7 +366,7 @@ export function SubjectLineGenerator() {
         </Tooltip>
         <Badge
           variant={isOptimal ? 'default' : 'secondary'}
-          className="text-xs"
+          className="self-start text-xs"
           data-testid="subject-char-count"
         >
           {charCount} chars{' '}
@@ -375,7 +375,7 @@ export function SubjectLineGenerator() {
       </div>
 
       {/* Preheader Text */}
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-1.5">
         <label htmlFor="preheader-input" className="text-sm font-medium">
           Preheader Text (preview text):
         </label>
@@ -410,7 +410,7 @@ export function SubjectLineGenerator() {
 
         {/* Preheader suggestions */}
         {!store.preheaderText.trim() && (
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
               <Sparkles className="size-3" />
               Suggestions (click to use):

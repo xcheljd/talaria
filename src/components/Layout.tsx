@@ -30,18 +30,18 @@ export function Layout() {
         <div className="container mx-auto flex h-14 items-center px-4">
           <Link
             to={devMode ? '/' : '/promotion'}
-            className="mr-6 flex items-center space-x-2"
+            className="mr-6 flex items-center gap-2"
           >
             <Layers className="size-5" />
             <span className="font-bold">Talaria</span>
           </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
+          <nav className="flex items-center gap-6 text-sm font-medium">
             {links.map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}
                 to={to}
                 className={cn(
-                  'flex items-center space-x-1 transition-colors hover:text-foreground/80',
+                  'flex items-center gap-1 transition-colors hover:text-foreground/80',
                   location.pathname === to
                     ? 'text-foreground'
                     : 'text-foreground/60'
@@ -54,7 +54,7 @@ export function Layout() {
             <Link
               to="/promotion"
               className={cn(
-                'flex items-center space-x-1 transition-colors hover:text-foreground/80',
+                'flex items-center gap-1 transition-colors hover:text-foreground/80',
                 location.pathname === '/promotion'
                   ? 'text-foreground'
                   : 'text-foreground/60'
@@ -64,7 +64,7 @@ export function Layout() {
               <span>Promotions</span>
             </Link>
           </nav>
-          <div className="ml-auto flex items-center space-x-4">
+          <div className="ml-auto flex items-center gap-4">
             <ThemeToggle />
           </div>
         </div>

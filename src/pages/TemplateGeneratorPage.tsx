@@ -146,7 +146,7 @@ export function TemplateGeneratorPage() {
   // ─── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-4xl flex flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       {/* Template Selection */}
       <Card>
         <CardHeader className="pb-3">

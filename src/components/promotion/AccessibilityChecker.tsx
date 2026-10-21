@@ -216,7 +216,7 @@ export function AccessibilityChecker() {
     store.newsletterBody.trim() !== '<p></p>';
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">
         Scan your newsletter content for common accessibility issues that may
         affect screen reader users and email clients.
@@ -289,7 +289,10 @@ export function AccessibilityChecker() {
               </AlertDescription>
             </Alert>
           ) : (
-            <div className="space-y-1.5" data-testid="a11y-issues-list">
+            <div
+              className="flex flex-col gap-1.5"
+              data-testid="a11y-issues-list"
+            >
               {issues.map((issue) => {
                 const severityCfg = SEVERITY_CONFIG[issue.severity];
                 const SeverityIcon = severityCfg.icon;

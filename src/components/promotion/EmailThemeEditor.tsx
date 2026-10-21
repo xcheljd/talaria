@@ -272,7 +272,7 @@ export function EmailThemeEditor() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">
         Customize the email color scheme. Newsletter auto-colors follow this
         palette.
@@ -280,7 +280,7 @@ export function EmailThemeEditor() {
 
       {/* Preset Palettes — Grouped */}
       {PRESET_GROUPS.map((group) => (
-        <div key={group.label} className="space-y-1">
+        <div key={group.label} className="flex flex-col gap-1">
           <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
             {group.label}
           </label>
@@ -319,7 +319,7 @@ export function EmailThemeEditor() {
 
       {/* Saved Custom Palettes */}
       {savedPalettes.length > 0 && (
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
             Saved
           </label>

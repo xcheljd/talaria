@@ -263,15 +263,15 @@ export function BasicDetailsEditor() {
   );
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       {/* Date Range */}
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium flex items-center gap-1">
           <CalendarDays className="size-3.5" />
           Date Range *
         </label>
         <div className="flex items-center gap-2">
-          <div className="flex-1 space-y-0.5">
+          <div className="flex-1 flex flex-col gap-0.5">
             <label
               htmlFor="promoStartDate"
               className="text-[11px] text-muted-foreground"
@@ -288,7 +288,7 @@ export function BasicDetailsEditor() {
             />
           </div>
           <span className="text-xs text-muted-foreground pt-4">to</span>
-          <div className="flex-1 space-y-0.5">
+          <div className="flex-1 flex flex-col gap-0.5">
             <label
               htmlFor="promoEndDate"
               className="text-[11px] text-muted-foreground"
@@ -332,7 +332,7 @@ export function BasicDetailsEditor() {
       </div>
 
       {/* Title Override */}
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1">
         <label htmlFor="promoTitle" className="text-xs font-medium">
           Title (optional)
         </label>

@@ -335,7 +335,7 @@ export function PDFAttachments() {
   }, [previewPDF]);
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <p className="text-xs text-muted-foreground">
           Upload PDF files to attach to your promotional email (max 10MB per
@@ -404,7 +404,7 @@ export function PDFAttachments() {
 
       {/* Attached PDFs List */}
       {store.attachedPDFs.length > 0 && (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {store.attachedPDFs.map((pdf) => (
             <div
               key={pdf.id}

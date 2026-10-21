@@ -223,7 +223,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
   const manualCount = snapshots.filter((s) => !s.auto).length;
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">
         Save and restore promotion snapshots. Auto-saves every 5 minutes when
         content changes.
@@ -279,7 +279,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
           </p>
         </div>
       ) : (
-        <div className="space-y-1" data-testid="version-history-list">
+        <div className="flex flex-col gap-1" data-testid="version-history-list">
           {snapshots.map((snapshot) => {
             const isExpanded = expandedId === snapshot.id;
             const isConfirming = confirmRestoreId === snapshot.id;
@@ -329,7 +329,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
 
                   {/* Expanded details */}
                   {isExpanded && (
-                    <div className="px-2.5 pb-2 space-y-1.5">
+                    <div className="px-2.5 pb-2 flex flex-col gap-1.5">
                       <p className="text-muted-foreground">
                         {snapshot.summary}
                       </p>

@@ -280,7 +280,7 @@ export function FormattableItemEditor({
   );
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       {/* Add Item + Clear All Buttons */}
       <div className="flex items-center gap-2">
         <Button size="sm" onClick={handleAdd} className="gap-1.5">
@@ -316,7 +316,7 @@ export function FormattableItemEditor({
             items={itemIds}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               {items.map((item, index) => (
                 <ItemRow
                   key={item.id}

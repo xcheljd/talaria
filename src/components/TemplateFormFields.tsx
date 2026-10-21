@@ -113,7 +113,7 @@ export function TemplateFormFields({
           // Yes/No radio field
           if (isRadio) {
             return (
-              <div key={field} className="space-y-2">
+              <div key={field} className="flex flex-col gap-2">
                 <Label className="text-sm font-medium">
                   {label}
                   {config.required && (
@@ -147,7 +147,7 @@ export function TemplateFormFields({
           // Textarea field
           if (isTextarea) {
             return (
-              <div key={field} className="space-y-2 sm:col-span-2">
+              <div key={field} className="flex flex-col gap-2 sm:col-span-2">
                 <Label htmlFor={field} className="text-sm font-medium">
                   {label}
                   {config.required && (
@@ -167,7 +167,7 @@ export function TemplateFormFields({
 
           // Regular input field
           return (
-            <div key={field} className="space-y-2">
+            <div key={field} className="flex flex-col gap-2">
               <Label htmlFor={field} className="text-sm font-medium">
                 {label}
                 {config.required && (

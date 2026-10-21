@@ -39,7 +39,7 @@ export function BrandLinksEditor({
   removeBrandLink,
 }: BrandLinksEditorProps) {
   return (
-    <div className="col-span-1 space-y-2 lg:col-span-2">
+    <div className="col-span-1 flex flex-col gap-2 lg:col-span-2">
       <div>
         <FormLabel>Signature Brand Links (optional)</FormLabel>
         <p className="text-xs text-muted-foreground">
@@ -49,7 +49,7 @@ export function BrandLinksEditor({
       </div>
 
       {brandLinkFields.length > 0 && (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {brandLinkFields.map((linkField, index) => (
             <div
               key={linkField.id}

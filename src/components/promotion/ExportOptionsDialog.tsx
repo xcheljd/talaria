@@ -43,7 +43,7 @@ export function ExportOptionsDialog({
             Choose what to include in the exported template file.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <div className="space-y-3 py-1">
+        <div className="flex flex-col gap-3 py-1">
           <label className="flex items-start gap-3 cursor-pointer">
             <Checkbox
               checked={includeRecipients}

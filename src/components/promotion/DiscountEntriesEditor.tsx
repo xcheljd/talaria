@@ -210,7 +210,7 @@ const EntryItem = memo(function EntryItem({
         {/* Entry Fields (hidden when collapsed) */}
         {!collapsed && (
           <div className="grid gap-3 px-3 pb-3">
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <label
                 htmlFor={`entry-${entry.id}-line`}
                 className="text-xs font-medium"
@@ -225,7 +225,7 @@ const EntryItem = memo(function EntryItem({
                 data-field="line"
               />
             </div>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <label
                 htmlFor={`entry-${entry.id}-collections`}
                 className="text-xs font-medium"
@@ -240,7 +240,7 @@ const EntryItem = memo(function EntryItem({
                 data-field="collections"
               />
             </div>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <label
                 htmlFor={`entry-${entry.id}-callout`}
                 className="text-xs font-medium"
@@ -316,7 +316,7 @@ export function DiscountEntriesEditor() {
   );
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       {/* Add Entry + Clear All Buttons */}
       <div className="flex items-center gap-2">
         <Button size="sm" onClick={handleAdd} className="gap-1.5">
@@ -350,7 +350,7 @@ export function DiscountEntriesEditor() {
             items={entryIds}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               {entries.map((entry, index) => (
                 <EntryItem
                   key={entry.id}
