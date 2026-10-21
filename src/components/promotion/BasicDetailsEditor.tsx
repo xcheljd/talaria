@@ -276,7 +276,7 @@ export function BasicDetailsEditor() {
       <FieldSet className="gap-2">
         <FieldLegend
           variant="label"
-          className="mb-0 flex items-center gap-1 text-xs"
+          className="mb-0 flex items-center gap-1 data-[variant=label]:text-xs"
         >
           <CalendarDays className="size-3.5" />
           Date Range *
