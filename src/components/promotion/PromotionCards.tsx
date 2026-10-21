@@ -159,7 +159,7 @@ function SectionColorPicker({
       {isActive ? (
         <>
           <div
-            className="h-5 w-5 rounded border border-border shrink-0"
+            className="size-5 rounded border border-border shrink-0"
             style={{ backgroundColor: value }}
           />
           <input
@@ -431,7 +431,7 @@ export const PromotionCard = memo(function PromotionCard({
       <div className="flex items-center gap-2 px-4 py-3">
         <span
           className={cn(
-            'inline-block h-2.5 w-2.5 rounded-full transition-colors',
+            'inline-block size-2.5 rounded-full transition-colors',
             hasContent ? 'bg-primary' : 'bg-muted-foreground/30'
           )}
           data-status={hasContent ? 'filled' : 'empty'}

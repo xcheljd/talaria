@@ -147,7 +147,7 @@ export function ProfileImportDialog({
           </DialogHeader>
           {importError && (
             <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
+              <AlertCircle className="size-4" />
               <AlertDescription>{importError}</AlertDescription>
             </Alert>
           )}
@@ -156,7 +156,7 @@ export function ProfileImportDialog({
               Cancel
             </Button>
             <Button type="button" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="mr-1 h-4 w-4" />
+              <Upload className="mr-1 size-4" />
               Choose File
             </Button>
           </DialogFooter>

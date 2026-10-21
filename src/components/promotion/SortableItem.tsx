@@ -94,7 +94,7 @@ export function DragHandle({ className }: DragHandleProps) {
       aria-label="Drag to reorder"
       {...(sortable?.listeners ?? {})}
     >
-      <GripVertical className="h-4 w-4 shrink-0" />
+      <GripVertical className="size-4 shrink-0" />
     </button>
   );
 }

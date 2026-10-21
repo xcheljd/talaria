@@ -345,7 +345,7 @@ export function PDFAttachments() {
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
-                <AlertTriangle className="h-3 w-3" />
+                <AlertTriangle className="size-3" />
                 Save issue
               </span>
             </TooltipTrigger>
@@ -359,7 +359,7 @@ export function PDFAttachments() {
           onClick={handleClearAll}
           disabled={store.attachedPDFs.length === 0}
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="size-3" />
           Clear all
         </Button>
       </div>
@@ -393,7 +393,7 @@ export function PDFAttachments() {
           className="hidden"
           onChange={handleFileInputChange}
         />
-        <Upload className="mb-2 h-10 w-10 text-muted-foreground/50" />
+        <Upload className="mb-2 size-10 text-muted-foreground/50" />
         <p className="text-sm font-medium text-muted-foreground">
           Click to upload or drag and drop PDF files
         </p>
@@ -410,7 +410,7 @@ export function PDFAttachments() {
               key={pdf.id}
               className="flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2"
             >
-              <FileText className="h-5 w-5 flex-shrink-0 text-primary" />
+              <FileText className="size-5 flex-shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
                 <button
                   type="button"
@@ -445,11 +445,11 @@ export function PDFAttachments() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                className="size-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
                 onClick={() => handleRemovePDF(pdf)}
                 aria-label={`Remove ${pdf.name}`}
               >
-                <X className="h-4 w-4" />
+                <X className="size-4" />
               </Button>
             </div>
           ))}
@@ -506,7 +506,7 @@ export function PDFAttachments() {
               Close
             </Button>
             <Button onClick={handleDownload} className="gap-1.5">
-              <Download className="h-4 w-4" />
+              <Download className="size-4" />
               Download
             </Button>
           </DialogFooter>

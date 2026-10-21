@@ -327,7 +327,7 @@ export function OutlookChecker() {
       ) : !hasScanned ? (
         <div className="flex flex-col items-center gap-3 py-4">
           <Button onClick={handleScan} size="sm" className="gap-1.5">
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw className="size-3.5" />
             Scan for Outlook Issues
           </Button>
         </div>
@@ -341,7 +341,7 @@ export function OutlookChecker() {
               onClick={handleScan}
               className="gap-1.5 text-xs"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className="size-3.5" />
               Re-scan
             </Button>
             <div className="flex gap-1.5 ml-auto">
@@ -395,7 +395,7 @@ export function OutlookChecker() {
                     <div className="flex items-start gap-2">
                       <SeverityIcon
                         className={cn(
-                          'h-3.5 w-3.5 mt-0.5 shrink-0',
+                          'size-3.5 mt-0.5 shrink-0',
                           severityCfg.className
                         )}
                       />

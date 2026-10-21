@@ -221,7 +221,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
             onClick={actions.handleImportConfig}
             aria-label="Import"
           >
-            <Upload className="h-3.5 w-3.5" />
+            <Upload className="size-3.5" />
             Import
           </Button>
 
@@ -234,7 +234,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
             disabled={!hasContent}
             aria-label="Export"
           >
-            <Download className="h-3.5 w-3.5" />
+            <Download className="size-3.5" />
             Export
           </Button>
 
@@ -242,7 +242,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm" className="gap-1.5">
-                <RotateCcw className="h-3.5 w-3.5" />
+                <RotateCcw className="size-3.5" />
                 Start Over
               </Button>
             </AlertDialogTrigger>
@@ -301,7 +301,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
                 ref={iframeRef}
                 srcDoc={previewHTML}
                 onLoad={handleIframeLoad}
-                className="h-full w-full border-0"
+                className="size-full border-0"
                 title="Email Preview"
                 sandbox="allow-same-origin"
               />
@@ -321,7 +321,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           <TabsContent value="code" className="flex-1 m-0 overflow-hidden">
             <div className="h-full p-4">
               <textarea
-                className="h-full w-full rounded-md border bg-muted/50 p-3 font-mono text-xs"
+                className="size-full rounded-md border bg-muted/50 p-3 font-mono text-xs"
                 value={emailHTML || ''}
                 placeholder="HTML code will appear here..."
                 readOnly
@@ -348,7 +348,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
             </>
           ) : (
             <>
-              <Mail className="h-3.5 w-3.5" />
+              <Mail className="size-3.5" />
               Generate Email Batches
             </>
           )}
@@ -360,7 +360,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           onClick={actions.handleDownloadDraft}
           disabled={!hasContent}
         >
-          <FileDown className="h-3.5 w-3.5" />
+          <FileDown className="size-3.5" />
           Download Email Draft
         </Button>
         <Button
@@ -370,7 +370,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
           onClick={actions.handleDownloadHTML}
           disabled={!hasContent}
         >
-          <FileCode className="h-3.5 w-3.5" />
+          <FileCode className="size-3.5" />
           Download HTML
         </Button>
       </div>

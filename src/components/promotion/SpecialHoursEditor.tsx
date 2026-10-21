@@ -129,7 +129,7 @@ const HourRow = memo(function HourRow({ id, index, total }: HourRowProps) {
             disabled={isFirst}
             aria-label={`Move hour ${index + 1} up`}
           >
-            <ChevronUp className="h-3 w-3" />
+            <ChevronUp className="size-3" />
           </Button>
           <Button
             variant="ghost"
@@ -138,7 +138,7 @@ const HourRow = memo(function HourRow({ id, index, total }: HourRowProps) {
             disabled={isLast}
             aria-label={`Move hour ${index + 1} down`}
           >
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown className="size-3" />
           </Button>
         </div>
 
@@ -173,7 +173,7 @@ const HourRow = memo(function HourRow({ id, index, total }: HourRowProps) {
           onClick={handleRemove}
           aria-label={`Remove special hour ${index + 1}`}
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="size-3.5" />
         </Button>
       </div>
     </SortableItem>
@@ -238,7 +238,7 @@ export function SpecialHoursEditor() {
       {/* Add Hours + Clear All Buttons */}
       <div className="flex items-center gap-2">
         <Button size="sm" onClick={handleAdd} className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="size-3.5" />
           Add Hours
         </Button>
         <Button
@@ -248,7 +248,7 @@ export function SpecialHoursEditor() {
           onClick={handleClearAll}
           disabled={hours.length === 0}
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="size-3" />
           Clear all
         </Button>
       </div>

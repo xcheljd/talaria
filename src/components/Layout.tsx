@@ -32,7 +32,7 @@ export function Layout() {
             to={devMode ? '/' : '/promotion'}
             className="mr-6 flex items-center space-x-2"
           >
-            <Layers className="h-5 w-5" />
+            <Layers className="size-5" />
             <span className="font-bold">Talaria</span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
@@ -47,7 +47,7 @@ export function Layout() {
                     : 'text-foreground/60'
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="size-4" />
                 <span>{label}</span>
               </Link>
             ))}
@@ -60,7 +60,7 @@ export function Layout() {
                   : 'text-foreground/60'
               )}
             >
-              <Layers className="h-4 w-4" />
+              <Layers className="size-4" />
               <span>Promotions</span>
             </Link>
           </nav>

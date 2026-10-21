@@ -302,7 +302,7 @@ export function EmailThemeEditor() {
                       ].map((c, i) => (
                         <div
                           key={i}
-                          className="h-3 w-3 rounded-sm border border-border"
+                          className="size-3 rounded-sm border border-border"
                           style={{ backgroundColor: c }}
                         />
                       ))}
@@ -342,7 +342,7 @@ export function EmailThemeEditor() {
                         ].map((c, i) => (
                           <div
                             key={i}
-                            className="h-3 w-3 rounded-sm border border-border"
+                            className="size-3 rounded-sm border border-border"
                             style={{ backgroundColor: c }}
                           />
                         ))}
@@ -360,7 +360,7 @@ export function EmailThemeEditor() {
                       onClick={() => handleDeleteSaved(saved.name)}
                       aria-label={`Delete palette ${saved.name}`}
                     >
-                      <Trash2 className="h-2.5 w-2.5" />
+                      <Trash2 className="size-2.5" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>{`Delete "${saved.name}"`}</TooltipContent>
@@ -380,7 +380,7 @@ export function EmailThemeEditor() {
           return (
             <div key={field.key} className="flex items-center gap-2">
               <div
-                className="h-5 w-5 rounded border border-border shrink-0"
+                className="size-5 rounded border border-border shrink-0"
                 style={{ backgroundColor: value }}
                 data-testid={`theme-swatch-${field.key}`}
               />
@@ -446,7 +446,7 @@ export function EmailThemeEditor() {
             onClick={handleSavePalette}
             disabled={!saveName.trim()}
           >
-            <Save className="h-3 w-3" />
+            <Save className="size-3" />
             Save
           </Button>
         </div>
@@ -460,7 +460,7 @@ export function EmailThemeEditor() {
           onClick={() => store.resetEmailPalette()}
           data-testid="reset-email-palette"
         >
-          <RotateCcw className="h-3 w-3" />
+          <RotateCcw className="size-3" />
           Reset All to Defaults
         </Button>
       )}

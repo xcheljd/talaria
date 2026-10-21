@@ -79,7 +79,7 @@ export function TemplateSelector({
                 Select a template...
               </span>
             )}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[400px] p-0" align="start">
@@ -94,7 +94,7 @@ export function TemplateSelector({
                     key={group.category}
                     heading={
                       <span className="flex items-center gap-1.5">
-                        <Icon className="h-3.5 w-3.5" />
+                        <Icon className="size-3.5" />
                         {group.category}
                       </span>
                     }
@@ -115,7 +115,7 @@ export function TemplateSelector({
                       >
                         <Check
                           className={cn(
-                            'h-4 w-4',
+                            'size-4',
                             value === item.key ? 'opacity-100' : 'opacity-0'
                           )}
                         />

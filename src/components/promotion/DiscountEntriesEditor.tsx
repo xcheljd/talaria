@@ -160,7 +160,7 @@ const EntryItem = memo(function EntryItem({
                 disabled={isFirst}
                 aria-label={`Move entry ${index + 1} up`}
               >
-                <ChevronUp className="h-3.5 w-3.5" />
+                <ChevronUp className="size-3.5" />
               </Button>
               <Button
                 variant="ghost"
@@ -169,7 +169,7 @@ const EntryItem = memo(function EntryItem({
                 disabled={isLast}
                 aria-label={`Move entry ${index + 1} down`}
               >
-                <ChevronDown className="h-3.5 w-3.5" />
+                <ChevronDown className="size-3.5" />
               </Button>
             </div>
             <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
@@ -190,7 +190,7 @@ const EntryItem = memo(function EntryItem({
             >
               <ChevronRight
                 className={cn(
-                  'h-3.5 w-3.5 transition-transform',
+                  'size-3.5 transition-transform',
                   !collapsed && 'rotate-90'
                 )}
               />
@@ -202,7 +202,7 @@ const EntryItem = memo(function EntryItem({
               onClick={handleRemove}
               aria-label={`Remove entry ${index + 1}`}
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="size-3.5" />
             </Button>
           </div>
         </div>
@@ -320,7 +320,7 @@ export function DiscountEntriesEditor() {
       {/* Add Entry + Clear All Buttons */}
       <div className="flex items-center gap-2">
         <Button size="sm" onClick={handleAdd} className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="size-3.5" />
           Add Entry
         </Button>
         <Button
@@ -330,7 +330,7 @@ export function DiscountEntriesEditor() {
           onClick={handleClearAll}
           disabled={entries.length === 0}
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="size-3" />
           Clear all
         </Button>
       </div>

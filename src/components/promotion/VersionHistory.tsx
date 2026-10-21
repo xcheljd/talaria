@@ -246,7 +246,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
           className="h-7 gap-1 px-2 text-xs"
           onClick={handleManualSave}
         >
-          <Save className="h-3 w-3" />
+          <Save className="size-3" />
           Save
         </Button>
       </div>
@@ -254,7 +254,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
       {/* Summary */}
       {snapshots.length > 0 && (
         <div className="flex items-center gap-2">
-          <History className="h-3.5 w-3.5 text-muted-foreground" />
+          <History className="size-3.5 text-muted-foreground" />
           <span className="text-xs text-muted-foreground">
             {manualCount} saved · {autoCount} auto-saved
           </span>
@@ -273,7 +273,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
       {/* Snapshot List */}
       {snapshots.length === 0 ? (
         <div className="text-center py-4">
-          <Clock className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+          <Clock className="size-8 mx-auto text-muted-foreground/30 mb-2" />
           <p className="text-xs text-muted-foreground">
             No snapshots yet. Save one or wait for auto-save.
           </p>
@@ -306,9 +306,9 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                       className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left hover:bg-accent/20 transition-colors"
                     >
                       {isExpanded ? (
-                        <ChevronUp className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        <ChevronUp className="size-3 shrink-0 text-muted-foreground" />
                       ) : (
-                        <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
                       )}
                       <span className="font-medium truncate flex-1">
                         {snapshot.name}
@@ -365,7 +365,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                               className="h-6 gap-1 text-[10px] px-2"
                               onClick={() => setConfirmRestoreId(snapshot.id)}
                             >
-                              <RotateCcw className="h-2.5 w-2.5" />
+                              <RotateCcw className="size-2.5" />
                               Restore
                             </Button>
                             <Button
@@ -374,7 +374,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                               className="h-6 gap-1 text-[10px] px-2 text-muted-foreground hover:text-destructive"
                               onClick={() => handleDelete(snapshot.id)}
                             >
-                              <Trash2 className="h-2.5 w-2.5" />
+                              <Trash2 className="size-2.5" />
                               Delete
                             </Button>
                           </>

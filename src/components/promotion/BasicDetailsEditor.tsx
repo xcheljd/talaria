@@ -267,7 +267,7 @@ export function BasicDetailsEditor() {
       {/* Date Range */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium flex items-center gap-1">
-          <CalendarDays className="h-3.5 w-3.5" />
+          <CalendarDays className="size-3.5" />
           Date Range *
         </label>
         <div className="flex items-center gap-2">
@@ -309,11 +309,11 @@ export function BasicDetailsEditor() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 mt-4 shrink-0"
+              className="size-8 p-0 mt-4 shrink-0"
               onClick={handleClearDates}
               aria-label="Clear dates"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="size-3.5" />
             </Button>
           )}
         </div>

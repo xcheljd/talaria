@@ -101,7 +101,7 @@ export function BrandLinksEditor({
                 onClick={() => removeBrandLink(index)}
                 aria-label="Remove brand link"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="size-4" />
               </Button>
             </div>
           ))}
@@ -114,7 +114,7 @@ export function BrandLinksEditor({
         size="sm"
         onClick={() => appendBrandLink({ name: '', url: '' })}
       >
-        <Plus className="mr-1 h-4 w-4" />
+        <Plus className="mr-1 size-4" />
         Add brand link
       </Button>
     </div>

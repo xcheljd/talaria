@@ -229,7 +229,7 @@ export function AccessibilityChecker() {
       ) : !hasScanned ? (
         <div className="flex flex-col items-center gap-3 py-4">
           <Button onClick={handleScan} size="sm" className="gap-1.5">
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw className="size-3.5" />
             Run Accessibility Scan
           </Button>
         </div>
@@ -246,7 +246,7 @@ export function AccessibilityChecker() {
                 isStale && 'border-warning/50 text-warning'
               )}
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className="size-3.5" />
               Re-scan
             </Button>
             {isStale && (
@@ -254,7 +254,7 @@ export function AccessibilityChecker() {
                 className="flex items-center gap-1 text-xs text-warning"
                 data-testid="a11y-stale"
               >
-                <AlertTriangle className="h-3 w-3 shrink-0" />
+                <AlertTriangle className="size-3 shrink-0" />
                 Edited since last scan
               </span>
             )}
@@ -309,14 +309,14 @@ export function AccessibilityChecker() {
                   >
                     <SeverityIcon
                       className={cn(
-                        'h-3.5 w-3.5 mt-0.5 shrink-0',
+                        'size-3.5 mt-0.5 shrink-0',
                         severityCfg.className
                       )}
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 mb-0.5">
                         {CategoryIcon && (
-                          <CategoryIcon className="h-3 w-3 text-muted-foreground" />
+                          <CategoryIcon className="size-3 text-muted-foreground" />
                         )}
                         <span className="font-medium text-muted-foreground">
                           {issue.category}

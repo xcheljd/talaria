@@ -432,7 +432,7 @@ export function NewsletterEditor() {
             data-active={store.newsletterPosition === 'top' || undefined}
             aria-label="Position: Above %"
           >
-            <ArrowUpFromLine className="h-3 w-3" />
+            <ArrowUpFromLine className="size-3" />
             Above %
           </Button>
           <Button
@@ -445,7 +445,7 @@ export function NewsletterEditor() {
             data-active={store.newsletterPosition === 'bottom' || undefined}
             aria-label="Position: Below %"
           >
-            <ArrowDownFromLine className="h-3 w-3" />
+            <ArrowDownFromLine className="size-3" />
             Below %
           </Button>
         </div>
@@ -494,7 +494,7 @@ export function NewsletterEditor() {
             className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
             onClick={handlePastePlainText}
           >
-            <ClipboardPaste className="h-3.5 w-3.5" />
+            <ClipboardPaste className="size-3.5" />
             Paste as plain text
           </button>
         </div>
@@ -529,7 +529,7 @@ export function NewsletterEditor() {
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'h-6 w-6 shrink-0',
+                    'size-6 shrink-0',
                     findCaseSensitive && 'bg-accent text-accent-foreground'
                   )}
                   onClick={() => setFindCaseSensitive(!findCaseSensitive)}
@@ -537,7 +537,7 @@ export function NewsletterEditor() {
                   aria-pressed={findCaseSensitive}
                   data-testid="find-case-sensitive"
                 >
-                  <ALargeSmall className="h-3 w-3" />
+                  <ALargeSmall className="size-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Match case</TooltipContent>
@@ -548,7 +548,7 @@ export function NewsletterEditor() {
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'h-6 w-6 shrink-0',
+                    'size-6 shrink-0',
                     findWholeWord && 'bg-accent text-accent-foreground'
                   )}
                   onClick={() => setFindWholeWord(!findWholeWord)}
@@ -556,7 +556,7 @@ export function NewsletterEditor() {
                   aria-pressed={findWholeWord}
                   data-testid="find-whole-word"
                 >
-                  <SpellCheck className="h-3 w-3" />
+                  <SpellCheck className="size-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Whole word</TooltipContent>
@@ -597,7 +597,7 @@ export function NewsletterEditor() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="size-7"
             onClick={() => {
               setFindReplaceOpen(false);
               setFindText('');
@@ -607,7 +607,7 @@ export function NewsletterEditor() {
             aria-label="Close find & replace"
             data-testid="find-replace-close"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="size-3.5" />
           </Button>
         </div>
       )}
@@ -634,7 +634,7 @@ export function NewsletterEditor() {
             <>
               &middot;
               <span className="inline-flex items-center gap-0.5">
-                <Clock className="h-3 w-3" />
+                <Clock className="size-3" />
                 {readTimeMin} min read
               </span>
             </>
@@ -666,7 +666,7 @@ export function NewsletterEditor() {
             aria-label="Find & replace"
             data-testid="find-replace-toggle"
           >
-            <Search className="h-3 w-3" />
+            <Search className="size-3" />
             Find
           </Button>
           <Button
@@ -677,7 +677,7 @@ export function NewsletterEditor() {
             aria-label="Reset newsletter"
             data-testid="newsletter-reset-btn"
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="size-3" />
             Reset
           </Button>
         </div>

@@ -107,7 +107,7 @@ export function CollapsibleCard({
               {/* Status Dot */}
               <span
                 className={cn(
-                  'inline-block h-2.5 w-2.5 rounded-full transition-colors',
+                  'inline-block size-2.5 rounded-full transition-colors',
                   hasContent ? 'bg-primary' : 'bg-muted-foreground/30'
                 )}
                 data-status={hasContent ? 'filled' : 'empty'}
@@ -117,7 +117,7 @@ export function CollapsibleCard({
             </div>
             <ChevronDown
               className={cn(
-                'h-4 w-4 transition-transform duration-500',
+                'size-4 transition-transform duration-500',
                 isOpen ? 'rotate-180' : 'rotate-0'
               )}
             />

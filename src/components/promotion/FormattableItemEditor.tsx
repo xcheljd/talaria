@@ -100,7 +100,7 @@ function FormatButton({ active, onClick, label, children }: FormatButtonProps) {
       aria-label={label}
       aria-pressed={active}
       data-active={active || undefined}
-      className={cn('h-6 w-6', active && 'bg-primary text-primary-foreground')}
+      className={cn('size-6', active && 'bg-primary text-primary-foreground')}
     >
       {children}
     </Button>
@@ -153,7 +153,7 @@ const ItemRow = memo(function ItemRow({
             disabled={isFirst}
             aria-label={`Move ${index + 1} up`}
           >
-            <ChevronUp className="h-3 w-3" />
+            <ChevronUp className="size-3" />
           </Button>
           <Button
             variant="ghost"
@@ -162,7 +162,7 @@ const ItemRow = memo(function ItemRow({
             disabled={isLast}
             aria-label={`Move ${index + 1} down`}
           >
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown className="size-3" />
           </Button>
         </div>
 
@@ -184,21 +184,21 @@ const ItemRow = memo(function ItemRow({
             onClick={() => actions.toggleFormat(item.id, 'bold')}
             label="Toggle bold"
           >
-            <Bold className="h-3 w-3" />
+            <Bold className="size-3" />
           </FormatButton>
           <FormatButton
             active={item.italic}
             onClick={() => actions.toggleFormat(item.id, 'italic')}
             label="Toggle italic"
           >
-            <Italic className="h-3 w-3" />
+            <Italic className="size-3" />
           </FormatButton>
           <FormatButton
             active={item.underline}
             onClick={() => actions.toggleFormat(item.id, 'underline')}
             label="Toggle underline"
           >
-            <Underline className="h-3 w-3" />
+            <Underline className="size-3" />
           </FormatButton>
         </div>
 
@@ -209,7 +209,7 @@ const ItemRow = memo(function ItemRow({
           onClick={() => actions.removeItem(item.id)}
           aria-label={`Remove item ${index + 1}`}
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="size-3.5" />
         </Button>
       </div>
     </SortableItem>
@@ -284,7 +284,7 @@ export function FormattableItemEditor({
       {/* Add Item + Clear All Buttons */}
       <div className="flex items-center gap-2">
         <Button size="sm" onClick={handleAdd} className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="size-3.5" />
           Add {itemLabel}
         </Button>
         {actions.clearAllItems && (
@@ -295,7 +295,7 @@ export function FormattableItemEditor({
             onClick={handleClearAll}
             disabled={items.length === 0}
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="size-3" />
             Clear all
           </Button>
         )}

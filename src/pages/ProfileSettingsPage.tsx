@@ -231,7 +231,7 @@ export function ProfileSettingsPage() {
                       : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="size-4" />
                   {s.label}
                 </button>
               );
@@ -247,7 +247,7 @@ export function ProfileSettingsPage() {
               icon follows the root's color. */}
           {showProfileBanner && (
             <Alert className="mb-4 border-warning/40 bg-warning/10 text-warning">
-              <Info className="h-4 w-4" />
+              <Info className="size-4" />
               <AlertDescription className="text-warning">
                 <strong>Profile required:</strong> Please complete your profile
                 to continue to the Promotion Email Generator.
@@ -290,7 +290,7 @@ export function ProfileSettingsPage() {
                     {/* Action Buttons (top) */}
                     <div className="mb-4 flex flex-wrap gap-2">
                       <Button type="submit" size="sm">
-                        <Save className="mr-1 h-4 w-4" />
+                        <Save className="mr-1 size-4" />
                         Save
                       </Button>
                       <Button
@@ -299,7 +299,7 @@ export function ProfileSettingsPage() {
                         size="sm"
                         onClick={handleExport}
                       >
-                        <Download className="mr-1 h-4 w-4" />
+                        <Download className="mr-1 size-4" />
                         Export
                       </Button>
                       <Button
@@ -308,7 +308,7 @@ export function ProfileSettingsPage() {
                         size="sm"
                         onClick={() => setShowImportDialog(true)}
                       >
-                        <Upload className="mr-1 h-4 w-4" />
+                        <Upload className="mr-1 size-4" />
                         Import
                       </Button>
                     </div>
@@ -317,7 +317,7 @@ export function ProfileSettingsPage() {
                     {attemptedSubmit &&
                       Object.keys(form.formState.errors).length > 0 && (
                         <Alert variant="destructive" className="mb-4">
-                          <AlertCircle className="h-4 w-4" />
+                          <AlertCircle className="size-4" />
                           <AlertDescription>
                             Please complete all required fields:{' '}
                             {Object.entries(form.formState.errors)

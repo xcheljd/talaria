@@ -42,7 +42,7 @@ export function DownloadFolderSection({
           onClick={onChooseFolder}
           disabled={!isTauri}
         >
-          <FolderOpen className="mr-1 h-4 w-4" />
+          <FolderOpen className="mr-1 size-4" />
           {isTauri ? 'Choose Folder' : 'Desktop app only'}
         </Button>
       </div>

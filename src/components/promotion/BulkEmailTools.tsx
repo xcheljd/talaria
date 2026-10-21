@@ -222,7 +222,7 @@ export function BulkEmailTools() {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
             onClick={handleClearRecipients}
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="size-3" />
             Clear All
           </Button>
         )}
@@ -260,7 +260,7 @@ export function BulkEmailTools() {
               variant="outline"
               className="gap-1 border-warning/50 text-warning"
             >
-              <AlertTriangle className="h-3 w-3" />
+              <AlertTriangle className="size-3" />
               {emailStats.duplicates} duplicate
               {emailStats.duplicates > 1 ? 's' : ''} removed
             </Badge>
@@ -282,9 +282,9 @@ export function BulkEmailTools() {
                 data-testid="toggle-invalid-emails"
               >
                 {showInvalidEmails ? (
-                  <ChevronDown className="h-3 w-3" />
+                  <ChevronDown className="size-3" />
                 ) : (
-                  <ChevronRight className="h-3 w-3" />
+                  <ChevronRight className="size-3" />
                 )}
                 {emailStats.invalid} invalid email
                 {emailStats.invalid > 1 ? 's' : ''}
@@ -311,13 +311,13 @@ export function BulkEmailTools() {
             <Button
               variant="outline"
               size="icon"
-              className="h-7 w-7"
+              className="size-7"
               onClick={decrementBatchSize}
               disabled={batchSize <= 50}
               aria-label="Decrease batch size"
               data-testid="batch-size-decrease"
             >
-              <Minus className="h-3 w-3" />
+              <Minus className="size-3" />
             </Button>
             <input
               type="number"
@@ -337,13 +337,13 @@ export function BulkEmailTools() {
             <Button
               variant="outline"
               size="icon"
-              className="h-7 w-7"
+              className="size-7"
               onClick={incrementBatchSize}
               disabled={batchSize >= 1000}
               aria-label="Increase batch size"
               data-testid="batch-size-increase"
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="size-3" />
             </Button>
           </div>
         </div>

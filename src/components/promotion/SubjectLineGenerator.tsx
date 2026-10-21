@@ -79,8 +79,8 @@ function InboxPreview({
             line as the recipient's client will render it. */}
         <div className="flex items-start gap-3 px-3 py-2.5 border-l-2 border-l-blue-500 bg-accent/40">
           <div className="flex items-center gap-2 pt-0.5 shrink-0">
-            <Star className="h-3.5 w-3.5 text-muted-foreground/40" />
-            <div className="h-7 w-7 rounded-full bg-emerald-600 flex items-center justify-center">
+            <Star className="size-3.5 text-muted-foreground/40" />
+            <div className="size-7 rounded-full bg-emerald-600 flex items-center justify-center">
               <span className="text-[11px] font-bold text-white">
                 {senderInitials}
               </span>
@@ -107,8 +107,8 @@ function InboxPreview({
         {/* Dim row for context */}
         <div className="flex items-start gap-3 px-3 py-2 opacity-40">
           <div className="flex items-center gap-2 pt-0.5 shrink-0">
-            <Star className="h-3.5 w-3.5 text-muted-foreground/40" />
-            <div className="h-7 w-7 rounded-full bg-gray-400 flex items-center justify-center">
+            <Star className="size-3.5 text-muted-foreground/40" />
+            <div className="size-7 rounded-full bg-gray-400 flex items-center justify-center">
               <span className="text-[11px] font-bold text-white">NR</span>
             </div>
           </div>
@@ -126,7 +126,7 @@ function InboxPreview({
         </div>
       </div>
       <p className="text-[11px] text-muted-foreground">
-        <Mail className="inline h-3 w-3 mr-0.5 -mt-0.5" />
+        <Mail className="inline size-3 mr-0.5 -mt-0.5" />
         Simulated inbox view — actual rendering varies by email client
       </p>
     </div>
@@ -301,7 +301,7 @@ export function SubjectLineGenerator() {
             onClick={hasLines ? handleRegenerate : handleGenerate}
             className="gap-1.5 text-xs"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw className="size-3.5" />
             {hasLines ? 'Regenerate' : 'Generate suggestions'}
           </Button>
         )}
@@ -412,7 +412,7 @@ export function SubjectLineGenerator() {
         {!store.preheaderText.trim() && (
           <div className="space-y-1">
             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <Sparkles className="h-3 w-3" />
+              <Sparkles className="size-3" />
               Suggestions (click to use):
             </p>
             <div className="flex flex-wrap gap-1">

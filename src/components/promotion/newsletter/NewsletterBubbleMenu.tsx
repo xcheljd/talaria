@@ -192,7 +192,7 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
         label="Bold"
         shortcut="Ctrl+B"
       >
-        <Bold className="h-3.5 w-3.5" />
+        <Bold className="size-3.5" />
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive('italic')}
@@ -200,7 +200,7 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
         label="Italic"
         shortcut="Ctrl+I"
       >
-        <Italic className="h-3.5 w-3.5" />
+        <Italic className="size-3.5" />
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive('underline')}
@@ -208,7 +208,7 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
         label="Underline"
         shortcut="Ctrl+U"
       >
-        <UnderlineIcon className="h-3.5 w-3.5" />
+        <UnderlineIcon className="size-3.5" />
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive('strike')}
@@ -216,7 +216,7 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
         label="Strikethrough"
         shortcut="Ctrl+Shift+S"
       >
-        <Strikethrough className="h-3.5 w-3.5" />
+        <Strikethrough className="size-3.5" />
       </ToolbarButton>
 
       <ToolbarSeparator />
@@ -226,14 +226,14 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
         color={lastTextColor}
         onChange={handleTextColor}
       >
-        <Palette className="h-3.5 w-3.5" />
+        <Palette className="size-3.5" />
       </ColorInput>
       <ColorInput
         label="Highlight color"
         color={lastHighlightColor}
         onChange={handleHighlight}
       >
-        <Highlighter className="h-3.5 w-3.5" />
+        <Highlighter className="size-3.5" />
       </ColorInput>
 
       <ToolbarSeparator />
@@ -244,7 +244,7 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
         label="Align left"
         shortcut="Ctrl+Shift+L"
       >
-        <AlignLeft className="h-3.5 w-3.5" />
+        <AlignLeft className="size-3.5" />
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive({ textAlign: 'center' })}
@@ -252,7 +252,7 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
         label="Align center"
         shortcut="Ctrl+Shift+E"
       >
-        <AlignCenter className="h-3.5 w-3.5" />
+        <AlignCenter className="size-3.5" />
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive({ textAlign: 'right' })}
@@ -260,7 +260,7 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
         label="Align right"
         shortcut="Ctrl+Shift+R"
       >
-        <AlignRight className="h-3.5 w-3.5" />
+        <AlignRight className="size-3.5" />
       </ToolbarButton>
 
       <ToolbarSeparator />
@@ -271,7 +271,7 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
         label="Bullet list"
         shortcut="Ctrl+Shift+8"
       >
-        <List className="h-3.5 w-3.5" />
+        <List className="size-3.5" />
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive('orderedList')}
@@ -279,7 +279,7 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
         label="Numbered list"
         shortcut="Ctrl+Shift+7"
       >
-        <ListOrdered className="h-3.5 w-3.5" />
+        <ListOrdered className="size-3.5" />
       </ToolbarButton>
 
       <ToolbarSeparator />
@@ -293,7 +293,7 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
             label="Add link"
             shortcut="Ctrl+K"
           >
-            <LinkIcon className="h-3.5 w-3.5" />
+            <LinkIcon className="size-3.5" />
           </ToolbarButton>
         </PopoverTrigger>
         <PopoverContent className="w-72 p-2" side="top" align="start">

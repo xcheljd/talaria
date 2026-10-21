@@ -194,11 +194,11 @@ ${htmlSignature}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full">
             <TabsTrigger value="preview" className="flex-1">
-              <Eye className="mr-1.5 h-4 w-4" />
+              <Eye className="mr-1.5 size-4" />
               Preview
             </TabsTrigger>
             <TabsTrigger value="text" className="flex-1">
-              <FileText className="mr-1.5 h-4 w-4" />
+              <FileText className="mr-1.5 size-4" />
               Text
             </TabsTrigger>
           </TabsList>
@@ -227,7 +227,7 @@ ${htmlSignature}
         {hasContent && (
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="default" onClick={handleCopy}>
-              <Copy className="mr-1.5 h-4 w-4" />
+              <Copy className="mr-1.5 size-4" />
               Copy Message
             </Button>
             {hasEnhancedFeatures && (
@@ -236,7 +236,7 @@ ${htmlSignature}
                 variant="outline"
                 onClick={handleDownloadEML}
               >
-                <Download className="mr-1.5 h-4 w-4" />
+                <Download className="mr-1.5 size-4" />
                 Download Email File
               </Button>
             )}

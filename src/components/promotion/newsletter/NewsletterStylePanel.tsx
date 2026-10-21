@@ -48,9 +48,9 @@ export function NewsletterStylePanel() {
             >
               <span>Customize Border & Background</span>
               {showCustomize ? (
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="size-3" />
               ) : (
-                <ChevronRight className="h-3 w-3" />
+                <ChevronRight className="size-3" />
               )}
             </button>
           </CollapsibleTrigger>
@@ -149,7 +149,7 @@ export function NewsletterStylePanel() {
                         {picker.label}
                       </label>
                       <div
-                        className="h-5 w-5 rounded border border-border shrink-0"
+                        className="size-5 rounded border border-border shrink-0"
                         style={{
                           backgroundColor: currentValue ?? '#888',
                           backgroundImage: currentValue
@@ -183,7 +183,7 @@ export function NewsletterStylePanel() {
                         title={`Auto uses email ${picker.autoHint.toLowerCase()} color`}
                         data-testid={`auto-${picker.key}`}
                       >
-                        <RotateCcw className="h-2.5 w-2.5" />
+                        <RotateCcw className="size-2.5" />
                         Auto
                       </Button>
                     </div>
@@ -195,7 +195,7 @@ export function NewsletterStylePanel() {
                             <button
                               type="button"
                               className={cn(
-                                'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
+                                'size-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
                                 currentValue === sw.color &&
                                   'ring-1 ring-primary ring-offset-1'
                               )}
@@ -235,9 +235,9 @@ export function NewsletterStylePanel() {
             >
               <span>Customize Table Style</span>
               {showTableStyle ? (
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="size-3" />
               ) : (
-                <ChevronRight className="h-3 w-3" />
+                <ChevronRight className="size-3" />
               )}
             </button>
           </CollapsibleTrigger>
@@ -313,7 +313,7 @@ export function NewsletterStylePanel() {
                     Border Color
                   </label>
                   <div
-                    className="h-5 w-5 rounded border border-border shrink-0"
+                    className="size-5 rounded border border-border shrink-0"
                     style={{
                       backgroundColor:
                         store.newsletterStyle.tableBorderColor ??
@@ -346,7 +346,7 @@ export function NewsletterStylePanel() {
                     aria-label="Reset table border color to auto"
                     title="Auto uses email text color"
                   >
-                    <RotateCcw className="h-2.5 w-2.5" />
+                    <RotateCcw className="size-2.5" />
                     Auto
                   </Button>
                 </div>
@@ -362,7 +362,7 @@ export function NewsletterStylePanel() {
                         <button
                           type="button"
                           className={cn(
-                            'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
+                            'size-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
                             store.newsletterStyle.tableBorderColor ===
                               sw.color && 'ring-1 ring-primary ring-offset-1'
                           )}
@@ -391,7 +391,7 @@ export function NewsletterStylePanel() {
                     Header Bg
                   </label>
                   <div
-                    className="h-5 w-5 rounded border border-border shrink-0"
+                    className="size-5 rounded border border-border shrink-0"
                     style={{
                       backgroundColor:
                         store.newsletterStyle.tableHeaderBg ??
@@ -424,7 +424,7 @@ export function NewsletterStylePanel() {
                     aria-label="Reset table header background to auto"
                     title="Auto uses email section background"
                   >
-                    <RotateCcw className="h-2.5 w-2.5" />
+                    <RotateCcw className="size-2.5" />
                     Auto
                   </Button>
                 </div>
@@ -443,7 +443,7 @@ export function NewsletterStylePanel() {
                         <button
                           type="button"
                           className={cn(
-                            'h-4 w-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
+                            'size-4 rounded-sm border border-border cursor-pointer transition-transform hover:scale-125',
                             store.newsletterStyle.tableHeaderBg === sw.color &&
                               'ring-1 ring-primary ring-offset-1'
                           )}

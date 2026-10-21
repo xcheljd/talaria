@@ -65,11 +65,11 @@ export const PreviewToolbar = memo(function PreviewToolbar({
             className="flex-none gap-0 rounded-md border border-input p-0 shadow-xs"
           >
             <TabsTrigger value="preview">
-              <Eye className="h-3.5 w-3.5" />
+              <Eye className="size-3.5" />
               Preview
             </TabsTrigger>
             <TabsTrigger value="code">
-              <Code className="h-3.5 w-3.5" />
+              <Code className="size-3.5" />
               HTML
             </TabsTrigger>
           </TabsList>
@@ -99,7 +99,7 @@ export const PreviewToolbar = memo(function PreviewToolbar({
           title="Desktop width (600px)"
           className="gap-1.5 px-2 text-xs"
         >
-          <Monitor className="h-3.5 w-3.5" />
+          <Monitor className="size-3.5" />
           Desktop
         </ToggleGroupItem>
         <ToggleGroupItem
@@ -108,7 +108,7 @@ export const PreviewToolbar = memo(function PreviewToolbar({
           title="Mobile width (320px)"
           className="gap-1.5 px-2 text-xs"
         >
-          <Smartphone className="h-3.5 w-3.5" />
+          <Smartphone className="size-3.5" />
           Mobile
         </ToggleGroupItem>
       </ToggleGroup>
@@ -132,14 +132,14 @@ export const PreviewToolbar = memo(function PreviewToolbar({
           aria-label="Light preview"
           title="Light preview"
         >
-          <Sun className="h-3.5 w-3.5" />
+          <Sun className="size-3.5" />
         </ToggleGroupItem>
         <ToggleGroupItem
           value="dark"
           aria-label="Dark preview"
           title="Dark preview"
         >
-          <Moon className="h-3.5 w-3.5" />
+          <Moon className="size-3.5" />
         </ToggleGroupItem>
       </ToggleGroup>
 
@@ -192,7 +192,7 @@ export const PreviewToolbar = memo(function PreviewToolbar({
             disabled={!hasContent}
             aria-label="Print email"
           >
-            <Printer className="h-3.5 w-3.5" />
+            <Printer className="size-3.5" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Print email</TooltipContent>

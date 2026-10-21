@@ -103,12 +103,12 @@ function ImageNodeView({
               <button
                 type="button"
                 className={cn(
-                  'h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent',
+                  'size-6 flex items-center justify-center rounded text-xs hover:bg-accent',
                   align === 'left' && 'bg-accent'
                 )}
                 onClick={() => updateAttributes({ align: 'left' })}
               >
-                <AlignLeft className="h-3 w-3" />
+                <AlignLeft className="size-3" />
               </button>
             </TooltipTrigger>
             <TooltipContent>Align left</TooltipContent>
@@ -118,12 +118,12 @@ function ImageNodeView({
               <button
                 type="button"
                 className={cn(
-                  'h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent',
+                  'size-6 flex items-center justify-center rounded text-xs hover:bg-accent',
                   align === 'center' && 'bg-accent'
                 )}
                 onClick={() => updateAttributes({ align: 'center' })}
               >
-                <AlignCenter className="h-3 w-3" />
+                <AlignCenter className="size-3" />
               </button>
             </TooltipTrigger>
             <TooltipContent>Align center</TooltipContent>
@@ -133,12 +133,12 @@ function ImageNodeView({
               <button
                 type="button"
                 className={cn(
-                  'h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent',
+                  'size-6 flex items-center justify-center rounded text-xs hover:bg-accent',
                   align === 'right' && 'bg-accent'
                 )}
                 onClick={() => updateAttributes({ align: 'right' })}
               >
-                <AlignRight className="h-3 w-3" />
+                <AlignRight className="size-3" />
               </button>
             </TooltipTrigger>
             <TooltipContent>Align right</TooltipContent>
@@ -149,7 +149,7 @@ function ImageNodeView({
               <button
                 type="button"
                 className={cn(
-                  'h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent',
+                  'size-6 flex items-center justify-center rounded text-xs hover:bg-accent',
                   href && 'text-primary'
                 )}
                 onClick={() => {
@@ -157,7 +157,7 @@ function ImageNodeView({
                   setShowLinkInput(!showLinkInput);
                 }}
               >
-                <LinkIcon className="h-3 w-3" />
+                <LinkIcon className="size-3" />
               </button>
             </TooltipTrigger>
             <TooltipContent>Add link</TooltipContent>
@@ -167,10 +167,10 @@ function ImageNodeView({
             <TooltipTrigger asChild>
               <button
                 type="button"
-                className="h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent text-destructive"
+                className="size-6 flex items-center justify-center rounded text-xs hover:bg-accent text-destructive"
                 onClick={deleteNode}
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="size-3" />
               </button>
             </TooltipTrigger>
             <TooltipContent>Delete image</TooltipContent>
@@ -204,13 +204,13 @@ function ImageNodeView({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  className="h-6 w-6 flex items-center justify-center rounded text-xs hover:bg-accent text-destructive"
+                  className="size-6 flex items-center justify-center rounded text-xs hover:bg-accent text-destructive"
                   onClick={() => {
                     updateAttributes({ href: null });
                     setShowLinkInput(false);
                   }}
                 >
-                  <X className="h-3 w-3" />
+                  <X className="size-3" />
                 </button>
               </TooltipTrigger>
               <TooltipContent>Remove link</TooltipContent>
@@ -240,11 +240,11 @@ function ImageNodeView({
       {selected && (
         <>
           <div
-            className="absolute bottom-0 right-0 w-3 h-3 bg-primary rounded-tl cursor-se-resize z-10"
+            className="absolute bottom-0 right-0 size-3 bg-primary rounded-tl cursor-se-resize z-10"
             onMouseDown={handleResizeStart}
           />
           <div
-            className="absolute top-0 right-0 w-3 h-3 bg-primary rounded-bl cursor-ne-resize z-10"
+            className="absolute top-0 right-0 size-3 bg-primary rounded-bl cursor-ne-resize z-10"
             onMouseDown={handleResizeStart}
           />
         </>

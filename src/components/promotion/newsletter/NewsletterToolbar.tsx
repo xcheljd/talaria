@@ -191,7 +191,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         shortcut="Ctrl+Z"
         disabled={!editor?.can().undo()}
       >
-        <Undo2 className="h-3.5 w-3.5" />
+        <Undo2 className="size-3.5" />
       </ToolbarButton>
       <ToolbarButton
         active={false}
@@ -200,7 +200,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         shortcut="Ctrl+Shift+Z"
         disabled={!editor?.can().redo()}
       >
-        <Redo2 className="h-3.5 w-3.5" />
+        <Redo2 className="size-3.5" />
       </ToolbarButton>
 
       <ToolbarSeparator />
@@ -212,7 +212,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Bold"
         shortcut="Ctrl+B"
       >
-        <Bold className="h-3.5 w-3.5" />
+        <Bold className="size-3.5" />
       </ToolbarButton>
 
       {/* Italic */}
@@ -222,7 +222,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Italic"
         shortcut="Ctrl+I"
       >
-        <Italic className="h-3.5 w-3.5" />
+        <Italic className="size-3.5" />
       </ToolbarButton>
 
       {/* Underline */}
@@ -232,7 +232,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Underline"
         shortcut="Ctrl+U"
       >
-        <UnderlineIcon className="h-3.5 w-3.5" />
+        <UnderlineIcon className="size-3.5" />
       </ToolbarButton>
 
       {/* Strikethrough */}
@@ -242,7 +242,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Strikethrough"
         shortcut="Ctrl+Shift+S"
       >
-        <Strikethrough className="h-3.5 w-3.5" />
+        <Strikethrough className="size-3.5" />
       </ToolbarButton>
 
       {/* Font Size */}
@@ -300,7 +300,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         }
         label="Clear formatting"
       >
-        <RemoveFormatting className="h-3.5 w-3.5" />
+        <RemoveFormatting className="size-3.5" />
       </ToolbarButton>
 
       <ToolbarSeparator />
@@ -311,7 +311,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         color={lastTextColor}
         onChange={handleTextColor}
       >
-        <Palette className="h-3.5 w-3.5" />
+        <Palette className="size-3.5" />
       </ColorInput>
 
       {/* Highlight */}
@@ -320,7 +320,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         color={lastHighlightColor}
         onChange={handleHighlight}
       >
-        <Highlighter className="h-3.5 w-3.5" />
+        <Highlighter className="size-3.5" />
       </ColorInput>
 
       <ToolbarSeparator />
@@ -334,7 +334,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Heading 2"
         shortcut="Ctrl+Alt+2"
       >
-        <Heading2 className="h-3.5 w-3.5" />
+        <Heading2 className="size-3.5" />
       </ToolbarButton>
 
       {/* H3 */}
@@ -346,7 +346,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Heading 3"
         shortcut="Ctrl+Alt+3"
       >
-        <Heading3 className="h-3.5 w-3.5" />
+        <Heading3 className="size-3.5" />
       </ToolbarButton>
 
       <ToolbarSeparator />
@@ -358,7 +358,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Bullet list"
         shortcut="Ctrl+Shift+8"
       >
-        <List className="h-3.5 w-3.5" />
+        <List className="size-3.5" />
       </ToolbarButton>
 
       {/* Numbered List */}
@@ -368,7 +368,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Numbered list"
         shortcut="Ctrl+Shift+7"
       >
-        <ListOrdered className="h-3.5 w-3.5" />
+        <ListOrdered className="size-3.5" />
       </ToolbarButton>
 
       <ToolbarSeparator />
@@ -380,7 +380,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Align left"
         shortcut="Ctrl+Shift+L"
       >
-        <AlignLeft className="h-3.5 w-3.5" />
+        <AlignLeft className="size-3.5" />
       </ToolbarButton>
       <ToolbarButton
         active={editor?.isActive({ textAlign: 'center' }) || false}
@@ -388,7 +388,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Align center"
         shortcut="Ctrl+Shift+E"
       >
-        <AlignCenter className="h-3.5 w-3.5" />
+        <AlignCenter className="size-3.5" />
       </ToolbarButton>
       <ToolbarButton
         active={editor?.isActive({ textAlign: 'right' }) || false}
@@ -396,7 +396,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Align right"
         shortcut="Ctrl+Shift+R"
       >
-        <AlignRight className="h-3.5 w-3.5" />
+        <AlignRight className="size-3.5" />
       </ToolbarButton>
       <ToolbarButton
         active={editor?.isActive({ textAlign: 'justify' }) || false}
@@ -404,7 +404,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Justify"
         shortcut="Ctrl+Shift+J"
       >
-        <AlignJustify className="h-3.5 w-3.5" />
+        <AlignJustify className="size-3.5" />
       </ToolbarButton>
 
       <ToolbarSeparator />
@@ -416,7 +416,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Blockquote"
         shortcut="Ctrl+Shift+B"
       >
-        <Quote className="h-3.5 w-3.5" />
+        <Quote className="size-3.5" />
       </ToolbarButton>
 
       {/* Code Block (#4) */}
@@ -426,7 +426,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         label="Code block"
         shortcut="Ctrl+Alt+C"
       >
-        <Code className="h-3.5 w-3.5" />
+        <Code className="size-3.5" />
       </ToolbarButton>
 
       <ToolbarSeparator />
@@ -440,7 +440,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
             label="Add link"
             shortcut="Ctrl+K"
           >
-            <LinkIcon className="h-3.5 w-3.5" />
+            <LinkIcon className="size-3.5" />
           </ToolbarButton>
         </PopoverTrigger>
         <PopoverContent className="w-72 p-2" side="bottom" align="start">
@@ -482,7 +482,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
           onClick={() => editor.chain().focus().unsetLink().run()}
           label="Remove link"
         >
-          <Link2Off className="h-3.5 w-3.5" />
+          <Link2Off className="size-3.5" />
         </ToolbarButton>
       )}
 
@@ -496,7 +496,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
           }}
           label="Open link"
         >
-          <ExternalLink className="h-3.5 w-3.5" />
+          <ExternalLink className="size-3.5" />
         </ToolbarButton>
       )}
 
@@ -510,7 +510,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
             onClick={() => setImagePopoverOpen(true)}
             label="Insert image"
           >
-            <ImageIcon className="h-3.5 w-3.5" />
+            <ImageIcon className="size-3.5" />
           </ToolbarButton>
         </PopoverTrigger>
         <PopoverContent className="w-72 p-2" side="bottom" align="start">
@@ -574,7 +574,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
             onClick={() => {}}
             label="Table"
           >
-            <TableIcon className="h-3.5 w-3.5" />
+            <TableIcon className="size-3.5" />
           </ToolbarButton>
         </PopoverTrigger>
         <PopoverContent className="w-56 p-1" side="bottom" align="start">
@@ -602,7 +602,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
                         key={`${row}-${col}`}
                         type="button"
                         className={cn(
-                          'h-4 w-4 border rounded-[2px] transition-colors',
+                          'size-4 border rounded-[2px] transition-colors',
                           isHighlighted
                             ? 'bg-primary border-primary'
                             : 'bg-muted border-border hover:border-primary/50'
@@ -629,7 +629,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               onClick={() => editor?.chain().focus().addColumnBefore().run()}
               disabled={!editor?.can().addColumnBefore()}
             >
-              <Plus className="h-3 w-3 mr-1.5" />
+              <Plus className="size-3 mr-1.5" />
               Add column before
             </Button>
             <Button
@@ -639,7 +639,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               onClick={() => editor?.chain().focus().addColumnAfter().run()}
               disabled={!editor?.can().addColumnAfter()}
             >
-              <Plus className="h-3 w-3 mr-1.5" />
+              <Plus className="size-3 mr-1.5" />
               Add column after
             </Button>
             <Button
@@ -649,7 +649,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               onClick={() => editor?.chain().focus().deleteColumn().run()}
               disabled={!editor?.can().deleteColumn()}
             >
-              <Minus className="h-3 w-3 mr-1.5" />
+              <Minus className="size-3 mr-1.5" />
               Delete column
             </Button>
             <div className="h-px bg-border my-0.5" />
@@ -660,7 +660,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               onClick={() => editor?.chain().focus().addRowBefore().run()}
               disabled={!editor?.can().addRowBefore()}
             >
-              <Plus className="h-3 w-3 mr-1.5" />
+              <Plus className="size-3 mr-1.5" />
               Add row before
             </Button>
             <Button
@@ -670,7 +670,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               onClick={() => editor?.chain().focus().addRowAfter().run()}
               disabled={!editor?.can().addRowAfter()}
             >
-              <Plus className="h-3 w-3 mr-1.5" />
+              <Plus className="size-3 mr-1.5" />
               Add row after
             </Button>
             <Button
@@ -680,7 +680,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               onClick={() => editor?.chain().focus().deleteRow().run()}
               disabled={!editor?.can().deleteRow()}
             >
-              <Minus className="h-3 w-3 mr-1.5" />
+              <Minus className="size-3 mr-1.5" />
               Delete row
             </Button>
             <div className="h-px bg-border my-0.5" />
@@ -691,7 +691,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               onClick={() => editor?.chain().focus().mergeCells().run()}
               disabled={!editor?.can().mergeCells()}
             >
-              <TableCellsMerge className="h-3 w-3 mr-1.5" />
+              <TableCellsMerge className="size-3 mr-1.5" />
               Merge cells
             </Button>
             <Button
@@ -701,7 +701,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               onClick={() => editor?.chain().focus().splitCell().run()}
               disabled={!editor?.can().splitCell()}
             >
-              <TableCellsSplit className="h-3 w-3 mr-1.5" />
+              <TableCellsSplit className="size-3 mr-1.5" />
               Split cell
             </Button>
             <div className="h-px bg-border my-0.5" />
@@ -712,7 +712,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               onClick={() => editor?.chain().focus().deleteTable().run()}
               disabled={!editor?.can().deleteTable()}
             >
-              <Trash2Icon className="h-3 w-3 mr-1.5" />
+              <Trash2Icon className="size-3 mr-1.5" />
               Delete table
             </Button>
           </div>
@@ -729,7 +729,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
             onClick={() => {}}
             label="Insert divider"
           >
-            <Minus className="h-3.5 w-3.5" />
+            <Minus className="size-3.5" />
           </ToolbarButton>
         </PopoverTrigger>
         <PopoverContent className="w-48 p-1" side="bottom" align="start">
@@ -824,7 +824,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
       <Popover>
         <PopoverTrigger asChild>
           <ToolbarButton active={false} onClick={() => {}} label="Insert emoji">
-            <Smile className="h-3.5 w-3.5" />
+            <Smile className="size-3.5" />
           </ToolbarButton>
         </PopoverTrigger>
         <PopoverContent className="w-64 p-2" side="bottom" align="start">
@@ -834,7 +834,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent text-base cursor-pointer"
+                    className="size-7 flex items-center justify-center rounded hover:bg-accent text-base cursor-pointer"
                     onClick={() => {
                       editor?.chain().focus().insertContent(emoji).run();
                     }}
@@ -855,14 +855,14 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         onClick={() => store.setNewsletterStyle({ headingAlign: 'left' })}
         label="Align heading left"
       >
-        <AlignLeft className="h-3.5 w-3.5" />
+        <AlignLeft className="size-3.5" />
       </ToolbarButton>
       <ToolbarButton
         active={store.newsletterStyle.headingAlign === 'center'}
         onClick={() => store.setNewsletterStyle({ headingAlign: 'center' })}
         label="Align heading center"
       >
-        <AlignCenter className="h-3.5 w-3.5" />
+        <AlignCenter className="size-3.5" />
       </ToolbarButton>
     </div>
   );

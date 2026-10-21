@@ -39,7 +39,7 @@ export function ToolbarButton({
       data-active={active}
       title={shortcut ? `${label} (${shortcut})` : label}
       className={cn(
-        'h-7 w-7',
+        'size-7',
         active && 'bg-accent text-accent-foreground',
         className
       )}
@@ -80,7 +80,7 @@ export function ColorInput({
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7"
+        className="size-7"
         aria-label={label}
         tabIndex={0}
         onClick={() => inputRef.current?.click()}
@@ -91,7 +91,7 @@ export function ColorInput({
         ref={inputRef}
         type="color"
         value={color}
-        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        className="absolute inset-0 size-full cursor-pointer opacity-0"
         onChange={(e) => onChange(e.target.value)}
         aria-hidden="true"
         tabIndex={-1}
