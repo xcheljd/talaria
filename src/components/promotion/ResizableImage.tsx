@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 import {
   Tooltip,
   TooltipContent,
@@ -143,7 +144,10 @@ function ImageNodeView({
             </TooltipTrigger>
             <TooltipContent>Align right</TooltipContent>
           </Tooltip>
-          <div className="mx-0.5 h-4 w-px bg-border" />
+          <Separator
+            orientation="vertical"
+            className="mx-0.5 data-[orientation=vertical]:h-4"
+          />
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -162,7 +166,10 @@ function ImageNodeView({
             </TooltipTrigger>
             <TooltipContent>Add link</TooltipContent>
           </Tooltip>
-          <div className="mx-0.5 h-4 w-px bg-border" />
+          <Separator
+            orientation="vertical"
+            className="mx-0.5 data-[orientation=vertical]:h-4"
+          />
           <Tooltip>
             <TooltipTrigger asChild>
               <button

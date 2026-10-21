@@ -621,7 +621,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
                 )}
               </div>
             </div>
-            <div className="h-px bg-border my-0.5" />
+            <Separator className="my-0.5" />
             <Button
               variant="ghost"
               size="sm"
@@ -652,7 +652,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               <Minus className="size-3 mr-1.5" />
               Delete column
             </Button>
-            <div className="h-px bg-border my-0.5" />
+            <Separator className="my-0.5" />
             <Button
               variant="ghost"
               size="sm"
@@ -683,7 +683,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               <Minus className="size-3 mr-1.5" />
               Delete row
             </Button>
-            <div className="h-px bg-border my-0.5" />
+            <Separator className="my-0.5" />
             <Button
               variant="ghost"
               size="sm"
@@ -704,7 +704,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
               <TableCellsSplit className="size-3 mr-1.5" />
               Split cell
             </Button>
-            <div className="h-px bg-border my-0.5" />
+            <Separator className="my-0.5" />
             <Button
               variant="ghost"
               size="sm"

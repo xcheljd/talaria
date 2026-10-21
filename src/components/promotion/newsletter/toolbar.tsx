@@ -7,6 +7,7 @@ import React from 'react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 // ===== Toolbar Button =====
 
@@ -53,7 +54,12 @@ export function ToolbarButton({
 // ===== Toolbar Separator =====
 
 export function ToolbarSeparator() {
-  return <div className="mx-0.5 h-5 w-px bg-border" />;
+  return (
+    <Separator
+      orientation="vertical"
+      className="mx-0.5 data-[orientation=vertical]:h-5"
+    />
+  );
 }
 
 // ===== Color Input =====
