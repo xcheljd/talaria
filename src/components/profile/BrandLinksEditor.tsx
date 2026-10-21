@@ -114,7 +114,7 @@ export function BrandLinksEditor({
         size="sm"
         onClick={() => appendBrandLink({ name: '', url: '' })}
       >
-        <Plus className="mr-1 size-4" />
+        <Plus className="size-4" />
         Add brand link
       </Button>
     </div>

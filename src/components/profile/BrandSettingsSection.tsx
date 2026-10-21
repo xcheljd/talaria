@@ -25,7 +25,7 @@ interface BrandSettingsSectionProps {
 
 export function BrandSettingsSection({ form }: BrandSettingsSectionProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 rounded-lg border bg-card p-4 sm:p-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 rounded-lg border bg-card p-4 lg:grid-cols-2">
       {/* Subject line keywords header */}
       <div className="col-span-1 lg:col-span-2">
         <h3 className="text-sm font-semibold">Subject Line Keywords</h3>

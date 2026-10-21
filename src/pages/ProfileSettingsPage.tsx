@@ -213,9 +213,11 @@ export function ProfileSettingsPage() {
     <div className="mx-auto max-w-[1100px] px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Sidebar */}
-        <aside className="lg:w-56 lg:shrink-0">
-          <h1 className="mb-1 text-2xl font-semibold">Settings</h1>
-          <p className="mb-4 text-sm text-muted-foreground">Talaria</p>
+        <aside className="flex flex-col gap-4 lg:w-56 lg:shrink-0">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-semibold">Settings</h1>
+            <p className="text-sm text-muted-foreground">Talaria</p>
+          </div>
           <nav className="flex gap-1 overflow-x-auto pb-1 lg:flex-col">
             {SECTIONS.map((s) => {
               const Icon = s.icon;
@@ -241,13 +243,13 @@ export function ProfileSettingsPage() {
         </aside>
 
         {/* Main content */}
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-6">
           {/* Profile Required Banner. `text-warning` has to sit on the Alert
               itself: alertVariants ships `[&>svg]:text-current`, whose
               descendant selector outranks a utility class on the icon, so the
               icon follows the root's color. */}
           {showProfileBanner && (
-            <Alert className="mb-4 border-warning/40 bg-warning/10 text-warning">
+            <Alert className="border-warning/40 bg-warning/10 text-warning">
               <Info className="size-4" />
               <AlertDescription className="text-warning">
                 <strong>Profile required:</strong> Please complete your profile
@@ -258,7 +260,7 @@ export function ProfileSettingsPage() {
 
           {/* Save Success Banner */}
           {saveSuccess && (
-            <Alert className="mb-4 border-success/40 bg-success/10 text-success">
+            <Alert className="border-success/40 bg-success/10 text-success">
               <AlertDescription className="text-success">
                 Profile saved successfully!
               </AlertDescription>
@@ -268,9 +270,9 @@ export function ProfileSettingsPage() {
           {/* Profile & Keywords (form-backed sections) */}
           {(section === 'profile' || section === 'keywords') && (
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="flex flex-col gap-6 pt-6">
                 {section === 'profile' && (
-                  <div className="mb-6 rounded-md border-l-4 border-primary bg-primary/5 p-3 text-sm text-muted-foreground">
+                  <div className="rounded-md border-l-4 border-primary bg-primary/5 p-3 text-sm text-muted-foreground">
                     Saved locally on your device and used to auto-fill your
                     details across templates. Update anytime.
                   </div>
@@ -278,6 +280,7 @@ export function ProfileSettingsPage() {
 
                 <Form {...form}>
                   <form
+                    className="flex flex-col gap-4"
                     onSubmit={form.handleSubmit(
                       () => {
                         setAttemptedSubmit(false);
@@ -289,9 +292,9 @@ export function ProfileSettingsPage() {
                     )}
                   >
                     {/* Action Buttons (top) */}
-                    <div className="mb-4 flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button type="submit" size="sm">
-                        <Save className="mr-1 size-4" />
+                        <Save className="size-4" />
                         Save
                       </Button>
                       <Button
@@ -300,7 +303,7 @@ export function ProfileSettingsPage() {
                         size="sm"
                         onClick={handleExport}
                       >
-                        <Download className="mr-1 size-4" />
+                        <Download className="size-4" />
                         Export
                       </Button>
                       <Button
@@ -309,7 +312,7 @@ export function ProfileSettingsPage() {
                         size="sm"
                         onClick={() => setShowImportDialog(true)}
                       >
-                        <Upload className="mr-1 size-4" />
+                        <Upload className="size-4" />
                         Import
                       </Button>
                     </div>
@@ -317,7 +320,7 @@ export function ProfileSettingsPage() {
                     {/* Validation Summary */}
                     {attemptedSubmit &&
                       Object.keys(form.formState.errors).length > 0 && (
-                        <Alert variant="destructive" className="mb-4">
+                        <Alert variant="destructive">
                           <AlertCircle className="size-4" />
                           <AlertDescription>
                             Please complete all required fields:{' '}

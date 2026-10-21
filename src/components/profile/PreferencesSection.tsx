@@ -38,7 +38,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
 import { DownloadFolderSection } from '@/components/profile/DownloadFolderSection';
 
@@ -97,7 +103,7 @@ export function PreferencesSection({
         <CardDescription>Customize your app preferences</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-4 rounded-lg border bg-card p-4 sm:p-6 lg:grid-cols-2">
+        <FieldGroup className="gap-4 rounded-lg border bg-card p-4">
           {/* Download Folder */}
           <DownloadFolderSection
             isTauri={isTauri}
@@ -106,138 +112,143 @@ export function PreferencesSection({
           />
 
           {/* Download Behavior */}
-          <div className="col-span-1 lg:col-span-2">
-            <div className="flex items-center gap-3">
-              <Switch
-                id="download-save-as"
-                checked={downloadSaveAs}
-                onCheckedChange={handleDownloadSaveAsChange}
-              />
-              <Label htmlFor="download-save-as">
+          <Field orientation="horizontal">
+            <Switch
+              id="download-save-as"
+              checked={downloadSaveAs}
+              onCheckedChange={handleDownloadSaveAsChange}
+            />
+            <FieldContent>
+              <FieldLabel htmlFor="download-save-as">
                 Ask where to save each download
-              </Label>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              When enabled, a Save As dialog appears for every download (drafts,
-              HTML, exports, batch files). When disabled, files save silently to
-              your configured download folder. Only applies in the desktop app.
-            </p>
-          </div>
+              </FieldLabel>
+              <FieldDescription className="text-xs">
+                When enabled, a Save As dialog appears for every download
+                (drafts, HTML, exports, batch files). When disabled, files save
+                silently to your configured download folder. Only applies in the
+                desktop app.
+              </FieldDescription>
+            </FieldContent>
+          </Field>
 
           {/* PDF Optimization */}
-          <div className="col-span-1 lg:col-span-2">
-            <div className="flex items-center gap-3">
-              <Switch
-                id="pdf-optimize"
-                checked={pdfOptimize}
-                onCheckedChange={handlePdfOptimizeChange}
-              />
-              <Label htmlFor="pdf-optimize">Optimize attached PDFs</Label>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Downsamples over-resolution embedded images to reduce file size
-              when attaching PDFs. Disable to attach PDFs exactly as-is.
-            </p>
-          </div>
+          <Field orientation="horizontal">
+            <Switch
+              id="pdf-optimize"
+              checked={pdfOptimize}
+              onCheckedChange={handlePdfOptimizeChange}
+            />
+            <FieldContent>
+              <FieldLabel htmlFor="pdf-optimize">
+                Optimize attached PDFs
+              </FieldLabel>
+              <FieldDescription className="text-xs">
+                Downsamples over-resolution embedded images to reduce file size
+                when attaching PDFs. Disable to attach PDFs exactly as-is.
+              </FieldDescription>
+            </FieldContent>
+          </Field>
 
-          <div className="col-span-1 lg:col-span-2">
-            <div className="flex items-center gap-3">
-              <Switch
-                id="strip-accessibility"
-                checked={stripAccessibility}
-                onCheckedChange={handleStripAccessibilityChange}
-              />
-              <Label htmlFor="strip-accessibility">
+          <Field orientation="horizontal">
+            <Switch
+              id="strip-accessibility"
+              checked={stripAccessibility}
+              onCheckedChange={handleStripAccessibilityChange}
+            />
+            <FieldContent>
+              <FieldLabel htmlFor="strip-accessibility">
                 Strip accessibility metadata from attached PDFs
-              </Label>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Removes screen-reader metadata (StructTreeRoot) for ~18%
-              additional size reduction. Suitable for visual-only documents such
-              as promotion flyers. Disable if your PDFs contain substantial text
-              for screen-reader users.
-            </p>
-          </div>
+              </FieldLabel>
+              <FieldDescription className="text-xs">
+                Removes screen-reader metadata (StructTreeRoot) for ~18%
+                additional size reduction. Suitable for visual-only documents
+                such as promotion flyers. Disable if your PDFs contain
+                substantial text for screen-reader users.
+              </FieldDescription>
+            </FieldContent>
+          </Field>
 
           {/* Dev Mode */}
-          <div className="col-span-1 lg:col-span-2">
-            <div className="flex items-center gap-3">
-              <Switch
-                id="dev-mode"
-                checked={devMode}
-                onCheckedChange={handleDevModeChange}
-                data-testid="dev-mode-switch"
-              />
-              <Label htmlFor="dev-mode">Dev mode</Label>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Reveals advanced surfaces still under construction: the Templates
-              page, the promotion HTML Code tab, and the Email Theme,
-              Accessibility Check, and Outlook Compatibility cards. Persists
-              across sessions.
-            </p>
-          </div>
+          <Field orientation="horizontal">
+            <Switch
+              id="dev-mode"
+              checked={devMode}
+              onCheckedChange={handleDevModeChange}
+              data-testid="dev-mode-switch"
+            />
+            <FieldContent>
+              <FieldLabel htmlFor="dev-mode">Dev mode</FieldLabel>
+              <FieldDescription className="text-xs">
+                Reveals advanced surfaces still under construction: the
+                Templates page, the promotion HTML Code tab, and the Email
+                Theme, Accessibility Check, and Outlook Compatibility cards.
+                Persists across sessions.
+              </FieldDescription>
+            </FieldContent>
+          </Field>
 
           {/* Sync email preview with app theme */}
-          <div className="col-span-1 lg:col-span-2">
-            <div className="flex items-center gap-3">
-              <Switch
-                id="sync-preview-theme"
-                checked={syncPreviewTheme}
-                onCheckedChange={setSyncPreviewTheme}
-                data-testid="sync-preview-theme-switch"
-              />
-              <Label htmlFor="sync-preview-theme">
+          <Field orientation="horizontal">
+            <Switch
+              id="sync-preview-theme"
+              checked={syncPreviewTheme}
+              onCheckedChange={setSyncPreviewTheme}
+              data-testid="sync-preview-theme-switch"
+            />
+            <FieldContent>
+              <FieldLabel htmlFor="sync-preview-theme">
                 Sync email preview with app theme
-              </Label>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              When on, the live email preview follows the app's light/dark mode
-              — switching one switches the other. Turn off to keep the preview's
-              own light/dark toggle independent of the app theme.
-            </p>
-          </div>
+              </FieldLabel>
+              <FieldDescription className="text-xs">
+                When on, the live email preview follows the app's light/dark
+                mode — switching one switches the other. Turn off to keep the
+                preview's own light/dark toggle independent of the app theme.
+              </FieldDescription>
+            </FieldContent>
+          </Field>
 
-          {/* Light Palette Selector */}
-          <div>
-            <Label className="mb-2 block">Light Mode Color Palette</Label>
-            <Select value={lightPalette} onValueChange={setLightPalette}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {VALID_LIGHT_PALETTES.map((palette) => (
-                  <SelectItem key={palette} value={palette}>
-                    {LIGHT_PALETTE_LABELS[palette] || palette}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Choose your preferred color scheme for light mode
-            </p>
-          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {/* Light Palette Selector */}
+            <Field className="gap-2">
+              <FieldLabel>Light Mode Color Palette</FieldLabel>
+              <Select value={lightPalette} onValueChange={setLightPalette}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VALID_LIGHT_PALETTES.map((palette) => (
+                    <SelectItem key={palette} value={palette}>
+                      {LIGHT_PALETTE_LABELS[palette] || palette}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FieldDescription className="text-xs">
+                Choose your preferred color scheme for light mode
+              </FieldDescription>
+            </Field>
 
-          {/* Dark Palette Selector */}
-          <div>
-            <Label className="mb-2 block">Dark Mode Color Palette</Label>
-            <Select value={darkPalette} onValueChange={setDarkPalette}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {VALID_DARK_PALETTES.map((palette) => (
-                  <SelectItem key={palette} value={palette}>
-                    {DARK_PALETTE_LABELS[palette] || palette}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Choose your preferred color scheme for dark mode
-            </p>
+            {/* Dark Palette Selector */}
+            <Field className="gap-2">
+              <FieldLabel>Dark Mode Color Palette</FieldLabel>
+              <Select value={darkPalette} onValueChange={setDarkPalette}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VALID_DARK_PALETTES.map((palette) => (
+                    <SelectItem key={palette} value={palette}>
+                      {DARK_PALETTE_LABELS[palette] || palette}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FieldDescription className="text-xs">
+                Choose your preferred color scheme for dark mode
+              </FieldDescription>
+            </Field>
           </div>
-        </div>
+        </FieldGroup>
       </CardContent>
     </Card>
   );

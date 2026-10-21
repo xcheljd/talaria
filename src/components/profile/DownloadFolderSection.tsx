@@ -10,7 +10,7 @@ import { FolderOpen } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 
 interface DownloadFolderSectionProps {
   isTauri: boolean;
@@ -24,8 +24,8 @@ export function DownloadFolderSection({
   onChooseFolder,
 }: DownloadFolderSectionProps) {
   return (
-    <div className="col-span-1 lg:col-span-2">
-      <Label className="mb-2 block">Download Folder (Desktop app)</Label>
+    <Field className="gap-2">
+      <FieldLabel>Download Folder (Desktop app)</FieldLabel>
       <div className="flex items-center gap-2">
         <Input
           value={
@@ -42,15 +42,15 @@ export function DownloadFolderSection({
           onClick={onChooseFolder}
           disabled={!isTauri}
         >
-          <FolderOpen className="mr-1 size-4" />
+          <FolderOpen className="size-4" />
           {isTauri ? 'Choose Folder' : 'Desktop app only'}
         </Button>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <FieldDescription className="text-xs">
         Used by the desktop app to save downloaded files (email batches, drafts,
         exports). In a regular browser, your default Downloads folder is always
         used.
-      </p>
-    </div>
+      </FieldDescription>
+    </Field>
   );
 }

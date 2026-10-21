@@ -51,7 +51,7 @@ export function ProfileFormSection({
   removeBrandLink,
 }: ProfileFormSectionProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 rounded-lg border bg-card p-4 sm:p-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 rounded-lg border bg-card p-4 lg:grid-cols-2">
       {/* Employee Name */}
       <FormField
         control={form.control}
