@@ -55,7 +55,7 @@ export const PreviewToolbar = memo(function PreviewToolbar({
   onPrint,
 }: PreviewToolbarProps) {
   return (
-    <div className="flex items-center gap-1.5 border-b bg-muted/40 px-2 py-1">
+    <div className="flex h-10 shrink-0 items-center gap-1.5 border-b bg-muted/40 px-2">
       {/* Preview / HTML Code tabs (dev mode only).
        * flex-none so they shrink to content width, not fill the row. */}
       {devMode && (

@@ -209,7 +209,7 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
       />
 
       {/* Preview Header */}
-      <div className="flex items-center justify-between border-b px-4 py-2">
+      <div className="flex h-12 shrink-0 items-center justify-between border-b px-4">
         <h2 className="text-sm font-semibold">Email Preview</h2>
 
         <div className="flex items-center gap-1.5">
