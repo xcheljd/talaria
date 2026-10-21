@@ -156,7 +156,7 @@ export function ProfileImportDialog({
               Cancel
             </Button>
             <Button type="button" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="mr-1 size-4" />
+              <Upload className="size-4" />
               Choose File
             </Button>
           </DialogFooter>

@@ -3,6 +3,13 @@
  * (bulk recipients, PDF file data). Split out of PreviewColumn.
  */
 
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
@@ -43,38 +50,42 @@ export function ExportOptionsDialog({
             Choose what to include in the exported template file.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <div className="flex flex-col gap-3 py-1">
-          <label className="flex items-start gap-3 cursor-pointer">
+        <FieldGroup className="gap-4">
+          <Field orientation="horizontal" className="items-start">
             <Checkbox
+              id="export-include-recipients"
               checked={includeRecipients}
               onCheckedChange={(c) => onIncludeRecipientsChange(c === true)}
               data-testid="export-include-recipients"
-              className="mt-0.5"
             />
-            <span className="text-sm">
-              Include bulk email recipients
-              <span className="block text-xs text-muted-foreground text-pretty">
+            <FieldContent>
+              <FieldLabel htmlFor="export-include-recipients">
+                Include bulk email recipients
+              </FieldLabel>
+              <FieldDescription className="text-xs text-pretty">
                 Embeds your recipient list (email addresses) in the file. Off by
                 default.
-              </span>
-            </span>
-          </label>
-          <label className="flex items-start gap-3 cursor-pointer">
+              </FieldDescription>
+            </FieldContent>
+          </Field>
+          <Field orientation="horizontal" className="items-start">
             <Checkbox
+              id="export-include-pdfs"
               checked={includePdfData}
               onCheckedChange={(c) => onIncludePdfDataChange(c === true)}
               data-testid="export-include-pdfs"
-              className="mt-0.5"
             />
-            <span className="text-sm">
-              Include PDF attachments (files)
-              <span className="block text-xs text-muted-foreground text-pretty">
+            <FieldContent>
+              <FieldLabel htmlFor="export-include-pdfs">
+                Include PDF attachments (files)
+              </FieldLabel>
+              <FieldDescription className="text-xs text-pretty">
                 Embeds the actual PDF files so they restore on import. Increases
                 file size. Unchecked exports names only.
-              </span>
-            </span>
-          </label>
-        </div>
+              </FieldDescription>
+            </FieldContent>
+          </Field>
+        </FieldGroup>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={onExport}>Export</AlertDialogAction>
