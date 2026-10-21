@@ -79,3 +79,14 @@ Object.defineProperty(global, 'localStorage', {
 beforeEach(() => {
   localStorageMock.clear();
 });
+
+// jsdom does not implement ResizeObserver. Radix popper content (Tooltip,
+// Popover) measures itself with it on open, so a hover during a click test
+// throws an uncaught error that aborts the test. A no-op stub is enough.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
