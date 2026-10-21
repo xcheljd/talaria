@@ -90,15 +90,14 @@ export function NewsletterStylePanel() {
                       data-testid={`border-style-${opt.value}`}
                     >
                       <div
-                        className={`h-5 w-8 bg-muted ${
-                          opt.value === 'left'
-                            ? 'border-l-[3px] border-l-primary'
-                            : opt.value === 'full'
-                              ? 'border border-primary'
-                              : opt.value === 'top'
-                                ? 'border-t-[3px] border-t-primary'
-                                : ''
-                        }`}
+                        className={cn(
+                          'h-5 w-8 bg-muted',
+                          opt.value === 'left' &&
+                            'border-l-[3px] border-l-primary',
+                          opt.value === 'full' && 'border border-primary',
+                          opt.value === 'top' &&
+                            'border-t-[3px] border-t-primary'
+                        )}
                       />
                     </Button>
                   ))}

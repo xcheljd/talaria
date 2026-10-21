@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -313,7 +314,10 @@ export function ComponentsShowcase() {
               <Button variant="outline" className="w-full justify-between">
                 Click to toggle
                 <ChevronDown
-                  className={`size-4 transition-transform ${collapsibleOpen ? 'rotate-180' : ''}`}
+                  className={cn(
+                    'size-4 transition-transform',
+                    collapsibleOpen && 'rotate-180'
+                  )}
                 />
               </Button>
             </CollapsibleTrigger>
