@@ -83,6 +83,9 @@ async function downloadBlob(blob: Blob, filename: string): Promise<void> {
 
 // ===== Hook =====
 
+/** Sandbox tokens for the print iframe (exported for the regression test). */
+export const PRINT_IFRAME_SANDBOX = 'allow-same-origin allow-modals';
+
 export function usePreviewActions(emailHTML: string, store: PreviewStore) {
   // Export options dialog (Recipients OFF, PDFs ON; reset to defaults each open)
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -376,7 +379,11 @@ export function usePreviewActions(emailHTML: string, store: PreviewStore) {
     // keeps contentDocument/print() reachable from the parent while blocking
     // all script execution — an empty sandbox would be stricter but makes the
     // frame cross-origin, which breaks doc.write() and contentWindow.print().
-    iframe.setAttribute('sandbox', 'allow-same-origin');
+    // allow-modals is REQUIRED: print() is a modal, and a sandboxed frame
+    // without it silently ignores the call (Chromium/WebView2: "Ignored call
+    // to 'print()'"). Omitting it broke printing on Windows in v1.5.0.
+    // It permits dialogs only; scripts stay blocked.
+    iframe.setAttribute('sandbox', PRINT_IFRAME_SANDBOX);
     document.body.appendChild(iframe);
     const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
     if (!doc) {
