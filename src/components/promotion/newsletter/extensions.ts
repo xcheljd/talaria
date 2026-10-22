@@ -7,7 +7,12 @@
 import { Extension } from '@tiptap/core';
 import { NodeSelection, Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { common, createLowlight } from 'lowlight';
+import { createLowlight } from 'lowlight';
+import css from 'highlight.js/lib/languages/css';
+import javascript from 'highlight.js/lib/languages/javascript';
+import json from 'highlight.js/lib/languages/json';
+import plaintext from 'highlight.js/lib/languages/plaintext';
+import xml from 'highlight.js/lib/languages/xml';
 
 import { compressImage } from './image-utils';
 
@@ -82,7 +87,16 @@ export const SanitizePasteExtension = Extension.create({
 });
 
 // ===== Lowlight instance for code block syntax highlighting =====
-export const lowlight = createLowlight(common);
+// A handful of grammars, not lowlight's 37-language `common` set: newsletter
+// code blocks are rare, and email clients strip the highlight colors anyway.
+// Unregistered languages still render, just unhighlighted.
+export const lowlight = createLowlight({
+  css,
+  javascript,
+  json,
+  plaintext,
+  xml,
+});
 
 // ===== Drag Handle Extension =====
 
