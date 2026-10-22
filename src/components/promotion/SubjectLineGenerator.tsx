@@ -367,14 +367,17 @@ export function SubjectLineGenerator() {
             emails.
           </TooltipContent>
         </Tooltip>
-        <Badge
-          variant={isOptimal ? 'default' : 'secondary'}
-          className="self-start text-xs"
-          data-testid="subject-char-count"
-        >
-          {charCount} chars{' '}
-          {charCount > 0 && (isOptimal ? '✓' : `(>${OPTIMAL_LENGTH})`)}
-        </Badge>
+        {/* Wrapped: Field stretches its direct children to full width. */}
+        <div className="flex items-center gap-2">
+          <Badge
+            variant={isOptimal ? 'default' : 'secondary'}
+            className="text-xs"
+            data-testid="subject-char-count"
+          >
+            {charCount} chars{' '}
+            {charCount > 0 && (isOptimal ? '✓' : `(>${OPTIMAL_LENGTH})`)}
+          </Badge>
+        </div>
       </Field>
 
       {/* Preheader Text */}
