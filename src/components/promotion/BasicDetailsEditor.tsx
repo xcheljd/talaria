@@ -356,18 +356,6 @@ export function BasicDetailsEditor() {
             </Button>
           )}
         </div>
-
-        {/* Formatted preview */}
-        {store.promoDateRange && (
-          <p className="text-sm font-medium" data-testid="promo-date-range">
-            {store.promoDateRange}
-            {store.promoYear && (
-              <span className="text-muted-foreground font-normal">
-                , {store.promoYear}
-              </span>
-            )}
-          </p>
-        )}
       </Field>
 
       {/* Title Override */}
