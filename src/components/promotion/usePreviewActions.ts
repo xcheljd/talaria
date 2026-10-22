@@ -10,6 +10,7 @@
 
 import { useCallback, useRef, useState, type ChangeEvent } from 'react';
 import { toast } from 'sonner';
+import { printEmailHTML } from '@/lib/print-email';
 
 import {
   usePromotionStore,
@@ -82,9 +83,6 @@ async function downloadBlob(blob: Blob, filename: string): Promise<void> {
 }
 
 // ===== Hook =====
-
-/** Sandbox tokens for the print iframe (exported for the regression test). */
-export const PRINT_IFRAME_SANDBOX = 'allow-same-origin allow-modals';
 
 export function usePreviewActions(emailHTML: string, store: PreviewStore) {
   // Export options dialog (Recipients OFF, PDFs ON; reset to defaults each open)
@@ -367,45 +365,16 @@ export function usePreviewActions(emailHTML: string, store: PreviewStore) {
     generateEmailBatches();
   }, []);
 
+  // Print only the email from the app's own page (see lib/print-email.ts).
+  // The previous hidden-iframe print was silently ignored by WKWebView on
+  // macOS in Tauri (tauri#13451) and by WebView2 once the iframe was
+  // sandboxed without allow-modals (v1.5.0).
   const handlePrint = useCallback(() => {
     if (!emailHTML) return;
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-9999px';
-    iframe.style.width = '600px';
-    iframe.style.height = '800px';
-    // Sandbox the print iframe so any <script> in the generated HTML cannot
-    // execute with app privileges. allow-same-origin (without allow-scripts)
-    // keeps contentDocument/print() reachable from the parent while blocking
-    // all script execution — an empty sandbox would be stricter but makes the
-    // frame cross-origin, which breaks doc.write() and contentWindow.print().
-    // allow-modals is REQUIRED: print() is a modal, and a sandboxed frame
-    // without it silently ignores the call (Chromium/WebView2: "Ignored call
-    // to 'print()'"). Omitting it broke printing on Windows in v1.5.0.
-    // It permits dialogs only; scripts stay blocked.
-    iframe.setAttribute('sandbox', PRINT_IFRAME_SANDBOX);
-    document.body.appendChild(iframe);
-    const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
-    if (!doc) {
-      document.body.removeChild(iframe);
-      return;
-    }
-    doc.open();
-    doc.write(emailHTML);
-    doc.close();
-    const fallback = setTimeout(() => {
-      if (document.body.contains(iframe)) document.body.removeChild(iframe);
-    }, 5000);
-    iframe.contentWindow?.addEventListener(
-      'afterprint',
-      () => {
-        clearTimeout(fallback);
-        if (document.body.contains(iframe)) document.body.removeChild(iframe);
-      },
-      { once: true }
-    );
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
+    void printEmailHTML(emailHTML).catch((error) => {
+      console.error('Print error:', error);
+      toast.error('Could not open the print dialog');
+    });
   }, [emailHTML]);
 
   return {
