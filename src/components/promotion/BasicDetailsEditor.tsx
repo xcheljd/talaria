@@ -311,16 +311,18 @@ export function BasicDetailsEditor() {
           <CalendarDays className="size-3.5" aria-hidden="true" />
           Date Range *
         </FieldLabel>
-        {/* Wrapped: Field stretches direct children; the row holds trigger + clear. */}
-        <div className="flex items-center gap-2">
+        {/* Same shape as ClearableInput: 36px box, × inside the right edge.
+            The × is a sibling of the trigger (not inside it), so clearing
+            never opens the calendar and both stay separate buttons. */}
+        <div className="relative">
           <Popover open={pickerOpen} onOpenChange={handlePickerOpenChange}>
             <PopoverTrigger asChild>
               <Button
                 id="promo-date-range-trigger"
                 variant="outline"
-                size="sm"
                 className={cn(
-                  'h-8 flex-1 justify-start font-normal',
+                  'w-full justify-start px-3 font-normal',
+                  startDate && 'pr-8',
                   !startDate && 'text-muted-foreground'
                 )}
                 data-testid="promo-date-range-trigger"
@@ -345,15 +347,14 @@ export function BasicDetailsEditor() {
             </PopoverContent>
           </Popover>
           {startDate && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="size-8 shrink-0 p-0"
+            <button
+              type="button"
+              className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:text-destructive"
               onClick={handleClearDates}
               aria-label="Clear dates"
             >
               <X className="size-3.5" />
-            </Button>
+            </button>
           )}
         </div>
       </Field>
