@@ -369,7 +369,7 @@ export function PDFAttachments() {
         role="button"
         tabIndex={0}
         className={cn(
-          'flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-6 transition-colors',
+          'flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-6 transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
           isDragOver
             ? 'border-primary bg-primary/5'
             : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
@@ -408,7 +408,7 @@ export function PDFAttachments() {
           {store.attachedPDFs.map((pdf) => (
             <div
               key={pdf.id}
-              className="flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2"
+              className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2"
             >
               <FileText className="size-5 flex-shrink-0 text-primary" />
               <div className="min-w-0 flex-1">

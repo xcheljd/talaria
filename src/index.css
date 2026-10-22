@@ -141,6 +141,18 @@ html.theme-transition *::after {
   html.theme-transition {
     transition: none;
   }
+
+  /* Honor the OS "reduce motion" setting app-wide: button tap-scale,
+     collapsible expand, chevron rotation, popover/tooltip animations.
+     Near-zero (not 0) so transitionend/animationend still fire. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ==========================================================================

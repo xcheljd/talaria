@@ -80,9 +80,9 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Button */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Button</h2>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             <Button>Default</Button>
             <Button variant="secondary">Secondary</Button>
             <Button variant="destructive">Destructive</Button>
@@ -95,7 +95,7 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Card */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Card</h2>
           <Card>
             <CardHeader>
@@ -114,7 +114,7 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Input & Label */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Input & Label</h2>
           <div className="max-w-sm flex flex-col gap-2">
             <Label htmlFor="demo-input">Name</Label>
@@ -125,7 +125,7 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Select */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Select</h2>
           <div className="max-w-sm">
             <Select>
@@ -144,7 +144,7 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Textarea */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Textarea</h2>
           <div className="max-w-sm flex flex-col gap-2">
             <Label htmlFor="demo-textarea">Message</Label>
@@ -158,7 +158,7 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Dialog */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Dialog</h2>
           <Dialog>
             <DialogTrigger asChild>
@@ -182,7 +182,7 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Alert Dialog */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Alert Dialog</h2>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -207,7 +207,7 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Tabs */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Tabs</h2>
           <Tabs defaultValue="tab1">
             <TabsList>
@@ -236,9 +236,9 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Toast/Sonner */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Toast (Sonner)</h2>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => toast.success('Success toast notification!')}
             >
@@ -268,9 +268,9 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Badge */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Badge</h2>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             <Badge>Default</Badge>
             <Badge variant="secondary">Secondary</Badge>
             <Badge variant="destructive">Destructive</Badge>
@@ -281,7 +281,7 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Separator */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Separator</h2>
           <p className="text-sm text-muted-foreground">
             Separators are used between each section on this page (see above and
@@ -292,7 +292,7 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Tooltip */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Tooltip</h2>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -307,7 +307,7 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Collapsible */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Collapsible</h2>
           <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
             <CollapsibleTrigger asChild>
@@ -330,9 +330,9 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Switch */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Switch</h2>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Switch
               id="demo-switch"
               checked={switchChecked}
@@ -347,7 +347,7 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Dropdown Menu */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Dropdown Menu</h2>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -375,7 +375,7 @@ export function ComponentsShowcase() {
         <Separator />
 
         {/* Form - using basic form elements */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Form</h2>
           <p className="text-sm text-muted-foreground">
             The Form component provides React Hook Form integration. Basic form

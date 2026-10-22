@@ -275,7 +275,7 @@ export const IconToolbar = memo(function IconToolbar({
               aria-label={`Show ${config.tooltip}`}
               aria-pressed={isActive}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="size-4" />
               {showLabel && (
                 <span className="whitespace-nowrap text-[10px] leading-none">
                   {config.label}
@@ -299,7 +299,7 @@ export const IconToolbar = memo(function IconToolbar({
               className={buttonClass(moreActive)}
               aria-label="More tools"
             >
-              <MoreHorizontal className="h-4 w-4" />
+              <MoreHorizontal className="size-4" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -314,7 +314,7 @@ export const IconToolbar = memo(function IconToolbar({
                   className={cn(isActive && 'bg-accent/60 font-medium')}
                   onSelect={() => onCardClick(cardId)}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="size-4" />
                   {config.tooltip}
                 </DropdownMenuItem>
               );

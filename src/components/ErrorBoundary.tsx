@@ -101,7 +101,7 @@ export class ErrorBoundary extends Component<
               {error.stack}
             </pre>
           </details>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <Button onClick={this.resetErrorBoundary}>Try again</Button>
             <Button variant="outline" asChild>
               <Link to="/">Go to home</Link>

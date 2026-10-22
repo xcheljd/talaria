@@ -57,7 +57,7 @@ export function NewsletterStylePanel() {
             </Button>
           </CollapsibleTrigger>
           {showCustomize && (
-            <div className="flex flex-col gap-3 border-t px-3 py-3">
+            <div className="flex flex-col gap-4 border-t px-3 py-3">
               {/* Border Style Selector */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
@@ -220,7 +220,7 @@ export function NewsletterStylePanel() {
                           <TooltipContent>{`${sw.label} (${sw.color})`}</TooltipContent>
                         </Tooltip>
                       ))}
-                      <span className="text-[9px] text-muted-foreground ml-1">
+                      <span className="text-[10px] text-muted-foreground ml-1">
                         email colors
                       </span>
                     </div>
@@ -252,7 +252,7 @@ export function NewsletterStylePanel() {
             </Button>
           </CollapsibleTrigger>
           {showTableStyle && (
-            <div className="flex flex-col gap-3 border-t px-3 py-3">
+            <div className="flex flex-col gap-4 border-t px-3 py-3">
               {/* Border Style */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
@@ -400,7 +400,7 @@ export function NewsletterStylePanel() {
                       <TooltipContent>{`${sw.label} (${sw.color})`}</TooltipContent>
                     </Tooltip>
                   ))}
-                  <span className="text-[9px] text-muted-foreground ml-1">
+                  <span className="text-[10px] text-muted-foreground ml-1">
                     email colors
                   </span>
                 </div>
@@ -487,7 +487,7 @@ export function NewsletterStylePanel() {
                       <TooltipContent>{`${sw.label} (${sw.color})`}</TooltipContent>
                     </Tooltip>
                   ))}
-                  <span className="text-[9px] text-muted-foreground ml-1">
+                  <span className="text-[10px] text-muted-foreground ml-1">
                     email colors
                   </span>
                 </div>

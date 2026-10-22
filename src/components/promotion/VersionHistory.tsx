@@ -321,7 +321,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                       {snapshot.auto && (
                         <Badge
                           variant="secondary"
-                          className="text-[9px] px-1 py-0"
+                          className="text-[10px] px-1 py-0"
                         >
                           auto
                         </Badge>

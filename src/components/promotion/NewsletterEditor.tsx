@@ -381,7 +381,7 @@ export function NewsletterEditor() {
   }, [editor, store]);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {/* Show in Email Toggle */}
       <div className="flex items-center gap-2">
         <Checkbox

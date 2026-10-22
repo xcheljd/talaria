@@ -325,7 +325,7 @@ export function OutlookChecker() {
           Add a date range first to generate email content for scanning.
         </p>
       ) : !hasScanned ? (
-        <div className="flex flex-col items-center gap-3 py-4">
+        <div className="flex flex-col items-center gap-4 py-4">
           <Button onClick={handleScan} size="sm" className="gap-1.5">
             <RefreshCw className="size-3.5" />
             Scan for Outlook Issues

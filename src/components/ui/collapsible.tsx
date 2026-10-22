@@ -30,7 +30,7 @@ function CollapsibleContent({
       className={cn(
         'overflow-hidden grid transition-[grid-template-rows] ease-in-out',
         'data-[state=closed]:grid-rows-[0fr] data-[state=closed]:duration-250',
-        'data-[state=open]:grid-rows-[1fr] data-[state=open]:duration-500',
+        'data-[state=open]:grid-rows-[1fr] data-[state=open]:duration-300',
         className
       )}
       {...props}

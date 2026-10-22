@@ -385,15 +385,16 @@ function ImageNodeView({
       {/* Link input */}
       {showLinkInput && selected && (
         <div className="absolute -top-16 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-md border bg-background shadow-md px-2 py-1 z-20">
-          <input
+          <Input
             type="text"
+            aria-label="Link URL"
             value={linkValue}
             onChange={(e) => setLinkValue(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleLinkSubmit();
             }}
             placeholder="https://"
-            className="h-6 w-48 rounded border bg-transparent px-2 text-xs outline-none"
+            className="h-6 w-48 px-2 text-xs md:text-xs"
             autoFocus
           />
           <Button
@@ -476,14 +477,14 @@ function ImageNodeView({
 
       {/* Live width readout while dragging */}
       {isResizing && (
-        <div className="pointer-events-none absolute top-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+        <div className="pointer-events-none absolute top-1 right-1 rounded bg-foreground/80 px-1.5 py-0.5 text-[10px] text-background">
           {imgRef.current?.offsetWidth ?? width}px
         </div>
       )}
 
       {/* Link badge */}
       {href && (
-        <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] text-white truncate max-w-[200px] pointer-events-none">
+        <div className="absolute bottom-1 left-1 rounded bg-foreground/70 px-1.5 py-0.5 text-[10px] text-background truncate max-w-[200px] pointer-events-none">
           {href}
         </div>
       )}

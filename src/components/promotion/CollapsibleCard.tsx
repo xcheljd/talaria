@@ -98,7 +98,7 @@ export function CollapsibleCard({
         {/* Card Header — entire row is clickable */}
         <CollapsibleTrigger asChild>
           <div
-            className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors rounded-t-xl"
+            className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors rounded-t-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             role="button"
             tabIndex={0}
             aria-label={isOpen ? `Collapse ${title}` : `Expand ${title}`}
@@ -117,7 +117,7 @@ export function CollapsibleCard({
             </div>
             <ChevronDown
               className={cn(
-                'size-4 transition-transform duration-500',
+                'size-4 transition-transform duration-300',
                 isOpen ? 'rotate-180' : 'rotate-0'
               )}
             />

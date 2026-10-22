@@ -78,11 +78,11 @@ function InboxPreview({
             own chrome, not Talaria's — they stay fixed across all 16 palettes
             on purpose, because the point of the preview is to show the subject
             line as the recipient's client will render it. */}
-        <div className="flex items-start gap-3 px-3 py-2.5 border-l-2 border-l-blue-500 bg-accent/40">
+        <div className="flex items-start gap-2 px-3 py-2.5 border-l-2 border-l-primary bg-accent/40">
           <div className="flex items-center gap-2 pt-0.5 shrink-0">
             <Star className="size-3.5 text-muted-foreground/40" />
-            <div className="size-7 rounded-full bg-emerald-600 flex items-center justify-center">
-              <span className="text-[11px] font-bold text-white">
+            <div className="size-7 rounded-full bg-primary flex items-center justify-center">
+              <span className="text-[11px] font-bold text-primary-foreground">
                 {senderInitials}
               </span>
             </div>
@@ -106,11 +106,11 @@ function InboxPreview({
         </div>
 
         {/* Dim row for context */}
-        <div className="flex items-start gap-3 px-3 py-2 opacity-40">
+        <div className="flex items-start gap-2 px-3 py-2 opacity-40">
           <div className="flex items-center gap-2 pt-0.5 shrink-0">
             <Star className="size-3.5 text-muted-foreground/40" />
-            <div className="size-7 rounded-full bg-gray-400 flex items-center justify-center">
-              <span className="text-[11px] font-bold text-white">NR</span>
+            <div className="size-7 rounded-full bg-muted-foreground flex items-center justify-center">
+              <span className="text-[11px] font-bold text-background">NR</span>
             </div>
           </div>
           <div className="min-w-0 flex-1">

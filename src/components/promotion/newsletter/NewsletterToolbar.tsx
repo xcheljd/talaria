@@ -712,7 +712,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
                         key={`${row}-${col}`}
                         type="button"
                         className={cn(
-                          'size-4 border rounded-[2px] transition-colors',
+                          'size-4 border rounded-xs transition-colors',
                           isHighlighted
                             ? 'bg-primary border-primary'
                             : 'bg-muted border-border hover:border-primary/50'

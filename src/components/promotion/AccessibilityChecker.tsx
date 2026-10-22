@@ -227,7 +227,7 @@ export function AccessibilityChecker() {
           Add newsletter content first to run the accessibility scan.
         </p>
       ) : !hasScanned ? (
-        <div className="flex flex-col items-center gap-3 py-4">
+        <div className="flex flex-col items-center gap-4 py-4">
           <Button onClick={handleScan} size="sm" className="gap-1.5">
             <RefreshCw className="size-3.5" />
             Run Accessibility Scan

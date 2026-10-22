@@ -416,7 +416,7 @@ export function EmailThemeEditor() {
                         variant="ghost"
                         static
                         type="button"
-                        className="h-auto px-1 py-0 text-[9px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
+                        className="h-auto px-1 py-0 text-[10px] font-normal text-muted-foreground hover:bg-transparent hover:text-foreground"
                         onClick={() =>
                           store.setEmailPalette({
                             [field.key]: DEFAULT_EMAIL_PALETTE[field.key],
