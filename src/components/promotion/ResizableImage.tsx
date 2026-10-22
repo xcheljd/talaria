@@ -122,6 +122,10 @@ function ImageNodeView({
       className={cn('relative group', isResizing && 'select-none')}
       style={alignStyle}
       data-drag-handle=""
+      onDragStart={(e: React.DragEvent) => {
+        // Never let a resize turn into a node drag.
+        if (isResizing) e.preventDefault();
+      }}
     >
       {/* Floating toolbar */}
       {selected && !isResizing && (
@@ -304,6 +308,14 @@ function ImageNodeView({
             contentEditable={false}
             draggable={false}
             onPointerDown={handleResizeStart(side)}
+            // Cancelling pointerdown doesn't stop Chromium (WebView2 on
+            // Windows) from starting a native drag of the draggable image
+            // node from the follow-up mousedown; cancel that too.
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onDragStart={(e) => e.preventDefault()}
           />
         ))}
 
