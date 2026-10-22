@@ -418,7 +418,7 @@ export function NewsletterEditor() {
           )}
         {store.newsletterBody &&
           extractHeadingFromHTML(store.newsletterBody) && (
-            <span className="text-muted-foreground/70 ml-1">
+            <span className="text-muted-foreground ml-1">
               Current: &ldquo;{extractHeadingFromHTML(store.newsletterBody)}
               &rdquo;
             </span>

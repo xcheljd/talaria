@@ -397,9 +397,7 @@ export function PDFAttachments() {
         <p className="text-sm font-medium text-muted-foreground">
           Click to upload or drag and drop PDF files
         </p>
-        <p className="text-xs text-muted-foreground/70">
-          Maximum 10MB per file
-        </p>
+        <p className="text-xs text-muted-foreground">Maximum 10MB per file</p>
       </div>
 
       {/* Attached PDFs List */}

@@ -192,6 +192,8 @@ html.theme-transition *::after {
 /* 1. GitHub Light (Default) - Inherits :root */
 [data-theme='light'][data-light-palette='github'] {
   /* Default values */
+  --primary: #0859b9;
+  --accent-foreground: #0968d8;
 }
 
 /* 2. SpaceGray Light */
@@ -202,16 +204,16 @@ html.theme-transition *::after {
   --card-foreground: #343d46;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #65737e;
+  --primary: #4f5b63;
   --primary-foreground: #ffffff;
   --secondary: #f0f0f0;
   --secondary-foreground: #343d46;
   --muted: #f0f0f0;
   /* base03, not base04 — base04 (#a7adba) sits at 2.2:1 on this near-white bg */
-  --muted-foreground: #65737e;
+  --muted-foreground: #58656e;
   --accent: #dce3ea;
-  --accent-foreground: #65737e;
-  --destructive: #bf616a;
+  --accent-foreground: #4f5b63;
+  --destructive: #b34853;
   --destructive-foreground: #ffffff;
   --border: #c0c5ce;
   --input: #c0c5ce;
@@ -230,15 +232,15 @@ html.theme-transition *::after {
   --card-foreground: #4c4f69;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #1e66f5;
+  --primary: #0847c3;
   --primary-foreground: #ffffff;
   --secondary: #ccd0da;
   --secondary-foreground: #4c4f69;
   --muted: #e6e9ef;
-  --muted-foreground: #6c6f85;
+  --muted-foreground: #63667a;
   --accent: #e6e9ef;
-  --accent-foreground: #1e66f5;
-  --destructive: #d20f39;
+  --accent-foreground: #0b59f4;
+  --destructive: #ce0f38;
   --destructive-foreground: #ffffff;
   --border: #bcc0cc;
   --input: #bcc0cc;
@@ -257,15 +259,15 @@ html.theme-transition *::after {
   --card-foreground: #2e3440;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #5e81ac;
+  --primary: #3c5675;
   --primary-foreground: #ffffff;
   --secondary: #d8dee9;
   --secondary-foreground: #2e3440;
   --muted: #e5e9f0;
   --muted-foreground: #4c566a;
   --accent: #e5e9f0;
-  --accent-foreground: #5e81ac;
-  --destructive: #bf616a;
+  --accent-foreground: #4a698f;
+  --destructive: #ac464f;
   --destructive-foreground: #ffffff;
   --border: #d8dee9;
   --input: #d8dee9;
@@ -284,18 +286,18 @@ html.theme-transition *::after {
   --card-foreground: #575279;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #d7827e;
+  --primary: #9e3631;
   /* Dawn's `rose` is a mid-tone salmon: neither #faf4ed (2.6:1) nor any Dawn
      ink (`text` #575279 → 2.5:1) is readable on it. Rosé Pine `base` — what the
      dark variant already uses over its own rose — clears 6.2:1. */
-  --primary-foreground: #191724;
+  --primary-foreground: #ffffff;
   --secondary: #f2e9e1;
   --secondary-foreground: #575279;
   --muted: #fffaf3;
-  --muted-foreground: #797593;
+  --muted-foreground: #6f6b89;
   --accent: #f2e9e1;
-  --accent-foreground: #d7827e;
-  --destructive: #b4637a;
+  --accent-foreground: #b83f39;
+  --destructive: #ab526b;
   --destructive-foreground: #ffffff;
   --border: #dfdad9;
   --input: #dfdad9;
@@ -311,23 +313,23 @@ html.theme-transition *::after {
 /* 6. Tokyo Night Day */
 [data-theme='light'][data-light-palette='tokyo-day'] {
   --background: #e1e2e7;
-  --foreground: #3760bf;
+  --foreground: #2d4f9e;
   /* bg_dark; the previous #d5d6db was the same lightness with the blue taken
      out, which read as a grey card inside a blue-grey theme. */
   --card: #d0d5e3;
-  --card-foreground: #3760bf;
+  --card-foreground: #2d4f9e;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #2e7de9;
+  --primary: #0f458f;
   --primary-foreground: #ffffff;
   /* bg_highlight (was #c4c5c9 — same hue drift as --card) */
   --secondary: #c4c8da;
-  --secondary-foreground: #3760bf;
+  --secondary-foreground: #2d4f9e;
   --muted: #d0d5e3;
-  --muted-foreground: #6172b0;
+  --muted-foreground: #495891;
   --accent: #d0d5e3;
-  --accent-foreground: #2e7de9;
-  --destructive: #f52a65;
+  --accent-foreground: #1358b6;
+  --destructive: #b5083b;
   --destructive-foreground: #ffffff;
   --border: #b4b5b9;
   --input: #b4b5b9;
@@ -344,20 +346,20 @@ html.theme-transition *::after {
   /* base01 = Solarized's *emphasized* content tone, base00 its body tone. The
      two were swapped, which left --muted-foreground darker than --foreground
      and body text at 4.13:1. */
-  --foreground: #586e75;
+  --foreground: #546a70;
   --card: #eee8d5;
-  --card-foreground: #586e75;
+  --card-foreground: #546a70;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #268bd2;
+  --primary: #175683;
   --primary-foreground: #fdf6e3;
   --secondary: #eee8d5;
-  --secondary-foreground: #586e75;
+  --secondary-foreground: #546a70;
   --muted: #eee8d5;
-  --muted-foreground: #657b83;
+  --muted-foreground: #576a71;
   --accent: #eee8d5;
-  --accent-foreground: #268bd2;
-  --destructive: #dc322f;
+  --accent-foreground: #175683;
+  --destructive: #c72421;
   --destructive-foreground: #fdf6e3;
   --border: #d5cfbe;
   --input: #d5cfbe;
@@ -376,15 +378,15 @@ html.theme-transition *::after {
   --card-foreground: #383a42;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #4078f2;
+  --primary: #0e4ace;
   --primary-foreground: #ffffff;
   --secondary: #e5e5e6;
   --secondary-foreground: #383a42;
   --muted: #f0f0f0;
-  --muted-foreground: #696c77;
+  --muted-foreground: #5e616b;
   --accent: #e5e5e6;
-  --accent-foreground: #4078f2;
-  --destructive: #e45649;
+  --accent-foreground: #0e4ace;
+  --destructive: #cd2d1e;
   --destructive-foreground: #ffffff;
   --border: #e0e0e0;
   --input: #e0e0e0;
@@ -408,14 +410,14 @@ html.theme-transition *::after {
   --card-foreground: #e6edf3;
   --popover: #161b22;
   --popover-foreground: #e6edf3;
-  --primary: #2f81f7;
-  --primary-foreground: #ffffff;
+  --primary: #7caffa;
+  --primary-foreground: #0d1117;
   --secondary: #21262d;
   --secondary-foreground: #e6edf3;
   --muted: #21262d;
-  --muted-foreground: #7d8590;
+  --muted-foreground: #9aa0a8;
   --accent: #30363d;
-  --accent-foreground: #2f81f7;
+  --accent-foreground: #7caffa;
   --destructive: #f85149;
   --destructive-foreground: #ffffff;
   --border: #30363d;
@@ -430,19 +432,19 @@ html.theme-transition *::after {
 /* 2. SpaceGray Dark */
 [data-theme='dark'][data-dark-palette='spacegray'] {
   --background: #2b303b;
-  --foreground: #c0c5ce;
+  --foreground: #cfd3da;
   --card: #343d46;
   --card-foreground: #c0c5ce;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
-  --primary: #96b5b4;
+  --primary: #c6d7d6;
   --primary-foreground: #2b303b;
   --secondary: #4f5b66;
-  --secondary-foreground: #c0c5ce;
+  --secondary-foreground: #cfd3da;
   --muted: #343d46;
   --muted-foreground: #a7adba;
   --accent: #4f5b66;
-  --accent-foreground: #96b5b4;
+  --accent-foreground: #c6d7d6;
   --destructive: #bf616a;
   --destructive-foreground: #ffffff;
   --border: #4f5b66;
@@ -462,14 +464,14 @@ html.theme-transition *::after {
   --card-foreground: #cdd6f4;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
-  --primary: #89b4fa;
+  --primary: #a4c5fb;
   --primary-foreground: #1e1e2e;
   --secondary: #313244;
   --secondary-foreground: #cdd6f4;
   --muted: #313244;
   --muted-foreground: #a6adc8;
   --accent: #313244;
-  --accent-foreground: #89b4fa;
+  --accent-foreground: #a4c5fb;
   --destructive: #f38ba8;
   --destructive-foreground: #1e1e2e;
   --border: #313244;
@@ -489,14 +491,14 @@ html.theme-transition *::after {
   --card-foreground: #d8dee9;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
-  --primary: #88c0d0;
+  --primary: #cae3ea;
   --primary-foreground: #2e3440;
   --secondary: #434c5e;
   --secondary-foreground: #d8dee9;
   --muted: #3b4252;
-  --muted-foreground: #b3b8c3;
+  --muted-foreground: #bcc1ca;
   --accent: #434c5e;
-  --accent-foreground: #88c0d0;
+  --accent-foreground: #cae3ea;
   --destructive: #bf616a;
   --destructive-foreground: #ffffff;
   --border: #434c5e;
@@ -521,7 +523,7 @@ html.theme-transition *::after {
   --secondary: #26233a;
   --secondary-foreground: #e0def4;
   --muted: #26233a;
-  --muted-foreground: #908caa;
+  --muted-foreground: #9c99b4;
   --accent: #26233a;
   --accent-foreground: #ebbcba;
   --destructive: #eb6f92;
@@ -538,19 +540,19 @@ html.theme-transition *::after {
 /* 6. Tokyo Night */
 [data-theme='dark'][data-dark-palette='tokyo-night'] {
   --background: #1a1b26;
-  --foreground: #a9b1d6;
+  --foreground: #b1b9da;
   --card: #24283b;
   --card-foreground: #a9b1d6;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
-  --primary: #7aa2f7;
+  --primary: #9dbaf9;
   --primary-foreground: #1a1b26;
   --secondary: #414868;
-  --secondary-foreground: #a9b1d6;
+  --secondary-foreground: #b1b9da;
   --muted: #24283b;
-  --muted-foreground: #787c99;
+  --muted-foreground: #8d90a9;
   --accent: #414868;
-  --accent-foreground: #7aa2f7;
+  --accent-foreground: #9dbaf9;
   --destructive: #f7768e;
   --destructive-foreground: #1a1b26;
   --border: #414868;
@@ -570,17 +572,17 @@ html.theme-transition *::after {
   --card-foreground: #f8f8f2;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
-  --primary: #a6e22e;
+  --primary: #ade43e;
   --primary-foreground: #272822;
   --secondary: #75715e;
   --secondary-foreground: #f8f8f2;
   --muted: #3e3d32;
   --muted-foreground: #cfcfc2;
   --accent: #3e3d32;
-  --accent-foreground: #a6e22e;
+  --accent-foreground: #ade43e;
   /* Monokai's red. The previous #f44747 was VS Code's default error red and
      appears nowhere in the Monokai spec. */
-  --destructive: #f92672;
+  --destructive: #fc81ad;
   --destructive-foreground: #ffffff;
   --border: #75715e;
   --input: #75715e;
@@ -599,16 +601,16 @@ html.theme-transition *::after {
   --card-foreground: #dcd7ba;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
-  --primary: #7e9cd8;
+  --primary: #a2b8e3;
   --primary-foreground: #1f1f28;
   --secondary: #363646;
   --secondary-foreground: #dcd7ba;
   --muted: #2a2a37;
   /* fujiGray lifted: at #727169 it is 2.9:1 on the sumiInk4 card */
-  --muted-foreground: #939289;
+  --muted-foreground: #a3a29a;
   --accent: #363646;
-  --accent-foreground: #7e9cd8;
-  --destructive: #e82424;
+  --accent-foreground: #a2b8e3;
+  --destructive: #ef6868;
   --destructive-foreground: #ffffff;
   --border: #54546d;
   --input: #54546d;

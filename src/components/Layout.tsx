@@ -33,10 +33,10 @@ export function Layout() {
                 key={to}
                 to={to}
                 className={cn(
-                  'flex items-center gap-1 transition-colors hover:text-foreground/80',
+                  'flex items-center gap-1 transition-colors hover:text-foreground',
                   location.pathname === to
                     ? 'text-foreground'
-                    : 'text-foreground/60'
+                    : 'text-muted-foreground'
                 )}
               >
                 <Icon className="size-4" />
@@ -46,10 +46,10 @@ export function Layout() {
             <Link
               to="/promotion"
               className={cn(
-                'flex items-center gap-1 transition-colors hover:text-foreground/80',
+                'flex items-center gap-1 transition-colors hover:text-foreground',
                 location.pathname === '/promotion'
                   ? 'text-foreground'
-                  : 'text-foreground/60'
+                  : 'text-muted-foreground'
               )}
             >
               <Layers className="size-4" />

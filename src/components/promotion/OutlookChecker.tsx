@@ -405,7 +405,7 @@ export function OutlookChecker() {
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
                         <p className="font-medium">{issue.rule}</p>
                         <p className="text-muted-foreground">{issue.message}</p>
-                        <p className="text-[10px] text-muted-foreground/80 italic">
+                        <p className="text-[10px] text-muted-foreground italic">
                           Fix: {issue.recommendation}
                         </p>
                       </div>
