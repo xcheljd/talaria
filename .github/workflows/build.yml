@@ -76,23 +76,41 @@ jobs:
           if-no-files-found: error
           path: src-tauri/target/release/talaria.exe
 
+      # Zip the .app with ditto before upload: upload-artifact drops Unix
+      # permissions, so a raw .app folder arrives with a non-executable
+      # binary and won't launch. ditto keeps permissions and bundle metadata.
+      # (No DMG: bundle.targets is ["app"].)
+      - name: Zip macOS app (ARM)
+        if: matrix.platform == 'macos-latest' && contains(matrix.args, 'aarch64')
+        run: |
+          cd src-tauri/target/aarch64-apple-darwin/release/bundle/macos
+          ditto -c -k --keepParent Talaria.app Talaria-macos-arm64.zip
+
       - name: Upload macOS artifacts (ARM)
         if: matrix.platform == 'macos-latest' && contains(matrix.args, 'aarch64')
         uses: actions/upload-artifact@v7
         with:
           name: macos-arm64-build
-          path: |
-            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
-            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+          path: src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Talaria-macos-arm64.zip
+
+      # Zip the .app with ditto before upload: upload-artifact drops Unix
+      # permissions, so a raw .app folder arrives with a non-executable
+      # binary and won't launch. ditto keeps permissions and bundle metadata.
+      # (No DMG: bundle.targets is ["app"].)
+      - name: Zip macOS app (Intel)
+        if: matrix.platform == 'macos-latest' && contains(matrix.args, 'x86_64')
+        run: |
+          cd src-tauri/target/x86_64-apple-darwin/release/bundle/macos
+          ditto -c -k --keepParent Talaria.app Talaria-macos-x64.zip
 
       - name: Upload macOS artifacts (Intel)
         if: matrix.platform == 'macos-latest' && contains(matrix.args, 'x86_64')
         uses: actions/upload-artifact@v7
         with:
           name: macos-x64-build
-          path: |
-            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app
-            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+          path: src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Talaria-macos-x64.zip
 
   # Optional: Create a release with all artifacts
   release:
