@@ -292,52 +292,59 @@ export function SubjectLineGenerator() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Suggestion controls — header + generate/regenerate */}
-      <div className="flex items-center justify-between gap-2">
-        <label className="text-sm font-medium">
-          {hasLines ? 'Choose a subject line suggestion:' : 'Subject line'}
-        </label>
-        {hasContent && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={hasLines ? handleRegenerate : handleGenerate}
-            className="gap-1.5 text-xs"
+      {/* Suggestion controls: label row + dropdown share the 8px label gap
+          the other fields use. items-end keeps the label's baseline 8px above
+          the dropdown even though the button makes the row 32px tall. */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-end justify-between gap-2">
+          <label
+            htmlFor={hasLines ? 'subject-suggestion-select' : undefined}
+            className="text-sm font-medium"
           >
-            <RefreshCw className="size-3.5" />
-            {hasLines ? 'Regenerate' : 'Generate suggestions'}
-          </Button>
+            {hasLines ? 'Choose a subject line suggestion:' : 'Subject line'}
+          </label>
+          {hasContent && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={hasLines ? handleRegenerate : handleGenerate}
+              className="gap-1.5 text-xs"
+            >
+              <RefreshCw className="size-3.5" />
+              {hasLines ? 'Regenerate' : 'Generate suggestions'}
+            </Button>
+          )}
+        </div>
+
+        {/* Select dropdown — only after suggestions have been generated */}
+        {hasLines && (
+          <Select
+            value={
+              store.generatedSubjectLines.indexOf(
+                store.selectedSubjectLine || ''
+              ) >= 0
+                ? String(
+                    store.generatedSubjectLines.indexOf(
+                      store.selectedSubjectLine || ''
+                    )
+                  )
+                : undefined
+            }
+            onValueChange={handleSelectSubject}
+          >
+            <SelectTrigger id="subject-suggestion-select" className="w-full">
+              <SelectValue placeholder="Select a subject line..." />
+            </SelectTrigger>
+            <SelectContent>
+              {store.generatedSubjectLines.map((subject, index) => (
+                <SelectItem key={index} value={String(index)}>
+                  {subject}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
       </div>
-
-      {/* Select dropdown — only after suggestions have been generated */}
-      {hasLines && (
-        <Select
-          value={
-            store.generatedSubjectLines.indexOf(
-              store.selectedSubjectLine || ''
-            ) >= 0
-              ? String(
-                  store.generatedSubjectLines.indexOf(
-                    store.selectedSubjectLine || ''
-                  )
-                )
-              : undefined
-          }
-          onValueChange={handleSelectSubject}
-        >
-          <SelectTrigger className="w-full" aria-label="Subject line">
-            <SelectValue placeholder="Select a subject line..." />
-          </SelectTrigger>
-          <SelectContent>
-            {store.generatedSubjectLines.map((subject, index) => (
-              <SelectItem key={index} value={String(index)}>
-                {subject}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
 
       {/* Hint when there's no content to generate from yet */}
       {!hasContent && !hasLines && (
