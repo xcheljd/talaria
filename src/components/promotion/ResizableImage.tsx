@@ -46,35 +46,54 @@ function ImageNodeView({
   const [isResizing, setIsResizing] = useState(false);
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkValue, setLinkValue] = useState(href || '');
-  const aspectRatioRef = useRef<number>(1);
 
+  /**
+   * Corner-drag resize. Pointer events + pointer capture (not document
+   * mouse listeners) so the drag keeps tracking in WebKit-based webviews,
+   * where the node's native drag-and-drop otherwise swallows mousemove.
+   * `side` is which edge the handle sits on: dragging a left handle
+   * leftward grows the image (needed for right-aligned images).
+   */
   const handleResizeStart = useCallback(
-    (e: React.MouseEvent) => {
+    (side: 'left' | 'right') => (e: React.PointerEvent<HTMLDivElement>) => {
       e.preventDefault();
       e.stopPropagation();
-      setIsResizing(true);
-
       const img = imgRef.current;
       if (!img) return;
 
+      const handle = e.currentTarget;
+      handle.setPointerCapture(e.pointerId);
+      setIsResizing(true);
+
       const startX = e.clientX;
       const startWidth = img.offsetWidth;
-      aspectRatioRef.current = img.naturalWidth / img.naturalHeight;
+      // Never grow past the editor column (the email body is 600px max).
+      const maxWidth = Math.min(
+        600,
+        img.closest('.tiptap')?.clientWidth ?? 600
+      );
 
-      const handleMouseMove = (moveEvent: MouseEvent) => {
-        const delta = moveEvent.clientX - startX;
-        const newWidth = Math.max(50, Math.min(600, startWidth + delta));
+      const onMove = (moveEvent: PointerEvent) => {
+        const delta = (moveEvent.clientX - startX) * (side === 'left' ? -1 : 1);
+        const newWidth = Math.round(
+          Math.max(50, Math.min(maxWidth, startWidth + delta))
+        );
         updateAttributes({ width: newWidth });
       };
 
-      const handleMouseUp = () => {
+      const onUp = (upEvent: PointerEvent) => {
         setIsResizing(false);
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+        if (handle.hasPointerCapture(upEvent.pointerId)) {
+          handle.releasePointerCapture(upEvent.pointerId);
+        }
+        handle.removeEventListener('pointermove', onMove);
+        handle.removeEventListener('pointerup', onUp);
+        handle.removeEventListener('pointercancel', onUp);
       };
 
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      handle.addEventListener('pointermove', onMove);
+      handle.addEventListener('pointerup', onUp);
+      handle.addEventListener('pointercancel', onUp);
     },
     [updateAttributes]
   );
@@ -84,12 +103,19 @@ function ImageNodeView({
     setShowLinkInput(false);
   }, [linkValue, updateAttributes]);
 
-  const alignStyle: React.CSSProperties =
-    align === 'center'
-      ? { display: 'block', margin: '8px auto' }
-      : align === 'right'
-        ? { display: 'block', marginLeft: 'auto', marginRight: 0 }
-        : { display: 'block', marginLeft: 0, marginRight: 'auto' };
+  // The wrapper shrink-wraps the image (fit-content) so alignment margins
+  // move the picture itself and the resize handles sit on its corners. A
+  // full-width block wrapper left the image stuck at the left edge with the
+  // handles floating at the far right of the editor.
+  const alignStyle: React.CSSProperties = {
+    display: 'block',
+    width: 'fit-content',
+    maxWidth: '100%',
+    marginTop: 8,
+    marginBottom: 8,
+    marginLeft: align === 'left' ? 0 : 'auto',
+    marginRight: align === 'right' ? 0 : 'auto',
+  };
 
   return (
     <NodeViewWrapper
@@ -261,19 +287,25 @@ function ImageNodeView({
         draggable={false}
       />
 
-      {/* Resize handles (visible when selected) */}
-      {selected && (
-        <>
+      {/* Resize handles (visible when selected), one per image corner */}
+      {selected &&
+        (
+          [
+            ['top-0 left-0 rounded-br cursor-nw-resize', 'left'],
+            ['bottom-0 left-0 rounded-tr cursor-sw-resize', 'left'],
+            ['top-0 right-0 rounded-bl cursor-ne-resize', 'right'],
+            ['bottom-0 right-0 rounded-tl cursor-se-resize', 'right'],
+          ] as const
+        ).map(([pos, side]) => (
           <div
-            className="absolute bottom-0 right-0 size-3 bg-primary rounded-tl cursor-se-resize z-10"
-            onMouseDown={handleResizeStart}
+            key={pos}
+            data-testid={`image-resize-${pos.split(' ').slice(0, 2).join('-')}`}
+            className={cn('absolute z-10 size-3 touch-none bg-primary', pos)}
+            contentEditable={false}
+            draggable={false}
+            onPointerDown={handleResizeStart(side)}
           />
-          <div
-            className="absolute top-0 right-0 size-3 bg-primary rounded-bl cursor-ne-resize z-10"
-            onMouseDown={handleResizeStart}
-          />
-        </>
-      )}
+        ))}
 
       {/* Link badge */}
       {href && (
