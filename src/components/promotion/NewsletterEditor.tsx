@@ -59,6 +59,7 @@ import {
 import { NewsletterStylePanel } from './newsletter/NewsletterStylePanel';
 import { NewsletterToolbar } from './newsletter/NewsletterToolbar';
 import { NewsletterBubbleMenu } from './newsletter/NewsletterBubbleMenu';
+import { NewsletterTableMenu } from './newsletter/NewsletterTableMenu';
 
 // ===== Heading Extraction Helper =====
 
@@ -458,6 +459,7 @@ export function NewsletterEditor() {
 
       {/* Word-style mini toolbar that floats over the current text selection */}
       <NewsletterBubbleMenu editor={editor} />
+      <NewsletterTableMenu editor={editor} />
 
       {/* Editor Content Area */}
       <div

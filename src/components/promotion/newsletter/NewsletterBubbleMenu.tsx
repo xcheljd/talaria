@@ -47,7 +47,7 @@ import { ToolbarButton, ToolbarSeparator, ColorInput } from './toolbar';
  * the floating menu's shift boundary so a right-edge selection keeps the menu
  * inside that column instead of pushing it across the resizable divider.
  */
-function getScrollBoundary(el: HTMLElement): HTMLElement | undefined {
+export function getScrollBoundary(el: HTMLElement): HTMLElement | undefined {
   let node: HTMLElement | null = el.parentElement;
   while (node) {
     const oy = getComputedStyle(node).overflowY;

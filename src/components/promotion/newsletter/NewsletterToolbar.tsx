@@ -33,10 +33,6 @@ import {
   ExternalLink,
   ImageIcon,
   Table as TableIcon,
-  Plus,
-  TableCellsMerge,
-  TableCellsSplit,
-  Trash2Icon,
   Code,
   Quote,
   Smile,
@@ -627,100 +623,9 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
                 )}
               </div>
             </div>
-            <Separator className="my-0.5" />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-start h-7 text-xs"
-              onClick={() => editor?.chain().focus().addColumnBefore().run()}
-              disabled={!editor?.can().addColumnBefore()}
-            >
-              <Plus className="size-3 mr-1.5" />
-              Add column before
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-start h-7 text-xs"
-              onClick={() => editor?.chain().focus().addColumnAfter().run()}
-              disabled={!editor?.can().addColumnAfter()}
-            >
-              <Plus className="size-3 mr-1.5" />
-              Add column after
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-start h-7 text-xs"
-              onClick={() => editor?.chain().focus().deleteColumn().run()}
-              disabled={!editor?.can().deleteColumn()}
-            >
-              <Minus className="size-3 mr-1.5" />
-              Delete column
-            </Button>
-            <Separator className="my-0.5" />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-start h-7 text-xs"
-              onClick={() => editor?.chain().focus().addRowBefore().run()}
-              disabled={!editor?.can().addRowBefore()}
-            >
-              <Plus className="size-3 mr-1.5" />
-              Add row before
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-start h-7 text-xs"
-              onClick={() => editor?.chain().focus().addRowAfter().run()}
-              disabled={!editor?.can().addRowAfter()}
-            >
-              <Plus className="size-3 mr-1.5" />
-              Add row after
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-start h-7 text-xs"
-              onClick={() => editor?.chain().focus().deleteRow().run()}
-              disabled={!editor?.can().deleteRow()}
-            >
-              <Minus className="size-3 mr-1.5" />
-              Delete row
-            </Button>
-            <Separator className="my-0.5" />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-start h-7 text-xs"
-              onClick={() => editor?.chain().focus().mergeCells().run()}
-              disabled={!editor?.can().mergeCells()}
-            >
-              <TableCellsMerge className="size-3 mr-1.5" />
-              Merge cells
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-start h-7 text-xs"
-              onClick={() => editor?.chain().focus().splitCell().run()}
-              disabled={!editor?.can().splitCell()}
-            >
-              <TableCellsSplit className="size-3 mr-1.5" />
-              Split cell
-            </Button>
-            <Separator className="my-0.5" />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-start h-7 text-xs text-destructive hover:text-destructive"
-              onClick={() => editor?.chain().focus().deleteTable().run()}
-              disabled={!editor?.can().deleteTable()}
-            >
-              <Trash2Icon className="size-3 mr-1.5" />
-              Delete table
-            </Button>
+            <p className="px-1 pt-1 text-[10px] text-muted-foreground">
+              Click inside a table to edit rows, columns and headers.
+            </p>
           </div>
         </PopoverContent>
       </Popover>
