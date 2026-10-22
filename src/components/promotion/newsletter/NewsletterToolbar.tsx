@@ -37,6 +37,7 @@ import {
   Quote,
   Smile,
   RemoveFormatting,
+  Ellipsis,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isSafeURL } from '@/lib/html-utils';
@@ -204,7 +205,7 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 rounded-md border bg-muted/30 p-1 max-h-[72px] overflow-y-auto">
+    <div className="flex flex-wrap items-center rounded-md border bg-muted/30 p-1">
       {/* Undo / Redo */}
       <ToolbarButton
         active={false}
@@ -255,16 +256,6 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         shortcut="Ctrl+U"
       >
         <UnderlineIcon className="size-3.5" />
-      </ToolbarButton>
-
-      {/* Strikethrough */}
-      <ToolbarButton
-        active={editor?.isActive('strike') || false}
-        onClick={() => editor?.chain().focus().toggleStrike().run()}
-        label="Strikethrough"
-        shortcut="Ctrl+Shift+S"
-      >
-        <Strikethrough className="size-3.5" />
       </ToolbarButton>
 
       {/* Font Size */}
@@ -319,17 +310,6 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
           </div>
         </PopoverContent>
       </Popover>
-
-      {/* Clear Formatting */}
-      <ToolbarButton
-        active={false}
-        onClick={() =>
-          editor?.chain().focus().unsetAllMarks().clearNodes().run()
-        }
-        label="Clear formatting"
-      >
-        <RemoveFormatting className="size-3.5" />
-      </ToolbarButton>
 
       <ToolbarSeparator />
 
@@ -435,61 +415,133 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
 
       <ToolbarSeparator />
 
-      {/* Text Alignment (#3) */}
-      <ToolbarButton
-        active={editor?.isActive({ textAlign: 'left' }) || false}
-        onClick={() => editor?.chain().focus().setTextAlign('left').run()}
-        label="Align left"
-        shortcut="Ctrl+Shift+L"
-      >
-        <AlignLeft className="size-3.5" />
-      </ToolbarButton>
-      <ToolbarButton
-        active={editor?.isActive({ textAlign: 'center' }) || false}
-        onClick={() => editor?.chain().focus().setTextAlign('center').run()}
-        label="Align center"
-        shortcut="Ctrl+Shift+E"
-      >
-        <AlignCenter className="size-3.5" />
-      </ToolbarButton>
-      <ToolbarButton
-        active={editor?.isActive({ textAlign: 'right' }) || false}
-        onClick={() => editor?.chain().focus().setTextAlign('right').run()}
-        label="Align right"
-        shortcut="Ctrl+Shift+R"
-      >
-        <AlignRight className="size-3.5" />
-      </ToolbarButton>
-      <ToolbarButton
-        active={editor?.isActive({ textAlign: 'justify' }) || false}
-        onClick={() => editor?.chain().focus().setTextAlign('justify').run()}
-        label="Justify"
-        shortcut="Ctrl+Shift+J"
-      >
-        <AlignJustify className="size-3.5" />
-      </ToolbarButton>
+      {/* Paragraph alignment: one button showing the current alignment,
+          opening the four options. */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <ToolbarButton
+            active={false}
+            onClick={() => {}}
+            label="Text alignment"
+            data-testid="text-align-menu"
+          >
+            {editor?.isActive({ textAlign: 'center' }) ? (
+              <AlignCenter className="size-3.5" />
+            ) : editor?.isActive({ textAlign: 'right' }) ? (
+              <AlignRight className="size-3.5" />
+            ) : editor?.isActive({ textAlign: 'justify' }) ? (
+              <AlignJustify className="size-3.5" />
+            ) : (
+              <AlignLeft className="size-3.5" />
+            )}
+          </ToolbarButton>
+        </PopoverTrigger>
+        <PopoverContent
+          className="flex w-auto gap-0.5 p-1"
+          side="bottom"
+          align="start"
+        >
+          <ToolbarButton
+            active={editor?.isActive({ textAlign: 'left' }) || false}
+            onClick={() => editor?.chain().focus().setTextAlign('left').run()}
+            label="Align left"
+            shortcut="Ctrl+Shift+L"
+          >
+            <AlignLeft className="size-3.5" />
+          </ToolbarButton>
+          <ToolbarButton
+            active={editor?.isActive({ textAlign: 'center' }) || false}
+            onClick={() => editor?.chain().focus().setTextAlign('center').run()}
+            label="Align center"
+            shortcut="Ctrl+Shift+E"
+          >
+            <AlignCenter className="size-3.5" />
+          </ToolbarButton>
+          <ToolbarButton
+            active={editor?.isActive({ textAlign: 'right' }) || false}
+            onClick={() => editor?.chain().focus().setTextAlign('right').run()}
+            label="Align right"
+            shortcut="Ctrl+Shift+R"
+          >
+            <AlignRight className="size-3.5" />
+          </ToolbarButton>
+          <ToolbarButton
+            active={editor?.isActive({ textAlign: 'justify' }) || false}
+            onClick={() =>
+              editor?.chain().focus().setTextAlign('justify').run()
+            }
+            label="Justify"
+            shortcut="Ctrl+Shift+J"
+          >
+            <AlignJustify className="size-3.5" />
+          </ToolbarButton>
+        </PopoverContent>
+      </Popover>
 
-      <ToolbarSeparator />
+      {/* Less-used formatting, folded to keep the toolbar to one row. */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <ToolbarButton
+            active={
+              editor?.isActive('strike') ||
+              editor?.isActive('blockquote') ||
+              editor?.isActive('codeBlock') ||
+              false
+            }
+            onClick={() => {}}
+            label="More formatting"
+            data-testid="more-formatting-menu"
+          >
+            <Ellipsis className="size-3.5" />
+          </ToolbarButton>
+        </PopoverTrigger>
+        <PopoverContent
+          className="flex w-auto gap-0.5 p-1"
+          side="bottom"
+          align="start"
+        >
+          {/* Strikethrough */}
+          <ToolbarButton
+            active={editor?.isActive('strike') || false}
+            onClick={() => editor?.chain().focus().toggleStrike().run()}
+            label="Strikethrough"
+            shortcut="Ctrl+Shift+S"
+          >
+            <Strikethrough className="size-3.5" />
+          </ToolbarButton>
 
-      {/* Blockquote (#5) */}
-      <ToolbarButton
-        active={editor?.isActive('blockquote') || false}
-        onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-        label="Blockquote"
-        shortcut="Ctrl+Shift+B"
-      >
-        <Quote className="size-3.5" />
-      </ToolbarButton>
+          {/* Blockquote (#5) */}
+          <ToolbarButton
+            active={editor?.isActive('blockquote') || false}
+            onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+            label="Blockquote"
+            shortcut="Ctrl+Shift+B"
+          >
+            <Quote className="size-3.5" />
+          </ToolbarButton>
 
-      {/* Code Block (#4) */}
-      <ToolbarButton
-        active={editor?.isActive('codeBlock') || false}
-        onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
-        label="Code block"
-        shortcut="Ctrl+Alt+C"
-      >
-        <Code className="size-3.5" />
-      </ToolbarButton>
+          {/* Code Block (#4) */}
+          <ToolbarButton
+            active={editor?.isActive('codeBlock') || false}
+            onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+            label="Code block"
+            shortcut="Ctrl+Alt+C"
+          >
+            <Code className="size-3.5" />
+          </ToolbarButton>
+
+          {/* Clear Formatting */}
+          <ToolbarButton
+            active={false}
+            onClick={() =>
+              editor?.chain().focus().unsetAllMarks().clearNodes().run()
+            }
+            label="Clear formatting"
+          >
+            <RemoveFormatting className="size-3.5" />
+          </ToolbarButton>
+        </PopoverContent>
+      </Popover>
 
       <ToolbarSeparator />
 
@@ -562,8 +614,6 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         </ToolbarButton>
       )}
 
-      <ToolbarSeparator />
-
       {/* Image (#1) — popover for URL + hidden file input for upload */}
       <Popover open={imagePopoverOpen} onOpenChange={setImagePopoverOpen}>
         <PopoverTrigger asChild>
@@ -626,8 +676,6 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
         </PopoverContent>
       </Popover>
 
-      <ToolbarSeparator />
-
       {/* Table (#2) */}
       <Popover>
         <PopoverTrigger asChild>
@@ -689,8 +737,6 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
           </div>
         </PopoverContent>
       </Popover>
-
-      <ToolbarSeparator />
 
       {/* Horizontal Rule / Dividers */}
       <Popover>
