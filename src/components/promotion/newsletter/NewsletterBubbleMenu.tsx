@@ -148,7 +148,11 @@ export function NewsletterBubbleMenu({ editor }: { editor: Editor | null }) {
       {/* Font size */}
       <Popover>
         <PopoverTrigger asChild>
-          <ToolbarButton active={false} onClick={() => {}} label="Font size">
+          <ToolbarButton
+            active={false}
+            onClick={() => {}}
+            label={`Font size ${currentFontSize}`}
+          >
             <span className="text-[10px] font-semibold leading-none">
               {currentFontSize}
             </span>

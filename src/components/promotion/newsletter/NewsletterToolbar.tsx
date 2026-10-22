@@ -98,6 +98,9 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
       setNewsletterStyle: s.setNewsletterStyle,
     }))
   );
+  const currentFontSize = editor?.getAttributes('textStyle')?.fontSize
+    ? parseInt(editor.getAttributes('textStyle').fontSize)
+    : 14;
   const emailPalette = usePromotionStore((s) => s.emailPalette);
   const store = { newsletterStyle, setNewsletterStyle, emailPalette };
 
@@ -261,11 +264,13 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
       {/* Font Size */}
       <Popover>
         <PopoverTrigger asChild>
-          <ToolbarButton active={false} onClick={() => {}} label="Font size">
+          <ToolbarButton
+            active={false}
+            onClick={() => {}}
+            label={`Font size ${currentFontSize}`}
+          >
             <span className="text-[10px] font-semibold leading-none">
-              {editor?.getAttributes('textStyle')?.fontSize
-                ? parseInt(editor.getAttributes('textStyle').fontSize)
-                : 14}
+              {currentFontSize}
             </span>
           </ToolbarButton>
         </PopoverTrigger>

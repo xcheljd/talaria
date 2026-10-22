@@ -272,7 +272,13 @@ export const IconToolbar = memo(function IconToolbar({
               data-testid={`toolbar-icon-${cardId}`}
               className={buttonClass(isActive)}
               onClick={() => onCardClick(cardId)}
-              aria-label={`Show ${config.tooltip}`}
+              // Voice-control users say the visible label, so the name must
+              // contain it (WCAG 2.5.3) even when the tooltip words it longer.
+              aria-label={
+                config.tooltip.includes(config.label)
+                  ? `Show ${config.tooltip}`
+                  : `Show ${config.label}: ${config.tooltip}`
+              }
               aria-pressed={isActive}
             >
               <Icon className="size-4" />
