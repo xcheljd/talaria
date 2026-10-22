@@ -706,8 +706,14 @@ function buildNewsletterSection(
   if (!body || !body.trim()) return '';
 
   // Extract first H2 as heading
-  const h2Match = body.match(/<h2[^>]*>(.*?)<\/h2>/i);
-  const headingText = h2Match ? h2Match[1].replace(/<[^>]*>/g, '').trim() : '';
+  const h2Match = body.match(/<h2([^>]*)>(.*?)<\/h2>/i);
+  const headingText = h2Match ? h2Match[2].replace(/<[^>]*>/g, '').trim() : '';
+  // Alignment set on the heading itself in the editor (TextAlign writes
+  // style="text-align: …") wins over the stored newsletter heading align, so
+  // the email matches what the editor shows.
+  const inlineAlign = h2Match?.[1].match(
+    /text-align:\s*(left|center|right|justify)/i
+  )?.[1];
   const restBody = h2Match ? body.replace(/<h2[^>]*>.*?<\/h2>/i, '') : body;
 
   const tableOpts: TableStyleOptions = {
@@ -746,7 +752,7 @@ function buildNewsletterSection(
   }
 
   // Build heading alignment
-  const headingAlign = `text-align: ${style.headingAlign};`;
+  const headingAlign = `text-align: ${inlineAlign ?? style.headingAlign};`;
 
   return `
                 <!-- NEWSLETTER -->

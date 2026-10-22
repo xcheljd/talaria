@@ -218,3 +218,35 @@ describe('convertTipTapToInlineHTML characterization', () => {
     expect(html).toContain('background-color: yellow;');
   });
 });
+
+describe('newsletter heading alignment', () => {
+  const headingStyle = (html: string) =>
+    html.match(/<!-- NEWSLETTER -->[\s\S]*?<h2 style="([^"]*)"/)?.[1] ?? '';
+
+  it('uses the stored headingAlign when the H2 has no inline alignment', () => {
+    const html = generatePromotionEmailHTML(
+      makeEmailData('<h2>Fall News</h2><p>Body</p>', {
+        newsletterStyle: { ...NEWSLETTER_STYLE, headingAlign: 'center' },
+      })
+    );
+    expect(headingStyle(html)).toContain('text-align: center;');
+  });
+
+  it('lets alignment set on the H2 in the editor win, matching the editor', () => {
+    const html = generatePromotionEmailHTML(
+      makeEmailData(
+        '<h2 style="text-align: center">Fall News</h2><p>Body</p>',
+        { newsletterStyle: { ...NEWSLETTER_STYLE, headingAlign: 'left' } }
+      )
+    );
+    expect(headingStyle(html)).toContain('text-align: center;');
+    expect(headingStyle(html)).not.toContain('text-align: left;');
+  });
+
+  it('keeps the heading text unchanged when the H2 is aligned', () => {
+    const html = generatePromotionEmailHTML(
+      makeEmailData('<h2 style="text-align: center">Fall News</h2><p>Body</p>')
+    );
+    expect(html).toMatch(/<h2 style="[^"]*">Fall News<\/h2>/);
+  });
+});
