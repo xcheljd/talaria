@@ -19,14 +19,16 @@ export function Layout() {
           here forces WebKit (Tauri's WKWebView) to recompute the blur every
           frame as the content scrolls beneath it, which jank's scrolling. */}
       <header className="sticky top-0 z-50 w-full border-b bg-background">
-        <div className="container mx-auto flex h-14 items-center gap-6 px-4">
+        <div className="container mx-auto flex h-14 items-center gap-4 px-4 sm:gap-6">
           <Link to="/promotion" className="flex items-center gap-2">
             <Layers className="size-5" />
-            <span className="font-bold">Talaria</span>
+            <span className="sr-only font-bold min-[420px]:not-sr-only">
+              Talaria
+            </span>
           </Link>
           <nav
             aria-label="Main"
-            className="flex items-center gap-6 text-sm font-medium"
+            className="flex items-center gap-4 text-sm font-medium sm:gap-6"
           >
             {links.map(({ to, label, icon: Icon }) => (
               <Link
@@ -40,7 +42,7 @@ export function Layout() {
                 )}
               >
                 <Icon className="size-4" />
-                <span>{label}</span>
+                <span className="sr-only sm:not-sr-only">{label}</span>
               </Link>
             ))}
             <Link
@@ -53,7 +55,7 @@ export function Layout() {
               )}
             >
               <Layers className="size-4" />
-              <span>Promotions</span>
+              <span className="sr-only sm:not-sr-only">Promotions</span>
             </Link>
           </nav>
           <div className="ml-auto flex items-center gap-4">

@@ -39,7 +39,6 @@ import {
 import type { UserProfile } from '@/lib/profile';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Form } from '@/components/ui/form';
 import { ProfileFormSection } from '@/components/profile/ProfileFormSection';
@@ -272,88 +271,91 @@ export function ProfileSettingsPage() {
 
           {/* Profile & Keywords (form-backed sections) */}
           {(section === 'profile' || section === 'keywords') && (
-            <Card>
-              <CardContent className="flex flex-col gap-6 pt-6">
-                {section === 'profile' && (
-                  <div className="rounded-md border-l-4 border-primary bg-primary/5 p-3 text-sm text-muted-foreground">
+            // No outer Card: each section below draws its own bordered panel
+            // (same as Preferences), so a wrapping Card nested frames.
+            <div className="flex flex-col gap-6">
+              {section === 'profile' && (
+                <p className="flex items-start gap-2 rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">
+                  <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  <span>
                     Saved locally on your device and used to auto-fill your
                     details in your promotion emails. Update anytime.
+                  </span>
+                </p>
+              )}
+
+              <Form {...form}>
+                <form
+                  className="flex flex-col gap-4"
+                  onSubmit={form.handleSubmit(
+                    () => {
+                      setAttemptedSubmit(false);
+                      onSubmit(form.getValues() as ProfileFormValues);
+                    },
+                    () => {
+                      setAttemptedSubmit(true);
+                    }
+                  )}
+                >
+                  {/* Action Buttons (top) */}
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="submit" size="sm">
+                      <Save className="size-4" />
+                      Save
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExport}
+                    >
+                      <Download className="size-4" />
+                      Export
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowImportDialog(true)}
+                    >
+                      <Upload className="size-4" />
+                      Import
+                    </Button>
                   </div>
-                )}
 
-                <Form {...form}>
-                  <form
-                    className="flex flex-col gap-4"
-                    onSubmit={form.handleSubmit(
-                      () => {
-                        setAttemptedSubmit(false);
-                        onSubmit(form.getValues() as ProfileFormValues);
-                      },
-                      () => {
-                        setAttemptedSubmit(true);
-                      }
-                    )}
-                  >
-                    {/* Action Buttons (top) */}
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="submit" size="sm">
-                        <Save className="size-4" />
-                        Save
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleExport}
-                      >
-                        <Download className="size-4" />
-                        Export
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowImportDialog(true)}
-                      >
-                        <Upload className="size-4" />
-                        Import
-                      </Button>
-                    </div>
-
-                    {/* Validation Summary */}
-                    {attemptedSubmit &&
-                      Object.keys(form.formState.errors).length > 0 && (
-                        <Alert variant="destructive">
-                          <AlertCircle className="size-4" />
-                          <AlertDescription>
-                            Please complete all required fields:{' '}
-                            {Object.entries(form.formState.errors)
-                              .filter(([, error]) => error?.message)
-                              .map(([field, error]) => error.message || field)
-                              .join(', ')}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                    {/* Profile fields */}
-                    {section === 'profile' && (
-                      <ProfileFormSection
-                        form={form}
-                        showCompanyEmail={showCompanyEmail}
-                        brandLinkFields={brandLinkFields}
-                        appendBrandLink={appendBrandLink}
-                        removeBrandLink={removeBrandLink}
-                      />
+                  {/* Validation Summary */}
+                  {attemptedSubmit &&
+                    Object.keys(form.formState.errors).length > 0 && (
+                      <Alert variant="destructive">
+                        <AlertCircle className="size-4" />
+                        <AlertDescription>
+                          Please complete all required fields:{' '}
+                          {Object.entries(form.formState.errors)
+                            .filter(([, error]) => error?.message)
+                            .map(([field, error]) => error.message || field)
+                            .join(', ')}
+                        </AlertDescription>
+                      </Alert>
                     )}
 
-                    {/* Keywords fields */}
-                    {section === 'keywords' && (
-                      <BrandSettingsSection form={form} />
-                    )}
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+                  {/* Profile fields */}
+                  {section === 'profile' && (
+                    <ProfileFormSection
+                      form={form}
+                      showCompanyEmail={showCompanyEmail}
+                      brandLinkFields={brandLinkFields}
+                      appendBrandLink={appendBrandLink}
+                      removeBrandLink={removeBrandLink}
+                    />
+                  )}
+
+                  {/* Keywords fields */}
+                  {section === 'keywords' && (
+                    <BrandSettingsSection form={form} />
+                  )}
+                </form>
+              </Form>
+            </div>
           )}
 
           {/* Preferences section */}
