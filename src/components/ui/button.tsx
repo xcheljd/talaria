@@ -41,7 +41,8 @@ const buttonVariants = cva(
 // Subtle tactile scale-down on press. Disabled buttons can't be :active
 // (pointer-events-none), and not-disabled guards asChild cases where the
 // child isn't a real button. Pass `static` to opt out when motion distracts.
-const tapScale = 'active:not-disabled:scale-[0.96]';
+// motion-safe: the press-shrink is movement, so reduce-motion users skip it.
+const tapScale = 'motion-safe:active:not-disabled:scale-[0.96]';
 
 function Button({
   className,

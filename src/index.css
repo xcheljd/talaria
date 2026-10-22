@@ -142,15 +142,18 @@ html.theme-transition *::after {
     transition: none;
   }
 
-  /* Honor the OS "reduce motion" setting app-wide: button tap-scale,
-     collapsible expand, chevron rotation, popover/tooltip animations.
-     Near-zero (not 0) so transitionend/animationend still fire. */
+  /* Honor the OS "reduce motion" setting app-wide. Remove movement
+     (keyframe animations, transform/size/position transitions, smooth
+     scroll) but keep color and opacity fades: they carry state change
+     without vestibular motion, so the UI still reads as responsive. */
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-property:
+      color, background-color, border-color, outline-color, fill, stroke,
+      opacity, box-shadow !important;
     scroll-behavior: auto !important;
   }
 }
