@@ -33,7 +33,7 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
 
       {/* Brand Identity header */}
       <div className="col-span-1 lg:col-span-2">
-        <h3 className="text-sm font-semibold">Brand Identity</h3>
+        <h2 className="text-sm font-semibold">Brand Identity</h2>
         <p className="text-xs text-muted-foreground">
           Your company name, what you sell, and the website links shown in your
           email signature. These make every template yours.

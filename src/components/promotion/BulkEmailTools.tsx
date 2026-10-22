@@ -334,6 +334,7 @@ export function BulkEmailTools() {
                 }
               }}
               className="h-7 w-16 rounded-md border bg-background px-2 text-center text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              aria-label="Batch size"
               data-testid="batch-size-input"
             />
             <Button

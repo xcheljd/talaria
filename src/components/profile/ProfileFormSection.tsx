@@ -146,7 +146,7 @@ export function ProfileFormSection({
 
       {/* What you sell header */}
       <div className="col-span-1 lg:col-span-2">
-        <h3 className="text-sm font-semibold">What You Sell</h3>
+        <h2 className="text-sm font-semibold">What You Sell</h2>
         <p className="text-xs text-muted-foreground">
           The word for your product is woven into email copy and subject lines
           (e.g. "Your New Watch Awaits"). Leave blank to use the neutral default

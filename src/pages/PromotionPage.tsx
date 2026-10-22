@@ -189,6 +189,7 @@ export function PromotionPage() {
   if (isDesktop) {
     return (
       <div className="flex h-full overflow-hidden" data-testid="desktop-layout">
+        <h1 className="sr-only">Promotion builder</h1>
         <ResizablePanels
           orientation="vertical"
           defaultSplit={50}
@@ -213,6 +214,7 @@ export function PromotionPage() {
   // ===== Mobile Layout (<1024px): IconToolbar + selected card + preview =====
   return (
     <div className="flex flex-col h-full" data-testid="mobile-layout">
+      <h1 className="sr-only">Promotion builder</h1>
       {/* Icon toolbar for tool selection */}
       <IconToolbar
         activeCardId={selectedCardId}

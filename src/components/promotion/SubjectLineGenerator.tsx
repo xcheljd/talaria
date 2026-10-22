@@ -324,7 +324,7 @@ export function SubjectLineGenerator() {
           }
           onValueChange={handleSelectSubject}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full" aria-label="Subject line">
             <SelectValue placeholder="Select a subject line..." />
           </SelectTrigger>
           <SelectContent>

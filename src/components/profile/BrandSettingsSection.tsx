@@ -28,7 +28,7 @@ export function BrandSettingsSection({ form }: BrandSettingsSectionProps) {
     <div className="grid grid-cols-1 gap-4 rounded-lg border bg-card p-4 lg:grid-cols-2">
       {/* Subject line keywords header */}
       <div className="col-span-1 lg:col-span-2">
-        <h3 className="text-sm font-semibold">Subject Line Keywords</h3>
+        <h2 className="text-sm font-semibold">Subject Line Keywords</h2>
         <p className="text-xs text-muted-foreground">
           Brand and collection names the subject-line generator can feature in
           suggestions (e.g. "Spring Aria Sale"). Separate multiple values with

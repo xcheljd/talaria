@@ -25,9 +25,12 @@ export function DownloadFolderSection({
 }: DownloadFolderSectionProps) {
   return (
     <Field className="gap-2">
-      <FieldLabel>Download Folder (Desktop app)</FieldLabel>
+      <FieldLabel htmlFor="download-folder">
+        Download Folder (Desktop app)
+      </FieldLabel>
       <div className="flex items-center gap-2">
         <Input
+          id="download-folder"
           value={
             isTauri
               ? downloadFolder || 'Using system Downloads folder'

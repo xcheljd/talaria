@@ -64,7 +64,6 @@ export function SortableItem({ id, children, className }: SortableItemProps) {
           sortable.isDragging && 'z-50 opacity-50',
           className
         )}
-        {...sortable.attributes}
       >
         {children}
       </div>
@@ -92,7 +91,11 @@ export function DragHandle({ className }: DragHandleProps) {
         className
       )}
       aria-label="Drag to reorder"
+      // dnd-kit's role/tabIndex/aria-roledescription live on the handle, not
+      // the row: a role=button row wrapping inputs nests interactive controls.
+      {...(sortable?.attributes ?? {})}
       {...(sortable?.listeners ?? {})}
+      ref={sortable?.setActivatorNodeRef}
     >
       <GripVertical className="size-4 shrink-0" />
     </button>

@@ -129,7 +129,7 @@ export function ComponentsShowcase() {
           <h2 className="text-xl font-semibold">Select</h2>
           <div className="max-w-sm">
             <Select>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Demo select">
                 <SelectValue placeholder="Select an option" />
               </SelectTrigger>
               <SelectContent>

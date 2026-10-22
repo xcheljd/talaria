@@ -99,6 +99,12 @@ export function NewsletterEditor() {
 
   const editor = useEditor({
     immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        'aria-label': 'Newsletter content',
+        'aria-multiline': 'true',
+      },
+    },
     extensions: [
       SanitizePasteExtension,
       StarterKit.configure({

@@ -210,9 +210,11 @@ export function PreferencesSection({
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {/* Light Palette Selector */}
             <Field className="gap-2">
-              <FieldLabel>Light Mode Color Palette</FieldLabel>
+              <FieldLabel htmlFor="light-palette">
+                Light Mode Color Palette
+              </FieldLabel>
               <Select value={lightPalette} onValueChange={setLightPalette}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="light-palette" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -230,9 +232,11 @@ export function PreferencesSection({
 
             {/* Dark Palette Selector */}
             <Field className="gap-2">
-              <FieldLabel>Dark Mode Color Palette</FieldLabel>
+              <FieldLabel htmlFor="dark-palette">
+                Dark Mode Color Palette
+              </FieldLabel>
               <Select value={darkPalette} onValueChange={setDarkPalette}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="dark-palette" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

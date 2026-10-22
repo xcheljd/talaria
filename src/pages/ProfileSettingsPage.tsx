@@ -218,7 +218,10 @@ export function ProfileSettingsPage() {
             <h1 className="text-2xl font-semibold">Settings</h1>
             <p className="text-sm text-muted-foreground">Talaria</p>
           </div>
-          <nav className="flex gap-1 overflow-x-auto pb-1 lg:flex-col">
+          <nav
+            aria-label="Settings sections"
+            className="flex gap-1 overflow-x-auto pb-1 lg:flex-col"
+          >
             {SECTIONS.map((s) => {
               const Icon = s.icon;
               return (

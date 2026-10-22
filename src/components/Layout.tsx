@@ -24,7 +24,10 @@ export function Layout() {
             <Layers className="size-5" />
             <span className="font-bold">Talaria</span>
           </Link>
-          <nav className="flex items-center gap-6 text-sm font-medium">
+          <nav
+            aria-label="Main"
+            className="flex items-center gap-6 text-sm font-medium"
+          >
             {links.map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}
