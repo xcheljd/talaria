@@ -1007,38 +1007,52 @@ describe('Config round-trip', () => {
 
 // ===== BasicDetailsEditor Tests =====
 
+// The date range is a shadcn Calendar in a Popover. Seed the store with any
+// date in the target month so the calendar opens there, then click two days.
+async function pickRange(
+  user: ReturnType<typeof userEvent.setup>,
+  from: RegExp,
+  to: RegExp
+) {
+  await user.click(screen.getAllByTestId('promo-date-range-trigger')[0]);
+  const day = (label: RegExp) =>
+    screen
+      .getAllByRole('button', { name: label })
+      .find((b) => !b.closest('[data-outside]'))!;
+  await user.click(day(from));
+  await user.click(day(to));
+}
+
+function seedMonth(range: string, year: string) {
+  usePromotionStore.setState({
+    promoDateRange: range,
+    promoYear: year,
+    isInitializing: false,
+  });
+}
+
 describe('BasicDetailsEditor', () => {
   beforeEach(() => {
     localStorage.clear();
     resetStore();
   });
 
-  it('renders date range pickers and title input', () => {
+  it('renders the date range picker and title input', () => {
     renderPromotionPage();
-    // Page renders both desktop and mobile layouts, so inputs appear twice
-    const startDateInputs = screen.getAllByTestId('promo-start-date');
-    const endDateInputs = screen.getAllByTestId('promo-end-date');
-    const titleInputs = screen.getAllByTestId('promo-title');
-
-    expect(startDateInputs.length).toBeGreaterThanOrEqual(1);
-    expect(endDateInputs.length).toBeGreaterThanOrEqual(1);
-    expect(titleInputs.length).toBeGreaterThanOrEqual(1);
+    // Page renders both desktop and mobile layouts, so controls appear twice
+    expect(
+      screen.getAllByTestId('promo-date-range-trigger').length
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByTestId('promo-title').length).toBeGreaterThanOrEqual(
+      1
+    );
   });
 
-  it('updates store when date range changes', async () => {
+  it('updates store when a cross-month range is picked', async () => {
+    const user = userEvent.setup();
     renderPromotionPage();
-
-    const startInput = screen.getAllByTestId(
-      'promo-start-date'
-    )[0] as HTMLInputElement;
-    const endInput = screen.getAllByTestId(
-      'promo-end-date'
-    )[0] as HTMLInputElement;
-
-    // Use fireEvent for native date inputs (userEvent.type doesn't work well with date inputs)
-    const { fireEvent } = await import('@testing-library/react');
-    fireEvent.change(startInput, { target: { value: '2025-11-28' } });
-    fireEvent.change(endInput, { target: { value: '2025-12-01' } });
+    act(() => seedMonth('November 1 - 2', '2025'));
+    await pickRange(user, /^28 .*November 28, 2025/, /^1 .*December 1, 2025/);
 
     const state = usePromotionStore.getState();
     expect(state.promoDateRange).toBe('November 28 - December 1');
@@ -1046,41 +1060,36 @@ describe('BasicDetailsEditor', () => {
   });
 
   it('formats same-month date range correctly', async () => {
+    const user = userEvent.setup();
     renderPromotionPage();
+    act(() => seedMonth('March 1 - 2', '2025'));
+    await pickRange(user, /^4 .*March 4, 2025/, /^10 .*March 10, 2025/);
 
-    const startInput = screen.getAllByTestId(
-      'promo-start-date'
-    )[0] as HTMLInputElement;
-    const endInput = screen.getAllByTestId(
-      'promo-end-date'
-    )[0] as HTMLInputElement;
-
-    const { fireEvent } = await import('@testing-library/react');
-    fireEvent.change(startInput, { target: { value: '2025-03-04' } });
-    fireEvent.change(endInput, { target: { value: '2025-03-10' } });
-
-    const state = usePromotionStore.getState();
-    expect(state.promoDateRange).toBe('March 4 - 10');
+    expect(usePromotionStore.getState().promoDateRange).toBe('March 4 - 10');
   });
 
   it('formats a same-day range as "<weekday>, <month> <ordinal>"', async () => {
+    const user = userEvent.setup();
     renderPromotionPage();
-
-    const startInput = screen.getAllByTestId(
-      'promo-start-date'
-    )[0] as HTMLInputElement;
-    const endInput = screen.getAllByTestId(
-      'promo-end-date'
-    )[0] as HTMLInputElement;
-
-    const { fireEvent } = await import('@testing-library/react');
-    // June 20, 2026 is a Saturday
-    fireEvent.change(startInput, { target: { value: '2026-06-20' } });
-    fireEvent.change(endInput, { target: { value: '2026-06-20' } });
+    act(() => seedMonth('June 1 - 2', '2026'));
+    // June 20, 2026 is a Saturday; picking the same day twice = one-day promo
+    await pickRange(user, /^20 .*June 20, 2026/, /^20 .*June 20, 2026/);
 
     const state = usePromotionStore.getState();
     expect(state.promoDateRange).toBe('Saturday, June 20th');
     expect(state.promoYear).toBe('2026');
+  });
+
+  it('closes the picker after the end date and starts fresh on reopen', async () => {
+    const user = userEvent.setup();
+    renderPromotionPage();
+    act(() => seedMonth('June 1 - 14', '2026'));
+    await pickRange(user, /^10 .*June 10, 2026/, /^18 .*June 18, 2026/);
+
+    await waitFor(() =>
+      expect(document.querySelector('[data-slot=popover-content]')).toBeNull()
+    );
+    expect(usePromotionStore.getState().promoDateRange).toBe('June 10 - 18');
   });
 
   it('updates store when title changes', async () => {
@@ -1115,18 +1124,12 @@ describe('BasicDetailsEditor', () => {
       </ThemeProvider>
     );
 
-    const startInput = screen.getAllByTestId(
-      'promo-start-date'
-    )[0] as HTMLInputElement;
-    const endInput = screen.getAllByTestId(
-      'promo-end-date'
-    )[0] as HTMLInputElement;
+    const trigger = screen.getAllByTestId('promo-date-range-trigger')[0];
     const titleInput = screen.getAllByTestId(
       'promo-title'
     )[0] as HTMLInputElement;
 
-    expect(startInput.value).toBe('2025-12-01');
-    expect(endInput.value).toBe('2025-12-07');
+    expect(trigger).toHaveTextContent('Dec 1 – Dec 7, 2025');
     expect(titleInput.value).toBe('Holiday Sale');
   });
 

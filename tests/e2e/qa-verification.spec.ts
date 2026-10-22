@@ -107,14 +107,28 @@ async function goToPromotion(page: Page) {
 
 async function fillBasics(page: Page) {
   // Expand basic details card if needed
-  const startDate = page.locator('[data-testid="promo-start-date"]');
-  if (!(await isVisibleEventually(startDate, 1000))) {
+  const trigger = page.locator('[data-testid="promo-date-range-trigger"]');
+  if (!(await isVisibleEventually(trigger, 1000))) {
     await page.locator('[data-testid="toolbar-icon-basicDetailsCard"]').click();
     // Expanding the card is async — wait for the field to appear before filling.
-    await expect(startDate).toBeVisible({ timeout: 5000 });
+    await expect(trigger).toBeVisible({ timeout: 5000 });
   }
-  await page.locator('[data-testid="promo-start-date"]').fill('2026-06-15');
-  await page.locator('[data-testid="promo-end-date"]').fill('2026-06-30');
+  // Date range is a shadcn Calendar popover: page to June 2026, click 15 → 30.
+  await trigger.first().click();
+  const day = (label: RegExp) =>
+    page
+      .locator('[data-slot="popover-content"] td:not([data-outside]) button')
+      .filter({ hasText: /^\d+$/ })
+      .and(page.getByRole('button', { name: label }));
+  const goBack = new Date() > new Date(2026, 5, 30);
+  const nav = page.getByRole('button', {
+    name: goBack ? /previous month/i : /next month/i,
+  });
+  for (let i = 0; i < 36 && !(await day(/^15 .*June 15, 2026/).count()); i++) {
+    await nav.click();
+  }
+  await day(/^15 .*June 15, 2026/).click();
+  await day(/^30 .*June 30, 2026/).click();
   await page
     .locator('[data-testid="promo-title"]')
     .fill('Summer Sale Extravaganza');

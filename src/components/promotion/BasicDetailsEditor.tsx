@@ -14,20 +14,27 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { CalendarDays, X } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { type DateRange } from 'react-day-picker';
 import { useShallow } from 'zustand/react/shallow';
 
 import { usePromotionStore } from '@/stores/promotion-store';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
-  FieldSet,
 } from '@/components/ui/field';
 
 // ===== Date Formatting =====
@@ -217,29 +224,52 @@ export function BasicDetailsEditor() {
     [store]
   );
 
-  const handleStartChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = e.target.value;
-      setStartDate(val);
-      // Auto-set end to start if end is empty or before start
-      if (!endDate || (val && endDate < val)) {
-        setEndDate(val);
-        syncToStore(val, val);
-      } else {
-        syncToStore(val, endDate);
+  // Range picker: dates stay ISO strings (yyyy-MM-dd) in local state so the
+  // store format and parseDateRange are unchanged.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const clicksRef = useRef(0);
+  const selectedRange: DateRange | undefined = startDate
+    ? {
+        from: parseISO(startDate),
+        to: endDate ? parseISO(endDate) : undefined,
+      }
+    : undefined;
+
+  const handlePickerOpenChange = useCallback((open: boolean) => {
+    clicksRef.current = 0;
+    setPickerOpen(open);
+  }, []);
+
+  const handleRangeSelect = useCallback(
+    (picked: DateRange | undefined, clickedDay: Date) => {
+      // The first click after opening always starts a new range; DayPicker's
+      // default would stretch the existing one toward the clicked day.
+      // Clicking the start day again means a one-day promo, not "deselect"
+      // (DayPicker's default clears the range).
+      const range: DateRange | undefined =
+        clicksRef.current === 0
+          ? { from: clickedDay, to: undefined }
+          : (picked ?? { from: clickedDay, to: clickedDay });
+      const start = range?.from ? format(range.from, 'yyyy-MM-dd') : '';
+      // A single click is a one-day promo until the end date is picked.
+      const end = range?.to ? format(range.to, 'yyyy-MM-dd') : start;
+      setStartDate(start);
+      setEndDate(end);
+      syncToStore(start, end);
+      // Close after the second pick (start, then end).
+      clicksRef.current += 1;
+      if (clicksRef.current >= 2 && range?.from && range?.to) {
+        setPickerOpen(false);
       }
     },
-    [endDate, syncToStore]
+    [syncToStore]
   );
 
-  const handleEndChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = e.target.value;
-      setEndDate(val);
-      syncToStore(startDate, val);
-    },
-    [startDate, syncToStore]
-  );
+  const rangeLabel = startDate
+    ? endDate && endDate !== startDate
+      ? `${format(parseISO(startDate), 'MMM d')} – ${format(parseISO(endDate), 'MMM d, yyyy')}`
+      : format(parseISO(startDate), 'EEE, MMM d, yyyy')
+    : '';
 
   const handleClearDates = useCallback(() => {
     setStartDate('');
@@ -273,51 +303,47 @@ export function BasicDetailsEditor() {
   return (
     <FieldGroup className="gap-4">
       {/* Date Range */}
-      <FieldSet className="gap-2">
-        <FieldLegend
-          variant="label"
-          className="mb-0 flex items-center gap-1 data-[variant=label]:text-xs"
+      <Field className="gap-2">
+        <FieldLabel
+          htmlFor="promo-date-range-trigger"
+          className="flex items-center gap-1 text-xs"
         >
-          <CalendarDays className="size-3.5" />
+          <CalendarDays className="size-3.5" aria-hidden="true" />
           Date Range *
-        </FieldLegend>
-        <div className="flex items-end gap-2">
-          <Field className="flex-1 gap-1">
-            <FieldLabel
-              htmlFor="promoStartDate"
-              className="text-[11px] font-normal text-muted-foreground"
+        </FieldLabel>
+        {/* Wrapped: Field stretches direct children; the row holds trigger + clear. */}
+        <div className="flex items-center gap-2">
+          <Popover open={pickerOpen} onOpenChange={handlePickerOpenChange}>
+            <PopoverTrigger asChild>
+              <Button
+                id="promo-date-range-trigger"
+                variant="outline"
+                size="sm"
+                className={cn(
+                  'h-8 flex-1 justify-start font-normal',
+                  !startDate && 'text-muted-foreground'
+                )}
+                data-testid="promo-date-range-trigger"
+              >
+                <CalendarDays className="size-4" aria-hidden="true" />
+                {rangeLabel || 'Pick start and end dates'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-auto p-0"
+              align="start"
+              aria-label="Choose promotion dates"
             >
-              Start
-            </FieldLabel>
-            <input
-              id="promoStartDate"
-              type="date"
-              value={startDate}
-              onChange={handleStartChange}
-              className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              data-testid="promo-start-date"
-            />
-          </Field>
-          <span className="flex h-8 items-center text-xs text-muted-foreground">
-            to
-          </span>
-          <Field className="flex-1 gap-1">
-            <FieldLabel
-              htmlFor="promoEndDate"
-              className="text-[11px] font-normal text-muted-foreground"
-            >
-              End
-            </FieldLabel>
-            <input
-              id="promoEndDate"
-              type="date"
-              value={endDate}
-              min={startDate || undefined}
-              onChange={handleEndChange}
-              className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              data-testid="promo-end-date"
-            />
-          </Field>
+              <Calendar
+                mode="range"
+                numberOfMonths={2}
+                defaultMonth={selectedRange?.from}
+                selected={selectedRange}
+                onSelect={handleRangeSelect}
+                autoFocus
+              />
+            </PopoverContent>
+          </Popover>
           {startDate && (
             <Button
               variant="ghost"
@@ -342,7 +368,7 @@ export function BasicDetailsEditor() {
             )}
           </p>
         )}
-      </FieldSet>
+      </Field>
 
       {/* Title Override */}
       <Field className="gap-2">
