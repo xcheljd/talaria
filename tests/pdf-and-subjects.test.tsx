@@ -468,9 +468,7 @@ describe('SubjectLineGenerator', () => {
     renderWithProviders(<SubjectLineGenerator />);
 
     // Should show the label for the dropdown
-    expect(
-      screen.getByText('Choose a subject line suggestion:')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Subject Line Suggestions')).toBeInTheDocument();
   });
 
   it('renders editable input with selected subject', () => {
@@ -501,10 +499,8 @@ describe('SubjectLineGenerator', () => {
 
     renderWithProviders(<SubjectLineGenerator />);
 
-    // The badge contains the character count — match the subject line badge (not preheader's "/ 100 chars")
-    const badge = screen.getByText(/^\d+ chars/);
-    expect(badge).toBeInTheDocument();
-    expect(badge.textContent).toMatch(/\d+ chars/);
+    const badge = screen.getByTestId('subject-char-count');
+    expect(badge.textContent).toMatch(/^\d+ \/ 50 chars$/);
   });
 
   it('shows optimal indicator for short subject lines', () => {
@@ -518,9 +514,10 @@ describe('SubjectLineGenerator', () => {
 
     renderWithProviders(<SubjectLineGenerator />);
 
-    // Should show ✓ for optimal length (<= 50 chars)
-    const badge = screen.getByText(/^\d+ chars/);
-    expect(badge.textContent).toContain('✓');
+    // Within 50 chars: neutral badge, no warning color
+    const badge = screen.getByTestId('subject-char-count');
+    expect(badge.textContent).toBe('19 / 50 chars');
+    expect(badge.className).not.toContain('text-warning');
   });
 
   it('shows warning for long subject lines (>50 chars)', () => {
@@ -535,7 +532,9 @@ describe('SubjectLineGenerator', () => {
 
     renderWithProviders(<SubjectLineGenerator />);
 
-    expect(screen.getByText(/55 chars \(>50\)/)).toBeInTheDocument();
+    const badge = screen.getByTestId('subject-char-count');
+    expect(badge.textContent).toBe('55 / 50 chars');
+    expect(badge.className).toContain('text-warning');
   });
 
   it('updates subject line when input is edited', async () => {
@@ -594,8 +593,6 @@ describe('SubjectLineGenerator', () => {
 
     renderWithProviders(<SubjectLineGenerator />);
 
-    expect(
-      screen.getByText('Subject Line (customizable):')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Subject Line (customizable)')).toBeInTheDocument();
   });
 });

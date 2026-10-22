@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -176,7 +176,7 @@ describe('SubjectLineGenerator', () => {
     const state = usePromotionStore.getState();
     const len = state.selectedSubjectLine?.length ?? 0;
     const badge = screen.getByTestId('subject-char-count');
-    expect(badge.textContent).toContain(`${len} chars`);
+    expect(badge.textContent).toBe(`${len} / 50 chars`);
   });
 
   it('sets manually edited flag when editing subject input', async () => {

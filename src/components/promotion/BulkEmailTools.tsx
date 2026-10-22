@@ -214,7 +214,7 @@ export function BulkEmailTools() {
 
       {/* Recipient header with clear button */}
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-semibold">Recipient List</Label>
+        <Label className="text-xs font-medium">Recipient List</Label>
         {recipientText.trim() && (
           <Button
             variant="ghost"
@@ -223,7 +223,7 @@ export function BulkEmailTools() {
             onClick={handleClearRecipients}
           >
             <Trash2 className="size-3" />
-            Clear All
+            Clear all
           </Button>
         )}
       </div>
@@ -308,7 +308,7 @@ export function BulkEmailTools() {
       {/* Batch controls */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-2">
-          <Label className="text-sm whitespace-nowrap">Batch Size:</Label>
+          <Label className="text-xs whitespace-nowrap">Batch Size</Label>
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
@@ -353,7 +353,7 @@ export function BulkEmailTools() {
 
         {/* Download format toggle */}
         <div className="flex items-center gap-2">
-          <Label className="text-sm whitespace-nowrap">Download Format:</Label>
+          <Label className="text-xs whitespace-nowrap">Download Format</Label>
           <ToggleGroup
             type="single"
             value={downloadFormat}

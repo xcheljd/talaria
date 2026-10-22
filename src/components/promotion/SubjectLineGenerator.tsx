@@ -32,6 +32,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { ClearableInput } from '@/components/ui/clearable-input';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Field, FieldLabel } from '@/components/ui/field';
 import {
@@ -67,9 +68,7 @@ function InboxPreview({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-muted-foreground">
-        Inbox Preview
-      </label>
+      <p className="text-xs font-medium">Inbox Preview</p>
       <div
         className="rounded-lg border bg-background overflow-hidden"
         data-testid="inbox-preview"
@@ -250,7 +249,6 @@ export function SubjectLineGenerator() {
 
   // Character count for the selected subject
   const charCount = store.selectedSubjectLine?.length ?? 0;
-  const isOptimal = charCount > 0 && charCount <= OPTIMAL_LENGTH;
 
   // Generate preheader suggestions from promotion content
   const preheaderSuggestions = useMemo(() => {
@@ -299,9 +297,9 @@ export function SubjectLineGenerator() {
         <div className="flex items-end justify-between gap-2">
           <label
             htmlFor={hasLines ? 'subject-suggestion-select' : undefined}
-            className="text-sm font-medium"
+            className="text-xs font-medium"
           >
-            {hasLines ? 'Choose a subject line suggestion:' : 'Subject line'}
+            Subject Line Suggestions
           </label>
           {hasContent && (
             <Button
@@ -356,8 +354,8 @@ export function SubjectLineGenerator() {
 
       {/* Editable subject line — always available */}
       <Field className="gap-2">
-        <FieldLabel htmlFor="selected-subject-input" className="text-sm">
-          Subject Line (customizable):
+        <FieldLabel htmlFor="selected-subject-input" className="text-xs">
+          Subject Line (customizable)
         </FieldLabel>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -377,20 +375,22 @@ export function SubjectLineGenerator() {
         {/* Wrapped: Field stretches its direct children to full width. */}
         <div className="flex items-center gap-2">
           <Badge
-            variant={isOptimal ? 'default' : 'secondary'}
-            className="text-xs"
+            variant={charCount > OPTIMAL_LENGTH ? 'outline' : 'secondary'}
+            className={cn(
+              'text-xs',
+              charCount > OPTIMAL_LENGTH && 'border-warning/50 text-warning'
+            )}
             data-testid="subject-char-count"
           >
-            {charCount} chars{' '}
-            {charCount > 0 && (isOptimal ? '✓' : `(>${OPTIMAL_LENGTH})`)}
+            {charCount} / {OPTIMAL_LENGTH} chars
           </Badge>
         </div>
       </Field>
 
       {/* Preheader Text */}
       <Field className="gap-2">
-        <FieldLabel htmlFor="preheader-input" className="text-sm">
-          Preheader Text (preview text):
+        <FieldLabel htmlFor="preheader-input" className="text-xs">
+          Preheader Text (preview text)
         </FieldLabel>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -409,13 +409,13 @@ export function SubjectLineGenerator() {
         </Tooltip>
         <div className="flex items-center gap-2">
           <Badge
-            variant={
-              store.preheaderText.length > 0 &&
-              store.preheaderText.length <= 100
-                ? 'default'
-                : 'secondary'
-            }
-            className="text-xs"
+            variant={store.preheaderText.length > 100 ? 'outline' : 'secondary'}
+            className={cn(
+              'text-xs',
+              store.preheaderText.length > 100 &&
+                'border-warning/50 text-warning'
+            )}
+            data-testid="preheader-char-count"
           >
             {store.preheaderText.length} / 100 chars
           </Badge>

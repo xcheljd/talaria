@@ -235,7 +235,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
           value={saveName}
           onChange={(e) => setSaveName(e.target.value)}
           placeholder="Snapshot name (optional)..."
-          className="h-7 text-xs flex-1"
+          className="h-8 flex-1 text-sm"
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleManualSave();
           }}
@@ -243,7 +243,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
         <Button
           variant="outline"
           size="sm"
-          className="h-7 gap-1 px-2 text-xs"
+          className="h-8 gap-1 px-2 text-xs"
           onClick={handleManualSave}
         >
           <Save className="size-3" />

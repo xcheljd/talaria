@@ -26,7 +26,6 @@ import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { isValidEmail } from '@/lib/emailUtils';
 
-
 // ===== Mock Setup =====
 
 const MOCK_PROFILE = {
@@ -123,7 +122,9 @@ describe('BulkEmailTools', () => {
 
   it('does not render Generate Email Batches button (moved to preview panel)', () => {
     renderBulkEmailTools();
-    expect(screen.queryByTestId('generate-batches-btn')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('generate-batches-btn')
+    ).not.toBeInTheDocument();
   });
 
   it('shows valid/invalid counts when emails are entered', async () => {
@@ -149,10 +150,7 @@ describe('BulkEmailTools', () => {
     renderBulkEmailTools();
 
     const textarea = screen.getByTestId('bulk-email-list');
-    await user.type(
-      textarea,
-      'test@example.com\ntest@example.com'
-    );
+    await user.type(textarea, 'test@example.com\ntest@example.com');
 
     await waitFor(() => {
       expect(screen.getByText(/1 duplicate/)).toBeInTheDocument();
@@ -181,9 +179,7 @@ describe('BulkEmailTools', () => {
     const user = userEvent.setup();
     renderBulkEmailTools();
 
-    const input = screen.getByTestId(
-      'batch-size-input'
-    ) as HTMLInputElement;
+    const input = screen.getByTestId('batch-size-input') as HTMLInputElement;
     const initialValue = parseInt(input.value, 10);
 
     await user.click(screen.getByTestId('batch-size-increase'));
@@ -199,18 +195,14 @@ describe('BulkEmailTools', () => {
     // Actually, let's just click decrement once from default 500 → 450
     await user.click(screen.getByTestId('batch-size-decrease'));
 
-    const input = screen.getByTestId(
-      'batch-size-input'
-    ) as HTMLInputElement;
+    const input = screen.getByTestId('batch-size-input') as HTMLInputElement;
     expect(parseInt(input.value, 10)).toBe(450);
   });
 
   it('does not decrement below 50', async () => {
     renderBulkEmailTools();
 
-    const input = screen.getByTestId(
-      'batch-size-input'
-    ) as HTMLInputElement;
+    const input = screen.getByTestId('batch-size-input') as HTMLInputElement;
 
     // Directly set the value via fireEvent to avoid number-input typing issues
     fireEvent.change(input, { target: { value: '50' } });
@@ -224,9 +216,7 @@ describe('BulkEmailTools', () => {
     const user = userEvent.setup();
     renderBulkEmailTools();
 
-    const input = screen.getByTestId(
-      'batch-size-input'
-    ) as HTMLInputElement;
+    const input = screen.getByTestId('batch-size-input') as HTMLInputElement;
     await user.clear(input);
     await user.type(input, '1000');
 
@@ -262,10 +252,7 @@ describe('BulkEmailTools', () => {
 
     // Enter 3 valid emails at default batch size 500 → 1 batch
     const textarea = screen.getByTestId('bulk-email-list');
-    await user.type(
-      textarea,
-      'a@test.com\nb@test.com\nc@test.com'
-    );
+    await user.type(textarea, 'a@test.com\nb@test.com\nc@test.com');
 
     // Should show batch preview with 1 batch at default batch size 500
     await waitFor(() => {
@@ -297,8 +284,8 @@ describe('BulkEmailTools', () => {
     const textarea = screen.getByTestId('bulk-email-list');
     await user.type(textarea, 'test@example.com');
 
-    // Clear All button should appear
-    const clearBtn = await screen.findByText('Clear All');
+    // Clear all button should appear
+    const clearBtn = await screen.findByText('Clear all');
     await user.click(clearBtn);
 
     // Textarea should be empty
@@ -310,10 +297,7 @@ describe('BulkEmailTools', () => {
     renderBulkEmailTools();
 
     const textarea = screen.getByTestId('bulk-email-list');
-    await user.type(
-      textarea,
-      'a@test.com, b@test.com, c@test.com'
-    );
+    await user.type(textarea, 'a@test.com, b@test.com, c@test.com');
 
     await waitFor(() => {
       expect(screen.getByText(/3 valid/)).toBeInTheDocument();
@@ -325,10 +309,7 @@ describe('BulkEmailTools', () => {
     renderBulkEmailTools();
 
     const textarea = screen.getByTestId('bulk-email-list');
-    await user.type(
-      textarea,
-      'a@test.com; b@test.com'
-    );
+    await user.type(textarea, 'a@test.com; b@test.com');
 
     await waitFor(() => {
       expect(screen.getByText(/2 valid/)).toBeInTheDocument();
