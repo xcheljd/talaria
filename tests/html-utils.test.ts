@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   sanitizeHTML,
   escapeAttr,
-  sanitizeTemplateData,
   sanitizeRichHTML,
 } from '../src/lib/html-utils';
 
@@ -44,7 +43,7 @@ describe('html-utils', () => {
 
   describe('escapeAttr', () => {
     it('escapes single quotes', () => {
-      expect(escapeAttr("it's")).toBe("it&#39;s");
+      expect(escapeAttr("it's")).toBe('it&#39;s');
     });
 
     it('escapes double quotes', () => {
@@ -61,32 +60,6 @@ describe('html-utils', () => {
 
     it('handles plain text without quotes', () => {
       expect(escapeAttr('hello world')).toBe('hello world');
-    });
-  });
-
-  describe('sanitizeTemplateData', () => {
-    it('sanitizes all string values in an object', () => {
-      const data = {
-        name: '<b>John</b>',
-        phone: '555-1234',
-        age: 25,
-      };
-      const result = sanitizeTemplateData(data);
-      expect(result.name).toBe('&lt;b&gt;John&lt;/b&gt;');
-      expect(result.phone).toBe('555-1234');
-      expect(result.age).toBe(25);
-    });
-
-    it('preserves non-string values', () => {
-      const data = { count: 42, active: true };
-      const result = sanitizeTemplateData(data);
-      expect(result.count).toBe(42);
-      expect(result.active).toBe(true);
-    });
-
-    it('handles empty object', () => {
-      const result = sanitizeTemplateData({});
-      expect(Object.keys(result)).toHaveLength(0);
     });
   });
 

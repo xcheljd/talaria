@@ -110,7 +110,7 @@ function ImageNodeView({
 
   /** Editor column width, capped at the 600px email body. */
   const columnWidth = () =>
-    Math.min(600, imgRef.current?.closest('.tiptap')?.clientWidth ?? 600);
+    Math.min(600, imgRef.current?.closest('.tiptap')?.clientWidth || 600);
   const setWidth = (px: number) =>
     updateAttributes({
       width: Math.round(Math.max(50, Math.min(columnWidth(), px))),
@@ -153,6 +153,7 @@ function ImageNodeView({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                aria-label="Align left"
                 variant="ghost"
                 size="icon-xs"
                 static
@@ -171,6 +172,7 @@ function ImageNodeView({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                aria-label="Align center"
                 variant="ghost"
                 size="icon-xs"
                 static
@@ -189,6 +191,7 @@ function ImageNodeView({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                aria-label="Align right"
                 variant="ghost"
                 size="icon-xs"
                 static
@@ -340,6 +343,7 @@ function ImageNodeView({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                aria-label="Add link"
                 variant="ghost"
                 size="icon-xs"
                 static
@@ -362,6 +366,7 @@ function ImageNodeView({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                aria-label="Delete image"
                 variant="ghost"
                 size="icon-xs"
                 static
@@ -404,6 +409,7 @@ function ImageNodeView({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  aria-label="Remove link"
                   variant="ghost"
                   size="icon-xs"
                   static

@@ -4,22 +4,14 @@ import { Layers, Settings as SettingsIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Spinner } from '@/components/ui/spinner';
-import { useDevMode } from '@/hooks/useDevMode';
 
 const navLinks = [
-  { to: '/', label: 'Templates', icon: Layers },
-  { to: '/settings', label: 'Settings', icon: SettingsIcon },
-] as const;
-
-// nav entries visible to regular users (dev mode off)
-const regularNavLinks = [
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ] as const;
 
 export function Layout() {
   const location = useLocation();
-  const { devMode } = useDevMode();
-  const links = devMode ? navLinks : regularNavLinks;
+  const links = navLinks;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -28,10 +20,7 @@ export function Layout() {
           frame as the content scrolls beneath it, which jank's scrolling. */}
       <header className="sticky top-0 z-50 w-full border-b bg-background">
         <div className="container mx-auto flex h-14 items-center gap-6 px-4">
-          <Link
-            to={devMode ? '/' : '/promotion'}
-            className="flex items-center gap-2"
-          >
+          <Link to="/promotion" className="flex items-center gap-2">
             <Layers className="size-5" />
             <span className="font-bold">Talaria</span>
           </Link>

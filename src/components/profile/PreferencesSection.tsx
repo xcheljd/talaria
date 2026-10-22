@@ -180,9 +180,9 @@ export function PreferencesSection({
               <FieldLabel htmlFor="dev-mode">Dev mode</FieldLabel>
               <FieldDescription className="text-xs">
                 Reveals advanced surfaces still under construction: the
-                Templates page, the promotion HTML Code tab, and the Email
-                Theme, Accessibility Check, and Outlook Compatibility cards.
-                Persists across sessions.
+                promotion HTML Code tab, and the Email Theme, Accessibility
+                Check, and Outlook Compatibility cards. Persists across
+                sessions.
               </FieldDescription>
             </FieldContent>
           </Field>

@@ -3,7 +3,6 @@
  *
  * Validates VAL-CROSS-001 through VAL-CROSS-006:
  * - VAL-CROSS-001: Complete user flow — setup to template generation
- * - VAL-CROSS-002: Profile data flows into generated templates
  * - VAL-CROSS-003: Profile data flows into promotion signature
  * - VAL-CROSS-004: Theme persists across all pages
  * - VAL-CROSS-005: Full promotion workflow end-to-end
@@ -11,19 +10,17 @@
  */
 
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import { ProfileProvider } from '../src/contexts/ProfileProvider';
 import { ThemeProvider } from '../src/contexts/ThemeProvider';
 import { usePromotionStore } from '../src/stores/promotion-store';
-import { StorageKeys } from '../src/lib/storage-keys';
 import {
   generatePromotionEmailHTML,
   type PromotionEmailData,
 } from '../src/lib/promotion-email-html';
 import { getEmployeeSignature } from '../src/lib/signature';
-import { templates, assembleTemplateOutput } from '../src/lib/templates';
 import { sanitizeHTML, escapeAttr } from '../src/lib/html-utils';
 import {
   getUserProfile,
@@ -36,12 +33,10 @@ import {
 } from '../src/lib/profile';
 
 import { Layout } from '../src/components/Layout';
-import { TemplatesPage } from '../src/pages/TemplatesPage';
 import { ProfilePage } from '../src/pages/ProfilePage';
 import { PromotionPage } from '../src/pages/PromotionPage';
 import { Toaster } from '../src/components/ui/sonner';
 import { TooltipProvider } from '../src/components/ui/tooltip';
-
 
 // ===== Mocks =====
 
@@ -121,7 +116,6 @@ function renderApp(initialPath: string = '/') {
           <MemoryRouter initialEntries={[initialPath]}>
             <Routes>
               <Route element={<Layout />}>
-                <Route path="/" element={<TemplatesPage />} />
                 <Route path="/settings" element={<ProfilePage />} />
                 <Route path="/promotion" element={<PromotionPage />} />
               </Route>
@@ -133,75 +127,6 @@ function renderApp(initialPath: string = '/') {
     </ThemeProvider>
   );
 }
-
-// ========================================================================
-// VAL-CROSS-002: Profile data flows into generated templates
-// ========================================================================
-
-describe('VAL-CROSS-002: Profile data flows into generated templates', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    resetStore();
-  });
-
-  it('template generation includes profile store phone and store name', () => {
-    setupProfile(MANAGEMENT_PROFILE);
-
-    // new-customer-welcome uses getStorePhone() internally
-    const template = templates['new-customer-welcome'];
-    expect(template).toBeDefined();
-
-    const result = template.generate({
-      customerName: 'John Customer',
-      employeeName: 'Alice Manager',
-    });
-
-    // Store phone is included inline in the body
-    expect(result.body).toContain('407-555-1234');
-    // Store name is referenced via getStoreName in the email subject
-    expect(result.body).toContain('Acme Store');
-    // Employee name is part of the signature, added via includeSignature
-    expect(result.includeSignature).toBe(true);
-    // Full output with signature includes employee name
-    const fullOutput = assembleTemplateOutput(result);
-    expect(fullOutput).toContain('Alice Manager');
-  });
-
-  it('template form pre-fill mapping works for profile fields', () => {
-    setupProfile(STAFF_PROFILE);
-
-    // Verify profile helpers return correct data that forms would use
-    expect(getEmployeeName()).toBe('Bob Associate');
-    expect(getStorePhone()).toBe('702-555-9999');
-    expect(getStoreName()).toBe('Acme Store - Vegas');
-    expect(getStoreEmail()).toBe('vegas@acme.com');
-  });
-
-  it('different templates use profile data via getStorePhone/getStoreName', () => {
-    setupProfile(MANAGEMENT_PROFILE);
-
-    // Test multiple templates that use profile data internally
-    const templatesToTest = ['thank-you-warranty', 'phone-confirmation'];
-    for (const key of templatesToTest) {
-      const template = templates[key];
-      expect(template).toBeDefined();
-
-      const fields: Record<string, string> = {};
-      template.fields.forEach((f) => {
-        if (f === 'employeeName' || f === 'yourName') fields[f] = getEmployeeName();
-        else if (f === 'storePhone') fields[f] = getStorePhone();
-        else if (f === 'storeName') fields[f] = getStoreName();
-        else if (f === 'storeEmail') fields[f] = getStoreEmail();
-        else fields[f] = 'Test Value';
-      });
-
-      const result = template.generate(fields);
-
-      // Each of these templates should include store phone from profile
-      expect(result.body).toContain('407-555-1234');
-    }
-  });
-});
 
 // ========================================================================
 // VAL-CROSS-003: Profile data flows into promotion signature
@@ -295,9 +220,6 @@ describe('VAL-CROSS-004: Theme persists across all pages', () => {
   beforeEach(() => {
     localStorage.clear();
     resetStore();
-    // The "header renders on all pages" test asserts the Templates nav link
-    // is visible, which only happens in dev mode.
-    localStorage.setItem(StorageKeys.devMode, 'true');
   });
 
   it('theme is read from localStorage on app load', () => {
@@ -312,7 +234,7 @@ describe('VAL-CROSS-004: Theme persists across all pages', () => {
 
   it('ThemeProvider applies theme data attributes to document', () => {
     setupProfile();
-    renderApp();
+    renderApp('/settings');
 
     // ThemeProvider should set data attributes on document element
     const htmlEl = document.documentElement;
@@ -343,13 +265,14 @@ describe('VAL-CROSS-004: Theme persists across all pages', () => {
 
   it('header renders on all pages with navigation', () => {
     setupProfile();
-    renderApp();
+    renderApp('/settings');
 
     // Header with navigation links should be present
-    expect(screen.getByText('Talaria')).toBeTruthy();
-    expect(screen.getByText('Templates')).toBeTruthy();
-    expect(screen.getByText('Settings')).toBeTruthy();
-    expect(screen.getByText('Promotions')).toBeTruthy();
+    const header = within(document.querySelector('header')!);
+    expect(header.getByText('Talaria')).toBeTruthy();
+    expect(header.queryByText('Templates')).toBeNull();
+    expect(header.getByText('Settings')).toBeTruthy();
+    expect(header.getByText('Promotions')).toBeTruthy();
   });
 });
 
@@ -413,7 +336,11 @@ describe('VAL-CROSS-006: XSS prevention in generated content', () => {
         },
       ],
       specialHours: [
-        { id: 1, day: '<script>alert("day")</script>', hours: '<script>alert("hrs")</script>' },
+        {
+          id: 1,
+          day: '<script>alert("day")</script>',
+          hours: '<script>alert("hrs")</script>',
+        },
       ],
       howToShopItems: [
         {
@@ -467,20 +394,6 @@ describe('VAL-CROSS-006: XSS prevention in generated content', () => {
     expect(html).toContain('&lt;b&gt;bold attempt&lt;/b&gt;');
   });
 
-  it('template generation sanitizes user input via sanitizeTemplateData', () => {
-    setupProfile(MANAGEMENT_PROFILE);
-
-    const template = templates['new-customer-welcome'];
-    const result = template.generate({
-      customerName: '<script>alert("xss")</script>',
-      employeeName: '<img onerror="alert(1)" src=x>',
-    });
-
-    // Output should not contain unescaped XSS vectors
-    expect(result.body).not.toContain('<script>');
-    expect(result.body).not.toContain('<img');
-  });
-
   it('signature escapes profile data to prevent XSS', () => {
     const xssProfile: UserProfile = {
       employeeName: '<script>alert("name")</script>',
@@ -504,13 +417,13 @@ describe('VAL-CROSS-006: XSS prevention in generated content', () => {
 // VAL-CROSS-001 & VAL-CROSS-005: Flow tests
 // ========================================================================
 
-describe('VAL-CROSS-001: Complete user flow — setup to template generation', () => {
+describe('VAL-CROSS-001: Complete user flow — profile setup', () => {
   beforeEach(() => {
     localStorage.clear();
     resetStore();
   });
 
-  it('profile data is available for template generation after save', () => {
+  it('profile data is available to the app after save', () => {
     // Simulate saving a profile
     const profile: UserProfile = {
       employeeName: 'Jane Smith',
@@ -530,37 +443,11 @@ describe('VAL-CROSS-001: Complete user flow — setup to template generation', (
     expect(loaded!.employeeName).toBe('Jane Smith');
     expect(loaded!.storePhone).toBe('555-123-4567');
 
-    // Verify profile helpers return correct values for template pre-fill
+    // Verify profile helpers return the saved values
     expect(getEmployeeName()).toBe('Jane Smith');
     expect(getStorePhone()).toBe('555-123-4567');
     expect(getStoreName()).toBe('Acme Store - Test');
     expect(getStoreEmail()).toBe('teststore@acme.com');
-  });
-
-  it('template generation produces output with profile phone data', () => {
-    setupProfile(MANAGEMENT_PROFILE);
-
-    // Select and generate a template that uses getStorePhone()
-    const template = templates['back-in-stock'];
-    expect(template).toBeDefined();
-
-    const result = template.generate({
-      customerName: 'Test Customer',
-      brand: 'Acme',
-      modelName: 'Aero Diver',
-      modelNumber: 'BN0150-28E',
-      price: '350',
-      holdDeadline: 'Friday',
-      employeeName: 'Alice Manager',
-    });
-
-    // Store phone is included in body via getStorePhone()
-    expect(result.body).toContain('407-555-1234');
-    // Signature with employee name is included
-    expect(result.includeSignature).toBe(true);
-    const fullOutput = assembleTemplateOutput(result);
-    expect(fullOutput).toContain('Alice Manager');
-    expect(fullOutput).toContain('Acme Store');
   });
 });
 
@@ -579,7 +466,6 @@ describe('VAL-CROSS-005: Full promotion workflow end-to-end', () => {
           <MemoryRouter initialEntries={['/promotion']}>
             <Routes>
               <Route element={<Layout />}>
-                <Route path="/" element={<TemplatesPage />} />
                 <Route path="/settings" element={<ProfilePage />} />
                 <Route path="/promotion" element={<PromotionPage />} />
               </Route>

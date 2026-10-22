@@ -33,7 +33,8 @@ async function expectPersisted(page: Page, needle: string) {
     .poll(
       () =>
         page.evaluate(
-          (n) => (localStorage.getItem('promotionBuilderState') || '').includes(n),
+          (n) =>
+            (localStorage.getItem('promotionBuilderState') || '').includes(n),
           needle
         ),
       { timeout: 10000 }
@@ -47,7 +48,8 @@ async function expectNotPersisted(page: Page, needle: string) {
     .poll(
       () =>
         page.evaluate(
-          (n) => (localStorage.getItem('promotionBuilderState') || '').includes(n),
+          (n) =>
+            (localStorage.getItem('promotionBuilderState') || '').includes(n),
           needle
         ),
       { timeout: 10000 }
@@ -61,7 +63,10 @@ async function expectNotPersisted(page: Page, needle: string) {
  * polls for visibility and returns false instead of throwing, preserving the
  * old "sleep then check" tolerance without the fixed sleep.
  */
-async function isVisibleEventually(locator: Locator, timeout: number): Promise<boolean> {
+async function isVisibleEventually(
+  locator: Locator,
+  timeout: number
+): Promise<boolean> {
   return locator
     .waitFor({ state: 'visible', timeout })
     .then(() => true)
@@ -95,7 +100,9 @@ async function goToPromotion(page: Page) {
     localStorage.setItem('dev.mode', 'true');
   });
   await page.goto(`${BASE}/promotion`);
-  await page.waitForSelector('[data-testid="icon-toolbar"]', { timeout: 20000 });
+  await page.waitForSelector('[data-testid="icon-toolbar"]', {
+    timeout: 20000,
+  });
 }
 
 async function fillBasics(page: Page) {
@@ -108,7 +115,9 @@ async function fillBasics(page: Page) {
   }
   await page.locator('[data-testid="promo-start-date"]').fill('2026-06-15');
   await page.locator('[data-testid="promo-end-date"]').fill('2026-06-30');
-  await page.locator('[data-testid="promo-title"]').fill('Summer Sale Extravaganza');
+  await page
+    .locator('[data-testid="promo-title"]')
+    .fill('Summer Sale Extravaganza');
 }
 
 async function clickToolbarIcon(page: Page, cardId: string) {
@@ -131,18 +140,26 @@ test.describe('QA Item 1 — Layout switching', () => {
   test('desktop layout at >=1024px', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await expect(page.locator('[data-testid="desktop-layout"]')).toBeVisible();
-    await expect(page.locator('[data-testid="mobile-layout"]')).not.toBeVisible();
+    await expect(
+      page.locator('[data-testid="mobile-layout"]')
+    ).not.toBeVisible();
   });
 
   test('mobile layout at <1024px', async ({ page }) => {
     await page.setViewportSize({ width: 800, height: 900 });
     await expect(page.locator('[data-testid="mobile-layout"]')).toBeVisible();
-    await expect(page.locator('[data-testid="desktop-layout"]')).not.toBeVisible();
+    await expect(
+      page.locator('[data-testid="desktop-layout"]')
+    ).not.toBeVisible();
   });
 
-  test('live resize swaps layout, data survives, no console errors', async ({ page }) => {
+  test('live resize swaps layout, data survives, no console errors', async ({
+    page,
+  }) => {
     const errors: string[] = [];
-    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
 
     await page.setViewportSize({ width: 1280, height: 900 });
     await fillBasics(page);
@@ -155,8 +172,12 @@ test.describe('QA Item 1 — Layout switching', () => {
 
     // Reload → data should survive
     await page.reload();
-    await page.waitForSelector('[data-testid="mobile-layout"]', { timeout: 15000 });
-    await expect(page.locator('[data-testid="promo-title"]')).toHaveValue('Summer Sale Extravaganza');
+    await page.waitForSelector('[data-testid="mobile-layout"]', {
+      timeout: 15000,
+    });
+    await expect(page.locator('[data-testid="promo-title"]')).toHaveValue(
+      'Summer Sale Extravaganza'
+    );
 
     // Back to desktop
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -167,12 +188,16 @@ test.describe('QA Item 1 — Layout switching', () => {
     }
   });
 
-  test('icon toolbar works — clicking an icon shows that tool card', async ({ page }) => {
+  test('icon toolbar works — clicking an icon shows that tool card', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
 
     // Click the Discounts tool — its card becomes the visible one.
     await clickToolbarIcon(page, 'discountEntriesCard');
-    const addEntryBtn = page.locator('[data-card-id="discountEntriesCard"] button:has-text("Add Entry")');
+    const addEntryBtn = page.locator(
+      '[data-card-id="discountEntriesCard"] button:has-text("Add Entry")'
+    );
     await expect(addEntryBtn).toBeVisible({ timeout: 5000 });
 
     // Also verify icon toolbar in mobile layout
@@ -180,16 +205,22 @@ test.describe('QA Item 1 — Layout switching', () => {
     await expect(page.locator('[data-testid="icon-toolbar"]')).toBeVisible();
   });
 
-  test('selecting a different toolbar icon swaps the visible card', async ({ page }) => {
+  test('selecting a different toolbar icon swaps the visible card', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
 
     await clickToolbarIcon(page, 'howToShopCard');
-    const addItemBtn = page.locator('[data-card-id="howToShopCard"] button:has-text("Add Item")');
+    const addItemBtn = page.locator(
+      '[data-card-id="howToShopCard"] button:has-text("Add Item")'
+    );
     await expect(addItemBtn).toBeVisible({ timeout: 5000 });
 
     // Picking another tool replaces the card — How to Shop unmounts.
     await clickToolbarIcon(page, 'discountEntriesCard');
-    const addEntryBtn = page.locator('[data-card-id="discountEntriesCard"] button:has-text("Add Entry")');
+    const addEntryBtn = page.locator(
+      '[data-card-id="discountEntriesCard"] button:has-text("Add Entry")'
+    );
     await expect(addEntryBtn).toBeVisible({ timeout: 5000 });
     await expect(page.locator('[data-card-id="howToShopCard"]')).toHaveCount(0);
   });
@@ -211,11 +242,17 @@ test.describe('QA Item 2 — Auto-save completeness', () => {
 
     // Add a discount entry so subject generation works
     await clickToolbarIcon(page, 'discountEntriesCard');
-    const addEntry = page.locator('[data-card-id="discountEntriesCard"] button:has-text("Add Entry")');
+    const addEntry = page.locator(
+      '[data-card-id="discountEntriesCard"] button:has-text("Add Entry")'
+    );
     if (await isVisibleEventually(addEntry, 5000)) {
       await addEntry.click();
       // Type a line in the first entry
-      const lineInput = page.locator('[data-card-id="discountEntriesCard"] input[placeholder*="line" i], [data-card-id="discountEntriesCard"] input').first();
+      const lineInput = page
+        .locator(
+          '[data-card-id="discountEntriesCard"] input[placeholder*="line" i], [data-card-id="discountEntriesCard"] input'
+        )
+        .first();
       if (await isVisibleEventually(lineInput, 5000)) {
         await lineInput.fill('50% off watches');
       }
@@ -235,12 +272,16 @@ test.describe('QA Item 2 — Auto-save completeness', () => {
       await expectPersisted(page, 'Limited time offer - shop now!');
 
       await page.reload();
-      await page.waitForSelector('[data-testid="icon-toolbar"]', { timeout: 15000 });
+      await page.waitForSelector('[data-testid="icon-toolbar"]', {
+        timeout: 15000,
+      });
       await clickToolbarIcon(page, 'subjectCard');
       // Preheader should persist
       const preheaderAfter = page.locator('#preheader-input');
       if (await isVisibleEventually(preheaderAfter, 10000)) {
-        await expect(preheaderAfter).toHaveValue('Limited time offer - shop now!');
+        await expect(preheaderAfter).toHaveValue(
+          'Limited time offer - shop now!'
+        );
       }
     }
   });
@@ -254,7 +295,9 @@ test.describe('QA Item 2 — Auto-save completeness', () => {
       await expectPersisted(page, '#447799');
 
       await page.reload();
-      await page.waitForSelector('[data-testid="icon-toolbar"]', { timeout: 15000 });
+      await page.waitForSelector('[data-testid="icon-toolbar"]', {
+        timeout: 15000,
+      });
       await clickToolbarIcon(page, 'emailThemeCard');
       const after = page.locator('[data-testid="theme-picker-headerBg"]');
       if (await isVisibleEventually(after, 10000)) {
@@ -277,34 +320,48 @@ test.describe('QA Item 3 — Bulk email generation', () => {
     await expectPersisted(page, 'Summer Sale Extravaganza');
   });
 
-  test('Generate without opening Bulk Email Tools shows "Add recipient" toast', async ({ page }) => {
+  test('Generate without opening Bulk Email Tools shows "Add recipient" toast', async ({
+    page,
+  }) => {
     // Click Generate Email Batches directly — no recipients entered
     const genBtn = page.locator('button:has-text("Generate Email Batches")');
     await genBtn.click();
 
     // Sonner toast renders an <ol> with data-sonner-toaster attribute
     // Check for any visible toast element (polls instead of a fixed sleep)
-    const toasts = page.locator('[data-sonner-toaster] li, .toaster li, [role="status"][aria-live]');
+    const toasts = page.locator(
+      '[data-sonner-toaster] li, .toaster li, [role="status"][aria-live]'
+    );
     const hasToast = await isVisibleEventually(toasts.first(), 10000);
 
     // At minimum, no crash - if no toast DOM found, log for manual investigation
     if (!hasToast) {
-      console.warn('[NOTE] Sonner toast not detected in DOM — manual verification needed');
+      console.warn(
+        '[NOTE] Sonner toast not detected in DOM — manual verification needed'
+      );
     }
   });
 
-  test('bulk email counts and badges correct with mixed valid/invalid', async ({ page }) => {
+  test('bulk email counts and badges correct with mixed valid/invalid', async ({
+    page,
+  }) => {
     await clickToolbarIcon(page, 'bulkEmailCard');
     const card = page.locator('[data-card-id="bulkEmailCard"]');
     const textarea = card.locator('textarea');
     if (await isVisibleEventually(textarea, 5000)) {
-      await textarea.fill('good1@test.com\ngood2@test.com\ngood3@test.com\ngood4@test.com\ngood5@test.com\nbademail\nnotan@email');
+      await textarea.fill(
+        'good1@test.com\ngood2@test.com\ngood3@test.com\ngood4@test.com\ngood5@test.com\nbademail\nnotan@email'
+      );
     }
     // The card should show validation counts — poll until they settle
-    await expect.poll(() => card.textContent(), { timeout: 10000 }).toContain('5');
+    await expect
+      .poll(() => card.textContent(), { timeout: 10000 })
+      .toContain('5');
   });
 
-  test('recipients deleted via select-all+delete stay deleted after reload', async ({ page }) => {
+  test('recipients deleted via select-all+delete stay deleted after reload', async ({
+    page,
+  }) => {
     await clickToolbarIcon(page, 'bulkEmailCard');
     const card = page.locator('[data-card-id="bulkEmailCard"]');
     const ta = card.locator('textarea');
@@ -323,7 +380,9 @@ test.describe('QA Item 3 — Bulk email generation', () => {
     await expectNotPersisted(page, 'good1@test.com');
 
     await page.reload();
-    await page.waitForSelector('[data-testid="icon-toolbar"]', { timeout: 15000 });
+    await page.waitForSelector('[data-testid="icon-toolbar"]', {
+      timeout: 15000,
+    });
     await clickToolbarIcon(page, 'bulkEmailCard');
 
     const taAfter = card.locator('textarea');
@@ -333,7 +392,9 @@ test.describe('QA Item 3 — Bulk email generation', () => {
     }
   });
 
-  test('double-click Generate Anyway only runs once (no crash, no duplicate downloads)', async ({ page }) => {
+  test('double-click Generate Anyway only runs once (no crash, no duplicate downloads)', async ({
+    page,
+  }) => {
     await clickToolbarIcon(page, 'bulkEmailCard');
     const card = page.locator('[data-card-id="bulkEmailCard"]');
     const ta = card.locator('textarea');
@@ -370,9 +431,13 @@ test.describe('QA Item 4 — Single email draft download', () => {
     await expectPersisted(page, 'Summer Sale Extravaganza');
   });
 
-  test('Download Email Draft → valid EML with QP wrapping and multipart structure', async ({ page }) => {
+  test('Download Email Draft → valid EML with QP wrapping and multipart structure', async ({
+    page,
+  }) => {
     // Preview/draft readiness: the download button is the observable gate.
-    await expect(page.locator('button:has-text("Download Email Draft")')).toBeEnabled({ timeout: 15000 });
+    await expect(
+      page.locator('button:has-text("Download Email Draft")')
+    ).toBeEnabled({ timeout: 15000 });
 
     const downloadPromise = page.waitForEvent('download', { timeout: 25000 });
     await page.locator('button:has-text("Download Email Draft")').click();
@@ -386,7 +451,8 @@ test.describe('QA Item 4 — Single email draft download', () => {
 
     const content = await download.createReadStream();
     const chunks: Buffer[] = [];
-    for await (const chunk of content) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    for await (const chunk of content)
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     const eml = Buffer.concat(chunks).toString('utf-8');
 
     // Structural checks — single drafts are MIME messages, not delivery-ready emails
@@ -406,7 +472,10 @@ test.describe('QA Item 4 — Single email draft download', () => {
         inQpSection = true;
         continue;
       }
-      if ((line.startsWith('--') || line.startsWith('Content-Type:')) && inQpSection) {
+      if (
+        (line.startsWith('--') || line.startsWith('Content-Type:')) &&
+        inQpSection
+      ) {
         inQpSection = false;
         continue;
       }
@@ -415,14 +484,20 @@ test.describe('QA Item 4 — Single email draft download', () => {
       }
     }
     if (qpViolations > 0) {
-      console.warn(`[NOTE] ${qpViolations} QP lines exceed 78 chars without soft break`);
+      console.warn(
+        `[NOTE] ${qpViolations} QP lines exceed 78 chars without soft break`
+      );
     }
   });
 
-  test('non-ASCII subject → RFC 2047 encoded-words, each ≤75 chars', async ({ page }) => {
+  test('non-ASCII subject → RFC 2047 encoded-words, each ≤75 chars', async ({
+    page,
+  }) => {
     // Add a discount entry so subject generation has content to work with
     await clickToolbarIcon(page, 'discountEntriesCard');
-    const addEntry = page.locator('[data-card-id="discountEntriesCard"] button:has-text("Add Entry")');
+    const addEntry = page.locator(
+      '[data-card-id="discountEntriesCard"] button:has-text("Add Entry")'
+    );
     if (await isVisibleEventually(addEntry, 5000)) {
       await addEntry.click();
     }
@@ -450,10 +525,13 @@ test.describe('QA Item 4 — Single email draft download', () => {
     if (download) {
       const content = await download.createReadStream();
       const chunks: Buffer[] = [];
-      for await (const chunk of content) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      for await (const chunk of content)
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
       const eml = Buffer.concat(chunks).toString('utf-8');
 
-      const subjectHeader = eml.split('\n').find((l) => l.startsWith('Subject:'));
+      const subjectHeader = eml
+        .split('\n')
+        .find((l) => l.startsWith('Subject:'));
       if (subjectHeader) {
         expect(subjectHeader).toMatch(/=\?[Uu][Tt][Ff]-8\?[BQbq]\?/);
       }
@@ -481,13 +559,17 @@ test.describe('QA Item 5 — Import/export config', () => {
     // Confirm export in the dialog → this is what triggers the download
     const [download] = await Promise.all([
       page.waitForEvent('download', { timeout: 15000 }),
-      page.getByRole('alertdialog').getByRole('button', { name: 'Export' }).click(),
+      page
+        .getByRole('alertdialog')
+        .getByRole('button', { name: 'Export' })
+        .click(),
     ]);
 
     expect(download).toBeTruthy();
     const stream = await download.createReadStream();
     const chunks: Buffer[] = [];
-    for await (const chunk of stream) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    for await (const chunk of stream)
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     const exportedJson = Buffer.concat(chunks).toString('utf-8');
     const exported = JSON.parse(exportedJson);
     expect(exported.title).toBe('Summer Sale Extravaganza');
@@ -501,15 +583,26 @@ test.describe('QA Item 5 — Import/export config', () => {
     });
 
     // Title should still be set (toHaveValue polls for the import to land)
-    await expect(page.locator('[data-testid="promo-title"]')).toHaveValue('Summer Sale Extravaganza');
+    await expect(page.locator('[data-testid="promo-title"]')).toHaveValue(
+      'Summer Sale Extravaganza'
+    );
   });
 
-  test('sanitized color and non-numeric entry ID import safely', async ({ page }) => {
+  test('sanitized color and non-numeric entry ID import safely', async ({
+    page,
+  }) => {
     const badConfig = {
       dateRange: '2026-06-15 - 2026-06-30',
       year: '2026',
       title: 'Safe Title',
-      promotionEntries: [{ id: 'not-a-number', line: 'Clean entry', collections: '', callout: '' }],
+      promotionEntries: [
+        {
+          id: 'not-a-number',
+          line: 'Clean entry',
+          collections: '',
+          callout: '',
+        },
+      ],
       specialHours: [],
       howToShopItems: [],
       importantNotesItems: [],
@@ -553,7 +646,9 @@ test.describe('QA Item 5 — Import/export config', () => {
 
     // Toast should appear — poll the sonner list instead of sleeping
     const toastContainer = page.locator('[data-sonner-toaster]');
-    await expect.poll(() => toastContainer.locator('li').count()).toBeGreaterThan(0);
+    await expect
+      .poll(() => toastContainer.locator('li').count())
+      .toBeGreaterThan(0);
   });
 });
 
@@ -578,10 +673,14 @@ test.describe('QA Item 6 — Persistence & version history', () => {
 
     // The snapshot list should reflect the just-typed edit — poll for content.
     const vhList = page.locator('[data-testid="version-history-list"]');
-    await expect.poll(() => vhList.textContent(), { timeout: 10000 }).toBeTruthy();
+    await expect
+      .poll(() => vhList.textContent(), { timeout: 10000 })
+      .toBeTruthy();
   });
 
-  test('Start Over dialog mentions bulk recipients kept, reset clears data', async ({ page }) => {
+  test('Start Over dialog mentions bulk recipients kept, reset clears data', async ({
+    page,
+  }) => {
     await fillBasics(page);
 
     await page.locator('button:has-text("Start Over")').click();
@@ -613,7 +712,9 @@ test.describe('QA Item 7 — Newsletter editor', () => {
     await fillBasics(page);
   });
 
-  test('newsletter toggle, heading+body, dark-mode preview toggle, XSS safe', async ({ page }) => {
+  test('newsletter toggle, heading+body, dark-mode preview toggle, XSS safe', async ({
+    page,
+  }) => {
     await clickToolbarIcon(page, 'newsletterCard');
 
     // Enable newsletter toggle
@@ -623,7 +724,9 @@ test.describe('QA Item 7 — Newsletter editor', () => {
     }
 
     // Type in TipTap editor with XSS attempt in heading
-    const editor = page.locator('.ProseMirror, [contenteditable="true"]').first();
+    const editor = page
+      .locator('.ProseMirror, [contenteditable="true"]')
+      .first();
     if (await isVisibleEventually(editor, 10000)) {
       await editor.click();
       await editor.fill('<script>alert(1)</script> Safe Newsletter');
@@ -633,7 +736,9 @@ test.describe('QA Item 7 — Newsletter editor', () => {
     const darkBtn = page.locator('button[aria-label="Switch to dark preview"]');
     if (await isVisibleEventually(darkBtn, 5000)) {
       await darkBtn.click();
-      const lightBtn = page.locator('button[aria-label="Switch to light preview"]');
+      const lightBtn = page.locator(
+        'button[aria-label="Switch to light preview"]'
+      );
       await expect(lightBtn).toBeVisible({ timeout: 3000 });
     }
 
@@ -650,7 +755,9 @@ test.describe('QA Item 7 — Newsletter editor', () => {
     await expect(card).toBeVisible();
 
     // Position toggle should be present
-    const positionLabel = card.locator('text=/[Aa]bove|[Bb]elow|[Tt]op|[Bb]ottom|Position/');
+    const positionLabel = card.locator(
+      'text=/[Aa]bove|[Bb]elow|[Tt]op|[Bb]ottom|Position/'
+    );
     const posVisible = await isVisibleEventually(positionLabel, 5000);
     expect(posVisible || true).toBeTruthy();
   });
@@ -660,30 +767,13 @@ test.describe('QA Item 7 — Newsletter editor', () => {
 // QA Item 8 — Regression sweep
 // ═══════════════════════════════════════════════════════════════════
 test.describe('QA Item 8 — Regression sweep', () => {
-  test('Templates page renders with profile signature', async ({ page }) => {
+  test('Root redirects to the promotion builder', async ({ page }) => {
     await seedProfile(page);
-    // Navigate to templates page
     await page.goto(BASE);
-
-    // Either the page renders with profile data, or we're redirected somewhere
-    // else — poll for the profile signature instead of sleeping.
-    let hasProfileData = false;
-    try {
-      await expect
-        .poll(() => page.content(), { timeout: 15000 })
-        .toMatch(/QA Droid|Test Store/);
-      hasProfileData = true;
-    } catch {
-      // Profile data not rendered on the initial route — fall through.
-    }
-
-    if (!hasProfileData) {
-      // Try /promotion to verify profile is recognized
-      await page.goto(`${BASE}/promotion`);
-      await page.waitForSelector('[data-testid="icon-toolbar"]', { timeout: 15000 });
-      const promoContent = await page.content();
-      expect(promoContent.includes('QA Droid') || promoContent.includes('icon-toolbar')).toBeTruthy();
-    }
+    await expect(page).toHaveURL(/\/promotion$/, { timeout: 15000 });
+    await page.waitForSelector('[data-testid="icon-toolbar"]', {
+      timeout: 15000,
+    });
   });
 
   test('Profile settings page loads with saved profile', async ({ page }) => {
@@ -691,8 +781,12 @@ test.describe('QA Item 8 — Regression sweep', () => {
     await page.goto(`${BASE}/settings`);
 
     // Poll until the saved profile is rendered
-    await expect.poll(() => page.content(), { timeout: 15000 }).toContain('QA Droid');
-    await expect.poll(() => page.content(), { timeout: 15000 }).toContain('Test Store');
+    await expect
+      .poll(() => page.content(), { timeout: 15000 })
+      .toContain('QA Droid');
+    await expect
+      .poll(() => page.content(), { timeout: 15000 })
+      .toContain('Test Store');
   });
 
   test('Theme toggle persists across reload', async ({ page }) => {
@@ -701,24 +795,34 @@ test.describe('QA Item 8 — Regression sweep', () => {
     await page.setViewportSize({ width: 1280, height: 900 });
 
     // Find theme toggle button
-    const themeToggle = page.locator('button[aria-label*="Switch to dark" i], button[aria-label*="Toggle theme" i], button[id*="theme" i]').first();
+    const themeToggle = page
+      .locator(
+        'button[aria-label*="Switch to dark" i], button[aria-label*="Toggle theme" i], button[id*="theme" i]'
+      )
+      .first();
     if (await isVisibleEventually(themeToggle, 5000)) {
       await themeToggle.click();
     }
 
     await page.reload();
-    await page.waitForSelector('[data-testid="icon-toolbar"]', { timeout: 15000 });
+    await page.waitForSelector('[data-testid="icon-toolbar"]', {
+      timeout: 15000,
+    });
     // Page should still load fine
     await expect(page.locator('[data-testid="icon-toolbar"]')).toBeVisible();
   });
 
-  test('Subject line generator produces suggestions and fills subject', async ({ page }) => {
+  test('Subject line generator produces suggestions and fills subject', async ({
+    page,
+  }) => {
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
     await fillBasics(page);
     // Add a discount entry so subject generation has content
     await clickToolbarIcon(page, 'discountEntriesCard');
-    const addEntry = page.locator('[data-card-id="discountEntriesCard"] button:has-text("Add Entry")');
+    const addEntry = page.locator(
+      '[data-card-id="discountEntriesCard"] button:has-text("Add Entry")'
+    );
     if (await isVisibleEventually(addEntry, 5000)) {
       await addEntry.click();
     }
@@ -737,7 +841,9 @@ test.describe('QA Item 8 — Regression sweep', () => {
     expect(inboxVisible).toBeTruthy();
   });
 
-  test('Accessibility Check card scans and reports issues', async ({ page }) => {
+  test('Accessibility Check card scans and reports issues', async ({
+    page,
+  }) => {
     // AccessibilityChecker gates on a non-empty newsletterBody in the
     // promotion store. Typing into the TipTap editor from Playwright is
     // unreliable (contenteditable + ProseMirror dispatch), so seed the
@@ -777,7 +883,9 @@ test.describe('QA Item 8 — Regression sweep', () => {
     expect(hasResult).toBeTruthy();
   });
 
-  test('Outlook Compatibility card scans and reports issues', async ({ page }) => {
+  test('Outlook Compatibility card scans and reports issues', async ({
+    page,
+  }) => {
     await goToPromotion(page);
     await page.setViewportSize({ width: 1280, height: 900 });
     await fillBasics(page);
@@ -816,7 +924,9 @@ test.describe('QA Item 8 — Regression sweep', () => {
 // Console error monitoring
 // ═══════════════════════════════════════════════════════════════════
 test.describe('Console errors', () => {
-  test('no unexpected console errors during promotion page usage', async ({ page }) => {
+  test('no unexpected console errors during promotion page usage', async ({
+    page,
+  }) => {
     const errors: string[] = [];
     const warnings: string[] = [];
     page.on('console', (msg) => {
@@ -834,7 +944,12 @@ test.describe('Console errors', () => {
     await page.setViewportSize({ width: 1280, height: 900 });
 
     // Click toolbar icons (each click auto-waits for actionability)
-    for (const icon of ['subjectCard', 'howToShopCard', 'newsletterCard', 'emailThemeCard']) {
+    for (const icon of [
+      'subjectCard',
+      'howToShopCard',
+      'newsletterCard',
+      'emailThemeCard',
+    ]) {
       await page.locator(`[data-testid="toolbar-icon-${icon}"]`).click();
     }
 
@@ -843,7 +958,9 @@ test.describe('Console errors', () => {
       console.warn(`[FAIL] Console errors: ${errors.join(' | ')}`);
     }
     if (warnings.length > 0) {
-      console.log(`[INFO] Console warnings (${warnings.length}): ${warnings.slice(0, 5).join(' | ')}`);
+      console.log(
+        `[INFO] Console warnings (${warnings.length}): ${warnings.slice(0, 5).join(' | ')}`
+      );
     }
     // We don't fail the test; findings get compiled into the report
   });

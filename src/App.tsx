@@ -6,9 +6,6 @@ import { Layout } from './components/Layout';
 // shell paints before the heavy page chunks (newsletter editor, email
 // generation, zip/pdf libs) are parsed — a meaningful cold-start win in
 // WebKit/WKWebView. Named exports are mapped to a default for React.lazy.
-const TemplatesPage = lazy(() =>
-  import('./pages/TemplatesPage').then((m) => ({ default: m.TemplatesPage }))
-);
 const ProfilePage = lazy(() =>
   import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage }))
 );
@@ -26,11 +23,9 @@ import { ThemeProvider } from './contexts/ThemeProvider';
 import { ProfileProvider } from './contexts/ProfileProvider';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useGlobalDropGuard } from './hooks/useGlobalDropGuard';
-import { useDevMode } from './hooks/useDevMode';
 
 function App() {
   useGlobalDropGuard();
-  const { devMode } = useDevMode();
   return (
     <ThemeProvider>
       <ProfileProvider>
@@ -38,19 +33,10 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route element={<Layout />}>
-                {/* Root redirect: land on /promotion unless dev mode exposes
-                    the in-construction Templates page. */}
+                {/* Root always lands on the promotion builder. */}
                 <Route
                   path="/"
-                  element={
-                    devMode ? (
-                      <ErrorBoundary level="route" key="route-/">
-                        <TemplatesPage />
-                      </ErrorBoundary>
-                    ) : (
-                      <Navigate to="/promotion" replace />
-                    )
-                  }
+                  element={<Navigate to="/promotion" replace />}
                 />
                 <Route
                   path="/settings"

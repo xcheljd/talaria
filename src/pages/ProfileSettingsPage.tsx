@@ -274,7 +274,7 @@ export function ProfileSettingsPage() {
                 {section === 'profile' && (
                   <div className="rounded-md border-l-4 border-primary bg-primary/5 p-3 text-sm text-muted-foreground">
                     Saved locally on your device and used to auto-fill your
-                    details across templates. Update anytime.
+                    details in your promotion emails. Update anytime.
                   </div>
                 )}
 

@@ -282,21 +282,3 @@ export function prependHeadingIfMissing(body: string, heading: string): string {
   if (!body || !heading || body.match(/<h2[^>]*>/i)) return body;
   return `<h2>${sanitizeHTML(heading)}</h2>${body}`;
 }
-
-/**
- * Sanitize template data to prevent XSS attacks.
- * Recursively sanitizes all string values in an object.
- */
-export function sanitizeTemplateData<T extends Record<string, unknown>>(
-  data: T
-): Record<string, unknown> {
-  const sanitized: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (typeof value === 'string') {
-      sanitized[key] = sanitizeHTML(value);
-    } else {
-      sanitized[key] = value;
-    }
-  }
-  return sanitized;
-}
