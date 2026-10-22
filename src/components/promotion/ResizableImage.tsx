@@ -3,6 +3,8 @@
  * - Corner-drag proportional resizing
  * - Alignment (left / center / right)
  * - Click-through link (href)
+ * - Size presets (25/50/75/100% of the column) + exact pixel width
+ * - Alt text (read by screen readers; shown when email images are blocked)
  *
  * Uses a React NodeView for the interactive resize handles and
  * floating toolbar.
@@ -18,10 +20,18 @@ import {
   Link as LinkIcon,
   Trash2,
   X,
+  Scaling,
+  Type,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Tooltip,
   TooltipContent,
@@ -97,6 +107,16 @@ function ImageNodeView({
     },
     [updateAttributes]
   );
+
+  /** Editor column width, capped at the 600px email body. */
+  const columnWidth = () =>
+    Math.min(600, imgRef.current?.closest('.tiptap')?.clientWidth ?? 600);
+  const setWidth = (px: number) =>
+    updateAttributes({
+      width: Math.round(Math.max(50, Math.min(columnWidth(), px))),
+    });
+  const [widthDraft, setWidthDraft] = useState('');
+  const [altDraft, setAltDraft] = useState(alt || '');
 
   const handleLinkSubmit = useCallback(() => {
     updateAttributes({ href: linkValue || null });
@@ -188,6 +208,135 @@ function ImageNodeView({
             orientation="vertical"
             className="mx-0.5 data-[orientation=vertical]:h-4"
           />
+          <Popover
+            onOpenChange={(open) => {
+              if (open)
+                setWidthDraft(
+                  String(width ?? imgRef.current?.offsetWidth ?? '')
+                );
+            }}
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    static
+                    type="button"
+                    data-testid="image-size-btn"
+                    aria-label="Image size"
+                    className="rounded text-xs"
+                  >
+                    <Scaling className="size-3" />
+                  </Button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Image size</TooltipContent>
+            </Tooltip>
+            <PopoverContent className="flex w-56 flex-col gap-2 p-2">
+              <div className="grid grid-cols-4 gap-1">
+                {[25, 50, 75, 100].map((pct) => (
+                  <Button
+                    key={pct}
+                    variant="outline"
+                    size="xs"
+                    static
+                    type="button"
+                    data-testid={`image-size-${pct}`}
+                    onClick={() => setWidth((columnWidth() * pct) / 100)}
+                  >
+                    {pct}%
+                  </Button>
+                ))}
+              </div>
+              <form
+                className="flex items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const n = Number(widthDraft);
+                  if (Number.isFinite(n) && n > 0) setWidth(n);
+                }}
+              >
+                <Input
+                  type="number"
+                  min={50}
+                  max={600}
+                  value={widthDraft}
+                  onChange={(e) => setWidthDraft(e.target.value)}
+                  aria-label="Width in pixels"
+                  data-testid="image-width-input"
+                  className="h-7 text-xs"
+                />
+                <span className="text-xs text-muted-foreground">px</span>
+                <Button size="xs" static type="submit">
+                  Set
+                </Button>
+              </form>
+              {width && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  static
+                  type="button"
+                  onClick={() => updateAttributes({ width: null })}
+                >
+                  Reset to original size
+                </Button>
+              )}
+            </PopoverContent>
+          </Popover>
+          <Popover
+            onOpenChange={(open) => {
+              if (open) setAltDraft(alt || '');
+            }}
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    static
+                    type="button"
+                    data-testid="image-alt-btn"
+                    aria-label="Alt text"
+                    className={cn('rounded text-xs', alt && 'text-primary')}
+                  >
+                    <Type className="size-3" />
+                  </Button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                {alt ? `Alt text: ${alt}` : 'Add alt text'}
+              </TooltipContent>
+            </Tooltip>
+            <PopoverContent className="flex w-64 flex-col gap-2 p-2">
+              <p className="text-xs text-muted-foreground">
+                Describes the image for screen readers and when email apps block
+                images.
+              </p>
+              <form
+                className="flex items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  updateAttributes({ alt: altDraft.trim() || null });
+                }}
+              >
+                <Input
+                  value={altDraft}
+                  onChange={(e) => setAltDraft(e.target.value)}
+                  placeholder="e.g. Summer sunglasses lineup"
+                  aria-label="Alt text"
+                  data-testid="image-alt-input"
+                  className="h-7 text-xs"
+                />
+                <Button size="xs" static type="submit">
+                  Save
+                </Button>
+              </form>
+            </PopoverContent>
+          </Popover>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -318,6 +467,13 @@ function ImageNodeView({
             onDragStart={(e) => e.preventDefault()}
           />
         ))}
+
+      {/* Live width readout while dragging */}
+      {isResizing && (
+        <div className="pointer-events-none absolute top-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+          {imgRef.current?.offsetWidth ?? width}px
+        </div>
+      )}
 
       {/* Link badge */}
       {href && (
