@@ -118,20 +118,18 @@ export function ProfileFormSection({
               <FormLabel>
                 Company Email <span className="text-destructive">*</span>
               </FormLabel>
-              <div className="mx-auto max-w-[50%]">
-                <FormControl>
-                  <ClearableInput
-                    type="email"
-                    placeholder="your.name@company.com"
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    ref={field.ref}
-                  />
-                </FormControl>
-              </div>
-              <FormDescription className="text-center">
+              <FormControl>
+                <ClearableInput
+                  type="email"
+                  placeholder="your.name@company.com"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                />
+              </FormControl>
+              <FormDescription>
                 Required for management positions — Used in email signatures for
                 managers and above
               </FormDescription>
