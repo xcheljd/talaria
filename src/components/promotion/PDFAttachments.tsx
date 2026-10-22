@@ -419,7 +419,7 @@ export function PDFAttachments() {
                         className={cn(
                           'max-w-full truncate text-left text-sm font-medium',
                           pdf.data
-                            ? 'cursor-pointer text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary'
+                            ? 'cursor-pointer text-primary-text underline decoration-primary/30 underline-offset-2 hover:decoration-primary'
                             : 'cursor-default text-muted-foreground'
                         )}
                         onClick={() => pdf.data && openPreview(pdf)}

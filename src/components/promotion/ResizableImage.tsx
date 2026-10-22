@@ -304,7 +304,10 @@ function ImageNodeView({
                     type="button"
                     data-testid="image-alt-btn"
                     aria-label="Alt text"
-                    className={cn('rounded text-xs', alt && 'text-primary')}
+                    className={cn(
+                      'rounded text-xs',
+                      alt && 'text-primary-text'
+                    )}
                   >
                     <Type className="size-3" />
                   </Button>
@@ -348,7 +351,7 @@ function ImageNodeView({
                 size="icon-xs"
                 static
                 type="button"
-                className={cn('rounded text-xs', href && 'text-primary')}
+                className={cn('rounded text-xs', href && 'text-primary-text')}
                 onClick={() => {
                   setLinkValue(href || 'https://');
                   setShowLinkInput(!showLinkInput);

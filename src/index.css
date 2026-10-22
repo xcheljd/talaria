@@ -17,6 +17,9 @@
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  /* Primary hue tuned for TEXT (AA on every surface + primary tints); --primary
+     stays the palette's signature fill. */
+  --color-primary-text: var(--primary-text);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -170,6 +173,7 @@ html.theme-transition *::after {
   --popover-foreground: #1f2328;
   --primary: #0969da;
   --primary-foreground: #ffffff;
+  --primary-text: #0964d0;
   --secondary: #f6f8fa;
   --secondary-foreground: #1f2328;
   --muted: #f6f8fa;
@@ -195,8 +199,10 @@ html.theme-transition *::after {
 /* 1. GitHub Light (Default) - Inherits :root */
 [data-theme='light'][data-light-palette='github'] {
   /* Default values */
-  --primary: #0859b9;
-  --accent-foreground: #0968d8;
+  --primary: #0969da;
+  --accent-foreground: #0964d0;
+  --primary-foreground: #ffffff;
+  --primary-text: #0964d0;
 }
 
 /* 2. SpaceGray Light */
@@ -207,15 +213,16 @@ html.theme-transition *::after {
   --card-foreground: #343d46;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #4f5b63;
+  --primary: #65737e;
   --primary-foreground: #ffffff;
+  --primary-text: #596670;
   --secondary: #f0f0f0;
   --secondary-foreground: #343d46;
   --muted: #f0f0f0;
   /* base03, not base04 — base04 (#a7adba) sits at 2.2:1 on this near-white bg */
   --muted-foreground: #58656e;
   --accent: #dce3ea;
-  --accent-foreground: #4f5b63;
+  --accent-foreground: #596670;
   --destructive: #b34853;
   --destructive-foreground: #ffffff;
   --border: #c0c5ce;
@@ -235,14 +242,15 @@ html.theme-transition *::after {
   --card-foreground: #4c4f69;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #0847c3;
+  --primary: #1e66f5;
   --primary-foreground: #ffffff;
+  --primary-text: #0a53e4;
   --secondary: #ccd0da;
   --secondary-foreground: #4c4f69;
   --muted: #e6e9ef;
   --muted-foreground: #63667a;
   --accent: #e6e9ef;
-  --accent-foreground: #0b59f4;
+  --accent-foreground: #0a53e4;
   --destructive: #ce0f38;
   --destructive-foreground: #ffffff;
   --border: #bcc0cc;
@@ -262,14 +270,15 @@ html.theme-transition *::after {
   --card-foreground: #2e3440;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #3c5675;
+  --primary: #5579a5;
   --primary-foreground: #ffffff;
+  --primary-text: #466387;
   --secondary: #d8dee9;
   --secondary-foreground: #2e3440;
   --muted: #e5e9f0;
   --muted-foreground: #4c566a;
   --accent: #e5e9f0;
-  --accent-foreground: #4a698f;
+  --accent-foreground: #466387;
   --destructive: #ac464f;
   --destructive-foreground: #ffffff;
   --border: #d8dee9;
@@ -289,17 +298,18 @@ html.theme-transition *::after {
   --card-foreground: #575279;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #9e3631;
+  --primary: #d7827e;
   /* Dawn's `rose` is a mid-tone salmon: neither #faf4ed (2.6:1) nor any Dawn
      ink (`text` #575279 → 2.5:1) is readable on it. Rosé Pine `base` — what the
      dark variant already uses over its own rose — clears 6.2:1. */
-  --primary-foreground: #ffffff;
+  --primary-foreground: #191724;
+  --primary-text: #b63e38;
   --secondary: #f2e9e1;
   --secondary-foreground: #575279;
   --muted: #fffaf3;
   --muted-foreground: #6f6b89;
   --accent: #f2e9e1;
-  --accent-foreground: #b83f39;
+  --accent-foreground: #b63e38;
   --destructive: #ab526b;
   --destructive-foreground: #ffffff;
   --border: #dfdad9;
@@ -323,15 +333,16 @@ html.theme-transition *::after {
   --card-foreground: #2d4f9e;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #0f458f;
+  --primary: #1d73e7;
   --primary-foreground: #ffffff;
+  --primary-text: #1356b2;
   /* bg_highlight (was #c4c5c9 — same hue drift as --card) */
   --secondary: #c4c8da;
   --secondary-foreground: #2d4f9e;
   --muted: #d0d5e3;
   --muted-foreground: #495891;
   --accent: #d0d5e3;
-  --accent-foreground: #1358b6;
+  --accent-foreground: #1356b2;
   --destructive: #b5083b;
   --destructive-foreground: #ffffff;
   --border: #b4b5b9;
@@ -354,14 +365,15 @@ html.theme-transition *::after {
   --card-foreground: #546a70;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #175683;
+  --primary: #2076b3;
   --primary-foreground: #fdf6e3;
+  --primary-text: #1d699e;
   --secondary: #eee8d5;
   --secondary-foreground: #546a70;
   --muted: #eee8d5;
   --muted-foreground: #576a71;
   --accent: #eee8d5;
-  --accent-foreground: #175683;
+  --accent-foreground: #1d699e;
   --destructive: #c72421;
   --destructive-foreground: #fdf6e3;
   --border: #d5cfbe;
@@ -381,14 +393,15 @@ html.theme-transition *::after {
   --card-foreground: #383a42;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
-  --primary: #0e4ace;
+  --primary: #326ef1;
   --primary-foreground: #ffffff;
+  --primary-text: #1258ef;
   --secondary: #e5e5e6;
   --secondary-foreground: #383a42;
   --muted: #f0f0f0;
   --muted-foreground: #5e616b;
   --accent: #e5e5e6;
-  --accent-foreground: #0e4ace;
+  --accent-foreground: #1258ef;
   --destructive: #cd2d1e;
   --destructive-foreground: #ffffff;
   --border: #e0e0e0;
@@ -413,14 +426,15 @@ html.theme-transition *::after {
   --card-foreground: #e6edf3;
   --popover: #161b22;
   --popover-foreground: #e6edf3;
-  --primary: #7caffa;
-  --primary-foreground: #0d1117;
+  --primary: #126ff6;
+  --primary-foreground: #ffffff;
+  --primary-text: #609ef9;
   --secondary: #21262d;
   --secondary-foreground: #e6edf3;
   --muted: #21262d;
   --muted-foreground: #9aa0a8;
   --accent: #30363d;
-  --accent-foreground: #7caffa;
+  --accent-foreground: #609ef9;
   --destructive: #f85149;
   --destructive-foreground: #ffffff;
   --border: #30363d;
@@ -440,14 +454,15 @@ html.theme-transition *::after {
   --card-foreground: #c0c5ce;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
-  --primary: #c6d7d6;
+  --primary: #96b5b4;
   --primary-foreground: #2b303b;
+  --primary-text: #c2d4d3;
   --secondary: #4f5b66;
   --secondary-foreground: #cfd3da;
   --muted: #343d46;
   --muted-foreground: #a7adba;
   --accent: #4f5b66;
-  --accent-foreground: #c6d7d6;
+  --accent-foreground: #c2d4d3;
   --destructive: #bf616a;
   --destructive-foreground: #ffffff;
   --border: #4f5b66;
@@ -467,14 +482,15 @@ html.theme-transition *::after {
   --card-foreground: #cdd6f4;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
-  --primary: #a4c5fb;
+  --primary: #89b4fa;
   --primary-foreground: #1e1e2e;
+  --primary-text: #89b4fa;
   --secondary: #313244;
   --secondary-foreground: #cdd6f4;
   --muted: #313244;
   --muted-foreground: #a6adc8;
   --accent: #313244;
-  --accent-foreground: #a4c5fb;
+  --accent-foreground: #89b4fa;
   --destructive: #f38ba8;
   --destructive-foreground: #1e1e2e;
   --border: #313244;
@@ -494,14 +510,15 @@ html.theme-transition *::after {
   --card-foreground: #d8dee9;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
-  --primary: #cae3ea;
+  --primary: #88c0d0;
   --primary-foreground: #2e3440;
+  --primary-text: #90c4d3;
   --secondary: #434c5e;
   --secondary-foreground: #d8dee9;
   --muted: #3b4252;
   --muted-foreground: #bcc1ca;
   --accent: #434c5e;
-  --accent-foreground: #cae3ea;
+  --accent-foreground: #90c4d3;
   --destructive: #bf616a;
   --destructive-foreground: #ffffff;
   --border: #434c5e;
@@ -523,6 +540,7 @@ html.theme-transition *::after {
   --popover-foreground: var(--card-foreground);
   --primary: #ebbcba;
   --primary-foreground: #191724;
+  --primary-text: #ebbcba;
   --secondary: #26233a;
   --secondary-foreground: #e0def4;
   --muted: #26233a;
@@ -548,14 +566,15 @@ html.theme-transition *::after {
   --card-foreground: #a9b1d6;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
-  --primary: #9dbaf9;
+  --primary: #7aa2f7;
   --primary-foreground: #1a1b26;
+  --primary-text: #9ab8f9;
   --secondary: #414868;
   --secondary-foreground: #b1b9da;
   --muted: #24283b;
   --muted-foreground: #8d90a9;
   --accent: #414868;
-  --accent-foreground: #9dbaf9;
+  --accent-foreground: #9ab8f9;
   --destructive: #f7768e;
   --destructive-foreground: #1a1b26;
   --border: #414868;
@@ -575,14 +594,15 @@ html.theme-transition *::after {
   --card-foreground: #f8f8f2;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
-  --primary: #ade43e;
+  --primary: #a6e22e;
   --primary-foreground: #272822;
+  --primary-text: #a6e22e;
   --secondary: #75715e;
   --secondary-foreground: #f8f8f2;
   --muted: #3e3d32;
   --muted-foreground: #cfcfc2;
   --accent: #3e3d32;
-  --accent-foreground: #ade43e;
+  --accent-foreground: #a6e22e;
   /* Monokai's red. The previous #f44747 was VS Code's default error red and
      appears nowhere in the Monokai spec. */
   --destructive: #fc81ad;
@@ -604,15 +624,16 @@ html.theme-transition *::after {
   --card-foreground: #dcd7ba;
   --popover: var(--card);
   --popover-foreground: var(--card-foreground);
-  --primary: #a2b8e3;
+  --primary: #7e9cd8;
   --primary-foreground: #1f1f28;
+  --primary-text: #83a0d9;
   --secondary: #363646;
   --secondary-foreground: #dcd7ba;
   --muted: #2a2a37;
   /* fujiGray lifted: at #727169 it is 2.9:1 on the sumiInk4 card */
   --muted-foreground: #a3a29a;
   --accent: #363646;
-  --accent-foreground: #a2b8e3;
+  --accent-foreground: #83a0d9;
   --destructive: #ef6868;
   --destructive-foreground: #ffffff;
   --border: #54546d;

@@ -77,7 +77,7 @@ function ToggleGroupItem({
         }),
         'w-auto min-w-0 shrink-0 px-3 focus:z-10 focus-visible:z-10',
         'data-[spacing=0]:rounded-none data-[spacing=0]:shadow-none data-[spacing=0]:first:rounded-l-md data-[spacing=0]:last:rounded-r-md data-[spacing=0]:data-[variant=outline]:border-l-0 data-[spacing=0]:data-[variant=outline]:first:border-l',
-        'group-data-[color-scheme=primary]/toggle-group:data-[state=on]:bg-primary/10 group-data-[color-scheme=primary]/toggle-group:data-[state=on]:text-primary group-data-[color-scheme=primary]/toggle-group:data-[state=on]:border-primary/30',
+        'group-data-[color-scheme=primary]/toggle-group:data-[state=on]:bg-primary/10 group-data-[color-scheme=primary]/toggle-group:data-[state=on]:text-primary-text group-data-[color-scheme=primary]/toggle-group:data-[state=on]:border-primary/30',
         className
       )}
       {...props}

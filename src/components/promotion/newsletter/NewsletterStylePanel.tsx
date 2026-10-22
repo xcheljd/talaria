@@ -80,7 +80,7 @@ export function NewsletterStylePanel() {
                       className={cn(
                         'h-8 w-12 border text-[10px] font-normal',
                         store.newsletterStyle.borderStyle === opt.value
-                          ? 'border-primary bg-primary/10 text-primary hover:bg-primary/10'
+                          ? 'border-primary bg-primary/10 text-primary-text hover:bg-primary/10'
                           : 'border-border bg-background text-muted-foreground hover:bg-muted/50'
                       )}
                       onClick={() =>
@@ -275,7 +275,7 @@ export function NewsletterStylePanel() {
                       className={cn(
                         'h-8 border px-3 text-[10px] font-normal',
                         store.newsletterStyle.tableBorderStyle === opt.value
-                          ? 'border-primary bg-primary/10 text-primary hover:bg-primary/10'
+                          ? 'border-primary bg-primary/10 text-primary-text hover:bg-primary/10'
                           : 'border-border bg-background text-muted-foreground hover:bg-muted/50'
                       )}
                       onClick={() =>
@@ -307,7 +307,7 @@ export function NewsletterStylePanel() {
                       className={cn(
                         'h-8 w-10 border px-0 text-[10px] font-normal',
                         store.newsletterStyle.tableBorderWidth === w
-                          ? 'border-primary bg-primary/10 text-primary hover:bg-primary/10'
+                          ? 'border-primary bg-primary/10 text-primary-text hover:bg-primary/10'
                           : 'border-border bg-background text-muted-foreground hover:bg-muted/50'
                       )}
                       onClick={() =>
