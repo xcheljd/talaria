@@ -354,24 +354,30 @@ export function BulkEmailTools() {
         {/* Download format toggle */}
         <div className="flex items-center gap-2">
           <Label className="text-xs whitespace-nowrap">Download Format</Label>
+          {/* Same segmented style as the Email Preview toolbar toggles. */}
           <ToggleGroup
             type="single"
             value={downloadFormat}
             onValueChange={(value) => {
               if (value) handleFormatChange(value as DownloadFormat);
             }}
-            className="gap-0 rounded-md border"
+            variant="outline"
+            size="sm"
+            spacing={0}
+            colorScheme="primary"
+            aria-label="Download format"
+            className="shadow-xs"
           >
             <ToggleGroupItem
               value="individual"
-              className="rounded-none rounded-l-md text-xs px-3 h-7 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+              className="px-2 text-xs"
               data-testid="format-individual"
             >
               Individual Files
             </ToggleGroupItem>
             <ToggleGroupItem
               value="zip"
-              className="rounded-none rounded-r-md text-xs px-3 h-7 border-l data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+              className="px-2 text-xs"
               data-testid="format-zip"
             >
               ZIP Archive
