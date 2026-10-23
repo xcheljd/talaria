@@ -28,7 +28,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { usePromotionStore } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
 // ===== Types =====
@@ -284,6 +284,7 @@ export function AccessibilityChecker() {
           {issues.length === 0 ? (
             <Alert variant="success">
               <CheckCircle2 />
+              <AlertTitle>All clear</AlertTitle>
               <AlertDescription>
                 No accessibility issues found. Your content looks good!
               </AlertDescription>

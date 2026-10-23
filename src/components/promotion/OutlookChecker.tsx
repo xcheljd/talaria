@@ -21,7 +21,7 @@ import { generatePromotionEmailHTML } from '@/lib/promotion-email-html';
 import { buildPromotionEmailData } from '@/lib/newsletter-utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
 // ===== Types =====
@@ -370,8 +370,9 @@ export function OutlookChecker() {
           {issues.length === 0 ? (
             <Alert variant="success">
               <CheckCircle2 />
+              <AlertTitle>All clear</AlertTitle>
               <AlertDescription>
-                No Outlook compatibility issues found!
+                No Outlook compatibility issues found.
               </AlertDescription>
             </Alert>
           ) : (

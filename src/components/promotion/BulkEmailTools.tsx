@@ -44,9 +44,14 @@ import { StorageKeys } from '@/lib/storage-keys';
 import { Button } from '@/components/ui/button';
 import { ClearableTextarea } from '@/components/ui/clearable-textarea';
 import { Label } from '@/components/ui/label';
+import { FieldError } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Collapsible, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Spinner } from '@/components/ui/spinner';
 
 // ===== Format Status Sub-component =====
@@ -270,7 +275,7 @@ export function BulkEmailTools() {
 
       {/* Invalid emails collapsible section */}
       {emailStats.invalid > 0 && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/5">
+        <div className="rounded-md border border-destructive/30">
           <Collapsible
             open={showInvalidEmails}
             onOpenChange={setShowInvalidEmails}
@@ -280,7 +285,7 @@ export function BulkEmailTools() {
                 variant="ghost"
                 static
                 type="button"
-                className="h-auto w-full justify-start rounded-none px-3 py-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="h-auto w-full justify-start rounded-none px-3 py-2 text-xs text-destructive hover:bg-transparent hover:text-destructive hover:underline"
                 data-testid="toggle-invalid-emails"
               >
                 {showInvalidEmails ? (
@@ -292,15 +297,16 @@ export function BulkEmailTools() {
                 {emailStats.invalid > 1 ? 's' : ''}
               </Button>
             </CollapsibleTrigger>
-            {showInvalidEmails && (
+            {/* CollapsibleContent so the trigger's aria-controls points at a real panel. */}
+            <CollapsibleContent>
               <div className="border-t border-destructive/20 px-3 py-2">
-                <div className="max-h-[100px] overflow-y-auto font-mono text-xs text-destructive">
+                <FieldError className="max-h-[100px] overflow-y-auto font-mono text-xs">
                   {emailStats.invalidEmails.map((email, i) => (
                     <div key={i}>{email}</div>
                   ))}
-                </div>
+                </FieldError>
               </div>
-            )}
+            </CollapsibleContent>
           </Collapsible>
         </div>
       )}

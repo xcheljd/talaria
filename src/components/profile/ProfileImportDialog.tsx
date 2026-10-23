@@ -19,7 +19,7 @@ import {
 import { validatePalette } from '@/lib/theme-utils';
 
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -148,6 +148,7 @@ export function ProfileImportDialog({
           {importError && (
             <Alert variant="destructive">
               <AlertCircle className="size-4" />
+              <AlertTitle>Import failed</AlertTitle>
               <AlertDescription>{importError}</AlertDescription>
             </Alert>
           )}

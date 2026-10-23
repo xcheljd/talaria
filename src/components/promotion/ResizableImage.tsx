@@ -30,6 +30,9 @@ import { Input } from '@/components/ui/input';
 import {
   Popover,
   PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
   PopoverTrigger,
 } from '@/components/ui/popover';
 import {
@@ -237,7 +240,13 @@ function ImageNodeView({
               </TooltipTrigger>
               <TooltipContent>Image size</TooltipContent>
             </Tooltip>
-            <PopoverContent className="flex w-56 flex-col gap-2 p-2">
+            <PopoverContent
+              className="flex w-56 flex-col gap-2 p-2"
+              aria-label="Image size"
+            >
+              <PopoverHeader>
+                <PopoverTitle className="text-xs">Image size</PopoverTitle>
+              </PopoverHeader>
               <div className="grid grid-cols-4 gap-1">
                 {[25, 50, 75, 100].map((pct) => (
                   <Button
@@ -317,11 +326,17 @@ function ImageNodeView({
                 {alt ? `Alt text: ${alt}` : 'Add alt text'}
               </TooltipContent>
             </Tooltip>
-            <PopoverContent className="flex w-64 flex-col gap-2 p-2">
-              <p className="text-xs text-muted-foreground">
-                Describes the image for screen readers and when email apps block
-                images.
-              </p>
+            <PopoverContent
+              className="flex w-64 flex-col gap-2 p-2"
+              aria-label="Alt text"
+            >
+              <PopoverHeader>
+                <PopoverTitle className="text-xs">Alt text</PopoverTitle>
+                <PopoverDescription className="text-xs">
+                  Describes the image for screen readers and when email apps
+                  block images.
+                </PopoverDescription>
+              </PopoverHeader>
               <form
                 className="flex items-center gap-2"
                 onSubmit={(e) => {

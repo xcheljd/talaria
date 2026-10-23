@@ -52,6 +52,8 @@ import { Separator } from '@/components/ui/separator';
 import {
   Popover,
   PopoverContent,
+  PopoverHeader,
+  PopoverTitle,
   PopoverTrigger,
 } from '@/components/ui/popover';
 
@@ -562,13 +564,21 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
             <LinkIcon className="size-3.5" />
           </ToolbarButton>
         </PopoverTrigger>
-        <PopoverContent className="w-72 p-2" side="bottom" align="start">
+        <PopoverContent
+          className="w-72 p-2"
+          side="bottom"
+          align="start"
+          aria-label="Link URL"
+        >
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-medium text-muted-foreground">
-              Link URL
-            </label>
+            <PopoverHeader>
+              <PopoverTitle className="text-xs">
+                <label htmlFor="toolbar-link-url">Link URL</label>
+              </PopoverTitle>
+            </PopoverHeader>
             <div className="flex gap-1.5">
               <Input
+                id="toolbar-link-url"
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
                 placeholder="https://"
@@ -630,13 +640,21 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
             <ImageIcon className="size-3.5" />
           </ToolbarButton>
         </PopoverTrigger>
-        <PopoverContent className="w-72 p-2" side="bottom" align="start">
+        <PopoverContent
+          className="w-72 p-2"
+          side="bottom"
+          align="start"
+          aria-label="Insert image"
+        >
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-medium text-muted-foreground">
-              Image URL
-            </label>
+            <PopoverHeader>
+              <PopoverTitle className="text-xs">
+                <label htmlFor="toolbar-image-url">Image URL</label>
+              </PopoverTitle>
+            </PopoverHeader>
             <div className="flex gap-1.5">
               <Input
+                id="toolbar-image-url"
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
                 placeholder="https://"
