@@ -319,7 +319,7 @@ html.theme-transition *::after {
   --secondary: #f2e9e1;
   --secondary-foreground: #575279;
   --muted: #fffaf3;
-  --muted-foreground: #6f6b89;
+  --muted-foreground: #6d6987;
   --accent: #f2e9e1;
   --accent-foreground: #b63e38;
   --destructive: #ab526b;
@@ -348,7 +348,7 @@ html.theme-transition *::after {
   --popover-foreground: var(--foreground);
   --primary: #1d73e7;
   --primary-foreground: #ffffff;
-  --primary-text: #1356b2;
+  --primary-text: #1251a8;
   /* bg_highlight (was #c4c5c9 — same hue drift as --card) */
   --secondary: #c4c8da;
   --secondary-foreground: #2d4f9e;
@@ -381,7 +381,7 @@ html.theme-transition *::after {
   --popover-foreground: var(--foreground);
   --primary: #2076b3;
   --primary-foreground: #fdf6e3;
-  --primary-text: #1d699e;
+  --primary-text: #1b6395;
   --secondary: #eee8d5;
   --secondary-foreground: #546a70;
   --muted: #eee8d5;
@@ -410,7 +410,7 @@ html.theme-transition *::after {
   --popover-foreground: var(--foreground);
   --primary: #326ef1;
   --primary-foreground: #ffffff;
-  --primary-text: #1258ef;
+  --primary-text: #1055eb;
   --secondary: #e5e5e6;
   --secondary-foreground: #383a42;
   --muted: #f0f0f0;
@@ -531,7 +531,7 @@ html.theme-transition *::after {
   --popover-foreground: var(--card-foreground);
   --primary: #88c0d0;
   --primary-foreground: #2e3440;
-  --primary-text: #90c4d3;
+  --primary-text: #99c9d6;
   --secondary: #434c5e;
   --secondary-foreground: #d8dee9;
   --muted: #3b4252;
@@ -593,7 +593,7 @@ html.theme-transition *::after {
   --secondary: #414868;
   --secondary-foreground: #b1b9da;
   --muted: #24283b;
-  --muted-foreground: #8d90a9;
+  --muted-foreground: #9295ad;
   --accent: #414868;
   --accent-foreground: #9ab8f9;
   --destructive: #e42145;
