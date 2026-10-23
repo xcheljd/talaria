@@ -28,6 +28,9 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  /* Text-only red, AA on every surface and on destructive tints. --destructive
+     stays the fill that hosts white text, the same split as primary. */
+  --color-destructive-text: var(--destructive-text);
   --color-warning: var(--warning);
   --color-success: var(--success);
   --color-info: var(--info);
@@ -101,6 +104,8 @@
 @property --destructive { syntax: '<color>'; inherits: true; initial-value: #cf222e; }
 /* prettier-ignore */
 @property --destructive-foreground { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+/* prettier-ignore */
+@property --destructive-text { syntax: '<color>'; inherits: true; initial-value: #b62324; }
 /* prettier-ignore */
 @property --border { syntax: '<color>'; inherits: true; initial-value: #d0d7de; }
 /* prettier-ignore */
@@ -182,6 +187,7 @@ html.theme-transition *::after {
   --accent-foreground: #0969da;
   --destructive: #cf222e;
   --destructive-foreground: #ffffff;
+  --destructive-text: #c8212c;
   --border: #d0d7de;
   --input: #d0d7de;
   --ring: #0969da;
@@ -203,6 +209,9 @@ html.theme-transition *::after {
   --accent-foreground: #0964d0;
   --primary-foreground: #ffffff;
   --primary-text: #0964d0;
+  --destructive: #cf222e;
+  --destructive-foreground: #ffffff;
+  --destructive-text: #c8212c;
 }
 
 /* 2. SpaceGray Light */
@@ -225,6 +234,7 @@ html.theme-transition *::after {
   --accent-foreground: #596670;
   --destructive: #b34853;
   --destructive-foreground: #ffffff;
+  --destructive-text: #a6434d;
   --border: #c0c5ce;
   --input: #c0c5ce;
   --ring: #65737e;
@@ -251,8 +261,9 @@ html.theme-transition *::after {
   --muted-foreground: #63667a;
   --accent: #e6e9ef;
   --accent-foreground: #0a53e4;
-  --destructive: #ce0f38;
+  --destructive: #c5183d;
   --destructive-foreground: #ffffff;
+  --destructive-text: #bb0e33;
   --border: #bcc0cc;
   --input: #bcc0cc;
   --ring: #1e66f5;
@@ -281,6 +292,7 @@ html.theme-transition *::after {
   --accent-foreground: #466387;
   --destructive: #ac464f;
   --destructive-foreground: #ffffff;
+  --destructive-text: #9f4149;
   --border: #d8dee9;
   --input: #d8dee9;
   --ring: #5e81ac;
@@ -312,6 +324,7 @@ html.theme-transition *::after {
   --accent-foreground: #b63e38;
   --destructive: #ab526b;
   --destructive-foreground: #ffffff;
+  --destructive-text: #9f4c64;
   --border: #dfdad9;
   --input: #dfdad9;
   /* `iris`, not `rose`: rose is 2.6:1 on base, below the 3:1 a focus indicator
@@ -343,8 +356,9 @@ html.theme-transition *::after {
   --muted-foreground: #495891;
   --accent: #d0d5e3;
   --accent-foreground: #1356b2;
-  --destructive: #b5083b;
+  --destructive: #a81540;
   --destructive-foreground: #ffffff;
+  --destructive-text: #a50736;
   --border: #b4b5b9;
   --input: #b4b5b9;
   --ring: #2e7de9;
@@ -375,7 +389,8 @@ html.theme-transition *::after {
   --accent: #eee8d5;
   --accent-foreground: #1d699e;
   --destructive: #c72421;
-  --destructive-foreground: #fdf6e3;
+  --destructive-foreground: #ffffff;
+  --destructive-text: #b6211e;
   --border: #d5cfbe;
   --input: #d5cfbe;
   --ring: #268bd2;
@@ -404,6 +419,7 @@ html.theme-transition *::after {
   --accent-foreground: #1258ef;
   --destructive: #cd2d1e;
   --destructive-foreground: #ffffff;
+  --destructive-text: #bc291c;
   --border: #e0e0e0;
   --input: #e0e0e0;
   --ring: #4078f2;
@@ -435,8 +451,9 @@ html.theme-transition *::after {
   --muted-foreground: #9aa0a8;
   --accent: #30363d;
   --accent-foreground: #609ef9;
-  --destructive: #f85149;
+  --destructive: #e32920;
   --destructive-foreground: #ffffff;
+  --destructive-text: #f8524a;
   --border: #30363d;
   --input: #30363d;
   --ring: #2f81f7;
@@ -463,8 +480,9 @@ html.theme-transition *::after {
   --muted-foreground: #a7adba;
   --accent: #4f5b66;
   --accent-foreground: #c2d4d3;
-  --destructive: #bf616a;
+  --destructive: #bb5660;
   --destructive-foreground: #ffffff;
+  --destructive-text: #d89fa4;
   --border: #4f5b66;
   --input: #4f5b66;
   --ring: #96b5b4;
@@ -491,8 +509,9 @@ html.theme-transition *::after {
   --muted-foreground: #a6adc8;
   --accent: #313244;
   --accent-foreground: #89b4fa;
-  --destructive: #f38ba8;
-  --destructive-foreground: #1e1e2e;
+  --destructive: #e32057;
+  --destructive-foreground: #ffffff;
+  --destructive-text: #f38ba8;
   --border: #313244;
   --input: #313244;
   --ring: #89b4fa;
@@ -519,8 +538,9 @@ html.theme-transition *::after {
   --muted-foreground: #bcc1ca;
   --accent: #434c5e;
   --accent-foreground: #90c4d3;
-  --destructive: #bf616a;
+  --destructive: #bb5660;
   --destructive-foreground: #ffffff;
+  --destructive-text: #dba7ac;
   --border: #434c5e;
   --input: #434c5e;
   --ring: #88c0d0;
@@ -547,8 +567,9 @@ html.theme-transition *::after {
   --muted-foreground: #9c99b4;
   --accent: #26233a;
   --accent-foreground: #ebbcba;
-  --destructive: #eb6f92;
-  --destructive-foreground: #191724;
+  --destructive: #e1255a;
+  --destructive-foreground: #ffffff;
+  --destructive-text: #eb6f92;
   --border: #403d52;
   --input: #403d52;
   --ring: #ebbcba;
@@ -575,8 +596,9 @@ html.theme-transition *::after {
   --muted-foreground: #8d90a9;
   --accent: #414868;
   --accent-foreground: #9ab8f9;
-  --destructive: #f7768e;
-  --destructive-foreground: #1a1b26;
+  --destructive: #e42145;
+  --destructive-foreground: #ffffff;
+  --destructive-text: #f7768e;
   --border: #414868;
   --input: #414868;
   --ring: #7aa2f7;
@@ -605,8 +627,9 @@ html.theme-transition *::after {
   --accent-foreground: #a6e22e;
   /* Monokai's red. The previous #f44747 was VS Code's default error red and
      appears nowhere in the Monokai spec. */
-  --destructive: #fc81ad;
+  --destructive: #e31c63;
   --destructive-foreground: #ffffff;
+  --destructive-text: #fc84af;
   --border: #75715e;
   --input: #75715e;
   --ring: #a6e22e;
@@ -634,8 +657,9 @@ html.theme-transition *::after {
   --muted-foreground: #a3a29a;
   --accent: #363646;
   --accent-foreground: #83a0d9;
-  --destructive: #ef6868;
+  --destructive: #e42626;
   --destructive-foreground: #ffffff;
+  --destructive-text: #f06f6f;
   --border: #54546d;
   --input: #54546d;
   --ring: #7e9cd8;

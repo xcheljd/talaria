@@ -349,7 +349,7 @@ export function BasicDetailsEditor() {
           {startDate && (
             <button
               type="button"
-              className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:text-destructive"
+              className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:text-destructive-text"
               onClick={handleClearDates}
               aria-label="Clear dates"
             >

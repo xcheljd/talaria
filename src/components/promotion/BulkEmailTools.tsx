@@ -224,7 +224,7 @@ export function BulkEmailTools() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive"
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-destructive-text"
             onClick={handleClearRecipients}
           >
             <Trash2 className="size-3" />
@@ -285,7 +285,7 @@ export function BulkEmailTools() {
                 variant="ghost"
                 static
                 type="button"
-                className="h-auto w-full justify-start rounded-none px-3 py-2 text-xs text-destructive hover:bg-transparent hover:text-destructive hover:underline"
+                className="h-auto w-full justify-start rounded-none bg-card px-3 py-2 text-xs text-destructive-text hover:bg-destructive/10 hover:text-destructive-text hover:underline"
                 data-testid="toggle-invalid-emails"
               >
                 {showInvalidEmails ? (

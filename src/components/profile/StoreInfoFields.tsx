@@ -47,7 +47,7 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              Company Name <span className="text-destructive">*</span>
+              Company Name <span className="text-destructive-text">*</span>
             </FormLabel>
             <FormControl>
               <ClearableInput
@@ -74,7 +74,7 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              Store Name <span className="text-destructive">*</span>
+              Store Name <span className="text-destructive-text">*</span>
             </FormLabel>
             <FormControl>
               <ClearableInput
@@ -101,7 +101,7 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              Store Location <span className="text-destructive">*</span>
+              Store Location <span className="text-destructive-text">*</span>
             </FormLabel>
             <FormControl>
               <ClearableInput
@@ -179,7 +179,7 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              Store Phone <span className="text-destructive">*</span>
+              Store Phone <span className="text-destructive-text">*</span>
             </FormLabel>
             <FormControl>
               <ClearableInput
@@ -207,7 +207,7 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              Store Email <span className="text-destructive">*</span>
+              Store Email <span className="text-destructive-text">*</span>
             </FormLabel>
             <FormControl>
               <ClearableInput
@@ -235,7 +235,7 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              Store Hours <span className="text-destructive">*</span>
+              Store Hours <span className="text-destructive-text">*</span>
             </FormLabel>
             <FormControl>
               <ClearableInput

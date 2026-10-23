@@ -291,7 +291,7 @@ export function FormattableItemEditor({
           <Button
             variant="ghost"
             size="sm"
-            className="ml-auto h-7 flex-shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive"
+            className="ml-auto h-7 flex-shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive-text"
             onClick={handleClearAll}
             disabled={items.length === 0}
           >

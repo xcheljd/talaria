@@ -264,7 +264,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
               size="xs"
               static
               type="button"
-              className="ml-auto h-auto px-1 py-0 text-[10px] font-normal text-muted-foreground hover:bg-transparent hover:text-destructive"
+              className="ml-auto h-auto px-1 py-0 text-[10px] font-normal text-muted-foreground hover:bg-transparent hover:text-destructive-text"
               onClick={handleClearAuto}
             >
               Clear auto-saves
@@ -376,7 +376,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 gap-1 text-[10px] px-2 text-muted-foreground hover:text-destructive"
+                              className="h-6 gap-1 text-[10px] px-2 text-muted-foreground hover:text-destructive-text"
                               onClick={() => handleDelete(snapshot.id)}
                             >
                               <Trash2 className="size-2.5" />

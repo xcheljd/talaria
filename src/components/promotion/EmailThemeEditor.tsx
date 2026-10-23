@@ -362,7 +362,7 @@ export function EmailThemeEditor() {
                       variant="ghost"
                       static
                       type="button"
-                      className="size-auto p-0.5 text-muted-foreground hover:bg-transparent hover:text-destructive"
+                      className="size-auto p-0.5 text-muted-foreground hover:bg-transparent hover:text-destructive-text"
                       onClick={() => handleDeleteSaved(saved.name)}
                       aria-label={`Delete palette ${saved.name}`}
                     >

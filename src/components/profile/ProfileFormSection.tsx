@@ -59,7 +59,7 @@ export function ProfileFormSection({
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              Your Name <span className="text-destructive">*</span>
+              Your Name <span className="text-destructive-text">*</span>
             </FormLabel>
             <FormControl>
               <ClearableInput
@@ -83,7 +83,7 @@ export function ProfileFormSection({
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              Job Title <span className="text-destructive">*</span>
+              Job Title <span className="text-destructive-text">*</span>
             </FormLabel>
             <Select
               onValueChange={field.onChange}
@@ -116,7 +116,7 @@ export function ProfileFormSection({
           render={({ field }) => (
             <FormItem className="col-span-1 lg:col-span-2">
               <FormLabel>
-                Company Email <span className="text-destructive">*</span>
+                Company Email <span className="text-destructive-text">*</span>
               </FormLabel>
               <FormControl>
                 <ClearableInput

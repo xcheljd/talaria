@@ -47,7 +47,7 @@ export function ClearableInput({
       {hasValue && (
         <button
           type="button"
-          className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground hover:text-destructive"
+          className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground hover:text-destructive-text"
           onClick={handleClear}
           aria-label="Clear field"
         >

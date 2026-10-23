@@ -144,7 +144,7 @@ export function NewsletterTableMenu({ editor }: { editor: Editor | null }) {
       <ToolbarButton
         active={false}
         label="Delete table"
-        className="text-destructive hover:text-destructive"
+        className="text-destructive-text hover:text-destructive-text"
         onClick={() => run((c) => c.deleteTable())}
       >
         <Trash2 className="size-3.5" />

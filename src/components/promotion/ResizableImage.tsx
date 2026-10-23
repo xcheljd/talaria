@@ -389,7 +389,7 @@ function ImageNodeView({
                 size="icon-xs"
                 static
                 type="button"
-                className="rounded text-xs text-destructive hover:text-destructive"
+                className="rounded text-xs text-destructive-text hover:text-destructive-text"
                 onClick={deleteNode}
               >
                 <Trash2 className="size-3" />
@@ -433,7 +433,7 @@ function ImageNodeView({
                   size="icon-xs"
                   static
                   type="button"
-                  className="rounded text-xs text-destructive hover:text-destructive"
+                  className="rounded text-xs text-destructive-text hover:text-destructive-text"
                   onClick={() => {
                     updateAttributes({ href: null });
                     setShowLinkInput(false);

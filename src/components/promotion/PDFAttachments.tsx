@@ -355,7 +355,7 @@ export function PDFAttachments() {
         <Button
           variant="ghost"
           size="sm"
-          className="ml-auto h-7 flex-shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive"
+          className="ml-auto h-7 flex-shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive-text"
           onClick={handleClearAll}
           disabled={store.attachedPDFs.length === 0}
         >
@@ -445,7 +445,7 @@ export function PDFAttachments() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                className="size-7 flex-shrink-0 text-muted-foreground hover:text-destructive-text"
                 onClick={() => handleRemovePDF(pdf)}
                 aria-label={`Remove ${pdf.name}`}
               >

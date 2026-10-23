@@ -250,7 +250,7 @@ const SEVERITY_CONFIG: Record<
   IssueSeverity,
   { icon: typeof AlertTriangle; className: string }
 > = {
-  error: { icon: ShieldAlert, className: 'text-destructive' },
+  error: { icon: ShieldAlert, className: 'text-destructive-text' },
   warning: { icon: AlertTriangle, className: 'text-warning' },
   info: { icon: Info, className: 'text-info' },
 };

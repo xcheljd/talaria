@@ -631,7 +631,7 @@ export function NewsletterEditor() {
           <span
             className={cn(
               wordCount > WORD_DANGER
-                ? 'text-destructive font-medium'
+                ? 'text-destructive-text font-medium'
                 : wordCount > WORD_WARNING
                   ? 'text-warning'
                   : ''
@@ -653,7 +653,9 @@ export function NewsletterEditor() {
             <span
               className={cn(
                 'text-[10px] ml-1',
-                wordCount > WORD_DANGER ? 'text-destructive' : 'text-warning'
+                wordCount > WORD_DANGER
+                  ? 'text-destructive-text'
+                  : 'text-warning'
               )}
             >
               {wordCount > WORD_DANGER
@@ -682,7 +684,7 @@ export function NewsletterEditor() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-destructive"
+            className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-destructive-text"
             onClick={handleResetNewsletter}
             aria-label="Reset newsletter"
             data-testid="newsletter-reset-btn"
