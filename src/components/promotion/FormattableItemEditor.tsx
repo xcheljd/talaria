@@ -8,6 +8,8 @@
  */
 
 import { CardHeaderActions } from '@/components/promotion/card-header-actions';
+import { AddButton } from '@/components/promotion/AddButton';
+import { SavedSetsMenu } from '@/components/promotion/SavedSetsMenu';
 import { ListEmptyState } from '@/components/promotion/ListEmptyState';
 import { memo, useCallback, useMemo } from 'react';
 import {
@@ -24,7 +26,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {
-  Plus,
   X,
   ChevronUp,
   ChevronDown,
@@ -41,6 +42,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
+import type { AutoField } from '@/stores/promotion-store';
+import type { SavedSetSection } from '@/stores/saved-sets-store';
 
 // ===== Types =====
 
@@ -50,6 +53,8 @@ export interface FormattableItem {
   bold: boolean;
   italic: boolean;
   underline: boolean;
+  /** Set when the line follows a profile field (see AutoField). */
+  autoField?: AutoField;
 }
 
 export interface FormattableItemActions {
@@ -78,6 +83,14 @@ export interface FormattableItemEditorProps {
   /** Empty state message */
   /** Empty-state title. */
   emptyMessage: string;
+  /** Section key for saved sets; enables the Sets menu. */
+  section?: SavedSetSection;
+  /** Plural noun for saved-set copy ("entries"). */
+  setsNoun?: string;
+  /** Linked profile lines this list can add back (phone/email, or directions). */
+  linkedFields?: AutoField[];
+  /** Appends a linked line for that profile field. */
+  onAddLinked?: (field: AutoField) => void;
   /** Empty-state guidance line. */
   emptyDescription?: string;
   emptyIcon?: LucideIcon;
@@ -227,6 +240,10 @@ export function FormattableItemEditor({
   emptyMessage,
   emptyDescription,
   emptyIcon,
+  section,
+  setsNoun = 'items',
+  linkedFields,
+  onAddLinked,
 }: FormattableItemEditorProps) {
   // Toast/dialog copy follows the caller's label: "Item" → item/items,
   // "Note" → note/notes.
@@ -293,10 +310,14 @@ export function FormattableItemEditor({
               Clear all
             </Button>
           )}
-          <Button variant="outline" size="xs" onClick={handleAdd}>
-            <Plus aria-hidden="true" />
-            Add {itemLabel}
-          </Button>
+          {section && <SavedSetsMenu section={section} noun={setsNoun} />}
+          <AddButton
+            label={`Add ${itemLabel}`}
+            onAdd={handleAdd}
+            linked={linkedFields}
+            existing={items.flatMap((i) => (i.autoField ? [i.autoField] : []))}
+            onAddLinked={onAddLinked}
+          />
         </CardHeaderActions>
       )}
 
@@ -308,6 +329,15 @@ export function FormattableItemEditor({
           description={emptyDescription}
           addLabel={`Add ${itemLabel}`}
           onAdd={handleAdd}
+          extraActions={
+            section ? (
+              <SavedSetsMenu
+                section={section}
+                noun={setsNoun}
+                appearance="empty"
+              />
+            ) : undefined
+          }
         />
       ) : (
         <DndContext

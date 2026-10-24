@@ -61,19 +61,25 @@ export function captureSection<S extends SavedSetSection>(
   return data[section];
 }
 
+/** Selector: does the section have something worth saving? (reactive use) */
+export const selectSectionHasContent =
+  (section: SavedSetSection) =>
+  (s: PromotionState): boolean => {
+    switch (section) {
+      case 'howToShop':
+        return s.howToShopItems.length > 0;
+      case 'importantNotes':
+        return s.importantNotesItems.length > 0;
+      case 'specialHours':
+        return s.specialHours.length > 0;
+      case 'newsletter':
+        return s.newsletterBody.replace(/<[^>]*>/g, '').trim().length > 0;
+    }
+  };
+
 /** True when the section has something worth saving. */
 export function sectionHasContent(section: SavedSetSection): boolean {
-  const s = usePromotionStore.getState();
-  switch (section) {
-    case 'howToShop':
-      return s.howToShopItems.length > 0;
-    case 'importantNotes':
-      return s.importantNotesItems.length > 0;
-    case 'specialHours':
-      return s.specialHours.length > 0;
-    case 'newsletter':
-      return s.newsletterBody.replace(/<[^>]*>/g, '').trim().length > 0;
-  }
+  return selectSectionHasContent(section)(usePromotionStore.getState());
 }
 
 /**

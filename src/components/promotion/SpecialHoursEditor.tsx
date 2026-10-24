@@ -8,6 +8,7 @@
 
 import { CardHeaderActions } from '@/components/promotion/card-header-actions';
 import { ListEmptyState } from '@/components/promotion/ListEmptyState';
+import { SavedSetsMenu } from '@/components/promotion/SavedSetsMenu';
 import { memo, useCallback, useMemo } from 'react';
 import {
   DndContext,
@@ -232,6 +233,7 @@ export function SpecialHoursEditor() {
             <Trash2 aria-hidden="true" />
             Clear all
           </Button>
+          <SavedSetsMenu section="specialHours" noun="hours" />
           <Button variant="outline" size="xs" onClick={handleAdd}>
             <Plus aria-hidden="true" />
             Add Hours
@@ -247,6 +249,13 @@ export function SpecialHoursEditor() {
           description="Add store hours that differ during the promotion, like holiday openings or closures."
           addLabel="Add Hours"
           onAdd={handleAdd}
+          extraActions={
+            <SavedSetsMenu
+              section="specialHours"
+              noun="hours"
+              appearance="empty"
+            />
+          }
         />
       ) : (
         <DndContext

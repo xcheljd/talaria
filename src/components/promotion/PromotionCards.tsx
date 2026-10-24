@@ -22,6 +22,7 @@ import { CardHeaderActionsContext } from '@/components/promotion/card-header-act
 import { useShallow } from 'zustand/react/shallow';
 
 import {
+  createLinkedLine,
   usePromotionStore,
   DEFAULT_EMAIL_PALETTE,
   type PromotionState,
@@ -264,6 +265,14 @@ function HowToShopEditor() {
         emptyMessage="No shopping instructions yet"
         emptyDescription="Tell customers how to buy: in store, by phone, or online."
         emptyIcon={ShoppingBag}
+        section="howToShop"
+        setsNoun="entries"
+        linkedFields={['storePhone', 'storeEmail']}
+        onAddLinked={(field) =>
+          usePromotionStore.setState((state) => ({
+            howToShopItems: [...state.howToShopItems, createLinkedLine(field)],
+          }))
+        }
       />
       <div className="flex flex-col gap-2 border-t pt-4">
         <p className="text-xs font-medium text-muted-foreground">Box Style</p>
@@ -340,6 +349,17 @@ function ImportantNotesEditor() {
         emptyMessage="No important notes yet"
         emptyDescription="Fine print and must-know details, shown in a highlighted box."
         emptyIcon={StickyNote}
+        section="importantNotes"
+        setsNoun="notes"
+        linkedFields={['storeDirections']}
+        onAddLinked={(field) =>
+          usePromotionStore.setState((state) => ({
+            importantNotesItems: [
+              ...state.importantNotesItems,
+              createLinkedLine(field),
+            ],
+          }))
+        }
       />
       <div className="flex flex-col gap-2 border-t pt-4">
         <p className="text-xs font-medium text-muted-foreground">Box Style</p>

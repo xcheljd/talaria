@@ -22,6 +22,8 @@ interface ListEmptyStateProps {
   /** Label for the add button; omit to show no button. */
   addLabel?: string;
   onAdd?: () => void;
+  /** Extra actions shown beside Add (e.g. Load saved set). */
+  extraActions?: ReactNode;
 }
 
 export function ListEmptyState({
@@ -30,6 +32,7 @@ export function ListEmptyState({
   description,
   addLabel,
   onAdd,
+  extraActions,
 }: ListEmptyStateProps) {
   return (
     <Empty className="gap-4 border border-dashed p-6 md:p-6">
@@ -42,14 +45,17 @@ export function ListEmptyState({
           {description}
         </EmptyDescription>
       </EmptyHeader>
-      {addLabel && onAdd && (
-        <EmptyContent>
-          <Button size="sm" onClick={onAdd}>
-            <Plus aria-hidden="true" />
-            {addLabel}
-          </Button>
+      {(addLabel && onAdd) || extraActions ? (
+        <EmptyContent className="flex-row justify-center gap-2">
+          {addLabel && onAdd && (
+            <Button size="sm" onClick={onAdd}>
+              <Plus aria-hidden="true" />
+              {addLabel}
+            </Button>
+          )}
+          {extraActions}
         </EmptyContent>
-      )}
+      ) : null}
     </Empty>
   );
 }

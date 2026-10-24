@@ -19,6 +19,7 @@
  *   - shared store selector            → email-data-source.ts
  */
 
+import { migrateLegacyDefaults } from '@/stores/saved-sets-store';
 import {
   useEffect,
   useCallback,
@@ -109,7 +110,9 @@ export function PromotionPage() {
   useEffect(() => {
     const init = async () => {
       await store.restoreState();
-      // Populate defaults only when arrays are empty (fresh state)
+      // One-time: existing users keep their old built-in text as a saved set.
+      migrateLegacyDefaults();
+      // Seed only the profile-linked lines (sets are loaded on purpose)
       store.initializeDefaultItems();
     };
     init();

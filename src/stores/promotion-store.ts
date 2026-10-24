@@ -376,6 +376,23 @@ const AUTO_LINE_CONFIG: Record<
   },
 };
 
+/** True when the profile has a value for this linked line (so it can be added). */
+export function linkedLineAvailable(field: AutoField): boolean {
+  return AUTO_LINE_CONFIG[field].getValue().trim() !== '';
+}
+
+/** A fresh, linked line item for `field`, text resolved from the profile. */
+export function createLinkedLine(field: AutoField) {
+  return {
+    id: generateId(),
+    text: autoLineText(field),
+    bold: false,
+    italic: false,
+    underline: false,
+    autoField: field,
+  };
+}
+
 /** An item that may be auto-managed from the profile. */
 type AutoManaged = { text: string; autoField?: AutoField };
 

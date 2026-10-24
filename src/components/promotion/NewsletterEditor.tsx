@@ -9,6 +9,7 @@
  * - Syncs editor content to Zustand store on every change
  */
 
+import { SavedSetsMenu } from '@/components/promotion/SavedSetsMenu';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -388,8 +389,11 @@ export function NewsletterEditor() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Show in Email Toggle */}
+      {/* Show in Email Toggle + saved sets */}
       <div className="flex items-center gap-2">
+        <span className="mr-auto">
+          <SavedSetsMenu section="newsletter" noun="newsletter" />
+        </span>
         <Checkbox
           id="newsletter-visible-toggle"
           checked={store.newsletterVisible}
