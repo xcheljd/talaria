@@ -92,18 +92,7 @@ export function SavedSetsMenu({
     toastWithUndo(`Loaded “${set.name}”`, undo);
   };
 
-  const remove = (set: SavedSet) => {
-    const removed = useSavedSetsStore.getState().deleteSet(section, set.id);
-    if (!removed) return;
-    toastWithUndo(
-      `Deleted set “${set.name}”`,
-      () =>
-        useSavedSetsStore
-          .getState()
-          .restoreSet(section, removed.set, removed.index),
-      'Set restored'
-    );
-  };
+  const remove = (set: SavedSet) => deleteSetWithUndo(section, set);
 
   // Nothing to load and nothing to save: no menu at all.
   if (sets.length === 0 && !hasContent) return null;
@@ -185,7 +174,6 @@ export function SavedSetsMenu({
         onOpenChange={setManageOpen}
         section={section}
         noun={noun}
-        onDelete={remove}
       />
     </>
   );
@@ -297,20 +285,37 @@ function SaveSetDialog({
   );
 }
 
-// ===== Manage dialog =====
+// ===== Shared pieces (also used by Settings → Saved Sets) =====
 
-function ManageSetsDialog({
-  open,
-  onOpenChange,
+/** Delete a set and offer Undo in the toast. */
+export function deleteSetWithUndo(section: SavedSetSection, set: SavedSet) {
+  const removed = useSavedSetsStore.getState().deleteSet(section, set.id);
+  if (!removed) return;
+  toastWithUndo(
+    `Deleted set “${set.name}”`,
+    () =>
+      useSavedSetsStore
+        .getState()
+        .restoreSet(section, removed.set, removed.index),
+    'Set restored'
+  );
+}
+
+/**
+ * The rows of one section's sets: rename in place, delete (with Undo) and,
+ * inside the email builder, "update with the current entries".
+ */
+export function SavedSetList({
   section,
   noun,
-  onDelete,
+  allowUpdate = false,
+  emptyText = 'No saved sets.',
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   section: SavedSetSection;
   noun: string;
-  onDelete: (set: SavedSet) => void;
+  /** Show "Update with current …" (only meaningful inside the builder). */
+  allowUpdate?: boolean;
+  emptyText?: string;
 }) {
   const sets = useSavedSetsStore(useShallow((s) => s.sets[section]));
   const hasContent = usePromotionStore(selectSectionHasContent(section));
@@ -350,14 +355,120 @@ function ManageSetsDialog({
     );
   };
 
+  if (sets.length === 0) {
+    return <p className="text-sm text-muted-foreground">{emptyText}</p>;
+  }
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) setEditingId(null);
-        onOpenChange(next);
-      }}
-    >
+    <div className="flex flex-col gap-2">
+      {sets.map((set) => (
+        <Item key={set.id} variant="outline" size="sm" className="px-3 py-2">
+          <ItemContent className="min-w-0 gap-0.5">
+            {editingId === set.id ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  commitRename(set);
+                }}
+                className="flex flex-col gap-1"
+              >
+                <Input
+                  aria-label={`New name for ${set.name}`}
+                  value={draft}
+                  autoFocus
+                  maxLength={60}
+                  className="h-8"
+                  onChange={(e) => {
+                    setDraft(e.target.value);
+                    setError('');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      e.stopPropagation();
+                      setEditingId(null);
+                    }
+                  }}
+                />
+                {error && <FieldError>{error}</FieldError>}
+              </form>
+            ) : (
+              <>
+                <ItemTitle className="truncate">{set.name}</ItemTitle>
+                <ItemDescription className="truncate text-xs">
+                  {describeSet(set)}
+                </ItemDescription>
+              </>
+            )}
+          </ItemContent>
+          <ItemActions className="gap-1">
+            {editingId === set.id ? (
+              <>
+                <Button size="xs" onClick={() => commitRename(set)}>
+                  Save
+                </Button>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => setEditingId(null)}
+                >
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="icon-xs"
+                  variant="ghost"
+                  aria-label={`Rename ${set.name}`}
+                  onClick={() => startRename(set)}
+                >
+                  <Pencil aria-hidden="true" />
+                </Button>
+                {allowUpdate && (
+                  <Button
+                    size="icon-xs"
+                    variant="ghost"
+                    aria-label={`Update ${set.name} with current ${noun}`}
+                    title={`Update with current ${noun}`}
+                    disabled={!hasContent}
+                    onClick={() => update(set)}
+                  >
+                    <RefreshCw aria-hidden="true" />
+                  </Button>
+                )}
+                <Button
+                  size="icon-xs"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-destructive-text"
+                  aria-label={`Delete set ${set.name}`}
+                  onClick={() => deleteSetWithUndo(section, set)}
+                >
+                  <Trash2 aria-hidden="true" />
+                </Button>
+              </>
+            )}
+          </ItemActions>
+        </Item>
+      ))}
+    </div>
+  );
+}
+
+// ===== Manage dialog =====
+
+function ManageSetsDialog({
+  open,
+  onOpenChange,
+  section,
+  noun,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  section: SavedSetSection;
+  noun: string;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Manage saved sets</DialogTitle>
@@ -365,104 +476,10 @@ function ManageSetsDialog({
             Rename, delete, or replace a set with the {noun} in this email.
           </DialogDescription>
         </DialogHeader>
-        {sets.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No saved sets.</p>
-        ) : (
-          <div className="flex max-h-80 flex-col gap-2 overflow-y-auto">
-            {sets.map((set) => (
-              <Item
-                key={set.id}
-                variant="outline"
-                size="sm"
-                className="px-3 py-2"
-              >
-                <ItemContent className="min-w-0 gap-0.5">
-                  {editingId === set.id ? (
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        commitRename(set);
-                      }}
-                      className="flex flex-col gap-1"
-                    >
-                      <Input
-                        aria-label={`New name for ${set.name}`}
-                        value={draft}
-                        autoFocus
-                        maxLength={60}
-                        className="h-8"
-                        onChange={(e) => {
-                          setDraft(e.target.value);
-                          setError('');
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Escape') {
-                            e.stopPropagation();
-                            setEditingId(null);
-                          }
-                        }}
-                      />
-                      {error && <FieldError>{error}</FieldError>}
-                    </form>
-                  ) : (
-                    <>
-                      <ItemTitle className="truncate">{set.name}</ItemTitle>
-                      <ItemDescription className="truncate text-xs">
-                        {describeSet(set)}
-                      </ItemDescription>
-                    </>
-                  )}
-                </ItemContent>
-                <ItemActions className="gap-1">
-                  {editingId === set.id ? (
-                    <>
-                      <Button size="xs" onClick={() => commitRename(set)}>
-                        Save
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        onClick={() => setEditingId(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        size="icon-xs"
-                        variant="ghost"
-                        aria-label={`Rename ${set.name}`}
-                        onClick={() => startRename(set)}
-                      >
-                        <Pencil aria-hidden="true" />
-                      </Button>
-                      <Button
-                        size="icon-xs"
-                        variant="ghost"
-                        aria-label={`Update ${set.name} with current ${noun}`}
-                        title={`Update with current ${noun}`}
-                        disabled={!hasContent}
-                        onClick={() => update(set)}
-                      >
-                        <RefreshCw aria-hidden="true" />
-                      </Button>
-                      <Button
-                        size="icon-xs"
-                        variant="ghost"
-                        className="text-muted-foreground hover:text-destructive-text"
-                        aria-label={`Delete set ${set.name}`}
-                        onClick={() => onDelete(set)}
-                      >
-                        <Trash2 aria-hidden="true" />
-                      </Button>
-                    </>
-                  )}
-                </ItemActions>
-              </Item>
-            ))}
-          </div>
-        )}
+        <div className="max-h-80 overflow-y-auto">
+          {/* Remount per open so a half-finished rename never lingers. */}
+          {open && <SavedSetList section={section} noun={noun} allowUpdate />}
+        </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Done

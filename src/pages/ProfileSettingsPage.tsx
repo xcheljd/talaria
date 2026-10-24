@@ -24,6 +24,7 @@ import {
   User,
   Tags,
   SlidersHorizontal,
+  FolderOpen,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -44,6 +45,7 @@ import { Form } from '@/components/ui/form';
 import { ProfileFormSection } from '@/components/profile/ProfileFormSection';
 import { BrandSettingsSection } from '@/components/profile/BrandSettingsSection';
 import { PreferencesSection } from '@/components/profile/PreferencesSection';
+import { SavedSetsSection } from '@/components/profile/SavedSetsSection';
 import { ProfileImportDialog } from '@/components/profile/ProfileImportDialog';
 import {
   toKeywordList,
@@ -52,11 +54,12 @@ import {
 
 // ─── Sidebar sections ─────────────────────────────────────────────────────────
 
-type SettingsSection = 'profile' | 'keywords' | 'preferences';
+type SettingsSection = 'profile' | 'keywords' | 'savedSets' | 'preferences';
 
 const SECTIONS: { id: SettingsSection; label: string; icon: typeof User }[] = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'keywords', label: 'Keywords', icon: Tags },
+  { id: 'savedSets', label: 'Saved Sets', icon: FolderOpen },
   { id: 'preferences', label: 'Preferences', icon: SlidersHorizontal },
 ];
 
@@ -334,6 +337,9 @@ export function ProfileSettingsPage() {
               </Form>
             </div>
           )}
+
+          {/* Saved sets section */}
+          {section === 'savedSets' && <SavedSetsSection />}
 
           {/* Preferences section */}
           {section === 'preferences' && (

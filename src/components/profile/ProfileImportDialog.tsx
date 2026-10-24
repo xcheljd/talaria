@@ -7,6 +7,8 @@
  * the dialog itself is controlled via `open`.
  */
 
+import { toast } from 'sonner';
+import { useSavedSetsStore } from '@/stores/saved-sets-store';
 import { migrateBrandLinks } from '@/lib/profile';
 import { useState, useRef, useCallback } from 'react';
 import { AlertCircle, Upload } from 'lucide-react';
@@ -103,6 +105,17 @@ export function ProfileImportDialog({
             );
           }
 
+          // Saved sets (files from before sets existed simply have none).
+          if (importedData.savedSets) {
+            const n = useSavedSetsStore
+              .getState()
+              .importSets(importedData.savedSets);
+            if (n)
+              toast.success(
+                n === 1 ? 'Imported 1 saved set' : `Imported ${n} saved sets`
+              );
+          }
+
           onOpenChange(false);
           setImportError(null);
         } catch (error) {
@@ -130,7 +143,8 @@ export function ProfileImportDialog({
             <DialogTitle>Import Profile</DialogTitle>
             <DialogDescription>
               Select a JSON file to import your profile data. This will replace
-              all current form values.
+              all current form values. Saved sets in the file are added; a set
+              with the same name is replaced.
             </DialogDescription>
           </DialogHeader>
           {importError && (

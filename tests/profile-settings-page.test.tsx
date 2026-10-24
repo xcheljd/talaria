@@ -89,7 +89,9 @@ describe('ProfileSettingsPage', () => {
   it('renders action buttons', () => {
     renderPage();
 
-    expect(screen.getByRole('button', { name: /Save/i })).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: /^Save( Profile)?$/i })
+    ).toBeTruthy();
     expect(screen.getByRole('button', { name: /Export/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Import/i })).toBeTruthy();
   });
@@ -100,7 +102,9 @@ describe('ProfileSettingsPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    const submitButton = screen.getByRole('button', { name: /Save/i });
+    const submitButton = screen.getByRole('button', {
+      name: /^Save( Profile)?$/i,
+    });
     await user.click(submitButton);
 
     // Zod validation should trigger errors for required fields
@@ -152,7 +156,9 @@ describe('ProfileSettingsPage', () => {
     await user.type(storeEmailInput, 'store@acme.com');
 
     // Submit
-    const submitButton = screen.getByRole('button', { name: /Save/i });
+    const submitButton = screen.getByRole('button', {
+      name: /^Save( Profile)?$/i,
+    });
     await user.click(submitButton);
 
     await waitFor(() => {

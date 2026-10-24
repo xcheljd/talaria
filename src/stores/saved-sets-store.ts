@@ -197,6 +197,12 @@ interface SavedSetsState {
   ) => { set: SavedSet; index: number } | undefined;
   /** Put a deleted set back at its old position (Undo). */
   restoreSet: (section: SavedSetSection, set: SavedSet, index: number) => void;
+  /**
+   * Merge sets from a profile backup. A set whose name already exists in the
+   * same section is replaced by the file's version; others are added.
+   * Returns how many sets were imported.
+   */
+  importSets: (raw: unknown) => number;
   /** Re-read localStorage (tests, cross-tab). */
   reload: () => void;
 }
@@ -273,6 +279,25 @@ export const useSavedSetsStore = create<SavedSetsState>((set, get) => {
         next.splice(Math.min(index, next.length), 0, saved as never);
         return next;
       });
+    },
+
+    importSets: (raw) => {
+      const incoming = parseSavedSets(raw);
+      const current = get().sets;
+      const next = { ...current };
+      let count = 0;
+      for (const section of SAVED_SET_SECTIONS) {
+        const list = [...(current[section] as SavedSet[])];
+        for (const set of incoming[section] as SavedSet[]) {
+          const i = list.findIndex((s) => sameSetName(s.name, set.name));
+          if (i === -1) list.push(set);
+          else list[i] = { ...set, id: list[i].id };
+          count++;
+        }
+        (next[section] as SavedSet[]) = list;
+      }
+      if (count) commit(next);
+      return count;
     },
 
     reload: () => set({ sets: readSavedSets() }),

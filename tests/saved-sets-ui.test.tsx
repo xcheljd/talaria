@@ -223,3 +223,38 @@ describe('linked-line Add menu', () => {
     ).toEqual(['storeEmail', 'storePhone']);
   });
 });
+
+describe('Settings → Saved Sets', () => {
+  it('lists every section and deletes with Undo', async () => {
+    const { SavedSetsSection } =
+      await import('@/components/profile/SavedSetsSection');
+    const user = userEvent.setup();
+    useSavedSetsStore
+      .getState()
+      .saveSet('specialHours', 'Holiday', [{ day: 'Thu', hours: 'CLOSED' }]);
+    wrap(<SavedSetsSection />);
+
+    for (const s of [
+      'howToShop',
+      'importantNotes',
+      'specialHours',
+      'newsletter',
+    ]) {
+      expect(screen.getByTestId(`saved-sets-group-${s}`)).toBeTruthy();
+    }
+    const hours = screen.getByTestId('saved-sets-group-specialHours');
+    expect(within(hours).getByText('Holiday')).toBeTruthy();
+    expect(within(hours).getByText('1 line')).toBeTruthy();
+    // No "update with current" outside the builder.
+    expect(within(hours).queryByRole('button', { name: /update/i })).toBeNull();
+
+    await user.click(
+      within(hours).getByRole('button', { name: /delete set Holiday/i })
+    );
+    expect(useSavedSetsStore.getState().sets.specialHours).toHaveLength(0);
+    await toastSpies.success.mock.calls.at(-1)?.[1].action.onClick();
+    expect(useSavedSetsStore.getState().sets.specialHours[0].name).toBe(
+      'Holiday'
+    );
+  });
+});

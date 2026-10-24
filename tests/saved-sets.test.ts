@@ -199,3 +199,42 @@ describe('fresh start seeding + Defaults migration', () => {
     expect(readSavedSets().howToShop).toEqual([]);
   });
 });
+
+describe('importSets (profile backup)', () => {
+  it('adds new sets, replaces same-name sets, and drops bad entries', async () => {
+    const { useSavedSetsStore } = await import('@/stores/saved-sets-store');
+    localStorage.clear();
+    useSavedSetsStore.getState().reload();
+    const store = useSavedSetsStore.getState();
+    store.saveSet('specialHours', 'Thanksgiving', [{ day: 'old', hours: 'x' }]);
+    const keptId = useSavedSetsStore.getState().sets.specialHours[0].id;
+
+    const n = store.importSets({
+      specialHours: [
+        {
+          name: 'thanksgiving',
+          data: [{ day: 'Thu Nov 26', hours: 'CLOSED' }],
+        },
+        { name: 'Christmas', data: [{ day: 'Fri Dec 25', hours: 'CLOSED' }] },
+        { name: '', data: [] },
+        { name: 'Broken', data: 'nope' },
+      ],
+      bogusSection: [{ name: 'x', data: [] }],
+    });
+
+    const hours = useSavedSetsStore.getState().sets.specialHours;
+    expect(n).toBe(2);
+    expect(hours.map((s) => s.name)).toEqual(['thanksgiving', 'Christmas']);
+    expect(hours[0].id).toBe(keptId);
+    expect(hours[0].data).toEqual([{ day: 'Thu Nov 26', hours: 'CLOSED' }]);
+    expect(
+      JSON.parse(localStorage.getItem('savedSets')!).specialHours
+    ).toHaveLength(2);
+  });
+
+  it('ignores files with no saved sets', async () => {
+    const { useSavedSetsStore } = await import('@/stores/saved-sets-store');
+    expect(useSavedSetsStore.getState().importSets(undefined)).toBe(0);
+    expect(useSavedSetsStore.getState().importSets({})).toBe(0);
+  });
+});
