@@ -4,10 +4,6 @@ import userEvent from '@testing-library/user-event';
 import {
   ProfileProvider,
   useProfile,
-  useStorePhone,
-  useStoreName,
-  useStoreLocation,
-  useStoreEmail,
   useHasProfile,
 } from '../src/contexts/ProfileProvider';
 import type { UserProfile } from '../src/lib/profile';
@@ -17,26 +13,6 @@ import type { UserProfile } from '../src/lib/profile';
 function ProfileConsumer() {
   const { profile } = useProfile();
   return <span data-testid="profile">{JSON.stringify(profile)}</span>;
-}
-
-function StorePhoneConsumer() {
-  const phone = useStorePhone();
-  return <span data-testid="phone">{phone}</span>;
-}
-
-function StoreNameConsumer() {
-  const name = useStoreName();
-  return <span data-testid="store-name">{name}</span>;
-}
-
-function StoreLocationConsumer() {
-  const location = useStoreLocation();
-  return <span data-testid="location">{location}</span>;
-}
-
-function StoreEmailConsumer() {
-  const email = useStoreEmail();
-  return <span data-testid="store-email">{email}</span>;
 }
 
 function HasProfileConsumer() {
@@ -59,20 +35,6 @@ function ClearButton() {
     <button data-testid="clear-btn" onClick={() => clearProfile()}>
       Clear
     </button>
-  );
-}
-
-function AllHooksConsumer() {
-  const { profile } = useProfile();
-  return (
-    <div>
-      <span data-testid="profile">{JSON.stringify(profile)}</span>
-      <StorePhoneConsumer />
-      <StoreNameConsumer />
-      <StoreLocationConsumer />
-      <StoreEmailConsumer />
-      <HasProfileConsumer />
-    </div>
   );
 }
 
@@ -217,11 +179,11 @@ describe('ProfileProvider', () => {
     spy.mockRestore();
   });
 
-  it('throws when useStorePhone is used outside ProfileProvider', () => {
+  it('throws when useHasProfile is used outside ProfileProvider', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     function BadConsumer() {
-      useStorePhone();
+      useHasProfile();
       return null;
     }
 
@@ -238,147 +200,6 @@ describe('ProfileProvider', () => {
 describe('Profile convenience hooks', () => {
   beforeEach(() => {
     localStorage.clear();
-  });
-
-  describe('useStorePhone', () => {
-    it('returns empty string when no profile', () => {
-      render(
-        <ProfileProvider>
-          <StorePhoneConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('phone').textContent).toBe('');
-    });
-
-    it('returns stored phone', () => {
-      localStorage.setItem(
-        'userProfile',
-        JSON.stringify({ storePhone: '555-0000' })
-      );
-      render(
-        <ProfileProvider>
-          <StorePhoneConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('phone').textContent).toBe('555-0000');
-    });
-
-    it('updates after save', async () => {
-      function PhoneWithSave() {
-        const phone = useStorePhone();
-        const { saveProfile } = useProfile();
-        return (
-          <div>
-            <span data-testid="phone">{phone}</span>
-            <button
-              data-testid="save-btn"
-              onClick={() => saveProfile({ storePhone: '999-8888' })}
-            >
-              Save
-            </button>
-          </div>
-        );
-      }
-
-      render(
-        <ProfileProvider>
-          <PhoneWithSave />
-        </ProfileProvider>
-      );
-
-      expect(screen.getByTestId('phone').textContent).toBe('');
-
-      await userEvent.click(screen.getByTestId('save-btn'));
-
-      expect(screen.getByTestId('phone').textContent).toBe('999-8888');
-    });
-  });
-
-  describe('useStoreName', () => {
-    it('returns neutral default when no profile', () => {
-      render(
-        <ProfileProvider>
-          <StoreNameConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('store-name').textContent).toBe('Your Store');
-    });
-
-    it('returns stored name', () => {
-      localStorage.setItem(
-        'userProfile',
-        JSON.stringify({ storeName: 'Test Store' })
-      );
-      render(
-        <ProfileProvider>
-          <StoreNameConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('store-name').textContent).toBe('Test Store');
-    });
-  });
-
-  describe('useStoreLocation', () => {
-    it('returns empty string when no profile', () => {
-      render(
-        <ProfileProvider>
-          <StoreLocationConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('location').textContent).toBe('');
-    });
-
-    it('returns stored location', () => {
-      localStorage.setItem(
-        'userProfile',
-        JSON.stringify({ storeLocation: 'the Mall' })
-      );
-      render(
-        <ProfileProvider>
-          <StoreLocationConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('location').textContent).toBe('the Mall');
-    });
-  });
-
-  describe('useStoreEmail', () => {
-    it('returns empty string when no profile', () => {
-      render(
-        <ProfileProvider>
-          <StoreEmailConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('store-email').textContent).toBe('');
-    });
-
-    it('returns stored email', () => {
-      localStorage.setItem(
-        'userProfile',
-        JSON.stringify({ storeEmail: 'mystore@store.com' })
-      );
-      render(
-        <ProfileProvider>
-          <StoreEmailConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('store-email').textContent).toBe(
-        'mystore@store.com'
-      );
-    });
-
-    it('returns empty string when no store email set', () => {
-      localStorage.setItem(
-        'userProfile',
-        JSON.stringify({ storeName: 'My Store' })
-      );
-      render(
-        <ProfileProvider>
-          <StoreEmailConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('store-email').textContent).toBe('');
-    });
   });
 
   describe('useHasProfile', () => {
@@ -432,63 +253,6 @@ describe('Profile convenience hooks', () => {
 
       expect(screen.getByTestId('has-profile').textContent).toBe('false');
     });
-  });
-});
-
-// ─── All hooks together ───────────────────────────────────────────────────────
-
-describe('All profile hooks together', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('all hooks update when profile is saved', async () => {
-    function AllWithSave() {
-      const { saveProfile } = useProfile();
-      return (
-        <div>
-          <AllHooksConsumer />
-          <button
-            data-testid="save-btn"
-            onClick={() =>
-              saveProfile({
-                storeDirections: 'John Doe',
-                storePhone: '555-1234',
-                storeName: 'My Store',
-                storeLocation: 'the North Mall',
-                storeEmail: 'store@company.com',
-              })
-            }
-          >
-            Save
-          </button>
-        </div>
-      );
-    }
-
-    render(
-      <ProfileProvider>
-        <AllWithSave />
-      </ProfileProvider>
-    );
-
-    // Before save - all defaults
-    expect(screen.getByTestId('phone').textContent).toBe('');
-    expect(screen.getByTestId('store-name').textContent).toBe('Your Store');
-    expect(screen.getByTestId('location').textContent).toBe('');
-    expect(screen.getByTestId('store-email').textContent).toBe('');
-    expect(screen.getByTestId('has-profile').textContent).toBe('false');
-
-    await userEvent.click(screen.getByTestId('save-btn'));
-
-    // After save - all updated
-    expect(screen.getByTestId('phone').textContent).toBe('555-1234');
-    expect(screen.getByTestId('store-name').textContent).toBe('My Store');
-    expect(screen.getByTestId('location').textContent).toBe('the North Mall');
-    expect(screen.getByTestId('store-email').textContent).toBe(
-      'store@company.com'
-    );
-    expect(screen.getByTestId('has-profile').textContent).toBe('true');
   });
 });
 

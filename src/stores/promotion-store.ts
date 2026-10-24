@@ -82,10 +82,6 @@ export interface AttachedPDFMetadata {
   type: string;
 }
 
-export interface SubjectLine {
-  text: string;
-}
-
 export type ColumnState = 'left' | 'center';
 
 /** Serialized state for localStorage persistence */

@@ -9,10 +9,6 @@ import {
   isTauri as isTauriEnv,
 } from '@tauri-apps/api/core';
 
-export function isTauriEnvironment(): boolean {
-  return isTauriEnv();
-}
-
 export interface UseTauriReturn {
   isTauri: boolean;
   isLoading: boolean;

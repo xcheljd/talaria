@@ -9,20 +9,8 @@ import { StorageKeys } from '@/lib/storage-keys';
 import {
   getUserProfile,
   saveUserProfile as persistProfile,
-  getStorePhone as getStorePhoneUtil,
-  getStoreName as getStoreNameUtil,
-  getStoreLocation as getStoreLocationUtil,
-  getStoreEmail as getStoreEmailUtil,
-  getCompanyName as getCompanyNameUtil,
-  getProductNoun as getProductNounUtil,
-  getProductNounPlural as getProductNounPluralUtil,
-  getBrandKeywords as getBrandKeywordsUtil,
-  getCollectionKeywords as getCollectionKeywordsUtil,
-  hasProfile as hasProfileUtil,
   DEFAULT_COMPANY_NAME,
-  DEFAULT_STORE_NAME,
   DEFAULT_PRODUCT_NOUN,
-  DEFAULT_PRODUCT_NOUN_PLURAL,
   type UserProfile,
 } from '@/lib/profile';
 
@@ -95,14 +83,6 @@ export function useProfile(): ProfileContextValue {
 }
 
 /**
- * Get store phone number (empty when unset).
- */
-export function useStorePhone(): string {
-  const { profile } = useProfileContext();
-  return profile?.storePhone || '';
-}
-
-/**
  * Get company / brand name with neutral fallback default.
  */
 export function useCompanyName(): string {
@@ -111,35 +91,11 @@ export function useCompanyName(): string {
 }
 
 /**
- * Get store name with neutral fallback default.
- */
-export function useStoreName(): string {
-  const { profile } = useProfileContext();
-  return profile?.storeName || DEFAULT_STORE_NAME;
-}
-
-/**
- * Get store location (empty when unset).
- */
-export function useStoreLocation(): string {
-  const { profile } = useProfileContext();
-  return profile?.storeLocation || '';
-}
-
-/**
  * Get the singular product noun with neutral fallback (e.g. "watch").
  */
 export function useProductNoun(): string {
   const { profile } = useProfileContext();
   return profile?.productNoun?.trim() || DEFAULT_PRODUCT_NOUN;
-}
-
-/**
- * Get the plural product noun with neutral fallback (e.g. "watches").
- */
-export function useProductNounPlural(): string {
-  const { profile } = useProfileContext();
-  return profile?.productNounPlural?.trim() || DEFAULT_PRODUCT_NOUN_PLURAL;
 }
 
 /**
@@ -159,31 +115,9 @@ export function useCollectionKeywords(): string[] {
 }
 
 /**
- * Get store email (empty when unset).
- */
-export function useStoreEmail(): string {
-  const { profile } = useProfileContext();
-  return profile?.storeEmail || '';
-}
-
-/**
  * Check if a user profile has been set up.
  */
 export function useHasProfile(): boolean {
   const { profile } = useProfileContext();
   return profile !== null;
 }
-
-// Re-export the utility functions for non-React contexts
-export {
-  getStorePhoneUtil as getStorePhone,
-  getStoreNameUtil as getStoreName,
-  getStoreLocationUtil as getStoreLocation,
-  getStoreEmailUtil as getStoreEmail,
-  getCompanyNameUtil as getCompanyName,
-  getProductNounUtil as getProductNoun,
-  getProductNounPluralUtil as getProductNounPlural,
-  getBrandKeywordsUtil as getBrandKeywords,
-  getCollectionKeywordsUtil as getCollectionKeywords,
-  hasProfileUtil as hasProfile,
-};

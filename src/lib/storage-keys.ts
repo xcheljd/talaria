@@ -82,5 +82,3 @@ export const StorageKeys = {
    */
   devMode: 'dev.mode',
 } as const;
-
-export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];
