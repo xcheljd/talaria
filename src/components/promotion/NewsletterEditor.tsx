@@ -10,6 +10,7 @@
  */
 
 import { SavedSetsMenu } from '@/components/promotion/SavedSetsMenu';
+import { CardHeaderActions } from '@/components/promotion/card-header-actions';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -389,11 +390,13 @@ export function NewsletterEditor() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Show in Email Toggle + saved sets */}
+      {/* Saved sets live in the card header, like the list cards. */}
+      <CardHeaderActions>
+        <SavedSetsMenu section="newsletter" noun="newsletter" />
+      </CardHeaderActions>
+
+      {/* Show in Email Toggle */}
       <div className="flex items-center gap-2">
-        <span className="mr-auto">
-          <SavedSetsMenu section="newsletter" noun="newsletter" />
-        </span>
         <Checkbox
           id="newsletter-visible-toggle"
           checked={store.newsletterVisible}
