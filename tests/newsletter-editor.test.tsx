@@ -19,7 +19,7 @@ const { mockStore } = vi.hoisted(() => {
     newsletterHeading: 'Newsletter',
     newsletterBody: '',
     newsletterPosition: 'top' as 'top' | 'bottom',
-    newsletterVisible: false,
+    newsletterVisible: true,
     newsletterStyle: {
       borderColor: null as string | null,
       backgroundColor: null as string | null,
@@ -48,6 +48,7 @@ const { mockStore } = vi.hoisted(() => {
       setNewsletterPosition: vi.fn(),
       setNewsletterStyle: vi.fn(),
       setNewsletterVisible: vi.fn(),
+      clearNewsletter: vi.fn(),
     },
   };
 });
@@ -75,7 +76,7 @@ describe('NewsletterEditor', () => {
     mockStore.newsletterHeading = 'Newsletter';
     mockStore.newsletterBody = '';
     mockStore.newsletterPosition = 'top';
-    mockStore.newsletterVisible = false;
+    mockStore.newsletterVisible = true;
     mockStore.newsletterStyle = {
       borderColor: null,
       backgroundColor: null,
@@ -498,13 +499,12 @@ describe('NewsletterEditor - customization UI', () => {
   });
 });
 
-describe('NewsletterEditor - show in email toggle', () => {
+describe('NewsletterEditor - empty state and Clear all', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStore.newsletterHeading = 'Newsletter';
     mockStore.newsletterBody = '';
     mockStore.newsletterPosition = 'top';
-    mockStore.newsletterVisible = false;
     mockStore.newsletterStyle = {
       borderColor: null,
       backgroundColor: null,
@@ -514,32 +514,32 @@ describe('NewsletterEditor - show in email toggle', () => {
     };
   });
 
-  it('renders Show in Email toggle', () => {
+  it('shows the empty state (no editor, no checkbox) when the newsletter is off', () => {
+    mockStore.newsletterVisible = false;
     renderEditor();
-    expect(screen.getByTestId('newsletter-visible-toggle')).toBeInTheDocument();
+    expect(screen.getByText('No newsletter in this email')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Bold')).toBeNull();
+    expect(screen.queryByTestId('newsletter-visible-toggle')).toBeNull();
   });
 
-  it('toggle is unchecked by default when newsletterVisible is false', () => {
-    renderEditor();
-    const toggle = screen.getByTestId('newsletter-visible-toggle');
-    expect(toggle.getAttribute('data-state')).toBe('unchecked');
-  });
-
-  it('toggle is checked when newsletterVisible is true', () => {
-    mockStore.newsletterVisible = true;
-    renderEditor();
-    const toggle = screen.getByTestId('newsletter-visible-toggle');
-    expect(toggle.getAttribute('data-state')).toBe('checked');
-  });
-
-  it('calls setNewsletterVisible when toggled', async () => {
+  it('Start a newsletter puts it in the email', async () => {
+    mockStore.newsletterVisible = false;
     const user = userEvent.setup();
     renderEditor();
-
-    const toggle = screen.getByTestId('newsletter-visible-toggle');
-    await user.click(toggle);
-
+    await user.click(
+      screen.getByRole('button', { name: /start a newsletter/i })
+    );
     expect(mockStore.setNewsletterVisible).toHaveBeenCalledWith(true);
+  });
+
+  it('Clear all empties the newsletter and removes it from the email', async () => {
+    mockStore.newsletterVisible = true;
+    mockStore.newsletterBody = '<h2>Hi</h2><p>Body</p>';
+    const user = userEvent.setup();
+    renderEditor();
+    await user.click(screen.getByTestId('newsletter-clear-btn'));
+    expect(mockStore.clearNewsletter).toHaveBeenCalled();
+    expect(mockStore.setNewsletterVisible).toHaveBeenCalledWith(false);
   });
 });
 

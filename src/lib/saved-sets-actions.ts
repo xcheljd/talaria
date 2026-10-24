@@ -73,7 +73,12 @@ export const selectSectionHasContent =
       case 'specialHours':
         return s.specialHours.length > 0;
       case 'newsletter':
-        return s.newsletterBody.replace(/<[^>]*>/g, '').trim().length > 0;
+        // Only a newsletter that's in the email counts (a cleared one keeps a
+        // placeholder heading in the editor).
+        return (
+          s.newsletterVisible &&
+          s.newsletterBody.replace(/<[^>]*>/g, '').trim().length > 0
+        );
     }
   };
 
@@ -116,8 +121,10 @@ export function loadSection<S extends SavedSetSection>(
         newsletterHeading: s.newsletterHeading,
         newsletterBody: s.newsletterBody,
         newsletterStyle: s.newsletterStyle,
+        newsletterVisible: s.newsletterVisible,
       };
       after = {
+        newsletterVisible: true,
         newsletterHeading: n.heading,
         newsletterBody: n.body,
         newsletterStyle: { ...n.style },

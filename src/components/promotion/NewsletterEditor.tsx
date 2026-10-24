@@ -29,6 +29,7 @@ import {
   ArrowUpFromLine,
   ArrowDownFromLine,
   Trash2,
+  Newspaper,
   Search,
   X,
   ALargeSmall,
@@ -44,7 +45,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Checkbox } from '@/components/ui/checkbox';
+import { ListEmptyState } from '@/components/promotion/ListEmptyState';
+import { toastWithUndo } from '@/lib/undo-toast';
 import { Input } from '@/components/ui/input';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -91,6 +93,7 @@ export function NewsletterEditor() {
       setNewsletterPosition: s.setNewsletterPosition,
       setNewsletterStyle: s.setNewsletterStyle,
       setNewsletterVisible: s.setNewsletterVisible,
+      clearNewsletter: s.clearNewsletter,
     }))
   );
   // Debounce timer for editor updates (#25)
@@ -380,38 +383,62 @@ export function NewsletterEditor() {
   const WORD_WARNING = 500;
   const WORD_DANGER = 1000;
 
-  // ===== Reset Newsletter (#9) =====
-  const handleResetNewsletter = useCallback(() => {
-    if (!editor) return;
-    editor.commands.setContent('<h2>Newsletter</h2><p></p>');
-    store.setNewsletterBody('');
-    store.setNewsletterHeading('Newsletter');
+  // ===== Clear: remove the newsletter from the email (Undo in the toast) =====
+  const handleClearNewsletter = useCallback(() => {
+    const before = {
+      heading: store.newsletterHeading,
+      body: store.newsletterBody,
+      position: store.newsletterPosition,
+      style: { ...store.newsletterStyle },
+    };
+    store.clearNewsletter();
+    store.setNewsletterVisible(false);
+    editor?.commands.setContent('<h2>Newsletter</h2><p></p>');
+    toastWithUndo('Newsletter removed from the email', () => {
+      store.setNewsletterHeading(before.heading);
+      store.setNewsletterBody(before.body);
+      store.setNewsletterPosition(before.position);
+      store.setNewsletterStyle(before.style);
+      store.setNewsletterVisible(true);
+    });
   }, [editor, store]);
+
+  // No newsletter in this email yet: start one or load a saved one.
+  if (!store.newsletterVisible) {
+    return (
+      <ListEmptyState
+        icon={Newspaper}
+        title="No newsletter in this email"
+        description="Add a short story, update, or announcement alongside the promotion."
+        addLabel="Start a newsletter"
+        onAdd={() => store.setNewsletterVisible(true)}
+        extraActions={
+          <SavedSetsMenu
+            section="newsletter"
+            noun="newsletter"
+            appearance="empty"
+          />
+        }
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Saved sets live in the card header, like the list cards. */}
+      {/* Header actions match the list cards: Clear all, then Sets. */}
       <CardHeaderActions>
+        <Button
+          variant="ghost"
+          size="xs"
+          className="text-muted-foreground hover:text-destructive-text"
+          onClick={handleClearNewsletter}
+          data-testid="newsletter-clear-btn"
+        >
+          <Trash2 aria-hidden="true" />
+          Clear all
+        </Button>
         <SavedSetsMenu section="newsletter" noun="newsletter" />
       </CardHeaderActions>
-
-      {/* Show in Email Toggle */}
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="newsletter-visible-toggle"
-          checked={store.newsletterVisible}
-          onCheckedChange={(checked) =>
-            store.setNewsletterVisible(checked === true)
-          }
-          data-testid="newsletter-visible-toggle"
-        />
-        <label
-          htmlFor="newsletter-visible-toggle"
-          className="text-sm font-medium cursor-pointer select-none"
-        >
-          Show in Email
-        </label>
-      </div>
 
       {/* Heading guidance */}
       <p className="text-[11px] text-muted-foreground leading-snug">
@@ -687,17 +714,6 @@ export function NewsletterEditor() {
           >
             <Search className="size-3" />
             Find
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-destructive-text"
-            onClick={handleResetNewsletter}
-            aria-label="Reset newsletter"
-            data-testid="newsletter-reset-btn"
-          >
-            <Trash2 className="size-3" />
-            Reset
           </Button>
         </div>
       </div>

@@ -729,10 +729,10 @@ test.describe('QA Item 7 — Newsletter editor', () => {
   }) => {
     await clickToolbarIcon(page, 'newsletterCard');
 
-    // Enable newsletter toggle
-    const toggle = page.locator('[data-testid="newsletter-visible-toggle"]');
-    if (await isVisibleEventually(toggle, 5000)) {
-      await toggle.click();
+    // Start a newsletter from the empty state
+    const start = page.getByRole('button', { name: 'Start a newsletter' });
+    if (await isVisibleEventually(start, 5000)) {
+      await start.click();
     }
 
     // Type in TipTap editor with XSS attempt in heading
@@ -762,6 +762,7 @@ test.describe('QA Item 7 — Newsletter editor', () => {
 
   test('newsletter position toggle top/bottom', async ({ page }) => {
     await clickToolbarIcon(page, 'newsletterCard');
+    await page.getByRole('button', { name: 'Start a newsletter' }).click();
 
     const card = page.locator('[data-card-id="newsletterCard"]');
     await expect(card).toBeVisible();
