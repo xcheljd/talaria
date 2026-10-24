@@ -13,7 +13,7 @@
 import { SavedSetsMenu } from '@/components/promotion/SavedSetsMenu';
 import { CardHeaderActions } from '@/components/promotion/card-header-actions';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useEditor, useEditorState, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
@@ -35,11 +35,11 @@ import {
   X,
   ALargeSmall,
   SpellCheck,
-  Clock,
   ClipboardPaste,
   AlignLeft,
   AlignCenter,
   Palette,
+  LayoutTemplate,
   ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -51,6 +51,17 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { ListEmptyState } from '@/components/promotion/ListEmptyState';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  NEWSLETTER_TEMPLATES,
+  type NewsletterTemplate,
+} from '@/lib/newsletter-templates';
+import { useLoadedSets } from '@/lib/saved-sets-actions';
 import { toastWithUndo } from '@/lib/undo-toast';
 import { Input } from '@/components/ui/input';
 import { Field, FieldLabel } from '@/components/ui/field';
@@ -76,6 +87,7 @@ import { NewsletterStylePanel } from './newsletter/NewsletterStylePanel';
 import { NewsletterToolbar } from './newsletter/NewsletterToolbar';
 import { NewsletterBubbleMenu } from './newsletter/NewsletterBubbleMenu';
 import { NewsletterTableMenu } from './newsletter/NewsletterTableMenu';
+import { NewsletterHealth } from './newsletter/NewsletterHealth';
 
 // ===== Main Component =====
 
@@ -366,25 +378,6 @@ export function NewsletterEditor() {
   }, [editor, findText, replaceText, performFind, buildFindRegex]);
 
   // ===== Word/Character Count & Read Time =====
-  // Re-render on every editor transaction (including setContent from loading
-  // a saved set or Undo, which used to leave the count stale until the next
-  // keystroke), then read the text fresh. Selecting the text itself missed
-  // the initial content, which lands before the subscription starts.
-  useEditorState({
-    editor,
-    selector: ({ editor: e }) => e?.state.doc.content.size ?? 0,
-  });
-  const editorText = editor?.getText() ?? '';
-  const wordCount = editorText
-    .trim()
-    .split(/\s+/)
-    .filter((w) => w.length > 0).length;
-  const charCount = editorText.length;
-  const readTimeMin = Math.max(1, Math.ceil(wordCount / 200));
-
-  // Newsletter content length thresholds for email best practices
-  const WORD_WARNING = 500;
-  const WORD_DANGER = 1000;
 
   // ===== Clear: remove the newsletter from the email (Undo in the toast) =====
   const handleClearNewsletter = useCallback(() => {
@@ -406,7 +399,17 @@ export function NewsletterEditor() {
     });
   }, [editor, store]);
 
-  // No newsletter in this email yet: start one or load a saved one.
+  // Fill the newsletter from a built-in template and put it in the email.
+  // Brackets mark the parts to replace, so select the first one for typing.
+  const startFromTemplate = (t: NewsletterTemplate) => {
+    store.setNewsletterHeading(t.heading);
+    store.setNewsletterBody(t.body);
+    store.setNewsletterVisible(true);
+    useLoadedSets.getState().unlink('newsletter');
+  };
+
+  // No newsletter in this email yet: start one, use a template, or load a
+  // saved one.
   if (!store.newsletterVisible) {
     return (
       <ListEmptyState
@@ -416,11 +419,41 @@ export function NewsletterEditor() {
         addLabel="Start a newsletter"
         onAdd={() => store.setNewsletterVisible(true)}
         extraActions={
-          <SavedSetsMenu
-            section="newsletter"
-            noun="newsletter"
-            appearance="empty"
-          />
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  data-testid="newsletter-template-btn"
+                >
+                  <LayoutTemplate aria-hidden="true" />
+                  Start from a template
+                  <ChevronDown aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-72">
+                {NEWSLETTER_TEMPLATES.map((t) => (
+                  <DropdownMenuItem
+                    key={t.id}
+                    className="flex-col items-start gap-0.5"
+                    onSelect={() => startFromTemplate(t)}
+                    data-testid={`newsletter-template-${t.id}`}
+                  >
+                    <span className="font-medium">{t.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t.blurb}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <SavedSetsMenu
+              section="newsletter"
+              noun="newsletter"
+              appearance="empty"
+            />
+          </>
         }
       />
     );
@@ -689,49 +722,9 @@ export function NewsletterEditor() {
         </div>
       )}
 
-      {/* Word/Character Count, Read Time, & Reset */}
+      {/* Length + live warnings, and Find */}
       <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-        <span
-          data-testid="newsletter-word-count"
-          className="flex items-center gap-1.5"
-        >
-          <span
-            className={cn(
-              wordCount > WORD_DANGER
-                ? 'text-destructive-text font-medium'
-                : wordCount > WORD_WARNING
-                  ? 'text-warning'
-                  : ''
-            )}
-          >
-            {wordCount} word{wordCount !== 1 ? 's' : ''}
-          </span>
-          <span aria-hidden="true">&middot;</span>
-          {charCount} char{charCount !== 1 ? 's' : ''}
-          {wordCount > 0 && (
-            <>
-              <span aria-hidden="true">&middot;</span>
-              <span className="inline-flex items-center gap-0.5">
-                <Clock className="size-3" />
-                {readTimeMin} min read
-              </span>
-            </>
-          )}
-          {wordCount > WORD_WARNING && (
-            <span
-              className={cn(
-                'text-[10px] ml-1',
-                wordCount > WORD_DANGER
-                  ? 'text-destructive-text'
-                  : 'text-warning'
-              )}
-            >
-              {wordCount > WORD_DANGER
-                ? '(very long for email)'
-                : '(getting long)'}
-            </span>
-          )}
-        </span>
+        <NewsletterHealth editor={editor} />
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"

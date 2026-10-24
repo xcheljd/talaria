@@ -4,6 +4,7 @@
  * undo snapshot.
  */
 
+import { create } from 'zustand';
 import {
   usePromotionStore,
   generateId,
@@ -134,3 +135,59 @@ export function loadSection<S extends SavedSetSection>(
   usePromotionStore.setState(after);
   return () => usePromotionStore.setState(before);
 }
+
+// ===== Link to the set that was loaded (for "edited" + one-click Update) =====
+
+/**
+ * Which saved set each section was last loaded from or saved as. Session
+ * memory only: after a reload the link is gone and Sets behaves as before.
+ */
+
+interface LoadedSetsState {
+  loaded: Partial<Record<SavedSetSection, string>>;
+  link: (section: SavedSetSection, id: string) => void;
+  unlink: (section: SavedSetSection) => void;
+}
+
+export const useLoadedSets = create<LoadedSetsState>((set) => ({
+  loaded: {},
+  link: (section, id) =>
+    set((s) => ({ loaded: { ...s.loaded, [section]: id } })),
+  unlink: (section) =>
+    set((s) => {
+      const next = { ...s.loaded };
+      delete next[section];
+      return { loaded: next };
+    }),
+}));
+
+/** Stable comparison of set data (key order and ids don't matter). */
+export function sameSetData(a: unknown, b: unknown): boolean {
+  const norm = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(norm);
+    if (v && typeof v === 'object') {
+      return Object.fromEntries(
+        Object.entries(v as Record<string, unknown>)
+          .filter(([k, x]) => k !== 'format' && x !== undefined)
+          .sort(([x], [y]) => x.localeCompare(y))
+          .map(([k, x]) => [k, norm(x)])
+      );
+    }
+    return v;
+  };
+  return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+}
+
+// Clearing a section (Clear all, Start Over) ends its link to a set, whether
+// or not that card is on screen.
+usePromotionStore.subscribe((state, prev) => {
+  const { loaded, unlink } = useLoadedSets.getState();
+  for (const section of Object.keys(loaded) as SavedSetSection[]) {
+    if (
+      selectSectionHasContent(section)(prev) &&
+      !selectSectionHasContent(section)(state)
+    ) {
+      unlink(section);
+    }
+  }
+});

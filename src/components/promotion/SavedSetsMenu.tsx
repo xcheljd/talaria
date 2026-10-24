@@ -48,7 +48,9 @@ import { toastWithUndo } from '@/lib/undo-toast';
 import {
   captureSection,
   loadSection,
+  sameSetData,
   selectSectionHasContent,
+  useLoadedSets,
 } from '@/lib/saved-sets-actions';
 import { usePromotionStore } from '@/stores/promotion-store';
 import {
@@ -87,9 +89,42 @@ export function SavedSetsMenu({
   const [saveOpen, setSaveOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
 
+  // The set this card was loaded from (or last saved as), if still present.
+  const loadedId = useLoadedSets((s) => s.loaded[section]);
+  const linked = sets.find((s) => s.id === loadedId);
+  // Content differs from that set → "edited" dot + one-click Update.
+  const edited = usePromotionStore(
+    (st) =>
+      !!linked &&
+      selectSectionHasContent(section)(st) &&
+      !sameSetData(captureSection(section), linked.data)
+  );
+
   const load = (set: SavedSet) => {
+    const previous = useLoadedSets.getState().loaded[section];
     const undo = loadSection(section, set.data as never);
-    toastWithUndo(`Loaded “${set.name}”`, undo);
+    useLoadedSets.getState().link(section, set.id);
+    toastWithUndo(`Loaded “${set.name}”`, () => {
+      undo();
+      if (previous) useLoadedSets.getState().link(section, previous);
+      else useLoadedSets.getState().unlink(section);
+    });
+  };
+
+  const updateLinked = () => {
+    if (!linked) return;
+    const previous = linked.data;
+    useSavedSetsStore
+      .getState()
+      .updateSet(section, linked.id, captureSection(section));
+    toastWithUndo(
+      `Updated “${linked.name}”`,
+      () =>
+        useSavedSetsStore
+          .getState()
+          .updateSet(section, linked.id, previous as never),
+      'Set restored'
+    );
   };
 
   const remove = (set: SavedSet) => deleteSetWithUndo(section, set);
@@ -116,11 +151,32 @@ export function SavedSetsMenu({
             >
               <FolderOpen aria-hidden="true" />
               Sets
+              {edited && (
+                <span
+                  className="size-1.5 rounded-full bg-warning"
+                  data-testid={`sets-edited-${section}`}
+                />
+              )}
+              <span className="sr-only">
+                {edited ? ` (changed since loading “${linked?.name}”)` : ''}
+              </span>
               <ChevronDown aria-hidden="true" />
             </Button>
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
+          {edited && linked && (
+            <>
+              <DropdownMenuItem
+                onSelect={updateLinked}
+                data-testid={`update-linked-${section}`}
+              >
+                <RefreshCw aria-hidden="true" />
+                <span className="truncate">Update “{linked.name}”</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuLabel className="text-xs text-muted-foreground">
             {sets.length
               ? 'Load a saved set (replaces the list)'
@@ -215,9 +271,10 @@ function SaveSetDialog({
       setConfirmReplace(true);
       return;
     }
-    useSavedSetsStore
+    const saved = useSavedSetsStore
       .getState()
       .saveSet(section, trimmed, captureSection(section));
+    useLoadedSets.getState().link(section, saved.id);
     toast.success(
       existing ? `Replaced set “${trimmed}”` : `Saved set “${trimmed}”`
     );

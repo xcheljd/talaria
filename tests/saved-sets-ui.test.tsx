@@ -3,7 +3,7 @@
  * existing name), loading with Undo, and the linked-line Add menu.
  */
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('@/lib/profile', () => ({
@@ -256,5 +256,48 @@ describe('Settings → Saved Sets', () => {
     expect(useSavedSetsStore.getState().sets.specialHours[0].name).toBe(
       'Holiday'
     );
+  });
+});
+
+describe('Sets menu notices edits to a loaded set', () => {
+  it('shows the edited dot and Update “name” after changing a loaded set', async () => {
+    const { useLoadedSets } = await import('@/lib/saved-sets-actions');
+    useLoadedSets.setState({ loaded: {} });
+    const user = userEvent.setup();
+    useSavedSetsStore
+      .getState()
+      .saveSet('specialHours', 'Holiday', [{ day: 'Thu', hours: 'CLOSED' }]);
+    usePromotionStore.setState({
+      specialHours: [{ id: 1, day: 'x', hours: 'y' }],
+    });
+    wrap(<SavedSetsMenu section="specialHours" noun="hours" />);
+
+    await user.click(screen.getByTestId('sets-specialHours'));
+    await user.click(screen.getByRole('menuitem', { name: /Holiday/ }));
+    expect(screen.queryByTestId('sets-edited-specialHours')).toBeNull();
+
+    act(() =>
+      usePromotionStore.setState({
+        specialHours: [{ id: 2, day: 'Thu', hours: '9AM-1PM' }],
+      })
+    );
+    expect(screen.getByTestId('sets-edited-specialHours')).toBeTruthy();
+
+    await user.click(screen.getByTestId('sets-specialHours'));
+    await user.click(screen.getByTestId('update-linked-specialHours'));
+    expect(useSavedSetsStore.getState().sets.specialHours[0].data).toEqual([
+      { day: 'Thu', hours: '9AM-1PM' },
+    ]);
+    expect(screen.queryByTestId('sets-edited-specialHours')).toBeNull();
+  });
+
+  it('clearing the card ends the link to the set', async () => {
+    const { useLoadedSets } = await import('@/lib/saved-sets-actions');
+    usePromotionStore.setState({
+      specialHours: [{ id: 1, day: 'a', hours: 'b' }],
+    });
+    useLoadedSets.getState().link('specialHours', 'some-id');
+    act(() => usePromotionStore.setState({ specialHours: [] }));
+    expect(useLoadedSets.getState().loaded.specialHours).toBeUndefined();
   });
 });

@@ -612,3 +612,21 @@ describe('NewsletterEditor - paste as plain text', () => {
     expect(getEditorArea().textContent).not.toContain('Plain pasted text');
   });
 });
+
+describe('NewsletterEditor - templates', () => {
+  it('Start from a template fills heading + body and puts it in the email', async () => {
+    vi.clearAllMocks();
+    mockStore.newsletterVisible = false;
+    const user = userEvent.setup();
+    renderEditor();
+    await user.click(screen.getByTestId('newsletter-template-btn'));
+    await user.click(screen.getByTestId('newsletter-template-holiday'));
+    expect(mockStore.setNewsletterHeading).toHaveBeenCalledWith(
+      'Holiday shipping & gift services'
+    );
+    expect(mockStore.setNewsletterBody).toHaveBeenCalledWith(
+      expect.stringContaining('Order by [date]')
+    );
+    expect(mockStore.setNewsletterVisible).toHaveBeenCalledWith(true);
+  });
+});

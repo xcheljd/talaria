@@ -46,7 +46,7 @@ export function ListEmptyState({
         </EmptyDescription>
       </EmptyHeader>
       {(addLabel && onAdd) || extraActions ? (
-        <EmptyContent className="flex-row justify-center gap-2">
+        <EmptyContent className="flex-row flex-wrap justify-center gap-2">
           {addLabel && onAdd && (
             <Button size="sm" onClick={onAdd}>
               <Plus aria-hidden="true" />
