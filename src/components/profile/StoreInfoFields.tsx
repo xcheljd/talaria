@@ -221,10 +221,7 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
                 ref={field.ref}
               />
             </FormControl>
-            <FormDescription>
-              Shown in the email footer and used as the From address on
-              downloaded drafts
-            </FormDescription>
+            <FormDescription>Shown in the email footer</FormDescription>
             <FormMessage />
           </FormItem>
         )}
