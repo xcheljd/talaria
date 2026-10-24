@@ -70,6 +70,11 @@ function renderEditor() {
   );
 }
 
+/** Placement + box/table style now live in the Style popover. */
+async function openStyle(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByTestId('newsletter-style-btn'));
+}
+
 describe('NewsletterEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -109,8 +114,10 @@ describe('NewsletterEditor', () => {
     expect(screen.getByLabelText('Highlight')).toBeInTheDocument();
   });
 
-  it('renders position toggle with default Above % and Below %', () => {
+  it('renders position toggle with default Above % and Below %', async () => {
+    const user = userEvent.setup();
     renderEditor();
+    await openStyle(user);
     expect(
       screen.getByRole('button', { name: 'Position: Above %' })
     ).toBeInTheDocument();
@@ -119,8 +126,10 @@ describe('NewsletterEditor', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows Above % as active by default', () => {
+  it('shows Above % as active by default', async () => {
+    const user = userEvent.setup();
     renderEditor();
+    await openStyle(user);
     const topButton = screen.getByRole('button', { name: 'Position: Above %' });
     expect(topButton).toHaveAttribute('data-active');
     // Below % should NOT have data-active
@@ -133,6 +142,7 @@ describe('NewsletterEditor', () => {
   it('calls setNewsletterPosition when toggle is clicked', async () => {
     const user = userEvent.setup();
     renderEditor();
+    await openStyle(user);
 
     const bottomButton = screen.getByRole('button', {
       name: 'Position: Below %',
@@ -288,17 +298,21 @@ describe('NewsletterEditor - position toggle', () => {
     mockStore.newsletterPosition = 'top';
   });
 
-  it('shows Above % as active when store position is top', () => {
+  it('shows Above % as active when store position is top', async () => {
     mockStore.newsletterPosition = 'top';
+    const user = userEvent.setup();
     renderEditor();
+    await openStyle(user);
 
     const topButton = screen.getByRole('button', { name: 'Position: Above %' });
     expect(topButton).toHaveAttribute('data-active');
   });
 
-  it('shows Below % as active when store position is bottom', () => {
+  it('shows Below % as active when store position is bottom', async () => {
     mockStore.newsletterPosition = 'bottom';
+    const user = userEvent.setup();
     renderEditor();
+    await openStyle(user);
 
     const bottomButton = screen.getByRole('button', {
       name: 'Position: Below %',
@@ -309,6 +323,7 @@ describe('NewsletterEditor - position toggle', () => {
   it('calls setNewsletterPosition when switching from top to bottom', async () => {
     const user = userEvent.setup();
     renderEditor();
+    await openStyle(user);
 
     const bottomButton = screen.getByRole('button', {
       name: 'Position: Below %',
@@ -322,6 +337,7 @@ describe('NewsletterEditor - position toggle', () => {
     mockStore.newsletterPosition = 'bottom';
     const user = userEvent.setup();
     renderEditor();
+    await openStyle(user);
 
     const topButton = screen.getByRole('button', { name: 'Position: Above %' });
     await user.click(topButton);
@@ -345,103 +361,70 @@ describe('NewsletterEditor - customization UI', () => {
     };
   });
 
-  it('renders Customize Border & Background toggle', () => {
+  it('keeps box and table style out of the card until Style is opened', () => {
     renderEditor();
+    expect(screen.getByTestId('newsletter-style-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('border-style-left')).not.toBeInTheDocument();
     expect(
-      screen.getByTestId('newsletter-customize-toggle')
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: 'Position: Above %' })
+    ).not.toBeInTheDocument();
   });
 
-  it('customization section is collapsed by default', () => {
+  it('opens Style on the Box & heading tab with every box control', async () => {
+    const user = userEvent.setup();
     renderEditor();
-    // Border style buttons should NOT be visible
+    await openStyle(user);
+
+    expect(screen.getByTestId('newsletter-customize-toggle')).toHaveAttribute(
+      'data-state',
+      'active'
+    );
+    for (const id of [
+      'border-style-left',
+      'border-style-full',
+      'border-style-none',
+      'border-style-top',
+      'picker-borderColor',
+      'picker-backgroundColor',
+      'picker-headingColor',
+      'swatch-borderColor',
+      'swatch-backgroundColor',
+      'swatch-headingColor',
+      'auto-borderColor',
+      'auto-backgroundColor',
+      'auto-headingColor',
+    ]) {
+      expect(screen.getByTestId(id)).toBeInTheDocument();
+    }
+  });
+
+  it('switches to the Tables tab', async () => {
+    const user = userEvent.setup();
+    renderEditor();
+    await openStyle(user);
+    await user.click(screen.getByTestId('newsletter-table-style-toggle'));
+
+    expect(screen.getByTestId('table-border-style-solid')).toBeInTheDocument();
     expect(screen.queryByTestId('border-style-left')).not.toBeInTheDocument();
   });
 
-  it('expands customization section on toggle click', async () => {
-    const user = userEvent.setup();
+  it('shows heading alignment beside the Heading field', () => {
     renderEditor();
-
-    const toggle = screen.getByTestId('newsletter-customize-toggle');
-    await user.click(toggle);
-
-    // Now customization controls should be visible
-    expect(screen.getByTestId('border-style-left')).toBeInTheDocument();
-    expect(screen.getByTestId('border-style-full')).toBeInTheDocument();
-    expect(screen.getByTestId('border-style-none')).toBeInTheDocument();
-    expect(screen.getByTestId('border-style-top')).toBeInTheDocument();
-  });
-
-  it('renders heading alignment buttons in toolbar', () => {
-    renderEditor();
-
-    expect(screen.getByLabelText('Align heading left')).toBeInTheDocument();
-    expect(screen.getByLabelText('Align heading center')).toBeInTheDocument();
-  });
-
-  it('renders color pickers for border and background in customize section', async () => {
-    const user = userEvent.setup();
-    renderEditor();
-
-    await user.click(screen.getByTestId('newsletter-customize-toggle'));
-
-    expect(screen.getByTestId('picker-borderColor')).toBeInTheDocument();
-    expect(screen.getByTestId('picker-backgroundColor')).toBeInTheDocument();
-  });
-
-  it('renders heading color picker in customize section', async () => {
-    const user = userEvent.setup();
-    renderEditor();
-
-    // Heading color picker is now in the Customize section
-    await user.click(screen.getByTestId('newsletter-customize-toggle'));
-
-    expect(screen.getByTestId('picker-headingColor')).toBeInTheDocument();
-  });
-
-  it('renders color swatches', async () => {
-    const user = userEvent.setup();
-    renderEditor();
-
-    await user.click(screen.getByTestId('newsletter-customize-toggle'));
-
-    expect(screen.getByTestId('swatch-borderColor')).toBeInTheDocument();
-    expect(screen.getByTestId('swatch-backgroundColor')).toBeInTheDocument();
-  });
-
-  it('renders heading color swatch in customize section', async () => {
-    const user = userEvent.setup();
-    renderEditor();
-
-    await user.click(screen.getByTestId('newsletter-customize-toggle'));
-
-    expect(screen.getByTestId('swatch-headingColor')).toBeInTheDocument();
-  });
-
-  it('renders Auto buttons for border and background colors', async () => {
-    const user = userEvent.setup();
-    renderEditor();
-
-    await user.click(screen.getByTestId('newsletter-customize-toggle'));
-
-    expect(screen.getByTestId('auto-borderColor')).toBeInTheDocument();
-    expect(screen.getByTestId('auto-backgroundColor')).toBeInTheDocument();
-  });
-
-  it('renders reset button for heading color in customize section', async () => {
-    const user = userEvent.setup();
-    renderEditor();
-
-    await user.click(screen.getByTestId('newsletter-customize-toggle'));
-
-    expect(screen.getByTestId('auto-headingColor')).toBeInTheDocument();
+    expect(screen.getByLabelText('Align heading left')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(screen.getByLabelText('Align heading center')).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
   });
 
   it('calls setNewsletterStyle when border style button is clicked', async () => {
     const user = userEvent.setup();
     renderEditor();
 
-    await user.click(screen.getByTestId('newsletter-customize-toggle'));
+    await openStyle(user);
     await user.click(screen.getByTestId('border-style-full'));
 
     expect(mockStore.setNewsletterStyle).toHaveBeenCalledWith({
@@ -465,7 +448,7 @@ describe('NewsletterEditor - customization UI', () => {
     const user = userEvent.setup();
     renderEditor();
 
-    await user.click(screen.getByTestId('newsletter-customize-toggle'));
+    await openStyle(user);
     await user.click(screen.getByTestId('auto-borderColor'));
 
     expect(mockStore.setNewsletterStyle).toHaveBeenCalledWith({
@@ -477,25 +460,34 @@ describe('NewsletterEditor - customization UI', () => {
     const user = userEvent.setup();
     renderEditor();
 
-    await user.click(screen.getByTestId('newsletter-customize-toggle'));
+    await openStyle(user);
 
-    const autoButton = screen.getByTestId('auto-borderColor');
-    expect(autoButton).toBeDisabled();
+    expect(screen.getByTestId('auto-borderColor')).toBeDisabled();
+  });
+});
+
+describe('NewsletterEditor - Heading field', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockStore.newsletterVisible = true;
+    mockStore.newsletterHeading = 'Holiday shipping';
+    mockStore.newsletterBody = '<p>Order early.</p>';
   });
 
-  it('collapses customization section on second toggle click', async () => {
-    const user = userEvent.setup();
+  it('shows the heading in its own field, not the editor rule', () => {
     renderEditor();
+    expect(screen.getByLabelText('Heading')).toHaveValue('Holiday shipping');
+    expect(
+      screen.queryByText(/becomes the newsletter heading/i)
+    ).not.toBeInTheDocument();
+  });
 
-    const toggle = screen.getByTestId('newsletter-customize-toggle');
-
-    // Open
-    await user.click(toggle);
-    expect(screen.getByTestId('border-style-left')).toBeInTheDocument();
-
-    // Close
-    await user.click(toggle);
-    expect(screen.queryByTestId('border-style-left')).not.toBeInTheDocument();
+  it('typing in Heading updates the store', () => {
+    renderEditor();
+    fireEvent.change(screen.getByLabelText('Heading'), {
+      target: { value: 'Gift guide' },
+    });
+    expect(mockStore.setNewsletterHeading).toHaveBeenCalledWith('Gift guide');
   });
 });
 

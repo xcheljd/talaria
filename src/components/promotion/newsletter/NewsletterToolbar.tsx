@@ -64,32 +64,6 @@ import { EMOJI_LIST } from './emoji-data';
 import { FONT_SIZES } from './extensions';
 import { ToolbarButton, ToolbarSeparator, ColorInput } from './toolbar';
 
-/**
- * Remove a text-align set directly on the first H2 (the newsletter heading),
- * so the store-level heading alignment controls it.
- */
-function clearFirstHeadingAlign(editor: Editor | null) {
-  if (!editor) return;
-  let target = -1;
-  editor.state.doc.descendants((node, pos) => {
-    if (target >= 0) return false;
-    if (node.type.name === 'heading' && node.attrs.level === 2) {
-      target = pos;
-      return false;
-    }
-    return true;
-  });
-  if (target < 0) return;
-  const node = editor.state.doc.nodeAt(target);
-  if (!node?.attrs.textAlign) return;
-  editor.view.dispatch(
-    editor.state.tr.setNodeMarkup(target, undefined, {
-      ...node.attrs,
-      textAlign: null,
-    })
-  );
-}
-
 export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
   // Newsletter-domain fields (newsletterStyle + its setter, used for heading
   // alignment) read from the newsletter store (plan 022). emailPalette is the
@@ -363,40 +337,6 @@ export function NewsletterToolbar({ editor }: { editor: Editor | null }) {
       >
         <Heading3 className="size-3.5" />
       </ToolbarButton>
-      {/* Newsletter heading alignment (store-level; the first H2 becomes
-          the email's newsletter heading). Grouped and labeled "H" next to
-          H2/H3 so it reads as a heading control, separate from paragraph
-          alignment. Also clears any paragraph-style alignment applied to
-          that H2, which would otherwise override this setting. */}
-      <div
-        role="group"
-        aria-label="Newsletter heading alignment"
-        className="flex items-center rounded-md border border-dashed pl-1"
-      >
-        <span
-          aria-hidden
-          className="text-[10px] font-semibold text-muted-foreground"
-        >
-          H
-        </span>
-        {(['left', 'center'] as const).map((a) => (
-          <ToolbarButton
-            key={a}
-            active={store.newsletterStyle.headingAlign === a}
-            onClick={() => {
-              store.setNewsletterStyle({ headingAlign: a });
-              clearFirstHeadingAlign(editor);
-            }}
-            label={`Align heading ${a}`}
-          >
-            {a === 'left' ? (
-              <AlignLeft className="size-3.5" />
-            ) : (
-              <AlignCenter className="size-3.5" />
-            )}
-          </ToolbarButton>
-        ))}
-      </div>
 
       <ToolbarSeparator />
 

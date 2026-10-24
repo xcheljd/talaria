@@ -5,6 +5,7 @@
  * file has one job.
  */
 
+import { NEWSLETTER_FORMAT } from '@/lib/html-utils';
 import {
   DEFAULT_NEWSLETTER_STYLE,
   type NewsletterStyle,
@@ -116,6 +117,7 @@ export function buildExportConfig(
     newsletterPosition: data.newsletterPosition,
     newsletterStyle: newsletterStyle || { ...DEFAULT_NEWSLETTER_STYLE },
     newsletterVisible: data.newsletterVisible,
+    newsletterFormat: NEWSLETTER_FORMAT,
     emailPalette: emailPalette || data.emailPalette,
     // Recipients are PII, so only embedded when explicitly included.
     ...(includeRecipients
@@ -188,6 +190,9 @@ export function validateImportConfig(
         config.newsletterPosition === 'bottom' ? 'bottom' : 'top',
       newsletterStyle: parseNewsletterStyle(config.newsletterStyle),
       newsletterVisible: config.newsletterVisible === true,
+      ...(config.newsletterFormat === NEWSLETTER_FORMAT
+        ? { newsletterFormat: NEWSLETTER_FORMAT }
+        : {}),
       emailPalette: parseEmailPalette(config.emailPalette),
       // Optional; only present when the export embedded it.
       ...(typeof config.bulkEmailRecipients === 'string'

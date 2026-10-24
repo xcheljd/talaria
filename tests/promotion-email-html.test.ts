@@ -232,15 +232,21 @@ describe('newsletter heading alignment', () => {
     expect(headingStyle(html)).toContain('text-align: center;');
   });
 
-  it('lets alignment set on the H2 in the editor win, matching the editor', () => {
+  it('treats an H2 in the body as a subheading, not the newsletter heading', () => {
     const html = generatePromotionEmailHTML(
-      makeEmailData(
-        '<h2 style="text-align: center">Fall News</h2><p>Body</p>',
-        { newsletterStyle: { ...NEWSLETTER_STYLE, headingAlign: 'left' } }
-      )
+      makeEmailData('<h2>Subheading</h2><p>Body</p>', {
+        newsletterHeading: 'Fall News',
+      })
     );
-    expect(headingStyle(html)).toContain('text-align: center;');
-    expect(headingStyle(html)).not.toContain('text-align: left;');
+    expect(html).toMatch(/<h2 style="font-size: 18px[^>]*>Fall News<\/h2>/);
+    expect(html).toMatch(/<h2 style="font-size: 20px[^>]*>Subheading<\/h2>/);
+  });
+
+  it('skips the newsletter box when only the heading has content', () => {
+    const html = generatePromotionEmailHTML(
+      makeEmailData('<p></p>', { newsletterHeading: 'Fall News' })
+    );
+    expect(html).not.toContain('<!-- NEWSLETTER -->');
   });
 
   it('keeps the heading text unchanged when the H2 is aligned', () => {

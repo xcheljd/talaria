@@ -21,7 +21,10 @@ import {
   validateImportConfig,
 } from '@/lib/promotion-config';
 import { buildPromotionEmailData } from '@/lib/newsletter-utils';
-import { prependHeadingIfMissing } from '@/lib/html-utils';
+import {
+  NEWSLETTER_FORMAT,
+  splitLegacyNewsletterHeading,
+} from '@/lib/html-utils';
 import {
   createEMLFile,
   formatDateRangeForFilename,
@@ -236,13 +239,19 @@ export function usePreviewActions(emailHTML: string, store: PreviewStore) {
           store.setPromoYear(config.year);
           store.setPromoTitle(config.title);
 
-          // Migration: if imported body doesn't start with an H2 but has
-          // a heading, prepend the heading as an H2 element in the body
-          const importedHeading = config.newsletterHeading || '';
-          const importedBody = prependHeadingIfMissing(
-            config.newsletterBody || '',
-            importedHeading
-          );
+          // Files from before newsletter format 2 kept the heading as the
+          // body's first H2 — lift it into the heading field.
+          const legacy = config.newsletterFormat !== NEWSLETTER_FORMAT;
+          const split = legacy
+            ? splitLegacyNewsletterHeading(
+                config.newsletterBody || '',
+                config.newsletterHeading || ''
+              )
+            : null;
+          const importedHeading = split
+            ? split.heading
+            : config.newsletterHeading || 'Newsletter';
+          const importedBody = split ? split.body : config.newsletterBody || '';
 
           usePromotionStore.setState({
             promotionEntries: config.promotionEntries,
@@ -264,12 +273,15 @@ export function usePreviewActions(emailHTML: string, store: PreviewStore) {
             newsletterBody: importedBody,
             newsletterPosition: config.newsletterPosition,
             newsletterVisible: config.newsletterVisible ?? false,
-            newsletterStyle: config.newsletterStyle || {
-              borderColor: null,
-              backgroundColor: null,
-              headingColor: null,
-              borderStyle: 'left',
-              headingAlign: 'left',
+            newsletterStyle: {
+              ...(config.newsletterStyle || {
+                borderColor: null,
+                backgroundColor: null,
+                headingColor: null,
+                borderStyle: 'left',
+                headingAlign: 'left',
+              }),
+              ...(split?.align ? { headingAlign: split.align } : {}),
             },
             ...(config.emailPalette
               ? { emailPalette: config.emailPalette }

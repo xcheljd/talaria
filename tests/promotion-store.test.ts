@@ -2066,10 +2066,8 @@ describe('promotion store', () => {
 
       const state = getFreshStore();
       expect(state.newsletterHeading).toBe('Loaded Heading');
-      // Migration prepends heading as H2 when body has no H2
-      expect(state.newsletterBody).toBe(
-        '<h2>Loaded Heading</h2><p>Loaded Body</p>'
-      );
+      // Heading is its own field; the body is untouched.
+      expect(state.newsletterBody).toBe('<p>Loaded Body</p>');
       expect(state.newsletterPosition).toBe('bottom');
     });
 

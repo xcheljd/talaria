@@ -9,7 +9,7 @@
 import type { ProfileFormValues } from '@/lib/profile-validation';
 import { saveBlob } from '@/lib/file-save';
 import { StorageKeys } from '@/lib/storage-keys';
-import { readSavedSets } from '@/stores/saved-sets-store';
+import { readSavedSets, serializeSavedSets } from '@/stores/saved-sets-store';
 
 /** Split a comma-separated keyword string into a trimmed, de-duplicated list. */
 export function toKeywordList(value: string): string[] {
@@ -54,7 +54,7 @@ export async function exportProfileJson(
       currentMode: localStorage.getItem(StorageKeys.theme) || 'light',
     },
     // Saved sets travel with the profile (readSavedSets drops bad entries).
-    savedSets: readSavedSets(),
+    savedSets: serializeSavedSets(readSavedSets()),
   };
 
   const dataStr = JSON.stringify(profileData, null, 2);

@@ -274,11 +274,33 @@ export function escapeAttr(str: string): string {
 }
 
 /**
- * Migration helper: if the body has content but no H2 heading element,
- * prepend the (HTML-escaped) heading as an H2. Shared by every newsletter
- * load/import path so none of them can forget the escape.
+ * Newsletter data format. Format 1 (no marker): the editor body's first H2
+ * WAS the heading. Format 2: the heading is its own field and the body holds
+ * only the content (an H2 in the body is an ordinary subheading).
  */
-export function prependHeadingIfMissing(body: string, heading: string): string {
-  if (!body || !heading || body.match(/<h2[^>]*>/i)) return body;
-  return `<h2>${sanitizeHTML(heading)}</h2>${body}`;
+export const NEWSLETTER_FORMAT = 2;
+
+/**
+ * Convert format-1 newsletter data: lift the first H2 out of the body into
+ * the heading (carrying its left/center alignment). Bodies without an H2 keep
+ * the stored heading. Run once at every load/import path for unmarked data.
+ */
+export function splitLegacyNewsletterHeading(
+  body: string,
+  heading: string
+): { heading: string; body: string; align?: 'left' | 'center' } {
+  const match = (body || '').match(/<h2([^>]*)>([\s\S]*?)<\/h2>/i);
+  if (!match) return { heading: heading || 'Newsletter', body: body || '' };
+  const text = match[2].replace(/<[^>]*>/g, '').trim();
+  const align = match[1].match(/text-align:\s*(left|center)/i)?.[1] as
+    'left' | 'center' | undefined;
+  const rest = body.replace(match[0], '');
+  const restIsEmpty =
+    rest.replace(/<[^>]*>/g, '').trim() === '' &&
+    !/<(img|table|hr)\b/i.test(rest);
+  return {
+    heading: text || heading || 'Newsletter',
+    body: restIsEmpty ? '' : rest,
+    ...(align ? { align } : {}),
+  };
 }

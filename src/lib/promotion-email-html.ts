@@ -425,6 +425,8 @@ export interface PromotionConfigForExport {
   newsletterPosition: NewsletterPosition;
   newsletterStyle: NewsletterStyle;
   newsletterVisible: boolean;
+  /** 2 = heading is its own field; absent = legacy (first H2 is the heading). */
+  newsletterFormat?: number;
   emailPalette?: EmailPalette;
   /** Raw bulk-email recipient text — only present when the export included it */
   bulkEmailRecipients?: string;
@@ -700,22 +702,17 @@ export function convertTipTapToInlineHTML(
  * Returns empty string if body is empty.
  */
 function buildNewsletterSection(
+  heading: string,
   body: string,
   style: PromotionEmailData['newsletterStyle'],
   palette: EmailPalette = EMAIL_PALETTE
 ): string {
   if (!body || !body.trim()) return '';
 
-  // Extract first H2 as heading
-  const h2Match = body.match(/<h2([^>]*)>(.*?)<\/h2>/i);
-  const headingText = h2Match ? h2Match[2].replace(/<[^>]*>/g, '').trim() : '';
-  // Alignment set on the heading itself in the editor (TextAlign writes
-  // style="text-align: …") wins over the stored newsletter heading align, so
-  // the email matches what the editor shows.
-  const inlineAlign = h2Match?.[1].match(
-    /text-align:\s*(left|center|right|justify)/i
-  )?.[1];
-  const restBody = h2Match ? body.replace(/<h2[^>]*>.*?<\/h2>/i, '') : body;
+  // The heading is its own field (newsletter format 2); an H2 inside the
+  // body is an ordinary subheading.
+  const headingText = (heading || '').trim();
+  const restBody = body;
 
   const tableOpts: TableStyleOptions = {
     borderColor: style.tableBorderColor ?? palette.text,
@@ -724,16 +721,13 @@ function buildNewsletterSection(
     headerBg: style.tableHeaderBg ?? palette.sectionBg,
   };
   const bodyHTML = convertTipTapToInlineHTML(restBody, palette, tableOpts);
-  if (!headingText && (!bodyHTML || !bodyHTML.trim())) return '';
 
-  // Check if the converted body is just empty tags (no visible content)
+  // A heading alone isn't a newsletter: skip the box unless the body shows
+  // something (text, an image, a table or a divider).
   const strippedBody = bodyHTML ? bodyHTML.replace(/<[^>]*>/g, '').trim() : '';
-  if (!headingText && !strippedBody) return '';
+  if (!strippedBody && !/<(img|table|hr)\b/i.test(bodyHTML || '')) return '';
 
-  const headingDisplay =
-    headingText && headingText.trim()
-      ? sanitizeHTML(headingText)
-      : 'Newsletter';
+  const headingDisplay = headingText ? sanitizeHTML(headingText) : 'Newsletter';
 
   // Build border style based on borderStyle option
   let borderCSS = '';
@@ -753,7 +747,7 @@ function buildNewsletterSection(
   }
 
   // Build heading alignment
-  const headingAlign = `text-align: ${inlineAlign ?? style.headingAlign};`;
+  const headingAlign = `text-align: ${style.headingAlign};`;
 
   return `
                 <!-- NEWSLETTER -->
@@ -913,7 +907,12 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
   };
 
   const newsletterSection = newsletterVisible
-    ? buildNewsletterSection(data.newsletterBody, newsletterStyle, pal)
+    ? buildNewsletterSection(
+        data.newsletterHeading,
+        data.newsletterBody,
+        newsletterStyle,
+        pal
+      )
     : '';
 
   // Newsletter at top position: between HEADER and BRAND SECTIONS

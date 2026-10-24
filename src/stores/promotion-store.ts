@@ -18,7 +18,10 @@ import {
   type PDFRecord,
 } from '@/lib/db';
 import { getStorePhone, getStoreEmail, getDirections } from '@/lib/profile';
-import { prependHeadingIfMissing } from '@/lib/html-utils';
+import {
+  NEWSLETTER_FORMAT,
+  splitLegacyNewsletterHeading,
+} from '@/lib/html-utils';
 import { StorageKeys } from '@/lib/storage-keys';
 import { sanitizePersistedStyles } from '@/lib/promotion-config-schema';
 
@@ -173,6 +176,8 @@ interface PromotionPersistedState {
   newsletterPosition: NewsletterPosition;
   newsletterStyle: NewsletterStyle;
   newsletterVisible: boolean;
+  /** 2 = heading is its own field (see NEWSLETTER_FORMAT). */
+  newsletterFormat?: number;
   emailPalette: EmailPaletteConfig;
 }
 
@@ -873,6 +878,7 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
       newsletterPosition: state.newsletterPosition,
       newsletterStyle: state.newsletterStyle,
       newsletterVisible: state.newsletterVisible,
+      newsletterFormat: NEWSLETTER_FORMAT,
       emailPalette: state.emailPalette,
     };
 
@@ -1001,12 +1007,16 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         // Best-effort orphan cleanup
       }
 
-      // Migration: if body doesn't start with an H2 but has a heading,
-      // prepend the heading as an H2 element in the body
+      // Newsletter format: before format 2 the body's first H2 was the
+      // heading — lift it into the heading field once.
       let loadedBody = parsed.newsletterBody || '';
-      const loadedHeading = parsed.newsletterHeading || 'Newsletter';
-      if (loadedHeading !== 'Newsletter') {
-        loadedBody = prependHeadingIfMissing(loadedBody, loadedHeading);
+      let loadedHeading = parsed.newsletterHeading || 'Newsletter';
+      let loadedHeadingAlign: 'left' | 'center' | undefined;
+      if (parsed.newsletterFormat !== NEWSLETTER_FORMAT) {
+        const split = splitLegacyNewsletterHeading(loadedBody, loadedHeading);
+        loadedBody = split.body;
+        loadedHeading = split.heading;
+        loadedHeadingAlign = split.align;
       }
 
       // Auto-managed lines follow the profile: adopt any legacy lines that
@@ -1050,9 +1060,12 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
         newsletterHeading: loadedHeading,
         newsletterBody: loadedBody,
         newsletterPosition: parsed.newsletterPosition || 'top',
-        newsletterStyle: sanitizePersistedStyles(parsed.newsletterStyle, {
-          ...DEFAULT_NEWSLETTER_STYLE,
-        }),
+        newsletterStyle: {
+          ...sanitizePersistedStyles(parsed.newsletterStyle, {
+            ...DEFAULT_NEWSLETTER_STYLE,
+          }),
+          ...(loadedHeadingAlign ? { headingAlign: loadedHeadingAlign } : {}),
+        },
         newsletterVisible: parsed.newsletterVisible ?? false,
         emailPalette: sanitizePersistedStyles(parsed.emailPalette, {
           ...DEFAULT_EMAIL_PALETTE,

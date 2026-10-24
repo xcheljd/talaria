@@ -10,6 +10,10 @@
  * read: a corrupt or tampered entry is dropped, never thrown.
  */
 
+import {
+  NEWSLETTER_FORMAT,
+  splitLegacyNewsletterHeading,
+} from '@/lib/html-utils';
 import { create } from 'zustand';
 import { z } from 'zod';
 
@@ -83,11 +87,23 @@ const hourSchema = z.object({
   hours: z.string().catch(''),
 });
 
-const newsletterSchema = z.object({
-  heading: z.string().catch('Newsletter'),
-  body: z.string().catch(''),
-  style: z.unknown().transform((raw) => parseNewsletterStyle(raw)),
-});
+const newsletterSchema = z
+  .object({
+    heading: z.string().catch('Newsletter'),
+    body: z.string().catch(''),
+    style: z.unknown().transform((raw) => parseNewsletterStyle(raw)),
+    format: z.number().optional().catch(undefined),
+  })
+  // Sets saved before format 2 kept the heading as the body's first H2.
+  .transform(({ format, ...n }) => {
+    if (format === NEWSLETTER_FORMAT) return n;
+    const split = splitLegacyNewsletterHeading(n.body, n.heading);
+    return {
+      heading: split.heading,
+      body: split.body,
+      style: split.align ? { ...n.style, headingAlign: split.align } : n.style,
+    };
+  });
 
 const dataSchemas = {
   howToShop: z.array(lineSchema),
@@ -149,10 +165,25 @@ export function readSavedSets(): SavedSets {
   }
 }
 
+/**
+ * Stored/exported shape. Newsletter data is stamped with its format so a
+ * later read never mistakes a body subheading for the old H2 heading.
+ */
+export function serializeSavedSets(sets: SavedSets) {
+  return {
+    version: 1,
+    ...sets,
+    newsletter: sets.newsletter.map((s) => ({
+      ...s,
+      data: { ...s.data, format: NEWSLETTER_FORMAT },
+    })),
+  };
+}
+
 function writeSavedSets(sets: SavedSets) {
   localStorage.setItem(
     StorageKeys.savedSets,
-    JSON.stringify({ version: 1, ...sets })
+    JSON.stringify(serializeSavedSets(sets))
   );
 }
 

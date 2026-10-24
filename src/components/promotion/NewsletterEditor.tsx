@@ -4,15 +4,16 @@
  * Provides:
  * - Formatting toolbar: Bold, Italic, Underline, Text Color, Highlight,
  *   H2, H3, Bullet List, Link, Undo, Redo, Alignment
- * - Heading is the first H2 element in the editor body (auto-synced to store)
- * - Position toggle (Top/Bottom) for email placement
+ * - Heading is its own field above the editor (format 2); H2/H3 in the body
+ *   are ordinary subheadings
+ * - Placement + look live in one "Style" popover so writing comes first
  * - Syncs editor content to Zustand store on every change
  */
 
 import { SavedSetsMenu } from '@/components/promotion/SavedSetsMenu';
 import { CardHeaderActions } from '@/components/promotion/card-header-actions';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, useEditorState, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
@@ -36,6 +37,10 @@ import {
   SpellCheck,
   Clock,
   ClipboardPaste,
+  AlignLeft,
+  AlignCenter,
+  Palette,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sanitizeHTML } from '@/lib/html-utils';
@@ -48,6 +53,13 @@ import {
 import { ListEmptyState } from '@/components/promotion/ListEmptyState';
 import { toastWithUndo } from '@/lib/undo-toast';
 import { Input } from '@/components/ui/input';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { ButtonGroup } from '@/components/ui/button-group';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { useShallow } from 'zustand/react/shallow';
 
 import { type NewsletterPosition } from '@/stores/promotion-store';
@@ -64,17 +76,6 @@ import { NewsletterStylePanel } from './newsletter/NewsletterStylePanel';
 import { NewsletterToolbar } from './newsletter/NewsletterToolbar';
 import { NewsletterBubbleMenu } from './newsletter/NewsletterBubbleMenu';
 import { NewsletterTableMenu } from './newsletter/NewsletterTableMenu';
-
-// ===== Heading Extraction Helper =====
-
-/** Extract the text content of the first H2 element from HTML using DOMParser. */
-function extractHeadingFromHTML(html: string): string {
-  if (!html) return '';
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  const h2 = doc.querySelector('h2');
-  return h2?.textContent?.trim() || '';
-}
 
 // ===== Main Component =====
 
@@ -140,7 +141,7 @@ export function NewsletterEditor() {
       DropImageExtension,
       DragHandleExtension,
     ],
-    content: store.newsletterBody || '<h2>Newsletter</h2><p></p>',
+    content: store.newsletterBody || '',
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       // Don't update store with empty paragraph
@@ -157,12 +158,6 @@ export function NewsletterEditor() {
       }
       updateTimerRef.current = setTimeout(() => {
         store.setNewsletterBody(body);
-
-        // Auto-derive heading from first H2 in editor body
-        const heading = body ? extractHeadingFromHTML(body) : '';
-        if (heading !== store.newsletterHeading) {
-          store.setNewsletterHeading(heading);
-        }
 
         // Reset the editor-originated flag after the store update propagates
         setTimeout(() => {
@@ -193,7 +188,7 @@ export function NewsletterEditor() {
     if (isEditorUpdateRef.current) return;
 
     const currentEditorHTML = editor.getHTML();
-    const storeBody = store.newsletterBody || '<h2>Newsletter</h2><p></p>';
+    const storeBody = store.newsletterBody || '<p></p>';
 
     // Only update if content actually differs (avoid infinite loops)
     if (currentEditorHTML !== storeBody) {
@@ -371,7 +366,15 @@ export function NewsletterEditor() {
   }, [editor, findText, replaceText, performFind, buildFindRegex]);
 
   // ===== Word/Character Count & Read Time =====
-  const editorText = editor?.getText() || '';
+  // Re-render on every editor transaction (including setContent from loading
+  // a saved set or Undo, which used to leave the count stale until the next
+  // keystroke), then read the text fresh. Selecting the text itself missed
+  // the initial content, which lands before the subscription starts.
+  useEditorState({
+    editor,
+    selector: ({ editor: e }) => e?.state.doc.content.size ?? 0,
+  });
+  const editorText = editor?.getText() ?? '';
   const wordCount = editorText
     .trim()
     .split(/\s+/)
@@ -393,7 +396,7 @@ export function NewsletterEditor() {
     };
     store.clearNewsletter();
     store.setNewsletterVisible(false);
-    editor?.commands.setContent('<h2>Newsletter</h2><p></p>');
+    editor?.commands.setContent('');
     toastWithUndo('Newsletter removed from the email', () => {
       store.setNewsletterHeading(before.heading);
       store.setNewsletterBody(before.body);
@@ -440,59 +443,90 @@ export function NewsletterEditor() {
         <SavedSetsMenu section="newsletter" noun="newsletter" />
       </CardHeaderActions>
 
-      {/* Heading guidance */}
-      <p className="text-[11px] text-muted-foreground leading-snug">
-        The first <strong>H2</strong> in the editor becomes the newsletter
-        heading.
-        {store.newsletterBody &&
-          !extractHeadingFromHTML(store.newsletterBody) && (
-            <span className="text-warning ml-1">
-              No H2 found — click the H2 button to add one.
-            </span>
-          )}
-        {store.newsletterBody &&
-          extractHeadingFromHTML(store.newsletterBody) && (
-            <span className="text-muted-foreground ml-1">
-              Current: &ldquo;{extractHeadingFromHTML(store.newsletterBody)}
-              &rdquo;
-            </span>
-          )}
-      </p>
-
-      {/* Position Toggle */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted-foreground">
-          Position in Email
-        </label>
-        <div className="flex gap-1">
-          <Button
-            variant={store.newsletterPosition === 'top' ? 'default' : 'outline'}
-            size="sm"
-            className="gap-1.5 text-xs"
-            onClick={() => handlePositionChange('top')}
-            data-active={store.newsletterPosition === 'top' || undefined}
-            aria-label="Position: Above %"
-          >
-            <ArrowUpFromLine className="size-3" />
-            Above %
-          </Button>
-          <Button
-            variant={
-              store.newsletterPosition === 'bottom' ? 'default' : 'outline'
-            }
-            size="sm"
-            className="gap-1.5 text-xs"
-            onClick={() => handlePositionChange('bottom')}
-            data-active={store.newsletterPosition === 'bottom' || undefined}
-            aria-label="Position: Below %"
-          >
-            <ArrowDownFromLine className="size-3" />
-            Below %
-          </Button>
-        </div>
+      {/* Heading (its own field) + Style popover, then straight to writing */}
+      <div className="flex items-end gap-2">
+        <Field className="min-w-0 flex-1 gap-2">
+          <FieldLabel htmlFor="newsletter-heading" className="text-xs">
+            Heading
+          </FieldLabel>
+          <Input
+            id="newsletter-heading"
+            value={store.newsletterHeading}
+            maxLength={120}
+            placeholder="e.g., Holiday shipping"
+            onChange={(e) => store.setNewsletterHeading(e.target.value)}
+            data-testid="newsletter-heading-input"
+          />
+        </Field>
+        <ButtonGroup aria-label="Heading alignment">
+          {(['left', 'center'] as const).map((a) => (
+            <Button
+              key={a}
+              variant="outline"
+              size="icon"
+              aria-label={`Align heading ${a}`}
+              aria-pressed={store.newsletterStyle.headingAlign === a}
+              className={cn(
+                store.newsletterStyle.headingAlign === a &&
+                  'bg-primary/10 text-primary-text border-primary/30 hover:bg-primary/10'
+              )}
+              onClick={() => store.setNewsletterStyle({ headingAlign: a })}
+            >
+              {a === 'left' ? <AlignLeft /> : <AlignCenter />}
+            </Button>
+          ))}
+        </ButtonGroup>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              data-testid="newsletter-style-btn"
+              aria-label={`Style: ${store.newsletterPosition === 'top' ? 'above' : 'below'} promotions`}
+            >
+              <Palette aria-hidden="true" />
+              Style
+              <ChevronDown aria-hidden="true" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-[340px] p-0">
+            {/* Where the newsletter sits */}
+            <div className="flex flex-col gap-2 border-b px-3 py-3">
+              <span className="text-xs font-medium text-muted-foreground">
+                Position in email
+              </span>
+              <ButtonGroup className="w-full">
+                {(
+                  [
+                    ['top', 'Above %', ArrowUpFromLine],
+                    ['bottom', 'Below %', ArrowDownFromLine],
+                  ] as const
+                ).map(([value, label, Icon]) => (
+                  <Button
+                    key={value}
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      'flex-1 text-xs',
+                      store.newsletterPosition === value &&
+                        'bg-primary/10 text-primary-text border-primary/30 hover:bg-primary/10'
+                    )}
+                    onClick={() => handlePositionChange(value)}
+                    data-active={
+                      store.newsletterPosition === value || undefined
+                    }
+                    aria-pressed={store.newsletterPosition === value}
+                    aria-label={`Position: ${label}`}
+                  >
+                    <Icon className="size-3" />
+                    {label}
+                  </Button>
+                ))}
+              </ButtonGroup>
+            </div>
+            <NewsletterStylePanel />
+          </PopoverContent>
+        </Popover>
       </div>
-
-      <NewsletterStylePanel />
 
       {/* Formatting Toolbar */}
       <NewsletterToolbar editor={editor} />
@@ -513,9 +547,8 @@ export function NewsletterEditor() {
           editor={editor}
           className={cn(
             'newsletter-editor max-w-none px-3 py-2 min-h-[200px] focus:outline-none [&>.tiptap]:min-h-[200px] [&>.tiptap]:outline-none',
-            store.newsletterStyle.headingAlign === 'center'
-              ? '[&_h2]:text-center'
-              : '[&_h2]:text-left'
+            // Body H2/H3 are subheadings now; nothing aligned from the store.
+            undefined
           )}
         />
       </div>
@@ -673,10 +706,11 @@ export function NewsletterEditor() {
           >
             {wordCount} word{wordCount !== 1 ? 's' : ''}
           </span>
-          &middot; {charCount} char{charCount !== 1 ? 's' : ''}
+          <span aria-hidden="true">&middot;</span>
+          {charCount} char{charCount !== 1 ? 's' : ''}
           {wordCount > 0 && (
             <>
-              &middot;
+              <span aria-hidden="true">&middot;</span>
               <span className="inline-flex items-center gap-0.5">
                 <Clock className="size-3" />
                 {readTimeMin} min read

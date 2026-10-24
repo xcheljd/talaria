@@ -14,10 +14,7 @@ import {
   _resetIdCounter,
   DEFAULT_NEWSLETTER_STYLE,
 } from '@/stores/promotion-store';
-import {
-  getBulkEmailRecipientsFromIndexedDB,
-  initIndexedDB,
-} from '@/lib/db';
+import { getBulkEmailRecipientsFromIndexedDB, initIndexedDB } from '@/lib/db';
 
 vi.mock('@/lib/db', () => ({
   initIndexedDB: vi.fn().mockResolvedValue(true),
@@ -60,9 +57,7 @@ describe('persistData round-trip (plan 022 characterization)', () => {
 
       await store.persistState();
 
-      const saved = JSON.parse(
-        localStorage.getItem('promotionBuilderState')!
-      );
+      const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.newsletterHeading).toBe('Holiday Hours');
       expect(saved.newsletterBody).toBe('<p>Closed on Sunday</p>');
       expect(saved.newsletterPosition).toBe('bottom');
@@ -87,19 +82,14 @@ describe('persistData round-trip (plan 022 characterization)', () => {
 
       // Wipe in-memory state, then restore from the persisted JSON.
       usePromotionStore.getState().resetState();
-      expect(usePromotionStore.getState().newsletterHeading).toBe(
-        'Newsletter'
-      );
+      expect(usePromotionStore.getState().newsletterHeading).toBe('Newsletter');
 
       await usePromotionStore.getState().restoreState();
 
       const state = usePromotionStore.getState();
       expect(state.newsletterHeading).toBe('Holiday Hours');
-      // Restore migration prepends the heading as an H2 when it differs from
-      // the default — pin the real behavior.
-      expect(state.newsletterBody).toBe(
-        '<h2>Holiday Hours</h2><p>Closed on Sunday</p>'
-      );
+      // Format 2: the heading stays its own field; the body is unchanged.
+      expect(state.newsletterBody).toBe('<p>Closed on Sunday</p>');
       expect(state.newsletterPosition).toBe('bottom');
       expect(state.newsletterStyle.borderColor).toBe('#ff0000');
       expect(state.newsletterStyle.headingAlign).toBe('center');
@@ -130,9 +120,7 @@ describe('persistData round-trip (plan 022 characterization)', () => {
 
       await store.persistState();
 
-      const saved = JSON.parse(
-        localStorage.getItem('promotionBuilderState')!
-      );
+      const saved = JSON.parse(localStorage.getItem('promotionBuilderState')!);
       expect(saved.bulkEmailRecipients).toBeUndefined();
       expect(saved.bulkEmailGenerating).toBeUndefined();
       expect(saved.bulkEmailProgress).toBeUndefined();

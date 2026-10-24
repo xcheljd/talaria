@@ -238,3 +238,92 @@ describe('importSets (profile backup)', () => {
     expect(useSavedSetsStore.getState().importSets({})).toBe(0);
   });
 });
+
+describe('newsletter format 2 (heading is its own field)', () => {
+  it('lifts the first H2 out of legacy bodies, with its alignment', async () => {
+    const { splitLegacyNewsletterHeading } = await import('@/lib/html-utils');
+    expect(
+      splitLegacyNewsletterHeading(
+        '<h2 style="text-align: center">Holiday</h2><p>Order early</p><h2>More</h2>',
+        'Newsletter'
+      )
+    ).toEqual({
+      heading: 'Holiday',
+      body: '<p>Order early</p><h2>More</h2>',
+      align: 'center',
+    });
+    // No H2: keep the stored heading, body untouched.
+    expect(splitLegacyNewsletterHeading('<p>Hi</p>', 'Old')).toEqual({
+      heading: 'Old',
+      body: '<p>Hi</p>',
+    });
+    // Heading-only legacy body becomes an empty body.
+    expect(
+      splitLegacyNewsletterHeading('<h2>Newsletter</h2><p></p>', '')
+    ).toEqual({ heading: 'Newsletter', body: '' });
+  });
+
+  it('migrates legacy saved newsletter sets once, then leaves them alone', async () => {
+    const { parseSavedSets, serializeSavedSets } =
+      await import('@/stores/saved-sets-store');
+    const legacy = parseSavedSets({
+      newsletter: [
+        {
+          name: 'Old',
+          data: { heading: 'x', body: '<h2>Sale</h2><p>Body</p>', style: {} },
+        },
+      ],
+    });
+    expect(legacy.newsletter[0].data.heading).toBe('Sale');
+    expect(legacy.newsletter[0].data.body).toBe('<p>Body</p>');
+
+    // A format-2 set keeps a body H2 as a subheading.
+    const current = parseSavedSets(
+      JSON.parse(
+        JSON.stringify(
+          serializeSavedSets({
+            ...legacy,
+            newsletter: [
+              {
+                ...legacy.newsletter[0],
+                data: {
+                  ...legacy.newsletter[0].data,
+                  body: '<h2>Sub</h2><p>Body</p>',
+                },
+              },
+            ],
+          })
+        )
+      )
+    );
+    expect(current.newsletter[0].data.heading).toBe('Sale');
+    expect(current.newsletter[0].data.body).toBe('<h2>Sub</h2><p>Body</p>');
+  });
+
+  it('migrates legacy builder state on restore, but not format-2 state', async () => {
+    const { usePromotionStore } = await import('@/stores/promotion-store');
+    localStorage.setItem(
+      'promotionBuilderState',
+      JSON.stringify({
+        newsletterHeading: 'Newsletter',
+        newsletterBody: '<h2>Fall news</h2><p>Body</p>',
+      })
+    );
+    await usePromotionStore.getState().restoreState();
+    expect(usePromotionStore.getState().newsletterHeading).toBe('Fall news');
+    expect(usePromotionStore.getState().newsletterBody).toBe('<p>Body</p>');
+
+    localStorage.setItem(
+      'promotionBuilderState',
+      JSON.stringify({
+        newsletterFormat: 2,
+        newsletterHeading: 'Fall news',
+        newsletterBody: '<h2>Sub</h2><p>Body</p>',
+      })
+    );
+    await usePromotionStore.getState().restoreState();
+    expect(usePromotionStore.getState().newsletterBody).toBe(
+      '<h2>Sub</h2><p>Body</p>'
+    );
+  });
+});
