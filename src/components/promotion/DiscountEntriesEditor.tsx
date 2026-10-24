@@ -8,7 +8,9 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { memo, useCallback, useMemo, useState } from 'react';
+import { CardHeaderActions } from '@/components/promotion/card-header-actions';
+import { ListEmptyState } from '@/components/promotion/ListEmptyState';
+import { memo, useCallback, useMemo } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -29,8 +31,9 @@ import {
   ChevronDown,
   ChevronRight,
   Trash2,
+  Tag,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toastWithUndo } from '@/lib/undo-toast';
 import { cn } from '@/lib/utils';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -40,16 +43,6 @@ import {
   type PromotionState,
 } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
@@ -269,27 +262,21 @@ export function DiscountEntriesEditor() {
   const store = usePromotionStore(useShallow(selectEntryListState));
   const entries = store.promotionEntries;
 
-  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
-
   const handleAdd = useCallback(() => {
     store.addPromotionEntry();
   }, [store]);
 
   const clearAll = useCallback(() => {
-    const count = entries.length;
+    const { promotionEntries, entryCollapsedStates } =
+      usePromotionStore.getState();
+    const count = promotionEntries.length;
     store.clearPromotionEntries();
-    toast.success(count === 1 ? 'Entry removed' : `${count} entries removed`);
-  }, [store, entries]);
-
-  // Clearing several entries at once is destructive and can't be undone, so
-  // confirm first. A single entry is cheap to re-add, so it clears directly.
-  const handleClearAll = useCallback(() => {
-    if (entries.length >= 2) {
-      setConfirmClearOpen(true);
-      return;
-    }
-    clearAll();
-  }, [entries, clearAll]);
+    toastWithUndo(
+      count === 1 ? 'Entry removed' : `${count} entries removed`,
+      () =>
+        usePromotionStore.setState({ promotionEntries, entryCollapsedStates })
+    );
+  }, [store]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -318,29 +305,35 @@ export function DiscountEntriesEditor() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Add Entry + Clear All Buttons */}
-      <div className="flex items-center gap-2">
-        <Button size="sm" onClick={handleAdd} className="gap-1.5">
-          <Plus className="size-3.5" />
-          Add Entry
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ml-auto h-7 flex-shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive-text"
-          onClick={handleClearAll}
-          disabled={entries.length === 0}
-        >
-          <Trash2 className="size-3" />
-          Clear all
-        </Button>
-      </div>
+      {/* Header buttons appear once the list has items; an empty list
+          shows its own Add button in the empty state. */}
+      {entries.length > 0 && (
+        <CardHeaderActions>
+          <Button
+            variant="ghost"
+            size="xs"
+            className="text-muted-foreground hover:text-destructive-text"
+            onClick={clearAll}
+          >
+            <Trash2 aria-hidden="true" />
+            Clear all
+          </Button>
+          <Button variant="outline" size="xs" onClick={handleAdd}>
+            <Plus aria-hidden="true" />
+            Add Entry
+          </Button>
+        </CardHeaderActions>
+      )}
 
       {/* Entry List */}
       {entries.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-2">
-          No discount entries yet. Click &quot;Add Entry&quot; to get started.
-        </p>
+        <ListEmptyState
+          icon={Tag}
+          title="No discount entries yet"
+          description="Each entry is one product line in the email: name, collection and its deal."
+          addLabel="Add Entry"
+          onAdd={handleAdd}
+        />
       ) : (
         <DndContext
           sensors={sensors}
@@ -366,22 +359,6 @@ export function DiscountEntriesEditor() {
       )}
 
       {/* Clear All confirmation */}
-      <AlertDialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove all discount entries?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove all {entries.length} discount entries from this
-              promotion and cannot be undone. You&apos;ll need to add them
-              again.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={clearAll}>Clear all</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

@@ -6,7 +6,9 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { memo, useCallback, useMemo, useState } from 'react';
+import { CardHeaderActions } from '@/components/promotion/card-header-actions';
+import { ListEmptyState } from '@/components/promotion/ListEmptyState';
+import { memo, useCallback, useMemo } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -20,8 +22,8 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Plus, X, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Plus, X, ChevronUp, ChevronDown, Trash2, Clock } from 'lucide-react';
+import { toastWithUndo } from '@/lib/undo-toast';
 import { useShallow } from 'zustand/react/shallow';
 
 import {
@@ -30,16 +32,6 @@ import {
   type PromotionState,
 } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
 
@@ -186,27 +178,18 @@ export function SpecialHoursEditor() {
   const store = usePromotionStore(useShallow(selectHoursListState));
   const hours = store.specialHours;
 
-  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
-
   const handleAdd = useCallback(() => {
     store.addSpecialHour();
   }, [store]);
 
   const clearAll = useCallback(() => {
-    const count = hours.length;
+    const { specialHours } = usePromotionStore.getState();
+    const count = specialHours.length;
     store.clearSpecialHours();
-    toast.success(count === 1 ? 'Hour removed' : `${count} hours removed`);
-  }, [store, hours]);
-
-  // Clearing several rows at once is destructive and can't be undone, so
-  // confirm first. A single row is cheap to re-add, so it clears directly.
-  const handleClearAll = useCallback(() => {
-    if (hours.length >= 2) {
-      setConfirmClearOpen(true);
-      return;
-    }
-    clearAll();
-  }, [hours, clearAll]);
+    toastWithUndo(count === 1 ? 'Hour removed' : `${count} hours removed`, () =>
+      usePromotionStore.setState({ specialHours })
+    );
+  }, [store]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -236,29 +219,35 @@ export function SpecialHoursEditor() {
   return (
     <div className="flex flex-col gap-4">
       {/* Add Hours + Clear All Buttons */}
-      <div className="flex items-center gap-2">
-        <Button size="sm" onClick={handleAdd} className="gap-1.5">
-          <Plus className="size-3.5" />
-          Add Hours
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ml-auto h-7 flex-shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive-text"
-          onClick={handleClearAll}
-          disabled={hours.length === 0}
-        >
-          <Trash2 className="size-3" />
-          Clear all
-        </Button>
-      </div>
+      {/* Header buttons appear once the list has items; an empty list
+          shows its own Add button in the empty state. */}
+      {hours.length > 0 && (
+        <CardHeaderActions>
+          <Button
+            variant="ghost"
+            size="xs"
+            className="text-muted-foreground hover:text-destructive-text"
+            onClick={clearAll}
+          >
+            <Trash2 aria-hidden="true" />
+            Clear all
+          </Button>
+          <Button variant="outline" size="xs" onClick={handleAdd}>
+            <Plus aria-hidden="true" />
+            Add Hours
+          </Button>
+        </CardHeaderActions>
+      )}
 
       {/* Hours List */}
       {hours.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-2">
-          No special hours added yet. Click &quot;Add Hours&quot; to set special
-          hours for the promotion period.
-        </p>
+        <ListEmptyState
+          icon={Clock}
+          title="No special hours added yet"
+          description="Add store hours that differ during the promotion, like holiday openings or closures."
+          addLabel="Add Hours"
+          onAdd={handleAdd}
+        />
       ) : (
         <DndContext
           sensors={sensors}
@@ -284,22 +273,6 @@ export function SpecialHoursEditor() {
       )}
 
       {/* Clear All confirmation */}
-      <AlertDialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove all special hours?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove all {hours.length} special hours from this
-              promotion and cannot be undone. You&apos;ll need to add them
-              again.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={clearAll}>Clear all</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

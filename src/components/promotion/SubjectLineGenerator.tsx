@@ -4,12 +4,13 @@
  * Features:
  * - Generated from promotion content using pure function
  * - shadcn Select dropdown for selection
- * - Editable input with character count Badge
+ * - Editable input with character count inside the box
  * - Regenerate button
  *
  * Uses Zustand store for state management.
  */
 
+import { InputGroupText } from '@/components/ui/input-group';
 import { useCallback, useMemo } from 'react';
 import { RefreshCw, Mail, Star, Sparkles } from 'lucide-react';
 
@@ -33,7 +34,6 @@ import {
 } from '@/components/ui/tooltip';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import { Field, FieldLabel } from '@/components/ui/field';
 import {
   Select,
@@ -365,6 +365,18 @@ export function SubjectLineGenerator() {
               onChange={handleSubjectEdit}
               placeholder="Type your subject line..."
               className="w-full"
+              trailing={
+                <InputGroupText
+                  data-testid="subject-char-count"
+                  className={cn(
+                    'text-xs tabular-nums',
+                    charCount > OPTIMAL_LENGTH && 'font-medium text-warning'
+                  )}
+                >
+                  {charCount} / {OPTIMAL_LENGTH}
+                  <span className="sr-only"> chars</span>
+                </InputGroupText>
+              }
             />
           </TooltipTrigger>
           <TooltipContent>
@@ -372,19 +384,6 @@ export function SubjectLineGenerator() {
             emails.
           </TooltipContent>
         </Tooltip>
-        {/* Wrapped: Field stretches its direct children to full width. */}
-        <div className="flex items-center gap-2">
-          <Badge
-            variant={charCount > OPTIMAL_LENGTH ? 'outline' : 'secondary'}
-            className={cn(
-              'text-xs',
-              charCount > OPTIMAL_LENGTH && 'border-warning/50 text-warning'
-            )}
-            data-testid="subject-char-count"
-          >
-            {charCount} / {OPTIMAL_LENGTH} chars
-          </Badge>
-        </div>
       </Field>
 
       {/* Preheader Text */}
@@ -400,6 +399,19 @@ export function SubjectLineGenerator() {
               onChange={(val) => store.setPreheaderText(val)}
               placeholder="Text shown after subject in inbox..."
               className="w-full"
+              trailing={
+                <InputGroupText
+                  data-testid="preheader-char-count"
+                  className={cn(
+                    'text-xs tabular-nums',
+                    store.preheaderText.length > 100 &&
+                      'font-medium text-warning'
+                  )}
+                >
+                  {store.preheaderText.length} / {100}
+                  <span className="sr-only"> chars</span>
+                </InputGroupText>
+              }
             />
           </TooltipTrigger>
           <TooltipContent>
@@ -407,19 +419,6 @@ export function SubjectLineGenerator() {
             views. Keep it under 100 characters.
           </TooltipContent>
         </Tooltip>
-        <div className="flex items-center gap-2">
-          <Badge
-            variant={store.preheaderText.length > 100 ? 'outline' : 'secondary'}
-            className={cn(
-              'text-xs',
-              store.preheaderText.length > 100 &&
-                'border-warning/50 text-warning'
-            )}
-            data-testid="preheader-char-count"
-          >
-            {store.preheaderText.length} / 100 chars
-          </Badge>
-        </div>
 
         {/* Preheader suggestions */}
         {!store.preheaderText.trim() && (

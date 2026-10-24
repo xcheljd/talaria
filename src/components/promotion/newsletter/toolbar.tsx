@@ -7,7 +7,8 @@ import React from 'react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Kbd } from '@/components/ui/kbd';
+import { Kbd, KbdGroup } from '@/components/ui/kbd';
+import { shortcutKeys, shortcutLabel } from '@/lib/shortcut';
 import { Separator } from '@/components/ui/separator';
 import {
   Tooltip,
@@ -58,7 +59,16 @@ export function ToolbarButton({
       </TooltipTrigger>
       <TooltipContent>
         {label}
-        {shortcut && <Kbd>{shortcut}</Kbd>}
+        {shortcut && (
+          // One cap per key, in the OS's own symbols (⌘⇧7 on Mac).
+          <KbdGroup aria-label={shortcutLabel(shortcut)}>
+            {shortcutKeys(shortcut).map((k, i) => (
+              <Kbd key={i} aria-hidden="true">
+                {k}
+              </Kbd>
+            ))}
+          </KbdGroup>
+        )}
       </TooltipContent>
     </Tooltip>
   );

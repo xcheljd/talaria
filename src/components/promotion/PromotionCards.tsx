@@ -10,7 +10,15 @@
  * collapse affordance.
  */
 
-import { lazy, memo, Suspense, useMemo } from 'react';
+import { lazy, memo, Suspense, useCallback, useMemo, useState } from 'react';
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+} from '@/components/ui/card';
+import { ShoppingBag, StickyNote } from 'lucide-react';
+import { CardHeaderActionsContext } from '@/components/promotion/card-header-actions';
 import { useShallow } from 'zustand/react/shallow';
 
 import {
@@ -22,7 +30,10 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BasicDetailsEditor } from '@/components/promotion/BasicDetailsEditor';
 import { DiscountEntriesEditor } from '@/components/promotion/DiscountEntriesEditor';
-import { FormattableItemEditor } from '@/components/promotion/FormattableItemEditor';
+import {
+  FormattableItemEditor,
+  type FormattableItem,
+} from '@/components/promotion/FormattableItemEditor';
 import { SpecialHoursEditor } from '@/components/promotion/SpecialHoursEditor';
 import { PDFAttachments } from '@/components/promotion/PDFAttachments';
 import { SubjectLineGenerator } from '@/components/promotion/SubjectLineGenerator';
@@ -214,6 +225,11 @@ function HowToShopEditor() {
   );
   // Actions object is memoized on the (referentially stable) store actions so
   // `ItemRow`'s memo wrapper isn't defeated by a fresh object per render.
+  const restoreHowToShop = useCallback(
+    (items: FormattableItem[]) =>
+      usePromotionStore.setState({ howToShopItems: items }),
+    []
+  );
   const actions = useMemo(
     () => ({
       addItem: store.addHowToShopItem,
@@ -224,8 +240,10 @@ function HowToShopEditor() {
       toggleFormat: store.toggleHowToShopFormat,
       reorderItems: store.reorderHowToShopItems,
       clearAllItems: store.clearHowToShopItems,
+      restoreItems: restoreHowToShop,
     }),
     [
+      restoreHowToShop,
       store.addHowToShopItem,
       store.removeHowToShopItem,
       store.updateHowToShopItem,
@@ -243,9 +261,9 @@ function HowToShopEditor() {
         actions={actions}
         placeholder="e.g., Visit us in-store for outlet-exclusive deals"
         itemLabel="Item"
-        emptyMessage={
-          'No shopping instructions yet. Click "Add Item" to get started.'
-        }
+        emptyMessage="No shopping instructions yet"
+        emptyDescription="Tell customers how to buy: in store, by phone, or online."
+        emptyIcon={ShoppingBag}
       />
       <div className="flex flex-col gap-2 border-t pt-4">
         <p className="text-xs font-medium text-muted-foreground">Box Style</p>
@@ -283,6 +301,11 @@ function ImportantNotesEditor() {
   );
   // Actions object is memoized on the (referentially stable) store actions so
   // `ItemRow`'s memo wrapper isn't defeated by a fresh object per render.
+  const restoreImportantNotes = useCallback(
+    (items: FormattableItem[]) =>
+      usePromotionStore.setState({ importantNotesItems: items }),
+    []
+  );
   const actions = useMemo(
     () => ({
       addItem: store.addImportantNotesItem,
@@ -293,8 +316,10 @@ function ImportantNotesEditor() {
       toggleFormat: store.toggleImportantNotesFormat,
       reorderItems: store.reorderImportantNotesItems,
       clearAllItems: store.clearImportantNotesItems,
+      restoreItems: restoreImportantNotes,
     }),
     [
+      restoreImportantNotes,
       store.addImportantNotesItem,
       store.removeImportantNotesItem,
       store.updateImportantNotesItem,
@@ -312,9 +337,9 @@ function ImportantNotesEditor() {
         actions={actions}
         placeholder="e.g., Important safety information or key details"
         itemLabel="Note"
-        emptyMessage={
-          'No important notes yet. Click "Add Note" to get started.'
-        }
+        emptyMessage="No important notes yet"
+        emptyDescription="Fine print and must-know details, shown in a highlighted box."
+        emptyIcon={StickyNote}
       />
       <div className="flex flex-col gap-2 border-t pt-4">
         <p className="text-xs font-medium text-muted-foreground">Box Style</p>
@@ -427,26 +452,35 @@ export const PromotionCard = memo(function PromotionCard({
   // disappears. The editors inside subscribe to their own slices.
   const hasContent = usePromotionStore((s) => getCardHasContent(config.id, s));
 
+  // The header's action slot (CardAction) is handed to the editor via
+  // context, so list editors can put Add / Clear all in the header.
+  const [actionSlot, setActionSlot] = useState<HTMLDivElement | null>(null);
+
   return (
-    <div
-      data-card-id={config.id}
-      className="rounded-xl border bg-card text-card-foreground shadow-sm"
-    >
-      {/* Header — status dot + title (no collapse: one card shows at a time) */}
-      <div className="flex items-center gap-2 px-4 py-3">
-        <span
-          className={cn(
-            'inline-block size-2.5 rounded-full transition-colors',
-            hasContent ? 'bg-primary' : 'bg-muted-foreground/30'
-          )}
-          data-status={hasContent ? 'filled' : 'empty'}
-          aria-hidden="true"
+    <Card data-card-id={config.id} className="gap-0 py-0">
+      <CardHeader className="min-h-[38px] items-center gap-2 px-4 py-1.5">
+        {/* Status dot + title (no collapse: one card shows at a time) */}
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              'inline-block size-2.5 rounded-full transition-colors',
+              hasContent ? 'bg-primary' : 'bg-muted-foreground/30'
+            )}
+            data-status={hasContent ? 'filled' : 'empty'}
+            aria-hidden="true"
+          />
+          <h2 className="text-sm font-semibold leading-none">{config.title}</h2>
+        </div>
+        <CardAction
+          ref={setActionSlot}
+          className="row-span-1 flex items-center gap-1 self-center empty:hidden"
         />
-        <h2 className="text-sm font-semibold leading-none">{config.title}</h2>
-      </div>
-      <div className="border-t px-4 py-4">
-        {getCardContent(config.id, { versionRefreshKey })}
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent className="border-t px-4 py-4">
+        <CardHeaderActionsContext.Provider value={actionSlot}>
+          {getCardContent(config.id, { versionRefreshKey })}
+        </CardHeaderActionsContext.Provider>
+      </CardContent>
+    </Card>
   );
 });

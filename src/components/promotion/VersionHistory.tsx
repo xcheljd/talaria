@@ -5,6 +5,7 @@
  * Users can manually save named snapshots or restore from any point.
  */
 
+import { ListEmptyState } from '@/components/promotion/ListEmptyState';
 import { useState, useCallback, useEffect } from 'react';
 import {
   History,
@@ -264,7 +265,7 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
               size="xs"
               static
               type="button"
-              className="ml-auto h-auto px-1 py-0 text-[10px] font-normal text-muted-foreground hover:bg-transparent hover:text-destructive-text"
+              className="ml-auto h-auto px-1 py-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-destructive-text"
               onClick={handleClearAuto}
             >
               Clear auto-saves
@@ -275,12 +276,11 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
 
       {/* Snapshot List */}
       {snapshots.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-4 text-center">
-          <Clock className="size-8 text-muted-foreground/30" />
-          <p className="text-xs text-muted-foreground">
-            No snapshots yet. Save one or wait for auto-save.
-          </p>
-        </div>
+        <ListEmptyState
+          icon={Clock}
+          title="No snapshots yet"
+          description="Name and save one above, or wait for auto-save."
+        />
       ) : (
         <div className="flex flex-col gap-1" data-testid="version-history-list">
           {snapshots.map((snapshot) => {
@@ -321,12 +321,12 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                       {snapshot.auto && (
                         <Badge
                           variant="secondary"
-                          className="text-[10px] px-1 py-0"
+                          className="px-1.5 py-0 text-[11px]"
                         >
                           auto
                         </Badge>
                       )}
-                      <span className="text-[10px] text-muted-foreground shrink-0">
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                         {formatTimestamp(snapshot.timestamp)}
                       </span>
                     </Button>
@@ -334,29 +334,27 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
 
                   {/* Expanded details */}
                   {isExpanded && (
-                    <div className="px-2.5 pb-2 flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-2 px-2.5 pb-2.5">
                       <p className="text-muted-foreground">
                         {snapshot.summary}
                       </p>
                       <div className="flex gap-1.5">
                         {isConfirming ? (
                           <>
-                            <span className="text-[10px] text-warning self-center">
+                            <span className="self-center text-xs text-warning">
                               Restore this snapshot? Current state will be
                               overwritten.
                             </span>
                             <Button
                               variant="destructive"
-                              size="sm"
-                              className="h-6 text-[10px] px-2"
+                              size="xs"
                               onClick={() => handleRestore(snapshot)}
                             >
                               Confirm
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
-                              className="h-6 text-[10px] px-2"
+                              size="xs"
                               onClick={() => setConfirmRestoreId(null)}
                             >
                               Cancel
@@ -366,20 +364,19 @@ export function VersionHistory({ refreshKey = 0 }: { refreshKey?: number }) {
                           <>
                             <Button
                               variant="outline"
-                              size="sm"
-                              className="h-6 gap-1 text-[10px] px-2"
+                              size="xs"
                               onClick={() => setConfirmRestoreId(snapshot.id)}
                             >
-                              <RotateCcw className="size-2.5" />
+                              <RotateCcw aria-hidden="true" />
                               Restore
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
-                              className="h-6 gap-1 text-[10px] px-2 text-muted-foreground hover:text-destructive-text"
+                              size="xs"
+                              className="text-muted-foreground hover:text-destructive-text"
                               onClick={() => handleDelete(snapshot.id)}
                             >
-                              <Trash2 className="size-2.5" />
+                              <Trash2 aria-hidden="true" />
                               Delete
                             </Button>
                           </>

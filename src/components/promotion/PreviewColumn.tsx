@@ -10,6 +10,7 @@
  *   - usePreviewActions      (the actions + their dialog state)
  */
 
+import { ButtonGroup } from '@/components/ui/button-group';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   RotateCcw,
@@ -42,6 +43,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
@@ -213,30 +215,30 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
         <h2 className="text-sm font-semibold">Email Preview</h2>
 
         <div className="flex items-center gap-1.5">
-          {/* Import */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-xs"
-            onClick={actions.handleImportConfig}
-            aria-label="Import"
-          >
-            <Upload className="size-3.5" />
-            Import
-          </Button>
-
-          {/* Export */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-xs"
-            onClick={actions.openExportDialog}
-            disabled={!hasContent}
-            aria-label="Export"
-          >
-            <Download className="size-3.5" />
-            Export
-          </Button>
+          {/* Import + Export: one joined pair (template file in / out) */}
+          <ButtonGroup aria-label="Template file">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={actions.handleImportConfig}
+              aria-label="Import"
+            >
+              <Upload className="size-3.5" />
+              Import
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={actions.openExportDialog}
+              disabled={!hasContent}
+              aria-label="Export"
+            >
+              <Download className="size-3.5" />
+              Export
+            </Button>
+          </ButtonGroup>
 
           {/* Start Over with AlertDialog */}
           <AlertDialog>
@@ -248,6 +250,9 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
+                <AlertDialogMedia className="bg-destructive/10 text-destructive-text">
+                  <RotateCcw aria-hidden="true" />
+                </AlertDialogMedia>
                 <AlertDialogTitle>Reset to Defaults</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will reset everything to defaults and cannot be undone.
@@ -257,7 +262,10 @@ export function PreviewColumn({ emailHTML }: { emailHTML: string }) {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={actions.handleStartOver}>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={actions.handleStartOver}
+                >
                   Reset
                 </AlertDialogAction>
               </AlertDialogFooter>

@@ -10,6 +10,7 @@
  * - Validation summary using shadcn Alert
  */
 
+import { ButtonGroup } from '@/components/ui/button-group';
 import { useState, useCallback, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -303,24 +304,28 @@ export function ProfileSettingsPage() {
                       <Save className="size-4" />
                       Save
                     </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleExport}
-                    >
-                      <Download className="size-4" />
-                      Export
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowImportDialog(true)}
-                    >
-                      <Upload className="size-4" />
-                      Import
-                    </Button>
+                    {/* Export + Import are one pair (profile file in / out);
+                        Save stays on its own as the primary action. */}
+                    <ButtonGroup aria-label="Profile file">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExport}
+                      >
+                        <Download className="size-4" />
+                        Export
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowImportDialog(true)}
+                      >
+                        <Upload className="size-4" />
+                        Import
+                      </Button>
+                    </ButtonGroup>
                   </div>
 
                   {/* Validation Summary */}

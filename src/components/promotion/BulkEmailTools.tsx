@@ -16,6 +16,7 @@
  * current list.
  */
 
+import { ButtonGroup } from '@/components/ui/button-group';
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   Trash2,
@@ -238,10 +239,10 @@ export function BulkEmailTools() {
         value={recipientText}
         onChange={handleRecipientChange}
         placeholder="Enter email addresses (one per line, comma-separated, or paste from spreadsheet)..."
-        className={cn(
-          'h-[120px] resize-none overflow-y-auto [field-sizing:fixed] font-mono text-sm',
+        className="h-[120px] resize-none overflow-y-auto [field-sizing:fixed] font-mono text-sm"
+        groupClassName={cn(
           emailStats.invalid > 0 &&
-            'border-destructive/50 focus-visible:ring-destructive/30'
+            'border-destructive/50 has-[[data-slot=input-group-control]:focus-visible]:border-destructive/50 has-[[data-slot=input-group-control]:focus-visible]:ring-destructive/30'
         )}
         data-testid="bulk-email-list"
       />
@@ -315,7 +316,7 @@ export function BulkEmailTools() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-2">
           <Label className="text-xs whitespace-nowrap">Batch Size</Label>
-          <div className="flex items-center gap-1">
+          <ButtonGroup aria-label="Batch size">
             <Button
               variant="outline"
               size="icon"
@@ -339,7 +340,7 @@ export function BulkEmailTools() {
                   handleBatchSizeChange(val);
                 }
               }}
-              className="h-7 w-16 rounded-md border bg-background px-2 text-center text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className="h-7 w-16 border bg-background px-2 text-center text-sm tabular-nums shadow-xs outline-none focus-visible:z-10 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               aria-label="Batch size"
               data-testid="batch-size-input"
             />
@@ -354,7 +355,7 @@ export function BulkEmailTools() {
             >
               <Plus className="size-3" />
             </Button>
-          </div>
+          </ButtonGroup>
         </div>
 
         {/* Download format toggle */}

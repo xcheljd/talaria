@@ -7,7 +7,9 @@
  * All mutations go through the Zustand promotion store.
  */
 
-import { memo, useCallback, useMemo, useState } from 'react';
+import { CardHeaderActions } from '@/components/promotion/card-header-actions';
+import { ListEmptyState } from '@/components/promotion/ListEmptyState';
+import { memo, useCallback, useMemo } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -30,20 +32,13 @@ import {
   Italic,
   Underline,
   Trash2,
+  ListPlus,
+  type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { toastWithUndo } from '@/lib/undo-toast';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
 
@@ -67,6 +62,8 @@ export interface FormattableItemActions {
   toggleFormat: (id: number, format: 'bold' | 'italic' | 'underline') => void;
   /** When provided, the header renders a "Clear all" button wired to this. */
   clearAllItems?: () => void;
+  /** Puts a cleared list back (Undo in the clear toast). */
+  restoreItems?: (items: FormattableItem[]) => void;
 }
 
 export interface FormattableItemEditorProps {
@@ -79,7 +76,11 @@ export interface FormattableItemEditorProps {
   /** Label for "Add Item" button and aria */
   itemLabel: string;
   /** Empty state message */
+  /** Empty-state title. */
   emptyMessage: string;
+  /** Empty-state guidance line. */
+  emptyDescription?: string;
+  emptyIcon?: LucideIcon;
 }
 
 // ===== Format Button Component =====
@@ -224,9 +225,9 @@ export function FormattableItemEditor({
   placeholder,
   itemLabel,
   emptyMessage,
+  emptyDescription,
+  emptyIcon,
 }: FormattableItemEditorProps) {
-  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
-
   // Toast/dialog copy follows the caller's label: "Item" → item/items,
   // "Note" → note/notes.
   const singular = itemLabel.toLowerCase();
@@ -237,22 +238,18 @@ export function FormattableItemEditor({
   }, [actions]);
 
   const clearAll = useCallback(() => {
-    const count = items.length;
+    const snapshot = items;
+    const count = snapshot.length;
     actions.clearAllItems?.();
-    toast.success(
-      count === 1 ? `${itemLabel} removed` : `${count} ${plural} removed`
-    );
-  }, [actions, items, itemLabel, plural]);
-
-  // Clearing several items at once is destructive and can't be undone, so
-  // confirm first. A single item is cheap to re-add, so it clears directly.
-  const handleClearAll = useCallback(() => {
-    if (items.length >= 2) {
-      setConfirmClearOpen(true);
-      return;
+    const message =
+      count === 1 ? `${itemLabel} removed` : `${count} ${plural} removed`;
+    if (actions.restoreItems) {
+      const restore = actions.restoreItems;
+      toastWithUndo(message, () => restore(snapshot));
+    } else {
+      toast.success(message);
     }
-    clearAll();
-  }, [items, clearAll]);
+  }, [actions, items, itemLabel, plural]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -281,31 +278,37 @@ export function FormattableItemEditor({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Add Item + Clear All Buttons */}
-      <div className="flex items-center gap-2">
-        <Button size="sm" onClick={handleAdd} className="gap-1.5">
-          <Plus className="size-3.5" />
-          Add {itemLabel}
-        </Button>
-        {actions.clearAllItems && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto h-7 flex-shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive-text"
-            onClick={handleClearAll}
-            disabled={items.length === 0}
-          >
-            <Trash2 className="size-3" />
-            Clear all
+      {/* Header buttons appear once the list has items; an empty list
+          shows its own Add button in the empty state. */}
+      {items.length > 0 && (
+        <CardHeaderActions>
+          {actions.clearAllItems && (
+            <Button
+              variant="ghost"
+              size="xs"
+              className="text-muted-foreground hover:text-destructive-text"
+              onClick={clearAll}
+            >
+              <Trash2 aria-hidden="true" />
+              Clear all
+            </Button>
+          )}
+          <Button variant="outline" size="xs" onClick={handleAdd}>
+            <Plus aria-hidden="true" />
+            Add {itemLabel}
           </Button>
-        )}
-      </div>
+        </CardHeaderActions>
+      )}
 
       {/* Items List */}
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-2">
-          {emptyMessage}
-        </p>
+        <ListEmptyState
+          icon={emptyIcon ?? ListPlus}
+          title={emptyMessage}
+          description={emptyDescription}
+          addLabel={`Add ${itemLabel}`}
+          onAdd={handleAdd}
+        />
       ) : (
         <DndContext
           sensors={sensors}
@@ -333,21 +336,6 @@ export function FormattableItemEditor({
       )}
 
       {/* Clear All confirmation */}
-      <AlertDialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove all {plural}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove all {items.length} {plural} from this promotion
-              and cannot be undone. You&apos;ll need to add them again.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={clearAll}>Clear all</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

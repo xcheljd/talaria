@@ -11,6 +11,7 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Checkbox } from '@/components/ui/checkbox';
+import { FileDown } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +20,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
@@ -45,6 +47,9 @@ export function ExportOptionsDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
+          <AlertDialogMedia className="bg-muted text-muted-foreground">
+            <FileDown aria-hidden="true" />
+          </AlertDialogMedia>
           <AlertDialogTitle>Export options</AlertDialogTitle>
           <AlertDialogDescription>
             Choose what to include in the exported template file.

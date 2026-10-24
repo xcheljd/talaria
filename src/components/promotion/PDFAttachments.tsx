@@ -20,6 +20,15 @@ import {
 } from 'react';
 import { Upload, FileText, X, Download, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { toastWithUndo } from '@/lib/undo-toast';
+import { CardHeaderActions } from '@/components/promotion/card-header-actions';
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+} from '@/components/ui/item';
 import { invoke } from '@tauri-apps/api/core';
 
 import { cn } from '@/lib/utils';
@@ -39,16 +48,6 @@ import { saveBlob, getSaveAsDialog } from '@/lib/file-save';
 import { AlertTriangle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import {
   Tooltip,
   TooltipContent,
@@ -77,7 +76,6 @@ export function PDFAttachments() {
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [previewPDF, setPreviewPDF] = useState<AttachedPDF | null>(null);
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
 
@@ -275,20 +273,18 @@ export function PDFAttachments() {
   );
 
   const clearAll = useCallback(async () => {
-    const count = store.attachedPDFs.length;
+    const snapshot = store.attachedPDFs;
+    const count = snapshot.length;
     await store.clearAllPDFs();
-    toast.success(count === 1 ? 'PDF removed' : `${count} PDFs removed`);
+    // Undo re-adds each file (and re-saves it to IndexedDB, which the clear
+    // emptied) in the original order.
+    toastWithUndo(
+      count === 1 ? 'PDF removed' : `${count} PDFs removed`,
+      async () => {
+        for (const pdf of snapshot) await store.addPDF(pdf);
+      }
+    );
   }, [store]);
-
-  // Clearing several attachments at once is destructive and can't be undone, so
-  // confirm first. A single PDF is cheap to re-attach, so it clears directly.
-  const handleClearAll = useCallback(() => {
-    if (store.attachedPDFs.length >= 2) {
-      setConfirmClearOpen(true);
-      return;
-    }
-    clearAll();
-  }, [store, clearAll]);
 
   const openPreview = useCallback((pdf: AttachedPDF) => {
     if (!pdf.data) {
@@ -352,16 +348,19 @@ export function PDFAttachments() {
             <TooltipContent>Last save may not have completed</TooltipContent>
           </Tooltip>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ml-auto h-7 flex-shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive-text"
-          onClick={handleClearAll}
-          disabled={store.attachedPDFs.length === 0}
-        >
-          <Trash2 className="size-3" />
-          Clear all
-        </Button>
+        {store.attachedPDFs.length > 0 && (
+          <CardHeaderActions>
+            <Button
+              variant="ghost"
+              size="xs"
+              className="text-muted-foreground hover:text-destructive-text"
+              onClick={clearAll}
+            >
+              <Trash2 aria-hidden="true" />
+              Clear all
+            </Button>
+          </CardHeaderActions>
+        )}
       </div>
 
       {/* Drop Zone */}
@@ -404,12 +403,16 @@ export function PDFAttachments() {
       {store.attachedPDFs.length > 0 && (
         <div className="flex flex-col gap-2">
           {store.attachedPDFs.map((pdf) => (
-            <div
+            <Item
               key={pdf.id}
-              className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2"
+              variant="muted"
+              size="sm"
+              className="border-border px-3 py-2"
             >
-              <FileText className="size-5 flex-shrink-0 text-primary" />
-              <div className="min-w-0 flex-1">
+              <ItemMedia variant="icon" className="text-primary">
+                <FileText aria-hidden="true" />
+              </ItemMedia>
+              <ItemContent className="min-w-0 gap-0.5">
                 <Tooltip>
                   {/* span trigger: a disabled <button> emits no pointer events */}
                   <TooltipTrigger asChild>
@@ -438,41 +441,25 @@ export function PDFAttachments() {
                       : `${pdf.name} - Preview unavailable`}
                   </TooltipContent>
                 </Tooltip>
-                <p className="text-xs text-muted-foreground">
+                <ItemDescription className="text-xs">
                   {formatFileSize(pdf.size)}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7 flex-shrink-0 text-muted-foreground hover:text-destructive-text"
-                onClick={() => handleRemovePDF(pdf)}
-                aria-label={`Remove ${pdf.name}`}
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
+                </ItemDescription>
+              </ItemContent>
+              <ItemActions>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 flex-shrink-0 text-muted-foreground hover:text-destructive-text"
+                  onClick={() => handleRemovePDF(pdf)}
+                  aria-label={`Remove ${pdf.name}`}
+                >
+                  <X className="size-4" />
+                </Button>
+              </ItemActions>
+            </Item>
           ))}
         </div>
       )}
-
-      {/* Clear All confirmation */}
-      <AlertDialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove all attachments?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove all {store.attachedPDFs.length} attached PDFs
-              from this promotion and cannot be undone. You&apos;ll need to
-              upload them again.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={clearAll}>Clear all</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* PDF Preview Dialog */}
       <Dialog

@@ -62,11 +62,38 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { useState } from 'react';
-import { ChevronDown, Mail, Settings, User } from 'lucide-react';
+import {
+  ChevronDown,
+  FileText,
+  Inbox,
+  Mail,
+  Settings,
+  User,
+} from 'lucide-react';
+import { ListEmptyState } from '@/components/promotion/ListEmptyState';
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from '@/components/ui/item';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '@/components/ui/input-group';
+import { ClearableInput } from '@/components/ui/clearable-input';
+import { ButtonGroup } from '@/components/ui/button-group';
+import { Kbd, KbdGroup } from '@/components/ui/kbd';
+import { shortcutKeys, shortcutLabel } from '@/lib/shortcut';
 
 export function ComponentsShowcase() {
   const [collapsibleOpen, setCollapsibleOpen] = useState(false);
   const [switchChecked, setSwitchChecked] = useState(false);
+  const [demoText, setDemoText] = useState('Summer Shades Event');
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -370,6 +397,99 @@ export function ComponentsShowcase() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        </section>
+
+        <Separator />
+
+        {/* Empty, Item, InputGroup, ButtonGroup, Kbd — the pieces the
+            promotion tools use */}
+        <section className="flex flex-col gap-4">
+          <h2 className="text-xl font-semibold">Empty</h2>
+          <ListEmptyState
+            icon={Inbox}
+            title="Nothing here yet"
+            description="Empty lists explain themselves and offer the first action."
+            addLabel="Add item"
+            onAdd={() => toast.success('Added')}
+          />
+        </section>
+
+        <Separator />
+
+        <section className="flex flex-col gap-4">
+          <h2 className="text-xl font-semibold">Item</h2>
+          <Item variant="outline" size="sm" className="max-w-md">
+            <ItemMedia variant="icon">
+              <FileText aria-hidden="true" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>Summer-Lookbook.pdf</ItemTitle>
+              <ItemDescription className="text-xs">1.2 MB</ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <Button size="xs" variant="outline">
+                Open
+              </Button>
+            </ItemActions>
+          </Item>
+        </section>
+
+        <Separator />
+
+        <section className="flex flex-col gap-4">
+          <h2 className="text-xl font-semibold">Input Group</h2>
+          <div className="flex max-w-md flex-col gap-3">
+            <ClearableInput
+              aria-label="Demo clearable input"
+              value={demoText}
+              onChange={setDemoText}
+              trailing={
+                <InputGroupText className="text-xs tabular-nums">
+                  {demoText.length} / 50
+                </InputGroupText>
+              }
+            />
+            <InputGroup>
+              <InputGroupAddon>
+                <InputGroupText>https://</InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                aria-label="Demo URL"
+                placeholder="example.com"
+              />
+            </InputGroup>
+          </div>
+        </section>
+
+        <Separator />
+
+        <section className="flex flex-col gap-4">
+          <h2 className="text-xl font-semibold">Button Group</h2>
+          <ButtonGroup aria-label="Demo file actions">
+            <Button variant="outline" size="sm">
+              Import
+            </Button>
+            <Button variant="outline" size="sm">
+              Export
+            </Button>
+          </ButtonGroup>
+        </section>
+
+        <Separator />
+
+        <section className="flex flex-col gap-4">
+          <h2 className="text-xl font-semibold">Kbd</h2>
+          <p className="text-sm text-muted-foreground">
+            Shortcuts render in the OS&apos;s own symbols (⌘⇧7 on Mac, Ctrl
+            Shift 7 elsewhere).
+          </p>
+          <KbdGroup aria-label={shortcutLabel('Ctrl+Shift+7')}>
+            {shortcutKeys('Ctrl+Shift+7').map((k, i) => (
+              <Kbd key={i} aria-hidden="true">
+                {k}
+              </Kbd>
+            ))}
+          </KbdGroup>
         </section>
 
         <Separator />

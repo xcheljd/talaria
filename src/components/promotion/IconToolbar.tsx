@@ -26,7 +26,8 @@ import { Fragment, memo, useLayoutEffect, useRef, useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -309,22 +310,28 @@ export const IconToolbar = memo(function IconToolbar({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {moreIds.map((cardId) => {
-              const config = CARD_ICONS[cardId];
-              const Icon = config.icon;
-              const isActive = activeCardId === cardId;
-              return (
-                <DropdownMenuItem
-                  key={cardId}
-                  data-testid={`toolbar-more-${cardId}`}
-                  className={cn(isActive && 'bg-accent/60 font-medium')}
-                  onSelect={() => onCardClick(cardId)}
-                >
-                  <Icon className="size-4" />
-                  {config.tooltip}
-                </DropdownMenuItem>
-              );
-            })}
+            {/* Radio group: the open tool gets a dot and is announced as
+                selected, not just tinted. */}
+            <DropdownMenuRadioGroup
+              value={moreActive ? activeCardId! : ''}
+              onValueChange={(cardId) => onCardClick(cardId)}
+            >
+              {moreIds.map((cardId) => {
+                const config = CARD_ICONS[cardId];
+                const Icon = config.icon;
+                return (
+                  <DropdownMenuRadioItem
+                    key={cardId}
+                    value={cardId}
+                    data-testid={`toolbar-more-${cardId}`}
+                    className="data-[state=checked]:font-medium"
+                  >
+                    <Icon className="size-4" aria-hidden="true" />
+                    {config.tooltip}
+                  </DropdownMenuRadioItem>
+                );
+              })}
+            </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       )}

@@ -2,7 +2,12 @@ import * as React from 'react';
 import { X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { Textarea } from '@/components/ui/textarea';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from '@/components/ui/input-group';
 
 export interface ClearableTextareaProps extends Omit<
   React.ComponentProps<'textarea'>,
@@ -14,10 +19,13 @@ export interface ClearableTextareaProps extends Omit<
   onChange?: (value: string) => void;
   /** Optional extra callback after the field is cleared */
   onClear?: () => void;
+  /** Classes for the outer box (border tint, width). `className` styles the textarea. */
+  groupClassName?: string;
 }
 
 /**
- * ClearableTextarea — wraps the shadcn `Textarea` with an X clear button.
+ * ClearableTextarea — shadcn `InputGroup` around a textarea, with an X clear
+ * button pinned to the top-right corner.
  *
  * Works with both React Hook Form Controller (field.value / field.onChange) and
  * plain controlled textareas (useState). The X icon turns red on hover.
@@ -27,6 +35,8 @@ export function ClearableTextarea({
   onChange,
   onClear,
   className,
+  groupClassName,
+  disabled,
   ...rest
 }: ClearableTextareaProps) {
   const hasValue = !!value && value.trim().length > 0;
@@ -37,23 +47,29 @@ export function ClearableTextarea({
   };
 
   return (
-    <div className="relative">
-      <Textarea
+    <InputGroup
+      data-disabled={disabled || undefined}
+      className={cn('items-start', groupClassName)}
+    >
+      <InputGroupTextarea
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
-        className={cn('pr-8', className)}
+        disabled={disabled}
+        className={cn('py-2', className)}
         {...rest}
       />
-      {hasValue && (
-        <button
-          type="button"
-          className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground hover:text-destructive-text"
-          onClick={handleClear}
-          aria-label="Clear field"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
+      {hasValue && !disabled && (
+        <InputGroupAddon align="inline-end" className="self-start py-1.5">
+          <InputGroupButton
+            size="icon-xs"
+            className="text-muted-foreground hover:bg-transparent hover:text-destructive-text"
+            onClick={handleClear}
+            aria-label="Clear field"
+          >
+            <X aria-hidden="true" />
+          </InputGroupButton>
+        </InputGroupAddon>
       )}
-    </div>
+    </InputGroup>
   );
 }

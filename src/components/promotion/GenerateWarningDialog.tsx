@@ -3,6 +3,7 @@
  * recommended fields are empty. Split out of PreviewColumn.
  */
 
+import { TriangleAlert } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,6 +12,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
@@ -31,6 +33,9 @@ export function GenerateWarningDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
+          <AlertDialogMedia className="bg-warning/10 text-warning">
+            <TriangleAlert aria-hidden="true" />
+          </AlertDialogMedia>
           <AlertDialogTitle>Before you generate...</AlertDialogTitle>
           <AlertDialogDescription>
             The following fields were left empty. You can go back and fill them

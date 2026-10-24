@@ -14,6 +14,11 @@
  * All mutations go through the Zustand promotion store.
  */
 
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+} from '@/components/ui/input-group';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { CalendarDays, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -311,18 +316,19 @@ export function BasicDetailsEditor() {
           <CalendarDays className="size-3.5" aria-hidden="true" />
           Date Range *
         </FieldLabel>
-        {/* Same shape as ClearableInput: 36px box, × inside the right edge.
-            The × is a sibling of the trigger (not inside it), so clearing
-            never opens the calendar and both stay separate buttons. */}
-        <div className="relative">
+        {/* Same InputGroup as ClearableInput: the × is an inline-end addon,
+            a sibling of the trigger (not inside it), so clearing never opens
+            the calendar and both stay separate buttons. */}
+        <InputGroup>
           <Popover open={pickerOpen} onOpenChange={handlePickerOpenChange}>
             <PopoverTrigger asChild>
               <Button
                 id="promo-date-range-trigger"
-                variant="outline"
+                variant="ghost"
+                static
+                data-slot="input-group-control"
                 className={cn(
-                  'w-full justify-start px-3 font-normal',
-                  startDate && 'pr-8',
+                  'h-full flex-1 justify-start rounded-none px-3 font-normal shadow-none hover:bg-transparent dark:hover:bg-transparent',
                   !startDate && 'text-muted-foreground'
                 )}
                 data-testid="promo-date-range-trigger"
@@ -347,16 +353,18 @@ export function BasicDetailsEditor() {
             </PopoverContent>
           </Popover>
           {startDate && (
-            <button
-              type="button"
-              className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:text-destructive-text"
-              onClick={handleClearDates}
-              aria-label="Clear dates"
-            >
-              <X className="size-3.5" />
-            </button>
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                size="icon-xs"
+                className="text-muted-foreground hover:bg-transparent hover:text-destructive-text"
+                onClick={handleClearDates}
+                aria-label="Clear dates"
+              >
+                <X aria-hidden="true" />
+              </InputGroupButton>
+            </InputGroupAddon>
           )}
-        </div>
+        </InputGroup>
       </Field>
 
       {/* Title Override */}
