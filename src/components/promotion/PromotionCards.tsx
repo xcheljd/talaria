@@ -458,7 +458,9 @@ export const PromotionCard = memo(function PromotionCard({
 
   return (
     <Card data-card-id={config.id} className="gap-0 py-0">
-      <CardHeader className="min-h-[38px] items-center gap-2 px-4 py-1.5">
+      {/* Flex, not CardHeader's default 2-row grid: the empty description
+          row + row gap pushed every title ~5px above center. */}
+      <CardHeader className="flex min-h-[38px] items-center justify-between gap-2 px-4 py-1.5">
         {/* Status dot + title (no collapse: one card shows at a time) */}
         <div className="flex items-center gap-2">
           <span

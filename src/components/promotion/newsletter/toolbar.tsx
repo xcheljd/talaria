@@ -9,6 +9,9 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { shortcutKeys, shortcutLabel } from '@/lib/shortcut';
+import { detectOS } from '@/lib/ui-utils';
+
+const isMac = detectOS() === 'mac';
 import { Separator } from '@/components/ui/separator';
 import {
   Tooltip,
@@ -62,10 +65,17 @@ export function ToolbarButton({
         {shortcut && (
           // One cap per key, in the OS's own symbols (⌘⇧7 on Mac).
           <KbdGroup aria-label={shortcutLabel(shortcut)}>
+            {/* Mac writes ⌘B (no plus, like its menus); Windows/Linux
+                write Ctrl + B. */}
             {shortcutKeys(shortcut).map((k, i) => (
-              <Kbd key={i} aria-hidden="true">
-                {k}
-              </Kbd>
+              <React.Fragment key={i}>
+                {i > 0 && !isMac && (
+                  <span aria-hidden="true" className="text-xs opacity-70">
+                    +
+                  </span>
+                )}
+                <Kbd aria-hidden="true">{k}</Kbd>
+              </React.Fragment>
             ))}
           </KbdGroup>
         )}

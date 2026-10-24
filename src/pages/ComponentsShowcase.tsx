@@ -89,6 +89,7 @@ import { ClearableInput } from '@/components/ui/clearable-input';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { shortcutKeys, shortcutLabel } from '@/lib/shortcut';
+import { detectOS } from '@/lib/ui-utils';
 
 export function ComponentsShowcase() {
   const [collapsibleOpen, setCollapsibleOpen] = useState(false);
@@ -480,14 +481,19 @@ export function ComponentsShowcase() {
         <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Kbd</h2>
           <p className="text-sm text-muted-foreground">
-            Shortcuts render in the OS&apos;s own symbols (⌘⇧7 on Mac, Ctrl
-            Shift 7 elsewhere).
+            Shortcuts render in the OS&apos;s own symbols (⌘⇧7 on Mac, Ctrl +
+            Shift + 7 elsewhere).
           </p>
           <KbdGroup aria-label={shortcutLabel('Ctrl+Shift+7')}>
             {shortcutKeys('Ctrl+Shift+7').map((k, i) => (
-              <Kbd key={i} aria-hidden="true">
-                {k}
-              </Kbd>
+              <span key={i} className="contents">
+                {i > 0 && detectOS() !== 'mac' && (
+                  <span aria-hidden="true" className="text-xs opacity-70">
+                    +
+                  </span>
+                )}
+                <Kbd aria-hidden="true">{k}</Kbd>
+              </span>
             ))}
           </KbdGroup>
         </section>
