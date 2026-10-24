@@ -70,8 +70,6 @@ export function ProfileImportDialog({
 
           form.reset({
             employeeName: importedProfile.employeeName || '',
-            jobTitle: importedProfile.jobTitle || '',
-            companyEmail: importedProfile.companyEmail || '',
             companyName: importedProfile.companyName || '',
             storeName: importedProfile.storeName || '',
             storeLocation: importedProfile.storeLocation || '',

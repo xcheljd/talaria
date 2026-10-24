@@ -6,35 +6,6 @@
 
 import { z } from 'zod/v4';
 
-// ─── Job Title Constants ──────────────────────────────────────────────────────
-
-export const JOB_TITLES = [
-  'Sales Associate',
-  'Sales Associate/Keyholder',
-  'Assistant Store Manager',
-  'Associate Store Manager',
-  'General Manager',
-  'Area Manager',
-  'Regional Manager',
-  'District Manager',
-] as const;
-
-export const MANAGEMENT_TITLES = [
-  'Assistant Store Manager',
-  'Associate Store Manager',
-  'General Manager',
-  'Area Manager',
-  'Regional Manager',
-  'District Manager',
-] as const;
-
-/**
- * Check if a job title requires a company email address.
- */
-export function requiresCompanyEmail(jobTitle: string): boolean {
-  return (MANAGEMENT_TITLES as readonly string[]).includes(jobTitle);
-}
-
 // ─── Validation Helpers (migrated from start-app.js) ──────────────────────────
 
 /**
@@ -131,39 +102,6 @@ export function validatePlusCode(plusCode: string): {
   };
 }
 
-/**
- * Validate company email for management positions.
- */
-export function validateCompanyEmail(
-  email: string,
-  jobTitle: string
-): { isValid: boolean; error: string | null } {
-  if (!requiresCompanyEmail(jobTitle)) {
-    return { isValid: true, error: null };
-  }
-
-  if (!email || email.trim() === '') {
-    return {
-      isValid: false,
-      error: 'Company email is required for management positions',
-    };
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  if (!emailRegex.test(email)) {
-    return {
-      isValid: false,
-      error: 'Invalid email format',
-    };
-  }
-
-  return {
-    isValid: true,
-    error: null,
-  };
-}
-
 // ─── Zod Schema ───────────────────────────────────────────────────────────────
 
 /**
@@ -206,51 +144,29 @@ export const plusCodeSchema = z.string().refine(
   { message: 'Invalid Plus Code format (e.g., QXGV+2H)' }
 );
 
-/** Company email validation (conditional) */
-export const companyEmailSchema = z
-  .string()
-  .refine((val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
-    message: 'Invalid email format',
-  });
-
 /**
  * Full profile form schema for React Hook Form + Zod validation.
- * Company email is validated conditionally based on job title.
  *
  * Note: Optional fields use z.string() (not .optional()) so React Hook Form
  * always sees string values, avoiding string | undefined type mismatches.
  */
-export const profileFormSchema = z
-  .object({
-    employeeName: z.string().min(1, 'Your name is required'),
-    jobTitle: z.string().min(1, 'Job title is required'),
-    companyEmail: z.string(),
-    companyName: z.string().min(1, 'Company name is required'),
-    storeName: z.string().min(1, 'Store name is required'),
-    storeLocation: z.string().min(1, 'Store location is required'),
-    storeAddress: z.string(),
-    storePlusCode: plusCodeSchema,
-    storePhone: phoneSchema,
-    storeEmail: emailSchema,
-    storeHours: storeHoursSchema,
-    storeDirections: z.string(),
-    productNoun: z.string(),
-    productNounPlural: z.string(),
-    // Comma-separated in the form; split into arrays when persisted.
-    brandKeywords: z.string(),
-    collectionKeywords: z.string(),
-  })
-  .refine(
-    (data) => {
-      if (!requiresCompanyEmail(data.jobTitle)) return true;
-      if (!data.companyEmail || data.companyEmail.trim() === '') return false;
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.companyEmail);
-    },
-    {
-      message: 'Company email is required for management positions',
-      path: ['companyEmail'],
-    }
-  );
+export const profileFormSchema = z.object({
+  employeeName: z.string().min(1, 'Your name is required'),
+  companyName: z.string().min(1, 'Company name is required'),
+  storeName: z.string().min(1, 'Store name is required'),
+  storeLocation: z.string().min(1, 'Store location is required'),
+  storeAddress: z.string(),
+  storePlusCode: plusCodeSchema,
+  storePhone: phoneSchema,
+  storeEmail: emailSchema,
+  storeHours: storeHoursSchema,
+  storeDirections: z.string(),
+  productNoun: z.string(),
+  productNounPlural: z.string(),
+  // Comma-separated in the form; split into arrays when persisted.
+  brandKeywords: z.string(),
+  collectionKeywords: z.string(),
+});
 
 export type ProfileFormValues = z.infer<typeof profileFormSchema>;
 

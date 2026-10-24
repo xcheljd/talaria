@@ -39,6 +39,8 @@ import { DEFAULT_NEWSLETTER_STYLE } from '@/stores/promotion-store';
 vi.mock('@/lib/profile', () => ({
   getStorePhone: vi.fn().mockReturnValue('555-123-4567'),
   getStoreName: vi.fn().mockReturnValue('Test Store'),
+  getCompanyName: vi.fn().mockReturnValue('Test Co'),
+  getStoreLocation: vi.fn().mockReturnValue('Test Mall'),
   getStoreEmail: vi.fn().mockReturnValue('store@example.com'),
   getStoreAddress: vi.fn().mockReturnValue('123 Test St'),
   getStoreHours: vi.fn().mockReturnValue('Mon-Sat 10AM-8PM'),
@@ -291,7 +293,9 @@ describe('applyDarkModeToDocument (in-place, no reload)', () => {
   }
 
   it('inverts a light background in place and stashes the original style', () => {
-    const doc = makeDoc('<div id="a" style="background-color: #ffffff;">x</div>');
+    const doc = makeDoc(
+      '<div id="a" style="background-color: #ffffff;">x</div>'
+    );
     const el = doc.getElementById('a') as HTMLElement;
     applyDarkModeToDocument(doc, 'full');
     expect(bgLightness(el)).toBeLessThan(0.2); // white → dark
@@ -299,7 +303,9 @@ describe('applyDarkModeToDocument (in-place, no reload)', () => {
   });
 
   it('reverts to the original light style (and clears the stash)', () => {
-    const doc = makeDoc('<div id="a" style="background-color: #ffffff;">x</div>');
+    const doc = makeDoc(
+      '<div id="a" style="background-color: #ffffff;">x</div>'
+    );
     const el = doc.getElementById('a') as HTMLElement;
     applyDarkModeToDocument(doc, 'full');
     applyDarkModeToDocument(doc, 'light');
@@ -309,7 +315,9 @@ describe('applyDarkModeToDocument (in-place, no reload)', () => {
 
   it('re-derives from the original when switching full → partial', () => {
     // A dark (footer-like) bg: full flips it light, partial keeps it dark.
-    const doc = makeDoc('<div id="f" style="background-color: #2c3e50;">x</div>');
+    const doc = makeDoc(
+      '<div id="f" style="background-color: #2c3e50;">x</div>'
+    );
     const el = doc.getElementById('f') as HTMLElement;
     applyDarkModeToDocument(doc, 'full');
     expect(bgLightness(el)).toBeGreaterThan(0.5); // dark → light
@@ -318,7 +326,9 @@ describe('applyDarkModeToDocument (in-place, no reload)', () => {
   });
 
   it('is idempotent for a given mode', () => {
-    const doc = makeDoc('<div id="a" style="background-color: #ffffff;">x</div>');
+    const doc = makeDoc(
+      '<div id="a" style="background-color: #ffffff;">x</div>'
+    );
     const el = doc.getElementById('a') as HTMLElement;
     applyDarkModeToDocument(doc, 'full');
     const once = el.style.backgroundColor;

@@ -10,7 +10,6 @@ import { test, expect, Page, Locator } from '@playwright/test';
 
 const PROFILE = {
   employeeName: 'QA Droid',
-  jobTitle: 'Sales Associate',
   storeName: 'Test Store',
   storeLocation: 'the Test Outlets',
   storeAddress: '123 Test St, Austin, TX',

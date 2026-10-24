@@ -26,8 +26,8 @@ export interface SubjectLineInput {
   newsletterBody?: string;
   /**
    * Brand names to detect in promotion/newsletter copy so they can be featured
-   * in subjects. Supplied from the profile (signature brand links + company
-   * name). Defaults to none.
+   * in subjects. Supplied from the profile (brand keywords +
+   * company name). Defaults to none.
    */
   brandKeywords?: string[];
   /** Singular product noun used in subject copy (e.g. "watch"). Default "product". */
@@ -131,7 +131,7 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
   // Brand names are safe to read from prose; discount percentages are not (see
   // the SubjectLineInput.newsletterBody doc), so only `maxDiscount` below stays
   // scoped to structured promotion entries. Brand keywords come from the
-  // profile (signature brand links + company name); empty means none detected.
+  // profile (brand keywords + company name); empty means none detected.
   const brandKeywords = input.brandKeywords ?? [];
   const brandCorpus = [
     ...promotionEntries.map((e) => e.line || ''),

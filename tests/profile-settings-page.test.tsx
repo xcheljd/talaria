@@ -36,23 +36,6 @@ function renderPage(initialProfile?: Record<string, string>) {
   );
 }
 
-/**
- * Helper to select an option from a Radix shadcn Select component.
- * Radix Select renders both a hidden native select (with <option> elements)
- * and a portal-based listbox. This helper finds the correct option in the
- * portal (the last matching role="option").
- */
-async function selectOption(
-  user: ReturnType<typeof userEvent.setup>,
-  trigger: HTMLElement,
-  optionText: string
-) {
-  await user.click(trigger);
-  const options = await screen.findAllByRole('option', { name: optionText });
-  // Click the last match (the visible portal option, not the hidden native one)
-  await user.click(options[options.length - 1]);
-}
-
 // Tests
 
 describe('ProfileSettingsPage', () => {
@@ -72,15 +55,24 @@ describe('ProfileSettingsPage', () => {
 
     // Check all field labels (some appear in multiple elements)
     expect(screen.getAllByText(/Your Name/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Job Title/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/Job Title/)).toBeNull();
+    expect(screen.queryByText(/Company Email/)).toBeNull();
     expect(screen.getAllByText(/Store Name/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Store Location/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Store Address/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Google Plus Code/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Store Location/).length).toBeGreaterThanOrEqual(
+      1
+    );
+    expect(screen.getAllByText(/Store Address/).length).toBeGreaterThanOrEqual(
+      1
+    );
+    expect(
+      screen.getAllByText(/Google Plus Code/).length
+    ).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Store Phone/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Store Email/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Store Hours/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Store Directions/).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/Store Directions/).length
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('renders the preferences section with palette selectors', async () => {
@@ -100,50 +92,6 @@ describe('ProfileSettingsPage', () => {
     expect(screen.getByRole('button', { name: /Save/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Export/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Import/i })).toBeTruthy();
-  });
-
-  it('does not show company email field initially', () => {
-    renderPage();
-
-    // The Company Email label should NOT be present when no management title is selected
-    const companyEmailLabels = screen.queryAllByText(/^Company Email/);
-    expect(companyEmailLabels.length).toBe(0);
-  });
-
-  // Company Email Toggle
-
-  it('shows company email field when management title is selected', async () => {
-    const user = userEvent.setup();
-    renderPage();
-
-    const jobTitleTrigger = screen.getByRole('combobox', { name: /Job Title/i });
-    await selectOption(user, jobTitleTrigger, 'General Manager');
-
-    // Company email field should now be visible
-    await waitFor(() => {
-      const companyEmailLabels = screen.queryAllByText(/^Company Email/);
-      expect(companyEmailLabels.length).toBeGreaterThanOrEqual(1);
-    });
-  });
-
-  it('hides company email field when switching back to non-management title', async () => {
-    const user = userEvent.setup();
-    renderPage();
-
-    // First select a management title
-    const jobTitleTrigger = screen.getByRole('combobox', { name: /Job Title/i });
-    await selectOption(user, jobTitleTrigger, 'General Manager');
-
-    await waitFor(() => {
-      expect(screen.queryAllByText(/^Company Email/).length).toBeGreaterThanOrEqual(1);
-    });
-
-    // Then switch to non-management
-    await selectOption(user, jobTitleTrigger, 'Sales Associate');
-
-    await waitFor(() => {
-      expect(screen.queryAllByText(/^Company Email/).length).toBe(0);
-    });
   });
 
   // Validation
@@ -167,7 +115,6 @@ describe('ProfileSettingsPage', () => {
   it('pre-fills form with saved profile data', () => {
     renderPage({
       employeeName: 'John Smith',
-      jobTitle: 'Sales Associate',
       storeName: 'Acme Company Store - Orlando',
       storeLocation: 'the Orlando Premium Outlets',
       storePhone: '555-123-4567',
@@ -175,7 +122,9 @@ describe('ProfileSettingsPage', () => {
       storeHours: 'Mon-Sat: 10AM-8PM | Sun: 10AM-7PM',
     });
 
-    const nameInput = screen.getByPlaceholderText(/John Smith/i) as HTMLInputElement;
+    const nameInput = screen.getByPlaceholderText(
+      /John Smith/i
+    ) as HTMLInputElement;
     expect(nameInput.value).toBe('John Smith');
   });
 
@@ -189,17 +138,15 @@ describe('ProfileSettingsPage', () => {
     const nameInput = screen.getByPlaceholderText(/John Smith/i);
     await user.type(nameInput, 'Jane Doe');
 
-    // Select job title using helper
-    const jobTitleTrigger = screen.getByRole('combobox', { name: /Job Title/i });
-    await selectOption(user, jobTitleTrigger, 'Sales Associate');
-
     const companyNameInput = screen.getByPlaceholderText(/Acme Inc\./i);
     await user.type(companyNameInput, 'Acme Inc.');
 
     const storeNameInput = screen.getByPlaceholderText(/Acme Store - Orlando/i);
     await user.type(storeNameInput, 'Acme Store');
 
-    const storeLocationInput = screen.getByPlaceholderText(/the Downtown Shopping Center/i);
+    const storeLocationInput = screen.getByPlaceholderText(
+      /Downtown Shopping Center/i
+    );
     await user.type(storeLocationInput, 'the Mall');
 
     const storePhoneInput = screen.getByPlaceholderText(/555-123-4567/i);
@@ -234,7 +181,6 @@ describe('ProfileSettingsPage', () => {
 
     renderPage({
       employeeName: 'Test User',
-      jobTitle: 'Sales Associate',
       storeName: 'Test Store',
       storeLocation: 'the Test Location',
       storePhone: '5551234567',

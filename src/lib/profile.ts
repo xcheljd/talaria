@@ -8,8 +8,6 @@ import { StorageKeys } from '@/lib/storage-keys';
 /** User profile shape */
 export interface UserProfile {
   employeeName?: string;
-  jobTitle?: string;
-  companyEmail?: string;
   /** Parent company / brand name (e.g. "Acme Inc."). */
   companyName?: string;
   storeName?: string;
@@ -157,14 +155,6 @@ export function getStoreEmail(): string {
 }
 
 /**
- * Get company email with fallback default (empty string).
- */
-export function getCompanyEmail(): string {
-  const profile = getUserProfile();
-  return profile?.companyEmail || '';
-}
-
-/**
  * Get store hours with generic fallback default.
  */
 export function getStoreHours(): string {
@@ -226,14 +216,6 @@ export function getDirections(): string {
 export function getEmployeeName(): string {
   const profile = getUserProfile();
   return profile?.employeeName || 'Your Name';
-}
-
-/**
- * Get employee job title with fallback default.
- */
-export function getJobTitle(): string {
-  const profile = getUserProfile();
-  return profile?.jobTitle || 'Sales Associate';
 }
 
 /**

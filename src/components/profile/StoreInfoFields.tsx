@@ -35,8 +35,7 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
       <div className="col-span-1 lg:col-span-2">
         <h2 className="text-sm font-semibold">Brand Identity</h2>
         <p className="text-xs text-muted-foreground">
-          Your company name, what you sell, and the website links shown in your
-          email signature. These make every template yours.
+          Your company and store details. These make every email yours.
         </p>
       </div>
 
@@ -60,7 +59,8 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
               />
             </FormControl>
             <FormDescription>
-              Shown in email signatures and as the sender name in previews
+              First line of the email footer, sender name in the inbox preview,
+              and included in subject line suggestions
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -105,7 +105,7 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
             </FormLabel>
             <FormControl>
               <ClearableInput
-                placeholder="the Downtown Shopping Center"
+                placeholder="Downtown Shopping Center"
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
@@ -114,7 +114,8 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
               />
             </FormControl>
             <FormDescription>
-              Format: "the [Mall Name]" — Used in email signatures
+              The shopping center or mall your store is in. Shown on the second
+              line of the email footer
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -221,7 +222,8 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
               />
             </FormControl>
             <FormDescription>
-              Use your store email for non-management staff
+              Shown in the email footer and used as the From address on
+              downloaded drafts
             </FormDescription>
             <FormMessage />
           </FormItem>

@@ -9,14 +9,9 @@ const outDir = 'docs/screenshots';
 // the real builder instead of the redirect target.
 const DEMO_PROFILE = {
   employeeName: 'Alex Rivera',
-  // Must be one of JOB_TITLES (src/lib/profile-validation.ts) or the Settings
-  // select renders blank; "General Manager" is the closest store-manager role.
-  // It's a MANAGEMENT_TITLE, so companyEmail is required alongside it.
-  jobTitle: 'General Manager',
-  companyEmail: 'alex.rivera@solsticeoptics.example.com',
   companyName: 'Solstice Optics',
   storeName: 'Solstice Optics — Summerlin',
-  storeLocation: 'Summerlin, Las Vegas, NV',
+  storeLocation: 'Downtown Summerlin',
   storeAddress: '1980 Festival Plaza Dr, Las Vegas, NV 89135',
   storeDirections: 'Festival Plaza Dr, across from the Downtown Summerlin fountain',
   storePhone: '(702) 555-0187',

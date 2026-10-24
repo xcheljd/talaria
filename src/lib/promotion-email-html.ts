@@ -7,7 +7,8 @@
 import { sanitizeHTML, sanitizeRichHTML, escapeAttr } from './html-utils';
 import {
   getStorePhone,
-  getStoreName,
+  getCompanyName,
+  getStoreLocation,
   getStoreAddress,
   getStoreEmail,
   getStoreHours,
@@ -846,7 +847,12 @@ export function generatePromotionEmailHTML(data: PromotionEmailData): string {
   }
 
   // Store info
-  const storeNameFooter = sanitizeHTML(getStoreName().toUpperCase());
+  // Footer rows: company name, then the shopping center. Older profiles used
+  // the signature format "the [Mall Name]"; drop that leading "the".
+  const companyNameFooter = sanitizeHTML(getCompanyName().toUpperCase());
+  const storeLocationFooter = sanitizeHTML(
+    getStoreLocation().replace(/^the\s+/i, '')
+  );
   const rawAddress = getStoreAddress();
   const storeAddress = sanitizeHTML(rawAddress).replace(/\n/g, '<br>');
   const storeEmailRaw = getStoreEmail();
@@ -1015,7 +1021,12 @@ ${newsletterBottomHTML}
         <!-- FOOTER -->
         <tr>
             <td class="email-footer" style="background-color: ${pal.footerBg}; padding: 20px; text-align: center;">
-                <h3 style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 18px; margin: 0 0 10px 0;">${storeNameFooter}</h3>
+                <h3 style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 18px; margin: 0 0 4px 0;">${companyNameFooter}</h3>${
+                  storeLocationFooter
+                    ? `
+                <p style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 15px; margin: 0 0 10px 0;">${storeLocationFooter}</p>`
+                    : ''
+                }
                 <p style="color: ${pal.footerText}; font-family: 'Aptos Display', 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">
                     📍 <a href="${storeMapLink}" target="_blank" style="color: ${pal.footerText};">
                     ${storeAddress}</a>

@@ -9,11 +9,7 @@ import {
   validateEmail,
   validateStoreHours,
   validatePlusCode,
-  validateCompanyEmail,
-  requiresCompanyEmail,
   profileFormSchema,
-  JOB_TITLES,
-  MANAGEMENT_TITLES,
 } from '@/lib/profile-validation';
 
 // ─── validatePhone ────────────────────────────────────────────────────────────
@@ -180,75 +176,11 @@ describe('validatePlusCode', () => {
   });
 });
 
-// ─── validateCompanyEmail ─────────────────────────────────────────────────────
-
-describe('validateCompanyEmail', () => {
-  it('returns valid for non-management title regardless of email', () => {
-    const result = validateCompanyEmail(
-      'anything@gmail.com',
-      'Sales Associate'
-    );
-    expect(result.isValid).toBe(true);
-    expect(result.error).toBeNull();
-  });
-
-  it('returns invalid when management title and no email', () => {
-    const result = validateCompanyEmail('', 'General Manager');
-    expect(result.isValid).toBe(false);
-    expect(result.error).toBe(
-      'Company email is required for management positions'
-    );
-  });
-
-  it('returns valid for management title with any valid email domain', () => {
-    expect(
-      validateCompanyEmail('name@acme.com', 'General Manager').isValid
-    ).toBe(true);
-    expect(
-      validateCompanyEmail('personal@gmail.com', 'General Manager').isValid
-    ).toBe(true);
-  });
-
-  it('returns invalid for malformed email with management title', () => {
-    const result = validateCompanyEmail('invalid', 'General Manager');
-    expect(result.isValid).toBe(false);
-    expect(result.error).toBe('Invalid email format');
-  });
-
-  it('checks all management titles', () => {
-    MANAGEMENT_TITLES.forEach((title) => {
-      const result = validateCompanyEmail('', title);
-      expect(result.isValid).toBe(false);
-    });
-  });
-});
-
-// ─── requiresCompanyEmail ─────────────────────────────────────────────────────
-
-describe('requiresCompanyEmail', () => {
-  it('returns true for management titles', () => {
-    expect(requiresCompanyEmail('General Manager')).toBe(true);
-    expect(requiresCompanyEmail('Assistant Store Manager')).toBe(true);
-    expect(requiresCompanyEmail('Associate Store Manager')).toBe(true);
-    expect(requiresCompanyEmail('Area Manager')).toBe(true);
-    expect(requiresCompanyEmail('Regional Manager')).toBe(true);
-    expect(requiresCompanyEmail('District Manager')).toBe(true);
-  });
-
-  it('returns false for non-management titles', () => {
-    expect(requiresCompanyEmail('Sales Associate')).toBe(false);
-    expect(requiresCompanyEmail('Sales Associate/Keyholder')).toBe(false);
-    expect(requiresCompanyEmail('')).toBe(false);
-  });
-});
-
 // ─── Zod Schema Validation ───────────────────────────────────────────────────
 
 describe('profileFormSchema', () => {
   const validData = {
     employeeName: 'John Smith',
-    jobTitle: 'Sales Associate',
-    companyEmail: '',
     companyName: 'Acme Inc.',
     storeName: 'Acme Downtown',
     storeLocation: 'the Downtown Shopping Center',
@@ -273,14 +205,6 @@ describe('profileFormSchema', () => {
     const result = profileFormSchema.safeParse({
       ...validData,
       employeeName: '',
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects missing job title', () => {
-    const result = profileFormSchema.safeParse({
-      ...validData,
-      jobTitle: '',
     });
     expect(result.success).toBe(false);
   });
@@ -333,67 +257,11 @@ describe('profileFormSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('requires company email for management titles', () => {
-    const result = profileFormSchema.safeParse({
-      ...validData,
-      jobTitle: 'General Manager',
-      companyEmail: '',
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects malformed company email for management', () => {
-    const result = profileFormSchema.safeParse({
-      ...validData,
-      jobTitle: 'General Manager',
-      companyEmail: 'not-an-email',
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it('accepts any valid company email domain for management', () => {
-    expect(
-      profileFormSchema.safeParse({
-        ...validData,
-        jobTitle: 'General Manager',
-        companyEmail: 'name@acme.com',
-      }).success
-    ).toBe(true);
-    expect(
-      profileFormSchema.safeParse({
-        ...validData,
-        jobTitle: 'General Manager',
-        companyEmail: 'name@gmail.com',
-      }).success
-    ).toBe(true);
-  });
-
   it('rejects missing company name', () => {
     const result = profileFormSchema.safeParse({
       ...validData,
       companyName: '',
     });
     expect(result.success).toBe(false);
-  });
-
-  it('ignores company email for non-management', () => {
-    const result = profileFormSchema.safeParse({
-      ...validData,
-      jobTitle: 'Sales Associate',
-      companyEmail: '',
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it('JOB_TITLES contains expected titles', () => {
-    expect(JOB_TITLES).toContain('Sales Associate');
-    expect(JOB_TITLES).toContain('General Manager');
-    expect(JOB_TITLES.length).toBe(8);
-  });
-
-  it('MANAGEMENT_TITLES contains expected titles', () => {
-    expect(MANAGEMENT_TITLES).toContain('General Manager');
-    expect(MANAGEMENT_TITLES).toContain('Assistant Store Manager');
-    expect(MANAGEMENT_TITLES.length).toBe(6);
   });
 });

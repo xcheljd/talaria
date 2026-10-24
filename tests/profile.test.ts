@@ -8,12 +8,10 @@ import {
   getFullStoreLocation,
   getStoreAddress,
   getStoreEmail,
-  getCompanyEmail,
   getStoreHours,
   getStorePlusCode,
   getDirections,
   getEmployeeName,
-  getJobTitle,
   hasProfile,
   type UserProfile,
 } from '../src/lib/profile';
@@ -31,7 +29,6 @@ describe('profile', () => {
     it('saves and retrieves a profile', () => {
       const profile: UserProfile = {
         employeeName: 'John Doe',
-        jobTitle: 'Sales Associate',
         storeName: 'My Store',
         storePhone: '555-1234',
       };
@@ -39,7 +36,6 @@ describe('profile', () => {
       const retrieved = getUserProfile();
       expect(retrieved).not.toBeNull();
       expect(retrieved!.employeeName).toBe('John Doe');
-      expect(retrieved!.jobTitle).toBe('Sales Associate');
     });
 
     it('overwrites existing profile', () => {
@@ -121,17 +117,6 @@ describe('profile', () => {
     });
   });
 
-  describe('getCompanyEmail', () => {
-    it('returns stored company email', () => {
-      saveUserProfile({ companyEmail: 'admin@company.com' });
-      expect(getCompanyEmail()).toBe('admin@company.com');
-    });
-
-    it('returns empty string when no profile', () => {
-      expect(getCompanyEmail()).toBe('');
-    });
-  });
-
   describe('getStoreHours', () => {
     it('returns stored hours', () => {
       saveUserProfile({ storeHours: '9-5 daily' });
@@ -173,17 +158,6 @@ describe('profile', () => {
 
     it('returns default when no profile', () => {
       expect(getEmployeeName()).toBe('Your Name');
-    });
-  });
-
-  describe('getJobTitle', () => {
-    it('returns stored title', () => {
-      saveUserProfile({ jobTitle: 'General Manager' });
-      expect(getJobTitle()).toBe('General Manager');
-    });
-
-    it('returns default when no profile', () => {
-      expect(getJobTitle()).toBe('Sales Associate');
     });
   });
 

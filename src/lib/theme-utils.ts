@@ -57,7 +57,7 @@ export const DARK_PALETTE_LABELS: Record<string, string> = {
  * iframe) is currently in dark mode, based on its `data-theme` attribute.
  *
  * Returns false in non-browser environments or when no parent document is
- * accessible (e.g. tests, SSR). Email preview / signature renderers use this
+ * accessible (e.g. tests, SSR). Email preview renderers use this
  * to swap their preview colors when the host UI is dark.
  */
 export function isIframePreviewDarkMode(): boolean {

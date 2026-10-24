@@ -250,3 +250,61 @@ describe('newsletter heading alignment', () => {
     expect(html).toMatch(/<h2 style="[^"]*">Fall News<\/h2>/);
   });
 });
+
+describe('email footer: company name, then shopping center', () => {
+  const footer = (html: string) =>
+    html.slice(
+      html.indexOf('class="email-footer"'),
+      html.indexOf('<!-- UNSUBSCRIBE')
+    );
+
+  it('shows the company name first and the store location second', () => {
+    localStorage.setItem(
+      'userProfile',
+      JSON.stringify({
+        companyName: 'Solstice Optics',
+        storeName: 'Solstice Optics — Summerlin',
+        storeLocation: 'Downtown Summerlin',
+      })
+    );
+    const f = footer(generatePromotionEmailHTML(makeEmailData('')));
+    expect(f).toContain('SOLSTICE OPTICS</h3>');
+    expect(f).toContain('>Downtown Summerlin</p>');
+    expect(f.indexOf('SOLSTICE OPTICS')).toBeLessThan(
+      f.indexOf('Downtown Summerlin')
+    );
+    expect(f).not.toContain('SUMMERLIN</h3>');
+    localStorage.clear();
+  });
+
+  it('drops a leading "the" from old-format locations and skips an empty one', () => {
+    localStorage.setItem(
+      'userProfile',
+      JSON.stringify({
+        companyName: 'Acme',
+        storeLocation: 'the Orlando Outlets',
+      })
+    );
+    expect(footer(generatePromotionEmailHTML(makeEmailData('')))).toContain(
+      '>Orlando Outlets</p>'
+    );
+    localStorage.setItem(
+      'userProfile',
+      JSON.stringify({ companyName: 'Acme' })
+    );
+    const f = footer(generatePromotionEmailHTML(makeEmailData('')));
+    expect(f).toContain('ACME</h3>\n                <p');
+    expect(f).not.toMatch(/margin: 0 0 10px 0;">\s*<\/p>/);
+    localStorage.clear();
+  });
+
+  it('escapes the store location', () => {
+    localStorage.setItem(
+      'userProfile',
+      JSON.stringify({ companyName: 'Acme', storeLocation: '<b>Mall</b>' })
+    );
+    const f = footer(generatePromotionEmailHTML(makeEmailData('')));
+    expect(f).not.toContain('<b>Mall</b>');
+    localStorage.clear();
+  });
+});

@@ -13,8 +13,6 @@ import {
   getStoreName as getStoreNameUtil,
   getStoreLocation as getStoreLocationUtil,
   getEmployeeName as getEmployeeNameUtil,
-  getJobTitle as getJobTitleUtil,
-  getCompanyEmail as getCompanyEmailUtil,
   getStoreEmail as getStoreEmailUtil,
   getCompanyName as getCompanyNameUtil,
   getProductNoun as getProductNounUtil,
@@ -170,22 +168,6 @@ export function useEmployeeName(): string {
 }
 
 /**
- * Get employee job title with fallback default.
- */
-export function useJobTitle(): string {
-  const { profile } = useProfileContext();
-  return profile?.jobTitle || 'Sales Associate';
-}
-
-/**
- * Get company email with fallback (empty string).
- */
-export function useCompanyEmail(): string {
-  const { profile } = useProfileContext();
-  return profile?.companyEmail || '';
-}
-
-/**
  * Get store email (empty when unset).
  */
 export function useStoreEmail(): string {
@@ -207,8 +189,6 @@ export {
   getStoreNameUtil as getStoreName,
   getStoreLocationUtil as getStoreLocation,
   getEmployeeNameUtil as getEmployeeName,
-  getJobTitleUtil as getJobTitle,
-  getCompanyEmailUtil as getCompanyEmail,
   getStoreEmailUtil as getStoreEmail,
   getCompanyNameUtil as getCompanyName,
   getProductNounUtil as getProductNoun,

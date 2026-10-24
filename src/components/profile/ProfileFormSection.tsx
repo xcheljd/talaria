@@ -1,7 +1,7 @@
 /**
  * ProfileFormSection — the "Profile" sidebar section's form fields.
  *
- * Who you are (name, job title, company email for management titles), the
+ * Who you are (your name), the
  * brand identity block (StoreInfoFields), and what you sell. Rendered
  * inside the shared <Form>/<form>
  * element owned by ProfileSettingsPage.
@@ -9,15 +9,8 @@
 
 import type { UseFormReturn } from 'react-hook-form';
 
-import { type ProfileFormValues, JOB_TITLES } from '@/lib/profile-validation';
+import type { ProfileFormValues } from '@/lib/profile-validation';
 import { ClearableInput } from '@/components/ui/clearable-input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import {
   FormControl,
@@ -31,13 +24,9 @@ import { StoreInfoFields } from '@/components/profile/StoreInfoFields';
 
 interface ProfileFormSectionProps {
   form: UseFormReturn<ProfileFormValues>;
-  showCompanyEmail: boolean;
 }
 
-export function ProfileFormSection({
-  form,
-  showCompanyEmail,
-}: ProfileFormSectionProps) {
+export function ProfileFormSection({ form }: ProfileFormSectionProps) {
   return (
     <div className="grid grid-cols-1 gap-4 rounded-lg border bg-card p-4 lg:grid-cols-2">
       {/* Employee Name */}
@@ -63,69 +52,6 @@ export function ProfileFormSection({
           </FormItem>
         )}
       />
-
-      {/* Job Title */}
-      <FormField
-        control={form.control}
-        name="jobTitle"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              Job Title <span className="text-destructive-text">*</span>
-            </FormLabel>
-            <Select
-              onValueChange={field.onChange}
-              defaultValue={field.value}
-              value={field.value}
-            >
-              <FormControl>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select your job title..." />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {JOB_TITLES.map((title) => (
-                  <SelectItem key={title} value={title}>
-                    {title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Company Email (conditional) */}
-      {showCompanyEmail && (
-        <FormField
-          control={form.control}
-          name="companyEmail"
-          render={({ field }) => (
-            <FormItem className="col-span-1 lg:col-span-2">
-              <FormLabel>
-                Company Email <span className="text-destructive-text">*</span>
-              </FormLabel>
-              <FormControl>
-                <ClearableInput
-                  type="email"
-                  placeholder="your.name@company.com"
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  name={field.name}
-                  ref={field.ref}
-                />
-              </FormControl>
-              <FormDescription>
-                Required for management positions — Used in email signatures for
-                managers and above
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
 
       <StoreInfoFields form={form} />
 

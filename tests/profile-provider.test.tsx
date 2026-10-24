@@ -8,8 +8,6 @@ import {
   useStoreName,
   useStoreLocation,
   useEmployeeName,
-  useJobTitle,
-  useCompanyEmail,
   useStoreEmail,
   useHasProfile,
 } from '../src/contexts/ProfileProvider';
@@ -40,16 +38,6 @@ function StoreLocationConsumer() {
 function EmployeeNameConsumer() {
   const name = useEmployeeName();
   return <span data-testid="employee-name">{name}</span>;
-}
-
-function JobTitleConsumer() {
-  const title = useJobTitle();
-  return <span data-testid="job-title">{title}</span>;
-}
-
-function CompanyEmailConsumer() {
-  const email = useCompanyEmail();
-  return <span data-testid="company-email">{email}</span>;
 }
 
 function StoreEmailConsumer() {
@@ -89,8 +77,6 @@ function AllHooksConsumer() {
       <StoreNameConsumer />
       <StoreLocationConsumer />
       <EmployeeNameConsumer />
-      <JobTitleConsumer />
-      <CompanyEmailConsumer />
       <StoreEmailConsumer />
       <HasProfileConsumer />
     </div>
@@ -116,7 +102,6 @@ describe('ProfileProvider', () => {
   it('loads saved profile from localStorage', () => {
     const profile: UserProfile = {
       employeeName: 'John Doe',
-      jobTitle: 'Sales Associate',
       storePhone: '555-1234',
     };
     localStorage.setItem('userProfile', JSON.stringify(profile));
@@ -129,7 +114,6 @@ describe('ProfileProvider', () => {
 
     const rendered = JSON.parse(screen.getByTestId('profile').textContent!);
     expect(rendered.employeeName).toBe('John Doe');
-    expect(rendered.jobTitle).toBe('Sales Associate');
     expect(rendered.storePhone).toBe('555-1234');
   });
 
@@ -139,7 +123,9 @@ describe('ProfileProvider', () => {
       return (
         <div>
           <span data-testid="profile">{JSON.stringify(profile)}</span>
-          <SaveButton profile={{ employeeName: 'Jane', storePhone: '555-9999' }} />
+          <SaveButton
+            profile={{ employeeName: 'Jane', storePhone: '555-9999' }}
+          />
         </div>
       );
     }
@@ -183,7 +169,9 @@ describe('ProfileProvider', () => {
     );
 
     // Profile should be loaded
-    expect(JSON.parse(screen.getByTestId('profile').textContent!).employeeName).toBe('Existing');
+    expect(
+      JSON.parse(screen.getByTestId('profile').textContent!).employeeName
+    ).toBe('Existing');
 
     await userEvent.click(screen.getByTestId('clear-btn'));
 
@@ -385,56 +373,6 @@ describe('Profile convenience hooks', () => {
     });
   });
 
-  describe('useJobTitle', () => {
-    it('returns default when no profile', () => {
-      render(
-        <ProfileProvider>
-          <JobTitleConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('job-title').textContent).toBe('Sales Associate');
-    });
-
-    it('returns stored title', () => {
-      localStorage.setItem(
-        'userProfile',
-        JSON.stringify({ jobTitle: 'General Manager' })
-      );
-      render(
-        <ProfileProvider>
-          <JobTitleConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('job-title').textContent).toBe('General Manager');
-    });
-  });
-
-  describe('useCompanyEmail', () => {
-    it('returns empty string when no profile', () => {
-      render(
-        <ProfileProvider>
-          <CompanyEmailConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('company-email').textContent).toBe('');
-    });
-
-    it('returns stored company email', () => {
-      localStorage.setItem(
-        'userProfile',
-        JSON.stringify({ companyEmail: 'admin@company.com' })
-      );
-      render(
-        <ProfileProvider>
-          <CompanyEmailConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('company-email').textContent).toBe(
-        'admin@company.com'
-      );
-    });
-  });
-
   describe('useStoreEmail', () => {
     it('returns empty string when no profile', () => {
       render(
@@ -546,11 +484,9 @@ describe('All profile hooks together', () => {
             onClick={() =>
               saveProfile({
                 employeeName: 'John Doe',
-                jobTitle: 'General Manager',
                 storePhone: '555-1234',
                 storeName: 'My Store',
                 storeLocation: 'the North Mall',
-                companyEmail: 'john@company.com',
                 storeEmail: 'store@company.com',
               })
             }
@@ -572,8 +508,6 @@ describe('All profile hooks together', () => {
     expect(screen.getByTestId('store-name').textContent).toBe('Your Store');
     expect(screen.getByTestId('location').textContent).toBe('');
     expect(screen.getByTestId('employee-name').textContent).toBe('Your Name');
-    expect(screen.getByTestId('job-title').textContent).toBe('Sales Associate');
-    expect(screen.getByTestId('company-email').textContent).toBe('');
     expect(screen.getByTestId('store-email').textContent).toBe('');
     expect(screen.getByTestId('has-profile').textContent).toBe('false');
 
@@ -584,9 +518,9 @@ describe('All profile hooks together', () => {
     expect(screen.getByTestId('store-name').textContent).toBe('My Store');
     expect(screen.getByTestId('location').textContent).toBe('the North Mall');
     expect(screen.getByTestId('employee-name').textContent).toBe('John Doe');
-    expect(screen.getByTestId('job-title').textContent).toBe('General Manager');
-    expect(screen.getByTestId('company-email').textContent).toBe('john@company.com');
-    expect(screen.getByTestId('store-email').textContent).toBe('store@company.com');
+    expect(screen.getByTestId('store-email').textContent).toBe(
+      'store@company.com'
+    );
     expect(screen.getByTestId('has-profile').textContent).toBe('true');
   });
 });
@@ -627,6 +561,8 @@ describe('ProfileProvider re-render behavior', () => {
 
     await userEvent.click(screen.getByTestId('reload-btn'));
 
-    expect(JSON.parse(screen.getByTestId('profile').textContent!).employeeName).toBe('External User');
+    expect(
+      JSON.parse(screen.getByTestId('profile').textContent!).employeeName
+    ).toBe('External User');
   });
 });

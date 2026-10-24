@@ -18,7 +18,10 @@ import {
   generatePromotionEmailHTML,
   type PromotionEmailData,
 } from '@/lib/promotion-email-html';
-import { buildExportConfig, validateImportConfig } from '@/lib/promotion-config';
+import {
+  buildExportConfig,
+  validateImportConfig,
+} from '@/lib/promotion-config';
 
 // Mock the db module
 vi.mock('@/lib/db', () => ({
@@ -33,6 +36,8 @@ vi.mock('@/lib/db', () => ({
 vi.mock('@/lib/profile', () => ({
   getStorePhone: vi.fn().mockReturnValue('555-123-4567'),
   getStoreName: vi.fn().mockReturnValue('Test Store'),
+  getCompanyName: vi.fn().mockReturnValue('Test Co'),
+  getStoreLocation: vi.fn().mockReturnValue('Test Mall'),
   getStoreEmail: vi.fn().mockReturnValue('store@example.com'),
   getStoreAddress: vi.fn().mockReturnValue('123 Test St'),
   getStoreHours: vi.fn().mockReturnValue('Mon-Sat 10AM-8PM'),
@@ -218,10 +223,7 @@ describe('newsletter style - store actions', () => {
         headingAlign: 'center',
       },
     };
-    localStorage.setItem(
-      'promotionBuilderState',
-      JSON.stringify(savedData)
-    );
+    localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
     const store = getFreshStore();
     await store.restoreState();
@@ -244,10 +246,7 @@ describe('newsletter style - store actions', () => {
       generatedSubjectLines: [],
       selectedSubjectLine: null,
     };
-    localStorage.setItem(
-      'promotionBuilderState',
-      JSON.stringify(savedData)
-    );
+    localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
     const store = getFreshStore();
     await store.restoreState();

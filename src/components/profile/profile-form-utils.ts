@@ -36,8 +36,6 @@ export async function exportProfileJson(
     exportDate: new Date().toISOString(),
     profile: {
       employeeName: values.employeeName?.trim() || '',
-      jobTitle: values.jobTitle?.trim() || '',
-      companyEmail: values.companyEmail?.trim() || '',
       companyName: values.companyName?.trim() || '',
       storeName: values.storeName?.trim() || '',
       storeLocation: values.storeLocation?.trim() || '',

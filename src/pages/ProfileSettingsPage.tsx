@@ -33,7 +33,6 @@ import { useTauri } from '@/hooks/useTauri';
 import {
   profileFormSchema,
   type ProfileFormValues,
-  requiresCompanyEmail,
   validatePhone,
   DEFAULT_STORE_HOURS,
 } from '@/lib/profile-validation';
@@ -85,8 +84,6 @@ export function ProfileSettingsPage() {
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       employeeName: profile?.employeeName || '',
-      jobTitle: profile?.jobTitle || '',
-      companyEmail: profile?.companyEmail || '',
       companyName: profile?.companyName || '',
       storeName: profile?.storeName || '',
       storeLocation: profile?.storeLocation || '',
@@ -102,9 +99,6 @@ export function ProfileSettingsPage() {
       collectionKeywords: (profile?.collectionKeywords ?? []).join(', '),
     },
   });
-
-  const jobTitle = form.watch('jobTitle');
-  const showCompanyEmail = requiresCompanyEmail(jobTitle);
 
   // ─── Save Handler ─────────────────────────────────────────────────────────
 
@@ -331,12 +325,7 @@ export function ProfileSettingsPage() {
                     )}
 
                   {/* Profile fields */}
-                  {section === 'profile' && (
-                    <ProfileFormSection
-                      form={form}
-                      showCompanyEmail={showCompanyEmail}
-                    />
-                  )}
+                  {section === 'profile' && <ProfileFormSection form={form} />}
 
                   {/* Keywords fields */}
                   {section === 'keywords' && (

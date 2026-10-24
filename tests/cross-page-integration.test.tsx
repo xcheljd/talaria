@@ -55,8 +55,6 @@ beforeAll(() => {
 
 const MANAGEMENT_PROFILE: UserProfile = {
   employeeName: 'Alice Manager',
-  jobTitle: 'General Manager',
-  companyEmail: 'alice.manager@acme.com',
   storeName: 'Acme Store - Orlando',
   storeLocation: 'the Orlando Premium Outlets',
   storeAddress: '4950 International Dr, Orlando, FL 32819',
@@ -216,7 +214,6 @@ describe('VAL-CROSS-006: XSS prevention in generated content', () => {
   it('promotion email HTML escapes all fields to prevent XSS', () => {
     const xssProfile: UserProfile = {
       employeeName: '<script>alert("name")</script>',
-      jobTitle: 'Sales Associate',
       storeName: 'Store',
       storeLocation: 'Test Location',
       storeAddress: '<script>alert("addr")</script>',
@@ -312,7 +309,6 @@ describe('VAL-CROSS-001: Complete user flow — profile setup', () => {
     // Simulate saving a profile
     const profile: UserProfile = {
       employeeName: 'Jane Smith',
-      jobTitle: 'Sales Associate',
       storeName: 'Acme Store - Test',
       storeLocation: 'the Test Outlet Mall',
       storeAddress: '100 Test St, Test City, TS 12345',
