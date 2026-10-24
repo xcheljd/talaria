@@ -795,94 +795,32 @@ export const usePromotionStore = create<PromotionState>((set, get) => ({
   initializeDefaultItems: () => {
     const state = get();
 
-    // Only populate defaults when arrays are empty (i.e., no saved state)
+    // A fresh build starts with ONLY the profile-linked lines (store phone /
+    // email in How to Shop, directions in Important Notes) — each dropped when
+    // its profile field is empty. Brand-specific text lines live in saved
+    // sets (stores/saved-sets-store.ts) the user loads on purpose.
     const updates: Partial<PromotionState> = {};
-
-    if (state.howToShopItems.length === 0) {
-      // Fixed seed order; auto lines carry an `autoField` and are dropped when
-      // their profile field is empty, so an unset store phone/email never
-      // produces a blank entry.
-      const seed: Array<
-        { text: string } | { autoField: 'storeEmail' | 'storePhone' }
-      > = [
-        { text: 'Visit us in-store for outlet-exclusive deals' },
-        { autoField: 'storePhone' },
-        { text: '$20 flat-rate ground shipping in US' },
-        { autoField: 'storeEmail' },
-      ];
-
-      updates.howToShopItems = seed.flatMap((entry) => {
-        const base = {
-          id: generateId(),
-          bold: false,
-          italic: false,
-          underline: false,
-        };
-        if ('text' in entry) return [{ ...base, text: entry.text }];
-        const { getValue, render } = AUTO_LINE_CONFIG[entry.autoField];
-        const value = getValue();
+    const linked = (fields: AutoField[]) =>
+      fields.flatMap((field) => {
+        const value = AUTO_LINE_CONFIG[field].getValue();
         if (!value.trim()) return [];
-        return [{ ...base, text: render(value), autoField: entry.autoField }];
-      });
-    }
-
-    if (state.importantNotesItems.length === 0) {
-      const defaultNotes: ImportantNotesItem[] = [
-        {
-          id: generateId(),
-          text: '*Select models only',
-          bold: false,
-          italic: false,
-          underline: false,
-        },
-        {
-          id: generateId(),
-          text: 'See attached PDF for complete model details',
-          bold: false,
-          italic: false,
-          underline: false,
-        },
-        {
-          id: generateId(),
-          text: 'Limited availability - while supplies last',
-          bold: false,
-          italic: false,
-          underline: false,
-        },
-        {
-          id: generateId(),
-          text: 'Email response time up to 48 hours',
-          bold: false,
-          italic: false,
-          underline: false,
-        },
-      ];
-
-      // Add store directions note if available. Tagged storeDirections so it
-      // follows the profile like the How-to-Shop contact lines do.
-      const directions = getDirections().trim();
-      if (directions) {
-        const directionsLower = directions.toLowerCase();
-        const hasDirectionsNote = defaultNotes.some(
-          (item) =>
-            item.text.toLowerCase().includes(directionsLower) ||
-            item.text.toLowerCase().includes('find us at') ||
-            item.text.toLowerCase().includes('directions')
-        );
-
-        if (!hasDirectionsNote) {
-          defaultNotes.push({
+        return [
+          {
             id: generateId(),
-            text: autoLineText('storeDirections'),
+            text: autoLineText(field),
             bold: false,
             italic: false,
             underline: false,
-            autoField: 'storeDirections',
-          });
-        }
-      }
+            autoField: field,
+          },
+        ];
+      });
 
-      updates.importantNotesItems = defaultNotes;
+    if (state.howToShopItems.length === 0) {
+      updates.howToShopItems = linked(['storePhone', 'storeEmail']);
+    }
+    if (state.importantNotesItems.length === 0) {
+      updates.importantNotesItems = linked(['storeDirections']);
     }
 
     if (Object.keys(updates).length > 0) {

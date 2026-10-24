@@ -1113,7 +1113,9 @@ describe('promotion store', () => {
 
       const state = getFreshStore();
       expect(state.attachedPDFs).toHaveLength(1);
-      expect(state.attachedPDFs[0].data).toBe('data:application/pdf;base64,legacy');
+      expect(state.attachedPDFs[0].data).toBe(
+        'data:application/pdf;base64,legacy'
+      );
       expect(state.pdfRestoreWarning).toBe(false);
     });
 
@@ -1141,10 +1143,7 @@ describe('promotion store', () => {
           footerText: 'white',
         },
       };
-      localStorage.setItem(
-        'promotionBuilderState',
-        JSON.stringify(savedData)
-      );
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
       await store.restoreState();
@@ -1184,10 +1183,7 @@ describe('promotion store', () => {
           tableHeaderBg: null,
         },
       };
-      localStorage.setItem(
-        'promotionBuilderState',
-        JSON.stringify(savedData)
-      );
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
       await store.restoreState();
@@ -1239,10 +1235,7 @@ describe('promotion store', () => {
           footerText: '#aaaaaa',
         },
       };
-      localStorage.setItem(
-        'promotionBuilderState',
-        JSON.stringify(savedData)
-      );
+      localStorage.setItem('promotionBuilderState', JSON.stringify(savedData));
 
       const store = getFreshStore();
       await store.restoreState();
@@ -1481,46 +1474,23 @@ describe('promotion store', () => {
   // ===== Default Items Initialization =====
 
   describe('initializeDefaultItems', () => {
-    it('populates 4 default How to Shop items when array is empty', () => {
+    it('seeds only the linked phone and email lines into How to Shop', () => {
       const store = getFreshStore();
       expect(store.howToShopItems).toHaveLength(0);
 
       store.initializeDefaultItems();
 
       const state = getFreshStore();
-      expect(state.howToShopItems).toHaveLength(4);
-      expect(state.howToShopItems[0].text).toBe(
-        'Visit us in-store for outlet-exclusive deals'
-      );
-      expect(state.howToShopItems[1].text).toBe(
-        'Call 702-555-0190 for availability'
-      );
-      expect(state.howToShopItems[2].text).toBe(
-        '$20 flat-rate ground shipping in US'
-      );
-      expect(state.howToShopItems[3].text).toBe(
-        'Email store@example.com'
-      );
+      expect(state.howToShopItems.map((i) => i.text)).toEqual([
+        'Call 702-555-0190 for availability',
+        'Email store@example.com',
+      ]);
     });
 
-    it('populates 4 default Important Notes items when array is empty', () => {
+    it('seeds nothing into Important Notes when there are no directions', () => {
       const store = getFreshStore();
-      expect(store.importantNotesItems).toHaveLength(0);
-
       store.initializeDefaultItems();
-
-      const state = getFreshStore();
-      expect(state.importantNotesItems).toHaveLength(4);
-      expect(state.importantNotesItems[0].text).toBe('*Select models only');
-      expect(state.importantNotesItems[1].text).toBe(
-        'See attached PDF for complete model details'
-      );
-      expect(state.importantNotesItems[2].text).toBe(
-        'Limited availability - while supplies last'
-      );
-      expect(state.importantNotesItems[3].text).toBe(
-        'Email response time up to 48 hours'
-      );
+      expect(getFreshStore().importantNotesItems).toEqual([]);
     });
 
     it('uses profile storePhone in How to Shop items', () => {
@@ -1530,7 +1500,7 @@ describe('promotion store', () => {
       store.initializeDefaultItems();
 
       const state = getFreshStore();
-      expect(state.howToShopItems[1].text).toBe(
+      expect(state.howToShopItems[0].text).toBe(
         'Call 555-123-4567 for availability'
       );
     });
@@ -1542,7 +1512,7 @@ describe('promotion store', () => {
       store.initializeDefaultItems();
 
       const state = getFreshStore();
-      expect(state.howToShopItems[3].text).toBe('Email custom@store.com');
+      expect(state.howToShopItems[1].text).toBe('Email custom@store.com');
     });
 
     it('adds store directions note to Important Notes when available', () => {
@@ -1552,10 +1522,9 @@ describe('promotion store', () => {
       store.initializeDefaultItems();
 
       const state = getFreshStore();
-      expect(state.importantNotesItems).toHaveLength(5);
-      expect(state.importantNotesItems[4].text).toBe(
-        'Find us at 123 Main St, Austin'
-      );
+      expect(state.importantNotesItems.map((i) => i.text)).toEqual([
+        'Find us at 123 Main St, Austin',
+      ]);
     });
 
     it('does not add duplicate directions note', () => {
@@ -1645,20 +1614,15 @@ describe('promotion store', () => {
       expect(state.importantNotesItems[0].bold).toBe(true);
     });
 
-    it('populates defaults when IndexedDB has no saved items', async () => {
-      // Ensure directions mock returns empty string (no directions)
+    it('populates the linked lines when there is no saved state', async () => {
       vi.mocked(getDirections).mockReturnValue('');
-
-      // Empty localStorage = no saved state
       const store = getFreshStore();
       await store.restoreState();
-
-      // After load, arrays are empty - defaults should populate
       store.initializeDefaultItems();
 
       const state = getFreshStore();
-      expect(state.howToShopItems).toHaveLength(4);
-      expect(state.importantNotesItems).toHaveLength(4);
+      expect(state.howToShopItems).toHaveLength(2);
+      expect(state.importantNotesItems).toHaveLength(0);
     });
 
     it('creates items with unique IDs', () => {
@@ -1694,28 +1658,25 @@ describe('promotion store', () => {
       vi.mocked(getStoreEmail).mockReturnValue('store@acme.com');
       vi.mocked(getStorePhone).mockReturnValue('555-0100');
       expect(autoLineText('storeEmail')).toBe('Email store@acme.com');
-      expect(autoLineText('storePhone')).toBe(
-        'Call 555-0100 for availability'
-      );
+      expect(autoLineText('storePhone')).toBe('Call 555-0100 for availability');
     });
 
     it('tags the generated Email and Call default lines', () => {
       const store = getFreshStore();
       store.initializeDefaultItems();
       const items = getFreshStore().howToShopItems;
-      expect(items[1].autoField).toBe('storePhone');
-      expect(items[3].autoField).toBe('storeEmail');
-      // Non-contact defaults stay untagged.
-      expect(items[0].autoField).toBeUndefined();
-      expect(items[2].autoField).toBeUndefined();
+      expect(items.map((i) => i.autoField)).toEqual([
+        'storePhone',
+        'storeEmail',
+      ]);
     });
 
     it('clears the tag when a line is manually edited', () => {
       const store = getFreshStore();
       store.initializeDefaultItems();
-      const emailId = getFreshStore().howToShopItems[3].id;
+      const emailId = getFreshStore().howToShopItems[1].id;
       store.updateHowToShopItem(emailId, 'Email me anytime');
-      const edited = getFreshStore().howToShopItems[3];
+      const edited = getFreshStore().howToShopItems[1];
       expect(edited.text).toBe('Email me anytime');
       expect(edited.autoField).toBeUndefined();
     });
@@ -1846,11 +1807,8 @@ describe('promotion store', () => {
       vi.mocked(getStorePhone).mockReturnValue('');
       const store = getFreshStore();
       store.initializeDefaultItems();
-      const items = getFreshStore().howToShopItems;
-      // Only the two non-contact defaults remain; no blank Email/Call line.
-      expect(items).toHaveLength(2);
-      expect(items.some((i) => i.autoField)).toBe(false);
-      // Restore non-empty defaults so later tests see a populated profile.
+      // No blank Email/Call line — How to Shop starts empty.
+      expect(getFreshStore().howToShopItems).toEqual([]);
       vi.mocked(getStoreEmail).mockReturnValue('store@example.com');
       vi.mocked(getStorePhone).mockReturnValue('702-555-0190');
     });
@@ -1931,9 +1889,7 @@ describe('promotion store', () => {
       vi.mocked(getDirections).mockReturnValue('');
       const store = getFreshStore();
       store.initializeDefaultItems();
-      const notes = getFreshStore().importantNotesItems;
-      expect(notes).toHaveLength(4);
-      expect(notes.some((n) => n.autoField)).toBe(false);
+      expect(getFreshStore().importantNotesItems).toEqual([]);
     });
 
     it('clears the tag when the directions note is manually edited', () => {

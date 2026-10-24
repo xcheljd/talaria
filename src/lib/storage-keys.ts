@@ -81,4 +81,10 @@ export const StorageKeys = {
    * Outlook cards. Persists across sessions.
    */
   devMode: 'dev.mode',
+
+  /**
+   * Named, reusable entry sets per section (How to Shop, Important Notes,
+   * Special Hours, Newsletter). See stores/saved-sets-store.ts.
+   */
+  savedSets: 'savedSets',
 } as const;
