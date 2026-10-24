@@ -38,21 +38,6 @@ export interface UserProfile {
   collectionKeywords?: string[];
 }
 
-/** Signature data extracted from profile */
-export interface SignatureData {
-  name: string;
-  title: string;
-  companyName: string;
-  storeName: string;
-  location: string;
-  address: string;
-  phone: string;
-  jobTitle: string;
-  companyEmail: string;
-  storeEmail: string;
-  brandLinks: BrandLink[];
-}
-
 // ─── Neutral defaults ───────────────────────────────────────────────────────
 // These fallbacks are intentionally brand-agnostic so the app ships ready for
 // any company. Real values come from the profile saved on the Settings page.
@@ -228,28 +213,6 @@ export function getEmployeeName(): string {
 export function getJobTitle(): string {
   const profile = getUserProfile();
   return profile?.jobTitle || 'Sales Associate';
-}
-
-/**
- * Extract signature data from user profile with fallbacks.
- * Centralized here so signature.ts doesn't need appState.
- */
-export function extractSignatureData(): SignatureData {
-  const profile = getUserProfile() || {};
-
-  return {
-    name: profile.employeeName || 'Employee Name',
-    title: profile.jobTitle || 'Sales Associate',
-    companyName: profile.companyName || DEFAULT_COMPANY_NAME,
-    storeName: profile.storeName || DEFAULT_STORE_NAME,
-    location: profile.storeLocation || '',
-    address: profile.storeAddress || '',
-    phone: profile.storePhone || '',
-    jobTitle: (profile.jobTitle || '').toLowerCase(),
-    companyEmail: profile.companyEmail || '',
-    storeEmail: profile.storeEmail || '',
-    brandLinks: profile.brandLinks ?? [],
-  };
 }
 
 /**

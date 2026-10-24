@@ -14,7 +14,6 @@ import {
   getDirections,
   getEmployeeName,
   getJobTitle,
-  extractSignatureData,
   hasProfile,
   type UserProfile,
 } from '../src/lib/profile';
@@ -185,37 +184,6 @@ describe('profile', () => {
 
     it('returns default when no profile', () => {
       expect(getJobTitle()).toBe('Sales Associate');
-    });
-  });
-
-  describe('extractSignatureData', () => {
-    it('returns full signature data from profile', () => {
-      saveUserProfile({
-        employeeName: 'John Doe',
-        jobTitle: 'General Manager',
-        storeLocation: 'the Outlet Mall',
-        storeAddress: '123 Main St',
-        storePhone: '555-1234',
-        companyEmail: 'john@company.com',
-        storeEmail: 'store@company.com',
-      });
-
-      const sig = extractSignatureData();
-      expect(sig.name).toBe('John Doe');
-      expect(sig.title).toBe('General Manager');
-      expect(sig.location).toBe('the Outlet Mall');
-      expect(sig.address).toBe('123 Main St');
-      expect(sig.phone).toBe('555-1234');
-      expect(sig.jobTitle).toBe('general manager');
-      expect(sig.companyEmail).toBe('john@company.com');
-      expect(sig.storeEmail).toBe('store@company.com');
-    });
-
-    it('returns defaults when no profile', () => {
-      const sig = extractSignatureData();
-      expect(sig.name).toBe('Employee Name');
-      expect(sig.title).toBe('Sales Associate');
-      expect(sig.jobTitle).toBe(''); // empty string since no jobTitle set
     });
   });
 

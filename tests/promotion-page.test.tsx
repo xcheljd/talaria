@@ -1,11 +1,9 @@
 /**
- * Tests for PromotionPage and CollapsibleCard components.
+ * Tests for the PromotionPage component.
  *
  * Tests cover:
  * - Profile redirect when no profile saved
  * - Layout renders correctly with all cards
- * - All 9 collapsible cards render with correct titles
- * - Cards collapse/expand with animation
  * - Status dots show empty/filled state
  * - Responsive layout class application
  */
@@ -17,7 +15,6 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
 import { PromotionPage } from '@/pages/PromotionPage';
-import { CollapsibleCard } from '@/components/promotion/CollapsibleCard';
 import { ProfileProvider } from '@/contexts/ProfileProvider';
 import { ThemeProvider } from '@/contexts/ThemeProvider';
 import { usePromotionStore } from '@/stores/promotion-store';
@@ -97,155 +94,6 @@ function renderPromotionPage(options?: { profile?: boolean }) {
     </ThemeProvider>
   );
 }
-
-// ===== CollapsibleCard Tests =====
-
-describe('CollapsibleCard', () => {
-  it('renders with correct title', () => {
-    render(
-      <ThemeProvider>
-        <CollapsibleCard
-          cardId="testCard"
-          title="Test Card Title"
-          hasContent={false}
-        >
-          <p>Card content</p>
-        </CollapsibleCard>
-      </ThemeProvider>
-    );
-    expect(screen.getByText('Test Card Title')).toBeInTheDocument();
-  });
-
-  it('renders children when expanded (default)', () => {
-    render(
-      <ThemeProvider>
-        <CollapsibleCard cardId="testCard" title="Test Card" hasContent={false}>
-          <p>Visible content</p>
-        </CollapsibleCard>
-      </ThemeProvider>
-    );
-    expect(screen.getByText('Visible content')).toBeInTheDocument();
-  });
-
-  it('shows status dot with "empty" state when hasContent is false', () => {
-    const { container } = render(
-      <ThemeProvider>
-        <CollapsibleCard cardId="testCard" title="Test Card" hasContent={false}>
-          <p>Content</p>
-        </CollapsibleCard>
-      </ThemeProvider>
-    );
-    const dot = container.querySelector('[data-status="empty"]');
-    expect(dot).toBeInTheDocument();
-  });
-
-  it('shows status dot with "filled" state when hasContent is true', () => {
-    const { container } = render(
-      <ThemeProvider>
-        <CollapsibleCard cardId="testCard" title="Test Card" hasContent={true}>
-          <p>Content</p>
-        </CollapsibleCard>
-      </ThemeProvider>
-    );
-    const dot = container.querySelector('[data-status="filled"]');
-    expect(dot).toBeInTheDocument();
-  });
-
-  it('collapses content when toggle button is clicked', async () => {
-    const user = userEvent.setup();
-    render(
-      <ThemeProvider>
-        <CollapsibleCard cardId="testCard" title="Test Card" hasContent={false}>
-          <p>Collapsible content</p>
-        </CollapsibleCard>
-      </ThemeProvider>
-    );
-
-    // Content is visible initially
-    expect(screen.getByText('Collapsible content')).toBeInTheDocument();
-
-    // Click the collapse toggle button
-    const toggleBtn = screen.getByRole('button', {
-      name: /collapse test card/i,
-    });
-    await user.click(toggleBtn);
-
-    // Content should now be hidden (Radix Collapsible hides it)
-    expect(screen.queryByText('Collapsible content')).not.toBeInTheDocument();
-  });
-
-  it('expands content when defaultCollapsed is true and toggle is clicked', async () => {
-    const user = userEvent.setup();
-    render(
-      <ThemeProvider>
-        <CollapsibleCard
-          cardId="testCard"
-          title="Test Card"
-          hasContent={false}
-          defaultCollapsed={true}
-        >
-          <p>Hidden content</p>
-        </CollapsibleCard>
-      </ThemeProvider>
-    );
-
-    // Content should be hidden initially (collapsed)
-    expect(screen.queryByText('Hidden content')).not.toBeInTheDocument();
-
-    // Click to expand
-    const toggleBtn = screen.getByRole('button', {
-      name: /expand test card/i,
-    });
-    await user.click(toggleBtn);
-
-    // Content should now be visible
-    expect(screen.getByText('Hidden content')).toBeInTheDocument();
-  });
-
-  it('toggles when clicking the title text area', async () => {
-    const user = userEvent.setup();
-    render(
-      <ThemeProvider>
-        <CollapsibleCard
-          cardId="testCard"
-          title="My Clickable Title"
-          hasContent={false}
-        >
-          <p>Toggle via title</p>
-        </CollapsibleCard>
-      </ThemeProvider>
-    );
-
-    // Content is visible initially (default expanded)
-    expect(screen.getByText('Toggle via title')).toBeInTheDocument();
-
-    // Click the title text itself to collapse
-    const titleText = screen.getByText('My Clickable Title');
-    await user.click(titleText);
-
-    // Content should now be hidden
-    expect(screen.queryByText('Toggle via title')).not.toBeInTheDocument();
-
-    // Click the title text again to expand
-    await user.click(screen.getByText('My Clickable Title'));
-
-    // Content should be visible again
-    expect(screen.getByText('Toggle via title')).toBeInTheDocument();
-  });
-
-  it('sets correct data-card-id attribute', () => {
-    const { container } = render(
-      <ThemeProvider>
-        <CollapsibleCard cardId="mySpecialCard" title="Card" hasContent={false}>
-          <p>Content</p>
-        </CollapsibleCard>
-      </ThemeProvider>
-    );
-    expect(
-      container.querySelector('[data-card-id="mySpecialCard"]')
-    ).toBeInTheDocument();
-  });
-});
 
 // ===== PromotionPage Tests =====
 

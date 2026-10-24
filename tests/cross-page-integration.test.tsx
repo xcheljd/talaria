@@ -3,7 +3,6 @@
  *
  * Validates VAL-CROSS-001 through VAL-CROSS-006:
  * - VAL-CROSS-001: Complete user flow — setup to template generation
- * - VAL-CROSS-003: Profile data flows into promotion signature
  * - VAL-CROSS-004: Theme persists across all pages
  * - VAL-CROSS-005: Full promotion workflow end-to-end
  * - VAL-CROSS-006: XSS prevention in generated content
@@ -20,7 +19,6 @@ import {
   generatePromotionEmailHTML,
   type PromotionEmailData,
 } from '../src/lib/promotion-email-html';
-import { getEmployeeSignature } from '../src/lib/signature';
 import { sanitizeHTML, escapeAttr } from '../src/lib/html-utils';
 import {
   getUserProfile,
@@ -67,17 +65,6 @@ const MANAGEMENT_PROFILE: UserProfile = {
   storeHours: 'Mon-Sat: 10AM-8PM, Sun: 11AM-7PM',
   storePlusCode: 'ABC123',
   storeDirections: 'Entrance E, near Polo Ralph Lauren',
-};
-
-const STAFF_PROFILE: UserProfile = {
-  employeeName: 'Bob Associate',
-  jobTitle: 'Sales Associate',
-  storeName: 'Acme Store - Vegas',
-  storeLocation: 'the South Premium Outlets',
-  storeAddress: '123 Main St, Austin, TX 78701',
-  storePhone: '702-555-9999',
-  storeEmail: 'vegas@acme.com',
-  storeHours: 'Mon-Sat: 10AM-9PM, Sun: 11AM-7PM',
 };
 
 function resetStore() {
@@ -127,90 +114,6 @@ function renderApp(initialPath: string = '/') {
     </ThemeProvider>
   );
 }
-
-// ========================================================================
-// VAL-CROSS-003: Profile data flows into promotion signature
-// ========================================================================
-
-describe('VAL-CROSS-003: Profile data flows into promotion signature', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    resetStore();
-  });
-
-  it('management job title uses company email in signature', () => {
-    setupProfile(MANAGEMENT_PROFILE);
-
-    const signatureHTML = getEmployeeSignature('html');
-    // Management profile should use company email
-    expect(signatureHTML).toContain('alice.manager@acme.com');
-    expect(signatureHTML).toContain('Alice Manager');
-    expect(signatureHTML).toContain('General Manager');
-  });
-
-  it('staff job title uses store email in signature', () => {
-    setupProfile(STAFF_PROFILE);
-
-    const signatureHTML = getEmployeeSignature('html');
-    // Staff profile should use store email, not company email
-    expect(signatureHTML).toContain('vegas@acme.com');
-    expect(signatureHTML).toContain('Bob Associate');
-    expect(signatureHTML).toContain('Sales Associate');
-  });
-
-  it('text signature also reflects correct email based on job title', () => {
-    setupProfile(MANAGEMENT_PROFILE);
-
-    const signatureText = getEmployeeSignature('text');
-    expect(signatureText).toContain('alice.manager@acme.com');
-    expect(signatureText).toContain('Alice Manager');
-
-    // Switch to staff profile
-    setupProfile(STAFF_PROFILE);
-    const staffSignatureText = getEmployeeSignature('text');
-    expect(staffSignatureText).toContain('vegas@acme.com');
-    expect(staffSignatureText).toContain('Bob Associate');
-  });
-
-  it('promotion email HTML includes profile store info', () => {
-    setupProfile(MANAGEMENT_PROFILE);
-
-    const data: PromotionEmailData = {
-      promoDateRange: 'March 15-20, 2026',
-      promoYear: '2026',
-      promoTitle: 'SPRING SALE',
-      promotionEntries: [
-        {
-          id: 1,
-          line: 'Acme Aero',
-          collections: 'Aero, Field',
-          callout: 'Great deals!',
-        },
-      ],
-      specialHours: [],
-      howToShopItems: [],
-      importantNotesItems: [],
-      newsletterHeading: 'Newsletter',
-      newsletterBody: '',
-      newsletterPosition: 'top',
-      newsletterVisible: true,
-      newsletterStyle: {
-        borderColor: '#2563eb',
-        backgroundColor: '#f9fafb',
-        headingColor: '#1e40af',
-        borderStyle: 'left',
-        headingAlign: 'left',
-      },
-    };
-
-    const html = generatePromotionEmailHTML(data);
-
-    // Should include profile store info
-    expect(html).toContain('407-555-1234');
-    expect(html).toContain('orlando@acme.com');
-    expect(html).toContain('Mon-Sat: 10AM-8PM');
-  });
-});
 
 // ========================================================================
 // VAL-CROSS-004: Theme persists across all pages
@@ -393,24 +296,6 @@ describe('VAL-CROSS-006: XSS prevention in generated content', () => {
     expect(html).not.toContain('<b>bold attempt</b>');
     expect(html).toContain('&lt;b&gt;bold attempt&lt;/b&gt;');
   });
-
-  it('signature escapes profile data to prevent XSS', () => {
-    const xssProfile: UserProfile = {
-      employeeName: '<script>alert("name")</script>',
-      jobTitle: '<script>alert("title")</script>',
-      storeLocation: '<script>alert("loc")</script>',
-      storeAddress: '<script>alert("addr")</script>',
-      storePhone: '<script>alert("phone")</script>',
-      storeEmail: 'test@evil.com',
-      companyEmail: 'evil@company.com',
-    };
-    setupProfile(xssProfile);
-
-    const signatureHTML = getEmployeeSignature('html');
-    expect(signatureHTML).not.toContain('<script>');
-    expect(signatureHTML).not.toContain('</script>');
-    expect(signatureHTML).toContain('&lt;script&gt;');
-  });
 });
 
 // ========================================================================
@@ -546,17 +431,5 @@ describe('VAL-CROSS-005: Full promotion workflow end-to-end', () => {
     expect(html).toContain('While supplies last');
     expect(html).toContain('407-555-1234');
     expect(html).toContain('orlando@acme.com');
-  });
-
-  it('promotion signature uses correct email based on job title', () => {
-    // Test management uses company email
-    setupProfile(MANAGEMENT_PROFILE);
-    let signature = getEmployeeSignature('html');
-    expect(signature).toContain('alice.manager@acme.com');
-
-    // Test staff uses store email
-    setupProfile(STAFF_PROFILE);
-    signature = getEmployeeSignature('html');
-    expect(signature).toContain('vegas@acme.com');
   });
 });
