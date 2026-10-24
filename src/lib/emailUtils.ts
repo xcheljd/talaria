@@ -183,7 +183,7 @@ export function sanitizeHeaderText(value: string): string {
  * parameter: strips CR/LF (header injection) and replaces double quotes
  * (which would terminate the quoted-string early).
  */
-export function sanitizeHeaderFilename(filename: string): string {
+function sanitizeHeaderFilename(filename: string): string {
   return filename.replace(/[\r\n]+/g, ' ').replace(/"/g, "'");
 }
 
@@ -222,7 +222,7 @@ export function parseEmailList(list: string): string[] {
 }
 
 // Default fallback used when no subject line is selected and no promo title is set
-export const DEFAULT_PROMO_SUBJECT = 'Promotion';
+const DEFAULT_PROMO_SUBJECT = 'Promotion';
 
 // Resolve the subject for a promotion email: prefer the selected subject line,
 // then fall back to the promo title, then the generic default.

@@ -12,7 +12,7 @@ export interface PDFRecord {
 }
 
 /** Bulk email recipients record */
-export interface BulkEmailRecord {
+interface BulkEmailRecord {
   id: string;
   data: string;
   savedAt: string;

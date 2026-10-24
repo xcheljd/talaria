@@ -109,7 +109,7 @@ export function validatePlusCode(plusCode: string): {
  */
 
 /** Phone validation: must have exactly 10 digits */
-export const phoneSchema = z.string().refine(
+const phoneSchema = z.string().refine(
   (val) => {
     const digits = val.replace(/\D/g, '');
     return digits.length === 10;
@@ -118,14 +118,14 @@ export const phoneSchema = z.string().refine(
 );
 
 /** Email validation */
-export const emailSchema = z
+const emailSchema = z
   .string()
   .refine((val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
     message: 'Invalid email format',
   });
 
 /** Store hours validation */
-export const storeHoursSchema = z.string().refine(
+const storeHoursSchema = z.string().refine(
   (val) => {
     if (!val || val.trim() === '') return false;
     const hasDays = /[A-Za-z]{3}/.test(val);
@@ -136,7 +136,7 @@ export const storeHoursSchema = z.string().refine(
 );
 
 /** Plus code validation (optional) */
-export const plusCodeSchema = z.string().refine(
+const plusCodeSchema = z.string().refine(
   (val) => {
     if (!val || val.trim() === '') return true;
     return /^[A-Z0-9]{2,4}\+[A-Z0-9]{2,3}$/i.test(val.trim());

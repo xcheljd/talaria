@@ -139,7 +139,7 @@ export function isSafeURL(url: string): boolean {
  * generator can emit). Rejects javascript:, data:text/html, and every other
  * scheme.
  */
-export function isSafeImageURL(url: string): boolean {
+function isSafeImageURL(url: string): boolean {
   return isSafeURLWithSchemes(url, SAFE_IMAGE_PROTOCOLS, (trimmed) =>
     /^data:image\//i.test(trimmed)
   );

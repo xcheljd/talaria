@@ -99,19 +99,6 @@ export interface NewsletterStyle {
   tableHeaderBg: string | null; // null = auto (use palette sectionBg)
 }
 
-/** Resolved newsletter style with all colors filled in (no nulls) */
-export interface ResolvedNewsletterStyle {
-  borderColor: string;
-  backgroundColor: string;
-  headingColor: string;
-  borderStyle: 'left' | 'full' | 'none' | 'top';
-  headingAlign: 'left' | 'center';
-  tableBorderColor: string;
-  tableBorderWidth: 1 | 2 | 3;
-  tableBorderStyle: 'solid' | 'dashed' | 'dotted' | 'none';
-  tableHeaderBg: string;
-}
-
 export const DEFAULT_NEWSLETTER_STYLE: NewsletterStyle = {
   borderColor: null,
   backgroundColor: null,
@@ -167,7 +154,7 @@ export const DEFAULT_IMPORTANT_NOTES_STYLE: SectionBoxStyle = {
   backgroundColor: null, // no background by default
 };
 
-export interface PromotionPersistedState {
+interface PromotionPersistedState {
   promoDateRange: string;
   promoYear: string;
   promoTitle: string;

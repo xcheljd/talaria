@@ -63,7 +63,7 @@ export interface CardConfig {
   devOnly?: boolean;
 }
 
-export const CARD_CONFIGS: CardConfig[] = [
+const CARD_CONFIGS: CardConfig[] = [
   { id: 'basicDetailsCard', title: 'Basic Details' },
   { id: 'newsletterCard', title: 'Newsletter' },
   { id: 'discountEntriesCard', title: 'Discount Entries' },

@@ -3,8 +3,8 @@
  * or dropped images so the resulting email HTML stays small.
  */
 
-export const MAX_IMAGE_WIDTH = 600;
-export const MAX_IMAGE_SIZE_KB = 200;
+const MAX_IMAGE_WIDTH = 600;
+const MAX_IMAGE_SIZE_KB = 200;
 
 /**
  * Compress an image data URL using canvas resize.

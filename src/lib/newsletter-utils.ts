@@ -29,7 +29,7 @@ import {
  * colors (see applyDarkModePreview), not here — so the same resolved colors
  * feed both the light preview and the always-light export.
  */
-export function resolveNewsletterColors(
+function resolveNewsletterColors(
   style: NewsletterStyle,
   palette: EmailPalette = EMAIL_PALETTE
 ): {

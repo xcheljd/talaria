@@ -32,9 +32,8 @@ export interface UserProfile {
 // any company. Real values come from the profile saved on the Settings page.
 
 export const DEFAULT_COMPANY_NAME = 'Your Company';
-export const DEFAULT_STORE_NAME = 'Your Store';
+const DEFAULT_STORE_NAME = 'Your Store';
 export const DEFAULT_PRODUCT_NOUN = 'product';
-export const DEFAULT_PRODUCT_NOUN_PLURAL = 'products';
 
 /**
  * Profiles saved before brand links were removed carry a `brandLinks` array
@@ -167,38 +166,6 @@ export function getStoreHours(): string {
 export function getStorePlusCode(): string {
   const profile = getUserProfile();
   return profile?.storePlusCode || '';
-}
-
-/**
- * Get the singular product noun with neutral fallback (e.g. "watch").
- */
-export function getProductNoun(): string {
-  const profile = getUserProfile();
-  return profile?.productNoun?.trim() || DEFAULT_PRODUCT_NOUN;
-}
-
-/**
- * Get the plural product noun with neutral fallback (e.g. "watches").
- */
-export function getProductNounPlural(): string {
-  const profile = getUserProfile();
-  return profile?.productNounPlural?.trim() || DEFAULT_PRODUCT_NOUN_PLURAL;
-}
-
-/**
- * Get the brand keywords featured in subject-line suggestions.
- */
-export function getBrandKeywords(): string[] {
-  const profile = getUserProfile();
-  return profile?.brandKeywords ?? [];
-}
-
-/**
- * Get the collection keywords featured in subject-line suggestions.
- */
-export function getCollectionKeywords(): string[] {
-  const profile = getUserProfile();
-  return profile?.collectionKeywords ?? [];
 }
 
 /**

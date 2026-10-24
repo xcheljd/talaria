@@ -7,7 +7,7 @@
 
 // ===== Holiday Date Utilities =====
 
-export interface HolidayDates {
+interface HolidayDates {
   blackFriday: Date;
   cyberMonday: Date;
   memorialDay: Date;
@@ -24,7 +24,7 @@ export interface HolidayDates {
 }
 
 /** Get nth occurrence of a weekday in a month */
-export function getOrdinalWeekday(
+function getOrdinalWeekday(
   year: number,
   month: number,
   dayOfWeek: number,
@@ -39,11 +39,7 @@ export function getOrdinalWeekday(
 }
 
 /** Get the last occurrence of a weekday in a month */
-export function getLastWeekday(
-  year: number,
-  month: number,
-  dayOfWeek: number
-): Date {
+function getLastWeekday(year: number, month: number, dayOfWeek: number): Date {
   const lastDay = new Date(year, month + 1, 0);
   const lastDayOfWeek = lastDay.getDay();
   let dayOffset = lastDayOfWeek - dayOfWeek;
@@ -51,7 +47,7 @@ export function getLastWeekday(
   return new Date(year, month, lastDay.getDate() - dayOffset);
 }
 
-export function getHolidayDates(year: number): HolidayDates {
+function getHolidayDates(year: number): HolidayDates {
   const thanksgiving = getOrdinalWeekday(year, 10, 4, 4);
   const dayMs = 24 * 60 * 60 * 1000;
 
@@ -79,7 +75,7 @@ export interface ParsedDateRange {
   end: Date;
 }
 
-export const MONTHS_MAP: Record<string, number> = {
+const MONTHS_MAP: Record<string, number> = {
   jan: 0,
   january: 0,
   feb: 1,
@@ -174,7 +170,7 @@ export function parsePromoDateRange(
  * window. Windows are checked in priority order (specific events first,
  * broad seasons last).
  */
-export function getOccasionTitle(start: Date, end: Date): string | null {
+function getOccasionTitle(start: Date, end: Date): string | null {
   const year = start.getFullYear();
   const holidays = getHolidayDates(year);
   const dayMs = 24 * 60 * 60 * 1000;
