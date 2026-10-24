@@ -2,17 +2,12 @@
  * ProfileFormSection — the "Profile" sidebar section's form fields.
  *
  * Who you are (name, job title, company email for management titles), the
- * brand identity block (StoreInfoFields), what you sell, and the signature
- * brand links (BrandLinksEditor). Rendered inside the shared <Form>/<form>
+ * brand identity block (StoreInfoFields), and what you sell. Rendered
+ * inside the shared <Form>/<form>
  * element owned by ProfileSettingsPage.
  */
 
-import type {
-  FieldArrayWithId,
-  UseFieldArrayAppend,
-  UseFieldArrayRemove,
-  UseFormReturn,
-} from 'react-hook-form';
+import type { UseFormReturn } from 'react-hook-form';
 
 import { type ProfileFormValues, JOB_TITLES } from '@/lib/profile-validation';
 import { ClearableInput } from '@/components/ui/clearable-input';
@@ -33,22 +28,15 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { StoreInfoFields } from '@/components/profile/StoreInfoFields';
-import { BrandLinksEditor } from '@/components/profile/BrandLinksEditor';
 
 interface ProfileFormSectionProps {
   form: UseFormReturn<ProfileFormValues>;
   showCompanyEmail: boolean;
-  brandLinkFields: FieldArrayWithId<ProfileFormValues, 'brandLinks', 'id'>[];
-  appendBrandLink: UseFieldArrayAppend<ProfileFormValues, 'brandLinks'>;
-  removeBrandLink: UseFieldArrayRemove;
 }
 
 export function ProfileFormSection({
   form,
   showCompanyEmail,
-  brandLinkFields,
-  appendBrandLink,
-  removeBrandLink,
 }: ProfileFormSectionProps) {
   return (
     <div className="grid grid-cols-1 gap-4 rounded-lg border bg-card p-4 lg:grid-cols-2">
@@ -201,12 +189,6 @@ export function ProfileFormSection({
       />
 
       {/* Brand Links editor */}
-      <BrandLinksEditor
-        form={form}
-        brandLinkFields={brandLinkFields}
-        appendBrandLink={appendBrandLink}
-        removeBrandLink={removeBrandLink}
-      />
     </div>
   );
 }

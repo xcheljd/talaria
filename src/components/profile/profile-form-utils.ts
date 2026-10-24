@@ -49,9 +49,6 @@ export async function exportProfileJson(
       storeDirections: values.storeDirections?.trim() || '',
       productNoun: values.productNoun?.trim() || '',
       productNounPlural: values.productNounPlural?.trim() || '',
-      brandLinks: (values.brandLinks ?? [])
-        .map((link) => ({ name: link.name.trim(), url: link.url.trim() }))
-        .filter((link) => link.name && link.url),
       brandKeywords: toKeywordList(values.brandKeywords),
       collectionKeywords: toKeywordList(values.collectionKeywords),
       lightPalette: lightPalette,

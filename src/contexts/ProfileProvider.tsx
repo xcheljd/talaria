@@ -19,7 +19,6 @@ import {
   getCompanyName as getCompanyNameUtil,
   getProductNoun as getProductNounUtil,
   getProductNounPlural as getProductNounPluralUtil,
-  getBrandLinks as getBrandLinksUtil,
   getBrandKeywords as getBrandKeywordsUtil,
   getCollectionKeywords as getCollectionKeywordsUtil,
   hasProfile as hasProfileUtil,
@@ -28,7 +27,6 @@ import {
   DEFAULT_PRODUCT_NOUN,
   DEFAULT_PRODUCT_NOUN_PLURAL,
   type UserProfile,
-  type BrandLink,
 } from '@/lib/profile';
 
 // ─── Context Value Interface ──────────────────────────────────────────────────
@@ -148,14 +146,6 @@ export function useProductNounPlural(): string {
 }
 
 /**
- * Get the configured signature brand links (empty when none set).
- */
-export function useBrandLinks(): BrandLink[] {
-  const { profile } = useProfileContext();
-  return profile?.brandLinks ?? [];
-}
-
-/**
  * Get the brand keywords featured in subject-line suggestions.
  */
 export function useBrandKeywords(): string[] {
@@ -223,7 +213,6 @@ export {
   getCompanyNameUtil as getCompanyName,
   getProductNounUtil as getProductNoun,
   getProductNounPluralUtil as getProductNounPlural,
-  getBrandLinksUtil as getBrandLinks,
   getBrandKeywordsUtil as getBrandKeywords,
   getCollectionKeywordsUtil as getCollectionKeywords,
   hasProfileUtil as hasProfile,

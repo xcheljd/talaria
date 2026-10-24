@@ -184,7 +184,10 @@ describe('validatePlusCode', () => {
 
 describe('validateCompanyEmail', () => {
   it('returns valid for non-management title regardless of email', () => {
-    const result = validateCompanyEmail('anything@gmail.com', 'Sales Associate');
+    const result = validateCompanyEmail(
+      'anything@gmail.com',
+      'Sales Associate'
+    );
     expect(result.isValid).toBe(true);
     expect(result.error).toBeNull();
   });
@@ -192,7 +195,9 @@ describe('validateCompanyEmail', () => {
   it('returns invalid when management title and no email', () => {
     const result = validateCompanyEmail('', 'General Manager');
     expect(result.isValid).toBe(false);
-    expect(result.error).toBe('Company email is required for management positions');
+    expect(result.error).toBe(
+      'Company email is required for management positions'
+    );
   });
 
   it('returns valid for management title with any valid email domain', () => {
@@ -255,7 +260,6 @@ describe('profileFormSchema', () => {
     storeDirections: 'Entrance E',
     productNoun: 'watch',
     productNounPlural: 'watches',
-    brandLinks: [],
     brandKeywords: '',
     collectionKeywords: '',
   };
@@ -370,22 +374,6 @@ describe('profileFormSchema', () => {
       companyName: '',
     });
     expect(result.success).toBe(false);
-  });
-
-  it('rejects a brand link with a non-http URL', () => {
-    const result = profileFormSchema.safeParse({
-      ...validData,
-      brandLinks: [{ name: 'Acme', url: 'not-a-url' }],
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it('accepts brand links with http(s) URLs', () => {
-    const result = profileFormSchema.safeParse({
-      ...validData,
-      brandLinks: [{ name: 'Acme', url: 'https://acme.example.com/' }],
-    });
-    expect(result.success).toBe(true);
   });
 
   it('ignores company email for non-management', () => {

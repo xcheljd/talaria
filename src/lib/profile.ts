@@ -5,18 +5,12 @@
 
 import { StorageKeys } from '@/lib/storage-keys';
 
-/** A single brand/website link shown in the email signature footer. */
-export interface BrandLink {
-  name: string;
-  url: string;
-}
-
 /** User profile shape */
 export interface UserProfile {
   employeeName?: string;
   jobTitle?: string;
   companyEmail?: string;
-  /** Parent company / brand name shown in signatures (e.g. "Acme Inc."). */
+  /** Parent company / brand name (e.g. "Acme Inc."). */
   companyName?: string;
   storeName?: string;
   storeLocation?: string;
@@ -26,8 +20,6 @@ export interface UserProfile {
   storeEmail?: string;
   storeHours?: string;
   storeDirections?: string;
-  /** Brand/website links rendered in the signature footer. */
-  brandLinks?: BrandLink[];
   /** What the brand sells, singular (e.g. "watch", "candle"). Default "product". */
   productNoun?: string;
   /** Plural product noun (e.g. "watches"). Default "products". */
@@ -48,6 +40,43 @@ export const DEFAULT_PRODUCT_NOUN = 'product';
 export const DEFAULT_PRODUCT_NOUN_PLURAL = 'products';
 
 /**
+ * Profiles saved before brand links were removed carry a `brandLinks` array
+ * (name + URL, once used by the email signature). The names were also fed to
+ * subject-line suggestions, so they move into `brandKeywords` (deduped,
+ * existing keywords first) and the links are dropped. Accepts any parsed
+ * JSON, so saved and imported profiles share one path.
+ */
+export function migrateBrandLinks<T extends object>(
+  raw: T
+): T & { brandKeywords?: string[] } {
+  const profile = raw as T & {
+    brandLinks?: unknown;
+    brandKeywords?: unknown;
+  };
+  if (!('brandLinks' in profile))
+    return profile as T & { brandKeywords?: string[] };
+  const { brandLinks, ...rest } = profile;
+  const names = Array.isArray(brandLinks)
+    ? brandLinks
+        .map((l) =>
+          l && typeof l === 'object'
+            ? String((l as { name?: unknown }).name ?? '')
+            : ''
+        )
+        .map((n) => n.trim())
+        .filter(Boolean)
+    : [];
+  const existing = Array.isArray(rest.brandKeywords)
+    ? rest.brandKeywords.map(String)
+    : [];
+  const merged = [...existing];
+  for (const n of names)
+    if (!merged.some((k) => k.toLowerCase() === n.toLowerCase()))
+      merged.push(n);
+  return { ...rest, brandKeywords: merged } as T & { brandKeywords?: string[] };
+}
+
+/**
  * Get the complete user profile from localStorage.
  * @returns User profile object or null if not set
  */
@@ -55,7 +84,7 @@ export function getUserProfile(): UserProfile | null {
   const stored = localStorage.getItem(StorageKeys.userProfile);
   if (!stored) return null;
   try {
-    return JSON.parse(stored) as UserProfile;
+    return migrateBrandLinks(JSON.parse(stored));
   } catch {
     console.warn('Stored user profile is corrupted; ignoring it');
     return null;
@@ -165,14 +194,6 @@ export function getProductNoun(): string {
 export function getProductNounPlural(): string {
   const profile = getUserProfile();
   return profile?.productNounPlural?.trim() || DEFAULT_PRODUCT_NOUN_PLURAL;
-}
-
-/**
- * Get the configured signature brand links (empty when none set).
- */
-export function getBrandLinks(): BrandLink[] {
-  const profile = getUserProfile();
-  return profile?.brandLinks ?? [];
 }
 
 /**

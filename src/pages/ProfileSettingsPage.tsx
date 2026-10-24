@@ -12,7 +12,7 @@
 
 import { ButtonGroup } from '@/components/ui/button-group';
 import { useState, useCallback, useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
@@ -98,19 +98,10 @@ export function ProfileSettingsPage() {
       storeDirections: profile?.storeDirections || '',
       productNoun: profile?.productNoun || '',
       productNounPlural: profile?.productNounPlural || '',
-      brandLinks: profile?.brandLinks ?? [],
       brandKeywords: (profile?.brandKeywords ?? []).join(', '),
       collectionKeywords: (profile?.collectionKeywords ?? []).join(', '),
     },
   });
-
-  // The field array stays here rather than inside BrandLinksEditor: switching
-  // sidebar sections unmounts that editor, and the rows have to survive it.
-  const {
-    fields: brandLinkFields,
-    append: appendBrandLink,
-    remove: removeBrandLink,
-  } = useFieldArray({ control: form.control, name: 'brandLinks' });
 
   const jobTitle = form.watch('jobTitle');
   const showCompanyEmail = requiresCompanyEmail(jobTitle);
@@ -126,10 +117,6 @@ export function ProfileSettingsPage() {
         storePhone: phoneValidation.isValid
           ? phoneValidation.formatted
           : data.storePhone,
-        // Drop blank brand-link rows and trim the rest
-        brandLinks: data.brandLinks
-          .map((link) => ({ name: link.name.trim(), url: link.url.trim() }))
-          .filter((link) => link.name && link.url),
         // Comma-separated keyword strings → arrays
         brandKeywords: toKeywordList(data.brandKeywords),
         collectionKeywords: toKeywordList(data.collectionKeywords),
@@ -348,9 +335,6 @@ export function ProfileSettingsPage() {
                     <ProfileFormSection
                       form={form}
                       showCompanyEmail={showCompanyEmail}
-                      brandLinkFields={brandLinkFields}
-                      appendBrandLink={appendBrandLink}
-                      removeBrandLink={removeBrandLink}
                     />
                   )}
 

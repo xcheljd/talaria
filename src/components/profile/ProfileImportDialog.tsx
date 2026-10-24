@@ -7,6 +7,7 @@
  * the dialog itself is controlled via `open`.
  */
 
+import { migrateBrandLinks } from '@/lib/profile';
 import { useState, useRef, useCallback } from 'react';
 import { AlertCircle, Upload } from 'lucide-react';
 import type { UseFormReturn } from 'react-hook-form';
@@ -64,7 +65,8 @@ export function ProfileImportDialog({
             throw new Error('Invalid profile file format');
           }
 
-          const importedProfile = importedData.profile;
+          // Old files may carry brandLinks: their names fold into brand keywords.
+          const importedProfile = migrateBrandLinks(importedData.profile);
 
           form.reset({
             employeeName: importedProfile.employeeName || '',
@@ -81,17 +83,6 @@ export function ProfileImportDialog({
             storeDirections: importedProfile.storeDirections || '',
             productNoun: importedProfile.productNoun || '',
             productNounPlural: importedProfile.productNounPlural || '',
-            brandLinks: Array.isArray(importedProfile.brandLinks)
-              ? importedProfile.brandLinks
-                  .filter(
-                    (link: unknown): link is { name?: string; url?: string } =>
-                      !!link && typeof link === 'object'
-                  )
-                  .map((link: { name?: string; url?: string }) => ({
-                    name: String(link.name ?? ''),
-                    url: String(link.url ?? ''),
-                  }))
-              : [],
             brandKeywords: Array.isArray(importedProfile.brandKeywords)
               ? importedProfile.brandKeywords.map(String).join(', ')
               : '',

@@ -21,7 +21,6 @@ import { generateSubjectLines } from '@/lib/subject-line-generator';
 import {
   useCompanyName,
   useProductNoun,
-  useBrandLinks,
   useBrandKeywords,
   useCollectionKeywords,
 } from '@/contexts/ProfileProvider';
@@ -150,26 +149,21 @@ function deriveInitials(name: string): string {
 export function SubjectLineGenerator() {
   const companyName = useCompanyName();
   const productNoun = useProductNoun();
-  const brandLinks = useBrandLinks();
   const profileBrandKeywords = useBrandKeywords();
   const collectionKeywords = useCollectionKeywords();
 
   // Brand names to feature in subject lines: the configured brand keywords plus
-  // the company name and any signature brand links.
+  // the company name.
   const brandKeywords = useMemo(
     () =>
       Array.from(
         new Set(
-          [
-            ...profileBrandKeywords,
-            companyName,
-            ...brandLinks.map((b) => b.name),
-          ]
+          [...profileBrandKeywords, companyName]
             .map((s) => s.trim())
             .filter(Boolean)
         )
       ),
-    [profileBrandKeywords, companyName, brandLinks]
+    [profileBrandKeywords, companyName]
   );
   const senderInitials = useMemo(
     () => deriveInitials(companyName),

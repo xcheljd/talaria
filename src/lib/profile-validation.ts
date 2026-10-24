@@ -214,24 +214,6 @@ export const companyEmailSchema = z
   });
 
 /**
- * A single signature brand/website link. Both fields are permissive strings so
- * partially-filled rows never block the form; empty rows are dropped on save.
- * A URL, when present, must start with http:// or https://.
- */
-export const brandLinkSchema = z
-  .object({
-    name: z.string(),
-    url: z.string(),
-  })
-  .refine(
-    (link) => !link.url.trim() || /^https?:\/\/.+/i.test(link.url.trim()),
-    {
-      message: 'Link URL must start with http:// or https://',
-      path: ['url'],
-    }
-  );
-
-/**
  * Full profile form schema for React Hook Form + Zod validation.
  * Company email is validated conditionally based on job title.
  *
@@ -254,7 +236,6 @@ export const profileFormSchema = z
     storeDirections: z.string(),
     productNoun: z.string(),
     productNounPlural: z.string(),
-    brandLinks: z.array(brandLinkSchema),
     // Comma-separated in the form; split into arrays when persisted.
     brandKeywords: z.string(),
     collectionKeywords: z.string(),
