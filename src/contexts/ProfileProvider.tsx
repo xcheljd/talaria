@@ -12,7 +12,6 @@ import {
   getStorePhone as getStorePhoneUtil,
   getStoreName as getStoreNameUtil,
   getStoreLocation as getStoreLocationUtil,
-  getEmployeeName as getEmployeeNameUtil,
   getStoreEmail as getStoreEmailUtil,
   getCompanyName as getCompanyNameUtil,
   getProductNoun as getProductNounUtil,
@@ -160,14 +159,6 @@ export function useCollectionKeywords(): string[] {
 }
 
 /**
- * Get employee name with fallback default.
- */
-export function useEmployeeName(): string {
-  const { profile } = useProfileContext();
-  return profile?.employeeName || 'Your Name';
-}
-
-/**
  * Get store email (empty when unset).
  */
 export function useStoreEmail(): string {
@@ -188,7 +179,6 @@ export {
   getStorePhoneUtil as getStorePhone,
   getStoreNameUtil as getStoreName,
   getStoreLocationUtil as getStoreLocation,
-  getEmployeeNameUtil as getEmployeeName,
   getStoreEmailUtil as getStoreEmail,
   getCompanyNameUtil as getCompanyName,
   getProductNounUtil as getProductNoun,

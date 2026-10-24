@@ -83,7 +83,6 @@ export function ProfileSettingsPage() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      employeeName: profile?.employeeName || '',
       companyName: profile?.companyName || '',
       storeName: profile?.storeName || '',
       storeLocation: profile?.storeLocation || '',

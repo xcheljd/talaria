@@ -11,7 +11,6 @@ import {
   getStoreHours,
   getStorePlusCode,
   getDirections,
-  getEmployeeName,
   hasProfile,
   type UserProfile,
 } from '../src/lib/profile';
@@ -28,20 +27,20 @@ describe('profile', () => {
 
     it('saves and retrieves a profile', () => {
       const profile: UserProfile = {
-        employeeName: 'John Doe',
+        storeDirections: 'John Doe',
         storeName: 'My Store',
         storePhone: '555-1234',
       };
       saveUserProfile(profile);
       const retrieved = getUserProfile();
       expect(retrieved).not.toBeNull();
-      expect(retrieved!.employeeName).toBe('John Doe');
+      expect(retrieved!.storeDirections).toBe('John Doe');
     });
 
     it('overwrites existing profile', () => {
-      saveUserProfile({ employeeName: 'First' });
-      saveUserProfile({ employeeName: 'Second' });
-      expect(getUserProfile()!.employeeName).toBe('Second');
+      saveUserProfile({ storeDirections: 'First' });
+      saveUserProfile({ storeDirections: 'Second' });
+      expect(getUserProfile()!.storeDirections).toBe('Second');
     });
   });
 
@@ -150,24 +149,13 @@ describe('profile', () => {
     });
   });
 
-  describe('getEmployeeName', () => {
-    it('returns stored name', () => {
-      saveUserProfile({ employeeName: 'Jane' });
-      expect(getEmployeeName()).toBe('Jane');
-    });
-
-    it('returns default when no profile', () => {
-      expect(getEmployeeName()).toBe('Your Name');
-    });
-  });
-
   describe('hasProfile', () => {
     it('returns false when no profile', () => {
       expect(hasProfile()).toBe(false);
     });
 
     it('returns true when profile exists', () => {
-      saveUserProfile({ employeeName: 'Test' });
+      saveUserProfile({ storeDirections: 'Test' });
       expect(hasProfile()).toBe(true);
     });
   });

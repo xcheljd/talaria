@@ -46,7 +46,6 @@ vi.mock('@/lib/profile', () => ({
   getStoreHours: vi.fn().mockReturnValue('Mon-Sat 10AM-8PM'),
   getStorePlusCode: vi.fn().mockReturnValue(''),
   getDirections: vi.fn().mockReturnValue(''),
-  getEmployeeName: vi.fn().mockReturnValue('Test User'),
 }));
 
 function hexToRgb(hex: string): [number, number, number] {

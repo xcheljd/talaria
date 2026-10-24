@@ -1,10 +1,8 @@
 /**
  * ProfileFormSection — the "Profile" sidebar section's form fields.
  *
- * Who you are (your name), the
- * brand identity block (StoreInfoFields), and what you sell. Rendered
- * inside the shared <Form>/<form>
- * element owned by ProfileSettingsPage.
+ * The brand identity block (StoreInfoFields) and what you sell. Rendered
+ * inside the shared <Form>/<form> element owned by ProfileSettingsPage.
  */
 
 import type { UseFormReturn } from 'react-hook-form';
@@ -29,30 +27,6 @@ interface ProfileFormSectionProps {
 export function ProfileFormSection({ form }: ProfileFormSectionProps) {
   return (
     <div className="grid grid-cols-1 gap-4 rounded-lg border bg-card p-4 lg:grid-cols-2">
-      {/* Employee Name */}
-      <FormField
-        control={form.control}
-        name="employeeName"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              Your Name <span className="text-destructive-text">*</span>
-            </FormLabel>
-            <FormControl>
-              <ClearableInput
-                placeholder="e.g., John Smith"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                name={field.name}
-                ref={field.ref}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
       <StoreInfoFields form={form} />
 
       {/* Divider */}

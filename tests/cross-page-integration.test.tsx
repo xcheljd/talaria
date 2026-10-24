@@ -26,7 +26,6 @@ import {
   getStorePhone,
   getStoreEmail,
   getStoreName,
-  getEmployeeName,
   type UserProfile,
 } from '../src/lib/profile';
 
@@ -54,7 +53,6 @@ beforeAll(() => {
 // ===== Test Fixtures =====
 
 const MANAGEMENT_PROFILE: UserProfile = {
-  employeeName: 'Alice Manager',
   storeName: 'Acme Store - Orlando',
   storeLocation: 'the Orlando Premium Outlets',
   storeAddress: '4950 International Dr, Orlando, FL 32819',
@@ -213,7 +211,6 @@ describe('VAL-CROSS-006: XSS prevention in generated content', () => {
 
   it('promotion email HTML escapes all fields to prevent XSS', () => {
     const xssProfile: UserProfile = {
-      employeeName: '<script>alert("name")</script>',
       storeName: 'Store',
       storeLocation: 'Test Location',
       storeAddress: '<script>alert("addr")</script>',
@@ -308,7 +305,6 @@ describe('VAL-CROSS-001: Complete user flow — profile setup', () => {
   it('profile data is available to the app after save', () => {
     // Simulate saving a profile
     const profile: UserProfile = {
-      employeeName: 'Jane Smith',
       storeName: 'Acme Store - Test',
       storeLocation: 'the Test Outlet Mall',
       storeAddress: '100 Test St, Test City, TS 12345',
@@ -321,11 +317,9 @@ describe('VAL-CROSS-001: Complete user flow — profile setup', () => {
     // Verify profile is persisted
     const loaded = getUserProfile();
     expect(loaded).toBeTruthy();
-    expect(loaded!.employeeName).toBe('Jane Smith');
     expect(loaded!.storePhone).toBe('555-123-4567');
 
     // Verify profile helpers return the saved values
-    expect(getEmployeeName()).toBe('Jane Smith');
     expect(getStorePhone()).toBe('555-123-4567');
     expect(getStoreName()).toBe('Acme Store - Test');
     expect(getStoreEmail()).toBe('teststore@acme.com');

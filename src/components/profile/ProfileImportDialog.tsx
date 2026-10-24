@@ -69,7 +69,6 @@ export function ProfileImportDialog({
           const importedProfile = migrateBrandLinks(importedData.profile);
 
           form.reset({
-            employeeName: importedProfile.employeeName || '',
             companyName: importedProfile.companyName || '',
             storeName: importedProfile.storeName || '',
             storeLocation: importedProfile.storeLocation || '',

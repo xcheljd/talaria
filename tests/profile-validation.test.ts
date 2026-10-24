@@ -180,7 +180,6 @@ describe('validatePlusCode', () => {
 
 describe('profileFormSchema', () => {
   const validData = {
-    employeeName: 'John Smith',
     companyName: 'Acme Inc.',
     storeName: 'Acme Downtown',
     storeLocation: 'the Downtown Shopping Center',
@@ -199,14 +198,6 @@ describe('profileFormSchema', () => {
   it('validates a complete valid profile', () => {
     const result = profileFormSchema.safeParse(validData);
     expect(result.success).toBe(true);
-  });
-
-  it('rejects empty required fields', () => {
-    const result = profileFormSchema.safeParse({
-      ...validData,
-      employeeName: '',
-    });
-    expect(result.success).toBe(false);
   });
 
   it('rejects invalid phone number', () => {

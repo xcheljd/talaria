@@ -151,7 +151,6 @@ export const plusCodeSchema = z.string().refine(
  * always sees string values, avoiding string | undefined type mismatches.
  */
 export const profileFormSchema = z.object({
-  employeeName: z.string().min(1, 'Your name is required'),
   companyName: z.string().min(1, 'Company name is required'),
   storeName: z.string().min(1, 'Store name is required'),
   storeLocation: z.string().min(1, 'Store location is required'),

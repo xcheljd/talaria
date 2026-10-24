@@ -43,7 +43,6 @@ vi.mock('@/lib/profile', () => ({
   getStoreHours: vi.fn().mockReturnValue('Mon-Sat 10AM-8PM'),
   getStorePlusCode: vi.fn().mockReturnValue(''),
   getDirections: vi.fn().mockReturnValue(''),
-  getEmployeeName: vi.fn().mockReturnValue('Test User'),
 }));
 
 function getFreshStore() {
@@ -260,7 +259,6 @@ describe('newsletter style - email generation', () => {
     localStorage.setItem(
       'userProfile',
       JSON.stringify({
-        employeeName: 'Test User',
         jobTitle: 'Sales Associate',
         storeName: 'Test Store',
         storeLocation: 'Test Location',
@@ -432,7 +430,6 @@ describe('newsletter style - export/import config', () => {
     localStorage.setItem(
       'userProfile',
       JSON.stringify({
-        employeeName: 'Test User',
         jobTitle: 'Sales Associate',
         storeName: 'Test Store',
         storeLocation: 'Test Location',

@@ -7,7 +7,6 @@ import {
   useStorePhone,
   useStoreName,
   useStoreLocation,
-  useEmployeeName,
   useStoreEmail,
   useHasProfile,
 } from '../src/contexts/ProfileProvider';
@@ -33,11 +32,6 @@ function StoreNameConsumer() {
 function StoreLocationConsumer() {
   const location = useStoreLocation();
   return <span data-testid="location">{location}</span>;
-}
-
-function EmployeeNameConsumer() {
-  const name = useEmployeeName();
-  return <span data-testid="employee-name">{name}</span>;
 }
 
 function StoreEmailConsumer() {
@@ -76,7 +70,6 @@ function AllHooksConsumer() {
       <StorePhoneConsumer />
       <StoreNameConsumer />
       <StoreLocationConsumer />
-      <EmployeeNameConsumer />
       <StoreEmailConsumer />
       <HasProfileConsumer />
     </div>
@@ -101,7 +94,7 @@ describe('ProfileProvider', () => {
 
   it('loads saved profile from localStorage', () => {
     const profile: UserProfile = {
-      employeeName: 'John Doe',
+      storeDirections: 'John Doe',
       storePhone: '555-1234',
     };
     localStorage.setItem('userProfile', JSON.stringify(profile));
@@ -113,7 +106,7 @@ describe('ProfileProvider', () => {
     );
 
     const rendered = JSON.parse(screen.getByTestId('profile').textContent!);
-    expect(rendered.employeeName).toBe('John Doe');
+    expect(rendered.storeDirections).toBe('John Doe');
     expect(rendered.storePhone).toBe('555-1234');
   });
 
@@ -124,7 +117,7 @@ describe('ProfileProvider', () => {
         <div>
           <span data-testid="profile">{JSON.stringify(profile)}</span>
           <SaveButton
-            profile={{ employeeName: 'Jane', storePhone: '555-9999' }}
+            profile={{ storeDirections: 'Jane', storePhone: '555-9999' }}
           />
         </div>
       );
@@ -141,7 +134,7 @@ describe('ProfileProvider', () => {
     await userEvent.click(screen.getByTestId('save-btn'));
 
     const rendered = JSON.parse(screen.getByTestId('profile').textContent!);
-    expect(rendered.employeeName).toBe('Jane');
+    expect(rendered.storeDirections).toBe('Jane');
     expect(rendered.storePhone).toBe('555-9999');
     expect(localStorage.getItem('userProfile')).toContain('Jane');
   });
@@ -149,7 +142,7 @@ describe('ProfileProvider', () => {
   it('clears profile from localStorage and context', async () => {
     localStorage.setItem(
       'userProfile',
-      JSON.stringify({ employeeName: 'Existing' })
+      JSON.stringify({ storeDirections: 'Existing' })
     );
 
     function ShowAndClear() {
@@ -170,7 +163,7 @@ describe('ProfileProvider', () => {
 
     // Profile should be loaded
     expect(
-      JSON.parse(screen.getByTestId('profile').textContent!).employeeName
+      JSON.parse(screen.getByTestId('profile').textContent!).storeDirections
     ).toBe('Existing');
 
     await userEvent.click(screen.getByTestId('clear-btn'));
@@ -183,7 +176,7 @@ describe('ProfileProvider', () => {
   it('overwrites existing profile on save', async () => {
     localStorage.setItem(
       'userProfile',
-      JSON.stringify({ employeeName: 'First' })
+      JSON.stringify({ storeDirections: 'First' })
     );
 
     function SaveAndShow() {
@@ -191,7 +184,7 @@ describe('ProfileProvider', () => {
       return (
         <div>
           <span data-testid="profile">{JSON.stringify(profile)}</span>
-          <SaveButton profile={{ employeeName: 'Second' }} />
+          <SaveButton profile={{ storeDirections: 'Second' }} />
         </div>
       );
     }
@@ -205,7 +198,7 @@ describe('ProfileProvider', () => {
     await userEvent.click(screen.getByTestId('save-btn'));
 
     const rendered = JSON.parse(screen.getByTestId('profile').textContent!);
-    expect(rendered.employeeName).toBe('Second');
+    expect(rendered.storeDirections).toBe('Second');
     expect(localStorage.getItem('userProfile')).toContain('Second');
   });
 
@@ -349,30 +342,6 @@ describe('Profile convenience hooks', () => {
     });
   });
 
-  describe('useEmployeeName', () => {
-    it('returns default when no profile', () => {
-      render(
-        <ProfileProvider>
-          <EmployeeNameConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('employee-name').textContent).toBe('Your Name');
-    });
-
-    it('returns stored name', () => {
-      localStorage.setItem(
-        'userProfile',
-        JSON.stringify({ employeeName: 'Jane' })
-      );
-      render(
-        <ProfileProvider>
-          <EmployeeNameConsumer />
-        </ProfileProvider>
-      );
-      expect(screen.getByTestId('employee-name').textContent).toBe('Jane');
-    });
-  });
-
   describe('useStoreEmail', () => {
     it('returns empty string when no profile', () => {
       render(
@@ -425,7 +394,7 @@ describe('Profile convenience hooks', () => {
     it('returns true when profile exists', () => {
       localStorage.setItem(
         'userProfile',
-        JSON.stringify({ employeeName: 'Test' })
+        JSON.stringify({ storeDirections: 'Test' })
       );
       render(
         <ProfileProvider>
@@ -438,7 +407,7 @@ describe('Profile convenience hooks', () => {
     it('returns false after clearing profile', async () => {
       localStorage.setItem(
         'userProfile',
-        JSON.stringify({ employeeName: 'Test' })
+        JSON.stringify({ storeDirections: 'Test' })
       );
 
       function HasProfileWithClear() {
@@ -483,7 +452,7 @@ describe('All profile hooks together', () => {
             data-testid="save-btn"
             onClick={() =>
               saveProfile({
-                employeeName: 'John Doe',
+                storeDirections: 'John Doe',
                 storePhone: '555-1234',
                 storeName: 'My Store',
                 storeLocation: 'the North Mall',
@@ -507,7 +476,6 @@ describe('All profile hooks together', () => {
     expect(screen.getByTestId('phone').textContent).toBe('');
     expect(screen.getByTestId('store-name').textContent).toBe('Your Store');
     expect(screen.getByTestId('location').textContent).toBe('');
-    expect(screen.getByTestId('employee-name').textContent).toBe('Your Name');
     expect(screen.getByTestId('store-email').textContent).toBe('');
     expect(screen.getByTestId('has-profile').textContent).toBe('false');
 
@@ -517,7 +485,6 @@ describe('All profile hooks together', () => {
     expect(screen.getByTestId('phone').textContent).toBe('555-1234');
     expect(screen.getByTestId('store-name').textContent).toBe('My Store');
     expect(screen.getByTestId('location').textContent).toBe('the North Mall');
-    expect(screen.getByTestId('employee-name').textContent).toBe('John Doe');
     expect(screen.getByTestId('store-email').textContent).toBe(
       'store@company.com'
     );
@@ -556,13 +523,13 @@ describe('ProfileProvider re-render behavior', () => {
     // Simulate external change to localStorage (e.g., another tab)
     localStorage.setItem(
       'userProfile',
-      JSON.stringify({ employeeName: 'External User' })
+      JSON.stringify({ storeDirections: 'External User' })
     );
 
     await userEvent.click(screen.getByTestId('reload-btn'));
 
     expect(
-      JSON.parse(screen.getByTestId('profile').textContent!).employeeName
+      JSON.parse(screen.getByTestId('profile').textContent!).storeDirections
     ).toBe('External User');
   });
 });

@@ -54,7 +54,7 @@ describe('ProfileSettingsPage', () => {
     expect(screen.getByText('Talaria')).toBeTruthy();
 
     // Check all field labels (some appear in multiple elements)
-    expect(screen.getAllByText(/Your Name/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/Your Name/)).toBeNull();
     expect(screen.queryByText(/Job Title/)).toBeNull();
     expect(screen.queryByText(/Company Email/)).toBeNull();
     expect(screen.getAllByText(/Store Name/).length).toBeGreaterThanOrEqual(1);
@@ -114,7 +114,6 @@ describe('ProfileSettingsPage', () => {
 
   it('pre-fills form with saved profile data', () => {
     renderPage({
-      employeeName: 'John Smith',
       storeName: 'Acme Company Store - Orlando',
       storeLocation: 'the Orlando Premium Outlets',
       storePhone: '555-123-4567',
@@ -122,10 +121,10 @@ describe('ProfileSettingsPage', () => {
       storeHours: 'Mon-Sat: 10AM-8PM | Sun: 10AM-7PM',
     });
 
-    const nameInput = screen.getByPlaceholderText(
-      /John Smith/i
+    const storeNameInput = screen.getByPlaceholderText(
+      /Acme Store - Orlando/i
     ) as HTMLInputElement;
-    expect(nameInput.value).toBe('John Smith');
+    expect(storeNameInput.value).toBe('Acme Company Store - Orlando');
   });
 
   // Save
@@ -135,9 +134,6 @@ describe('ProfileSettingsPage', () => {
     renderPage();
 
     // Fill in required fields
-    const nameInput = screen.getByPlaceholderText(/John Smith/i);
-    await user.type(nameInput, 'Jane Doe');
-
     const companyNameInput = screen.getByPlaceholderText(/Acme Inc\./i);
     await user.type(companyNameInput, 'Acme Inc.');
 
@@ -165,7 +161,7 @@ describe('ProfileSettingsPage', () => {
 
     // Check localStorage
     const saved = JSON.parse(localStorage.getItem('userProfile') || '{}');
-    expect(saved.employeeName).toBe('Jane Doe');
+    expect('employeeName' in saved).toBe(false);
     expect(saved.storeName).toBe('Acme Store');
     expect(saved.companyName).toBe('Acme Inc.');
   });
@@ -180,7 +176,6 @@ describe('ProfileSettingsPage', () => {
     globalThis.URL.revokeObjectURL = revokeObjectURLSpy;
 
     renderPage({
-      employeeName: 'Test User',
       storeName: 'Test Store',
       storeLocation: 'the Test Location',
       storePhone: '5551234567',

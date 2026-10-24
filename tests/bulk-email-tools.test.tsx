@@ -29,7 +29,6 @@ import { isValidEmail } from '@/lib/emailUtils';
 // ===== Mock Setup =====
 
 const MOCK_PROFILE = {
-  employeeName: 'John Doe',
   storeName: 'Test Store',
   storeLocation: 'Test Location',
   storeAddress: '123 Test St',

@@ -65,7 +65,6 @@ function makeEmailData(
 
 // Mock profile data for store helpers
 const MOCK_PROFILE = {
-  employeeName: 'John Doe',
   storeName: 'Test Store',
   storeLocation: 'Test Location',
   storeAddress: '123 Test St',

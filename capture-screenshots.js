@@ -8,7 +8,6 @@ const outDir = 'docs/screenshots';
 // profile — example.com domains and 555 numbers only — so the capture shows
 // the real builder instead of the redirect target.
 const DEMO_PROFILE = {
-  employeeName: 'Alex Rivera',
   companyName: 'Solstice Optics',
   storeName: 'Solstice Optics — Summerlin',
   storeLocation: 'Downtown Summerlin',

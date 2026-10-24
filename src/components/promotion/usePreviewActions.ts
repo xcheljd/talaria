@@ -29,7 +29,7 @@ import {
 } from '@/lib/emailUtils';
 import { getRecommendedFormat } from '@/lib/ui-utils';
 import { saveBlob, getSaveAsDialog } from '@/lib/file-save';
-import { getStoreEmail, getEmployeeName } from '@/lib/profile';
+import { getStoreEmail } from '@/lib/profile';
 import {
   generateEmailBatches,
   computeEmailStats,
@@ -110,7 +110,8 @@ export function usePreviewActions(emailHTML: string, store: PreviewStore) {
     }
 
     try {
-      const fromName = getEmployeeName();
+      // Drafts carry no sender (X-Unsent); Outlook fills in the account.
+      const fromName = '';
       const fromEmail = getStoreEmail();
       const subject = resolvePromoSubject(
         store.selectedSubjectLine,

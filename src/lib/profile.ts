@@ -7,7 +7,6 @@ import { StorageKeys } from '@/lib/storage-keys';
 
 /** User profile shape */
 export interface UserProfile {
-  employeeName?: string;
   /** Parent company / brand name (e.g. "Acme Inc."). */
   companyName?: string;
   storeName?: string;
@@ -208,14 +207,6 @@ export function getCollectionKeywords(): string[] {
 export function getDirections(): string {
   const profile = getUserProfile();
   return profile?.storeDirections || '';
-}
-
-/**
- * Get employee name with fallback default.
- */
-export function getEmployeeName(): string {
-  const profile = getUserProfile();
-  return profile?.employeeName || 'Your Name';
 }
 
 /**

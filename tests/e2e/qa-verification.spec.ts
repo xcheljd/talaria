@@ -9,7 +9,6 @@
 import { test, expect, Page, Locator } from '@playwright/test';
 
 const PROFILE = {
-  employeeName: 'QA Droid',
   storeName: 'Test Store',
   storeLocation: 'the Test Outlets',
   storeAddress: '123 Test St, Austin, TX',
@@ -794,9 +793,6 @@ test.describe('QA Item 8 — Regression sweep', () => {
     await page.goto(`${BASE}/settings`);
 
     // Poll until the saved profile is rendered
-    await expect
-      .poll(() => page.content(), { timeout: 15000 })
-      .toContain('QA Droid');
     await expect
       .poll(() => page.content(), { timeout: 15000 })
       .toContain('Test Store');
