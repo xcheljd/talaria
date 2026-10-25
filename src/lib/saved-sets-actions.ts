@@ -5,6 +5,7 @@
  */
 
 import { create } from 'zustand';
+import { StorageKeys } from '@/lib/storage-keys';
 import {
   usePromotionStore,
   generateId,
@@ -139,8 +140,8 @@ export function loadSection<S extends SavedSetSection>(
 // ===== Link to the set that was loaded (for "edited" + one-click Update) =====
 
 /**
- * Which saved set each section was last loaded from or saved as. Session
- * memory only: after a reload the link is gone and Sets behaves as before.
+ * Which saved set each section was last loaded from or saved as. Stored in
+ * localStorage (`loadedSets`) so it survives a restart, like the email.
  */
 
 interface LoadedSetsState {
@@ -149,15 +150,56 @@ interface LoadedSetsState {
   unlink: (section: SavedSetSection) => void;
 }
 
+const SECTION_KEYS: SavedSetSection[] = [
+  'howToShop',
+  'importantNotes',
+  'specialHours',
+  'newsletter',
+];
+
+/** Read the persisted links; anything malformed is dropped. */
+function readLoadedSets(): Partial<Record<SavedSetSection, string>> {
+  try {
+    const raw = JSON.parse(
+      localStorage.getItem(StorageKeys.loadedSets) || '{}'
+    );
+    const out: Partial<Record<SavedSetSection, string>> = {};
+    for (const k of SECTION_KEYS) {
+      if (typeof raw?.[k] === 'string' && raw[k]) out[k] = raw[k];
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function writeLoadedSets(loaded: Partial<Record<SavedSetSection, string>>) {
+  try {
+    localStorage.setItem(StorageKeys.loadedSets, JSON.stringify(loaded));
+  } catch {
+    // Best effort: losing the link only hides the edited dot.
+  }
+}
+
+/**
+ * Persisted like the builder state it describes: the email autosaves, so
+ * after a restart the card still holds the edited content — and the dot
+ * still says it differs from the set it came from.
+ */
 export const useLoadedSets = create<LoadedSetsState>((set) => ({
-  loaded: {},
+  loaded: readLoadedSets(),
   link: (section, id) =>
-    set((s) => ({ loaded: { ...s.loaded, [section]: id } })),
+    set((s) => {
+      const loaded = { ...s.loaded, [section]: id };
+      writeLoadedSets(loaded);
+      return { loaded };
+    }),
   unlink: (section) =>
     set((s) => {
-      const next = { ...s.loaded };
-      delete next[section];
-      return { loaded: next };
+      const loaded = { ...s.loaded };
+      delete loaded[section];
+      writeLoadedSets(loaded);
+      return { loaded };
     }),
 }));
 

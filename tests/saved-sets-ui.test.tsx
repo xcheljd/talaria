@@ -301,3 +301,26 @@ describe('Sets menu notices edits to a loaded set', () => {
     expect(useLoadedSets.getState().loaded.specialHours).toBeUndefined();
   });
 });
+
+describe('loaded-set link persistence', () => {
+  it('survives a restart (re-read from localStorage) and clears on unlink', async () => {
+    const { useLoadedSets } = await import('@/lib/saved-sets-actions');
+    useLoadedSets.getState().link('newsletter', 'set-123');
+    expect(JSON.parse(localStorage.getItem('loadedSets')!)).toEqual({
+      newsletter: 'set-123',
+    });
+    // Simulate an app restart: modules reload and read storage again.
+    vi.resetModules();
+    const fresh = await import('@/lib/saved-sets-actions');
+    expect(fresh.useLoadedSets.getState().loaded.newsletter).toBe('set-123');
+    fresh.useLoadedSets.getState().unlink('newsletter');
+    expect(JSON.parse(localStorage.getItem('loadedSets')!)).toEqual({});
+  });
+
+  it('ignores a corrupt stored value', async () => {
+    localStorage.setItem('loadedSets', '{not json');
+    vi.resetModules();
+    const fresh = await import('@/lib/saved-sets-actions');
+    expect(fresh.useLoadedSets.getState().loaded).toEqual({});
+  });
+});

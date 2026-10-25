@@ -87,4 +87,6 @@ export const StorageKeys = {
    * Special Hours, Newsletter). See stores/saved-sets-store.ts.
    */
   savedSets: 'savedSets',
+  /** Which saved set each section was loaded from (for the edited dot). */
+  loadedSets: 'loadedSets',
 } as const;
