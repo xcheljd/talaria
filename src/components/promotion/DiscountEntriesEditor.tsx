@@ -43,7 +43,7 @@ import {
   type PromotionState,
 } from '@/stores/promotion-store';
 import { Button } from '@/components/ui/button';
-import { ClearableInput } from '@/components/ui/clearable-input';
+import { ClearableTextarea } from '@/components/ui/clearable-textarea';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { SortableItem, DragHandle } from '@/components/promotion/SortableItem';
 
@@ -211,12 +211,13 @@ const EntryItem = memo(function EntryItem({
               >
                 Promotion Line *
               </FieldLabel>
-              <ClearableInput
+              <ClearableTextarea
                 id={`entry-${entry.id}-line`}
                 value={entry.line}
                 onChange={handleChange('line')}
                 placeholder="BRAND – ADDITIONAL 20% OFF"
                 data-field="line"
+                className="min-h-[34px] py-[7px]"
               />
             </Field>
             <Field className="gap-2">
@@ -226,12 +227,13 @@ const EntryItem = memo(function EntryItem({
               >
                 Collections (comma-separated)
               </FieldLabel>
-              <ClearableInput
+              <ClearableTextarea
                 id={`entry-${entry.id}-collections`}
                 value={entry.collections}
                 onChange={handleChange('collections')}
                 placeholder="Collection A, Collection B"
                 data-field="collections"
+                className="min-h-[34px] py-[7px]"
               />
             </Field>
             <Field className="gap-2">
@@ -241,12 +243,13 @@ const EntryItem = memo(function EntryItem({
               >
                 Special Callout (optional)
               </FieldLabel>
-              <ClearableInput
+              <ClearableTextarea
                 id={`entry-${entry.id}-callout`}
                 value={entry.callout}
                 onChange={handleChange('callout')}
                 placeholder="Final sale items excluded"
                 data-field="callout"
+                className="min-h-[34px] py-[7px]"
               />
             </Field>
           </FieldGroup>
