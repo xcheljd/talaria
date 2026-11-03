@@ -63,42 +63,14 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
         )}
       />
 
-      {/* Store Name */}
-      <FormField
-        control={form.control}
-        name="storeName"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              Store Name <span className="text-destructive-text">*</span>
-            </FormLabel>
-            <FormControl>
-              <ClearableInput
-                placeholder="Acme Store - Orlando"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                name={field.name}
-                ref={field.ref}
-              />
-            </FormControl>
-            <FormDescription>
-              Include location if multiple stores
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Store Location */}
+      {/* Shopping Center Name (the retired "Store Name" field is no longer shown;
+          its stored value still round-trips for existing profiles) */}
       <FormField
         control={form.control}
         name="storeLocation"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>
-              Store Location <span className="text-destructive-text">*</span>
-            </FormLabel>
+            <FormLabel>Shopping Center Name</FormLabel>
             <FormControl>
               <ClearableInput
                 placeholder="Downtown Shopping Center"
@@ -110,8 +82,8 @@ export function StoreInfoFields({ form }: StoreInfoFieldsProps) {
               />
             </FormControl>
             <FormDescription>
-              The shopping center or mall your store is in. Shown on the second
-              line of the email footer
+              Optional. The shopping center or mall your store is in, shown on
+              the second line of the email footer
             </FormDescription>
             <FormMessage />
           </FormItem>

@@ -152,8 +152,12 @@ const plusCodeSchema = z.string().refine(
  */
 export const profileFormSchema = z.object({
   companyName: z.string().min(1, 'Company name is required'),
-  storeName: z.string().min(1, 'Store name is required'),
-  storeLocation: z.string().min(1, 'Store location is required'),
+  // Retired from the form (the shopping center replaced it) but kept in the
+  // schema so existing/imported profiles keep round-tripping.
+  storeName: z.string(),
+  // The shopping center the store sits in — optional, and simply omitted from
+  // the email footer when blank.
+  storeLocation: z.string(),
   storeAddress: z.string(),
   storePlusCode: plusCodeSchema,
   storePhone: phoneSchema,
