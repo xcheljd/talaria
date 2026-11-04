@@ -3,9 +3,7 @@ import {
   getUserProfile,
   saveUserProfile,
   getStorePhone,
-  getStoreName,
   getStoreLocation,
-  getFullStoreLocation,
   getStoreAddress,
   getStoreEmail,
   getStoreHours,
@@ -55,17 +53,6 @@ describe('profile', () => {
     });
   });
 
-  describe('getStoreName', () => {
-    it('returns stored store name', () => {
-      saveUserProfile({ storeName: 'Test Store' });
-      expect(getStoreName()).toBe('Test Store');
-    });
-
-    it('returns neutral default when no profile', () => {
-      expect(getStoreName()).toBe('Your Store');
-    });
-  });
-
   describe('getStoreLocation', () => {
     it('returns stored location', () => {
       saveUserProfile({ storeLocation: 'the North Premium Outlets' });
@@ -74,18 +61,6 @@ describe('profile', () => {
 
     it('returns empty string when no profile', () => {
       expect(getStoreLocation()).toBe('');
-    });
-  });
-
-  describe('getFullStoreLocation', () => {
-    it('returns "<store name> at <location>"', () => {
-      saveUserProfile({ storeName: 'My Store', storeLocation: 'the Mall' });
-      expect(getFullStoreLocation()).toBe('My Store at the Mall');
-    });
-
-    it('falls back to just the store name when no location', () => {
-      saveUserProfile({ storeName: 'My Store' });
-      expect(getFullStoreLocation()).toBe('My Store');
     });
   });
 

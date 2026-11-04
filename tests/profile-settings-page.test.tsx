@@ -168,6 +168,27 @@ describe('ProfileSettingsPage', () => {
     expect(saved.companyName).toBe('Acme Inc.');
   });
 
+  it('saves without a shopping center (the field is optional)', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(screen.getByPlaceholderText(/Acme Inc\./i), 'Acme Inc.');
+    await user.type(screen.getByPlaceholderText(/555-123-4567/i), '5551234567');
+    await user.type(
+      screen.getByPlaceholderText(/store@company.com/i),
+      'store@acme.com'
+    );
+    await user.click(
+      screen.getByRole('button', { name: /^Save( Profile)?$/i })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Profile saved successfully/i)).toBeTruthy();
+    });
+    const saved = JSON.parse(localStorage.getItem('userProfile') || '{}');
+    expect(saved.storeLocation ?? '').toBe('');
+  });
+
   // Export
 
   it('exports profile as JSON file', async () => {

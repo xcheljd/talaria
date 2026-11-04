@@ -32,7 +32,6 @@ export interface UserProfile {
 // any company. Real values come from the profile saved on the Settings page.
 
 export const DEFAULT_COMPANY_NAME = 'Your Company';
-const DEFAULT_STORE_NAME = 'Your Store';
 export const DEFAULT_PRODUCT_NOUN = 'product';
 
 /**
@@ -111,29 +110,11 @@ export function getCompanyName(): string {
 }
 
 /**
- * Get store name with neutral fallback default.
- */
-export function getStoreName(): string {
-  const profile = getUserProfile();
-  return profile?.storeName || DEFAULT_STORE_NAME;
-}
-
-/**
  * Get store location (empty when unset).
  */
 export function getStoreLocation(): string {
   const profile = getUserProfile();
   return profile?.storeLocation || '';
-}
-
-/**
- * Get full store location ("<Store Name> at <location>"). Falls back to just
- * the store name when no location has been provided.
- */
-export function getFullStoreLocation(): string {
-  const location = getStoreLocation();
-  const storeName = getStoreName();
-  return location ? `${storeName} at ${location}` : storeName;
 }
 
 /**
