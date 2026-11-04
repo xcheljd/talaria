@@ -43,7 +43,7 @@ import {
 import { detectOS, getRecommendedFormat } from '@/lib/ui-utils';
 import { StorageKeys } from '@/lib/storage-keys';
 import { Button } from '@/components/ui/button';
-import { ClearableTextarea } from '@/components/ui/clearable-textarea';
+import { InputGroup, InputGroupTextarea } from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 import { FieldError } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
@@ -234,18 +234,21 @@ export function BulkEmailTools() {
         )}
       </div>
 
-      {/* Recipient textarea */}
-      <ClearableTextarea
-        value={recipientText}
-        onChange={handleRecipientChange}
-        placeholder="Enter email addresses (one per line, comma-separated, or paste from spreadsheet)..."
-        className="h-[120px] resize-none overflow-y-auto [field-sizing:fixed] font-mono text-sm"
-        groupClassName={cn(
+      {/* Recipient textarea — plain box, no inline × (header has Clear all) */}
+      <InputGroup
+        className={cn(
           emailStats.invalid > 0 &&
             'border-destructive/50 has-[[data-slot=input-group-control]:focus-visible]:border-destructive/50 has-[[data-slot=input-group-control]:focus-visible]:ring-destructive/30'
         )}
-        data-testid="bulk-email-list"
-      />
+      >
+        <InputGroupTextarea
+          data-testid="bulk-email-list"
+          value={recipientText}
+          onChange={(e) => handleRecipientChange(e.target.value)}
+          placeholder="Enter email addresses (one per line, comma-separated, or paste from spreadsheet)..."
+          className="h-[120px] resize-none overflow-y-auto [field-sizing:fixed] py-2 font-mono text-sm"
+        />
+      </InputGroup>
 
       {/* Recipient stats */}
       {emailStats.total > 0 && (
