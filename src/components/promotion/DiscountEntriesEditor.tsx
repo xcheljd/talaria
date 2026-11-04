@@ -218,6 +218,7 @@ const EntryItem = memo(function EntryItem({
                 placeholder="BRAND – ADDITIONAL 20% OFF"
                 data-field="line"
                 className="min-h-[34px] py-[7px]"
+                singleLine
               />
             </Field>
             <Field className="gap-2">
@@ -234,6 +235,7 @@ const EntryItem = memo(function EntryItem({
                 placeholder="Collection A, Collection B"
                 data-field="collections"
                 className="min-h-[34px] py-[7px]"
+                singleLine
               />
             </Field>
             <Field className="gap-2">
@@ -250,6 +252,7 @@ const EntryItem = memo(function EntryItem({
                 placeholder="Final sale items excluded"
                 data-field="callout"
                 className="min-h-[34px] py-[7px]"
+                singleLine
               />
             </Field>
           </FieldGroup>
