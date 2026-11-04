@@ -57,10 +57,10 @@ describe('ProfileSettingsPage', () => {
     expect(screen.queryByText(/Your Name/)).toBeNull();
     expect(screen.queryByText(/Job Title/)).toBeNull();
     expect(screen.queryByText(/Company Email/)).toBeNull();
-    expect(screen.getAllByText(/Store Name/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Store Location/).length).toBeGreaterThanOrEqual(
-      1
-    );
+    expect(screen.queryByText(/Store Name/)).toBeNull();
+    expect(
+      screen.getAllByText(/Shopping Center Name/).length
+    ).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Store Address/).length).toBeGreaterThanOrEqual(
       1
     );
@@ -118,17 +118,16 @@ describe('ProfileSettingsPage', () => {
 
   it('pre-fills form with saved profile data', () => {
     renderPage({
-      storeName: 'Acme Company Store - Orlando',
       storeLocation: 'the Orlando Premium Outlets',
       storePhone: '555-123-4567',
       storeEmail: 'orlando@example.com',
       storeHours: 'Mon-Sat: 10AM-8PM | Sun: 10AM-7PM',
     });
 
-    const storeNameInput = screen.getByPlaceholderText(
-      /Acme Store - Orlando/i
+    const centerInput = screen.getByPlaceholderText(
+      /Downtown Shopping Center/i
     ) as HTMLInputElement;
-    expect(storeNameInput.value).toBe('Acme Company Store - Orlando');
+    expect(centerInput.value).toBe('the Orlando Premium Outlets');
   });
 
   // Save
@@ -141,13 +140,10 @@ describe('ProfileSettingsPage', () => {
     const companyNameInput = screen.getByPlaceholderText(/Acme Inc\./i);
     await user.type(companyNameInput, 'Acme Inc.');
 
-    const storeNameInput = screen.getByPlaceholderText(/Acme Store - Orlando/i);
-    await user.type(storeNameInput, 'Acme Store');
-
-    const storeLocationInput = screen.getByPlaceholderText(
+    const centerInput = screen.getByPlaceholderText(
       /Downtown Shopping Center/i
     );
-    await user.type(storeLocationInput, 'the Mall');
+    await user.type(centerInput, 'the Mall');
 
     const storePhoneInput = screen.getByPlaceholderText(/555-123-4567/i);
     await user.type(storePhoneInput, '5551234567');
@@ -168,8 +164,29 @@ describe('ProfileSettingsPage', () => {
     // Check localStorage
     const saved = JSON.parse(localStorage.getItem('userProfile') || '{}');
     expect('employeeName' in saved).toBe(false);
-    expect(saved.storeName).toBe('Acme Store');
+    expect(saved.storeLocation).toBe('the Mall');
     expect(saved.companyName).toBe('Acme Inc.');
+  });
+
+  it('saves without a shopping center (the field is optional)', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(screen.getByPlaceholderText(/Acme Inc\./i), 'Acme Inc.');
+    await user.type(screen.getByPlaceholderText(/555-123-4567/i), '5551234567');
+    await user.type(
+      screen.getByPlaceholderText(/store@company.com/i),
+      'store@acme.com'
+    );
+    await user.click(
+      screen.getByRole('button', { name: /^Save( Profile)?$/i })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Profile saved successfully/i)).toBeTruthy();
+    });
+    const saved = JSON.parse(localStorage.getItem('userProfile') || '{}');
+    expect(saved.storeLocation ?? '').toBe('');
   });
 
   // Export

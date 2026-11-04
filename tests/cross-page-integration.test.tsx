@@ -25,7 +25,6 @@ import {
   saveUserProfile,
   getStorePhone,
   getStoreEmail,
-  getStoreName,
   type UserProfile,
 } from '../src/lib/profile';
 
@@ -321,7 +320,6 @@ describe('VAL-CROSS-001: Complete user flow — profile setup', () => {
 
     // Verify profile helpers return the saved values
     expect(getStorePhone()).toBe('555-123-4567');
-    expect(getStoreName()).toBe('Acme Store - Test');
     expect(getStoreEmail()).toBe('teststore@acme.com');
   });
 });

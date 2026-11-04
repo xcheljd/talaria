@@ -793,10 +793,11 @@ test.describe('QA Item 8 — Regression sweep', () => {
     await seedProfile(page);
     await page.goto(`${BASE}/settings`);
 
-    // Poll until the saved profile is rendered
+    // Poll until the saved profile is rendered. Store Name left the form, so
+    // check the shopping center (storeLocation), which the form still shows.
     await expect
       .poll(() => page.content(), { timeout: 15000 })
-      .toContain('Test Store');
+      .toContain('the Test Outlets');
   });
 
   test('Theme toggle persists across reload', async ({ page }) => {

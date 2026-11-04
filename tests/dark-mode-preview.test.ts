@@ -38,7 +38,6 @@ import { DEFAULT_NEWSLETTER_STYLE } from '@/stores/promotion-store';
 
 vi.mock('@/lib/profile', () => ({
   getStorePhone: vi.fn().mockReturnValue('555-123-4567'),
-  getStoreName: vi.fn().mockReturnValue('Test Store'),
   getCompanyName: vi.fn().mockReturnValue('Test Co'),
   getStoreLocation: vi.fn().mockReturnValue('Test Mall'),
   getStoreEmail: vi.fn().mockReturnValue('store@example.com'),
