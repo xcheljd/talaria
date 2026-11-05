@@ -39,9 +39,10 @@ const sortableRenderCounts = vi.hoisted(
 );
 
 vi.mock('@/components/promotion/SortableItem', async (importOriginal) => {
-  const mod = await importOriginal<
-    typeof import('@/components/promotion/SortableItem')
-  >();
+  const mod =
+    await importOriginal<
+      typeof import('@/components/promotion/SortableItem')
+    >();
   return {
     ...mod,
     SortableItem: (props: React.ComponentProps<typeof mod.SortableItem>) => {
@@ -53,7 +54,6 @@ vi.mock('@/components/promotion/SortableItem', async (importOriginal) => {
     },
   };
 });
-
 
 // Mock ResizeObserver for Radix components
 beforeAll(() => {
@@ -100,9 +100,7 @@ describe('DiscountEntriesEditor', () => {
 
   it('renders empty state message when no entries', () => {
     renderWithTheme(<DiscountEntriesEditor />);
-    expect(
-      screen.getByText(/no discount entries yet/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/no discount entries yet/i)).toBeInTheDocument();
   });
 
   it('renders "Add Entry" button', () => {
@@ -121,9 +119,13 @@ describe('DiscountEntriesEditor', () => {
     // Should show "Entry 1" label
     expect(screen.getByText('Entry 1')).toBeInTheDocument();
     // Should have 3 input fields
-    expect(screen.getByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Collection A, Collection B/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Final sale items excluded/i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/Collection A, Collection B/i)
+    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Final Sale/i)).toBeInTheDocument();
   });
 
   it('adds multiple entries', async () => {
@@ -143,7 +145,9 @@ describe('DiscountEntriesEditor', () => {
 
     await user.click(screen.getByRole('button', { name: /add entry/i }));
 
-    const lineInput = screen.getByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i);
+    const lineInput = screen.getByPlaceholderText(
+      /BRAND – ADDITIONAL 20% OFF/i
+    );
     await user.type(lineInput, 'Test Brand – 30% OFF');
 
     expect(lineInput).toHaveValue('Test Brand – 30% OFF');
@@ -164,7 +168,9 @@ describe('DiscountEntriesEditor', () => {
     expect(screen.getByText('Entry 2')).toBeInTheDocument();
 
     // Remove Entry 1
-    const removeBtn = screen.getAllByRole('button', { name: /remove entry/i })[0];
+    const removeBtn = screen.getAllByRole('button', {
+      name: /remove entry/i,
+    })[0];
     await user.click(removeBtn);
 
     // Only one entry remains
@@ -180,12 +186,16 @@ describe('DiscountEntriesEditor', () => {
     await user.click(screen.getByRole('button', { name: /add entry/i }));
     await user.click(screen.getByRole('button', { name: /add entry/i }));
 
-    const lineInputs = screen.getAllByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i);
+    const lineInputs = screen.getAllByPlaceholderText(
+      /BRAND – ADDITIONAL 20% OFF/i
+    );
     await user.type(lineInputs[0], 'First Entry');
     await user.type(lineInputs[1], 'Second Entry');
 
     // Move second entry up
-    const moveUpBtns = screen.getAllByRole('button', { name: /move entry.*up/i });
+    const moveUpBtns = screen.getAllByRole('button', {
+      name: /move entry.*up/i,
+    });
     // Click the second entry's move up button
     await user.click(moveUpBtns[1]);
 
@@ -201,12 +211,16 @@ describe('DiscountEntriesEditor', () => {
     await user.click(screen.getByRole('button', { name: /add entry/i }));
     await user.click(screen.getByRole('button', { name: /add entry/i }));
 
-    const lineInputs = screen.getAllByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i);
+    const lineInputs = screen.getAllByPlaceholderText(
+      /BRAND – ADDITIONAL 20% OFF/i
+    );
     await user.type(lineInputs[0], 'First Entry');
     await user.type(lineInputs[1], 'Second Entry');
 
     // Move first entry down
-    const moveDownBtns = screen.getAllByRole('button', { name: /move entry.*down/i });
+    const moveDownBtns = screen.getAllByRole('button', {
+      name: /move entry.*down/i,
+    });
     await user.click(moveDownBtns[0]);
 
     const store = usePromotionStore.getState();
@@ -230,7 +244,9 @@ describe('DiscountEntriesEditor', () => {
 
     await user.click(screen.getByRole('button', { name: /add entry/i }));
 
-    const moveDownBtn = screen.getByRole('button', { name: /move entry 1 down/i });
+    const moveDownBtn = screen.getByRole('button', {
+      name: /move entry 1 down/i,
+    });
     expect(moveDownBtn).toBeDisabled();
   });
 
@@ -241,7 +257,9 @@ describe('DiscountEntriesEditor', () => {
     await user.click(screen.getByRole('button', { name: /add entry/i }));
 
     // Fill in the line field
-    const lineInput = screen.getByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i);
+    const lineInput = screen.getByPlaceholderText(
+      /BRAND – ADDITIONAL 20% OFF/i
+    );
     await user.type(lineInput, 'Test Promotion Line');
 
     // Click collapse
@@ -252,7 +270,9 @@ describe('DiscountEntriesEditor', () => {
     expect(screen.getByText('Test Promotion Line')).toBeInTheDocument();
 
     // Input fields should be hidden
-    expect(screen.queryByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i)
+    ).not.toBeInTheDocument();
   });
 
   it('shows "Entry not filled out" summary when collapsed with no data', async () => {
@@ -275,11 +295,15 @@ describe('DiscountEntriesEditor', () => {
 
     // Collapse
     await user.click(screen.getByRole('button', { name: /collapse entry/i }));
-    expect(screen.getByRole('button', { name: /expand entry/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /expand entry/i })
+    ).toBeInTheDocument();
 
     // Expand
     await user.click(screen.getByRole('button', { name: /expand entry/i }));
-    expect(screen.getByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/BRAND – ADDITIONAL 20% OFF/i)
+    ).toBeInTheDocument();
   });
 
   it('updates collections and callout fields', async () => {
@@ -288,10 +312,12 @@ describe('DiscountEntriesEditor', () => {
 
     await user.click(screen.getByRole('button', { name: /add entry/i }));
 
-    const collectionsInput = screen.getByPlaceholderText(/Collection A, Collection B/i);
+    const collectionsInput = screen.getByPlaceholderText(
+      /Collection A, Collection B/i
+    );
     await user.type(collectionsInput, 'Brand1, Brand2');
 
-    const calloutInput = screen.getByPlaceholderText(/Final sale items excluded/i);
+    const calloutInput = screen.getByPlaceholderText(/Final Sale/i);
     await user.type(calloutInput, 'Some callout');
 
     const store = usePromotionStore.getState();
@@ -325,9 +351,7 @@ describe('DiscountEntriesEditor', () => {
     await user.type(lineInputs[0], 'Edited line');
 
     // The edited row re-rendered (its own value changed)...
-    expect(sortableRenderCounts.get(firstId) ?? 0).toBeGreaterThan(
-      firstBefore
-    );
+    expect(sortableRenderCounts.get(firstId) ?? 0).toBeGreaterThan(firstBefore);
     // ...but the sibling row did not re-render at all.
     expect(sortableRenderCounts.get(secondId) ?? 0).toBe(secondBefore);
   });
@@ -356,9 +380,11 @@ describe('FormattableItemEditor', () => {
       moveItemDown: vi.fn((id: number) => {
         usePromotionStore.getState().moveHowToShopItemDown(id);
       }),
-      toggleFormat: vi.fn((id: number, format: 'bold' | 'italic' | 'underline') => {
-        usePromotionStore.getState().toggleHowToShopFormat(id, format);
-      }),
+      toggleFormat: vi.fn(
+        (id: number, format: 'bold' | 'italic' | 'underline') => {
+          usePromotionStore.getState().toggleHowToShopFormat(id, format);
+        }
+      ),
     };
   });
 
@@ -408,7 +434,13 @@ describe('FormattableItemEditor', () => {
 
   it('renders items with input fields and format buttons', () => {
     const items = [
-      { id: 1, text: 'Test item', bold: false, italic: false, underline: false },
+      {
+        id: 1,
+        text: 'Test item',
+        bold: false,
+        italic: false,
+        underline: false,
+      },
     ];
     renderWithTheme(
       <FormattableItemEditor
@@ -421,9 +453,15 @@ describe('FormattableItemEditor', () => {
     );
 
     expect(screen.getByDisplayValue('Test item')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /toggle bold/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /toggle italic/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /toggle underline/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /toggle bold/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /toggle italic/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /toggle underline/i })
+    ).toBeInTheDocument();
   });
 
   it('updates item text on input', async () => {
@@ -543,7 +581,13 @@ describe('FormattableItemEditor', () => {
 
   it('shows active state on italic button when italic is true', () => {
     const items = [
-      { id: 1, text: 'Italic text', bold: false, italic: true, underline: false },
+      {
+        id: 1,
+        text: 'Italic text',
+        bold: false,
+        italic: true,
+        underline: false,
+      },
     ];
     renderWithTheme(
       <FormattableItemEditor
@@ -601,7 +645,9 @@ describe('FormattableItemEditor', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /add note/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /add note/i })
+    ).toBeInTheDocument();
   });
 
   it('does not re-render sibling rows when one item changes', async () => {
@@ -708,7 +754,9 @@ describe('HowToShop via FormattableItemEditor', () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByPlaceholderText('e.g., Shop in-store')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('e.g., Shop in-store')
+    ).toBeInTheDocument();
   });
 
   it('toggles bold format through the store', async () => {
@@ -717,7 +765,13 @@ describe('HowToShop via FormattableItemEditor', () => {
     // Pre-populate store with one item
     usePromotionStore.setState({
       howToShopItems: [
-        { id: 100, text: 'Test item', bold: false, italic: false, underline: false },
+        {
+          id: 100,
+          text: 'Test item',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
       ],
     });
 
@@ -792,7 +846,9 @@ describe('ImportantNotes via FormattableItemEditor', () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByPlaceholderText('e.g., Important details')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('e.g., Important details')
+    ).toBeInTheDocument();
   });
 
   it('toggles formatting on important notes item via store', async () => {
@@ -800,7 +856,13 @@ describe('ImportantNotes via FormattableItemEditor', () => {
 
     usePromotionStore.setState({
       importantNotesItems: [
-        { id: 200, text: 'Important note', bold: false, italic: false, underline: false },
+        {
+          id: 200,
+          text: 'Important note',
+          bold: false,
+          italic: false,
+          underline: false,
+        },
       ],
     });
 
@@ -825,7 +887,9 @@ describe('ImportantNotes via FormattableItemEditor', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /toggle italic/i }));
-    expect(usePromotionStore.getState().importantNotesItems[0].italic).toBe(true);
+    expect(usePromotionStore.getState().importantNotesItems[0].italic).toBe(
+      true
+    );
   });
 });
 
@@ -838,9 +902,7 @@ describe('SpecialHoursEditor', () => {
 
   it('renders empty state message when no hours', () => {
     renderWithTheme(<SpecialHoursEditor />);
-    expect(
-      screen.getByText(/no special hours added yet/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/no special hours added yet/i)).toBeInTheDocument();
   });
 
   it('renders "Add Hours" button', () => {
@@ -856,8 +918,12 @@ describe('SpecialHoursEditor', () => {
 
     await user.click(screen.getByRole('button', { name: /add hours/i }));
 
-    expect(screen.getByPlaceholderText(/e.g., Friday Nov 29/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/e.g., 6AM–10PM or CLOSED/i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/e.g., Friday Nov 29/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/e.g., 6AM–10PM or CLOSED/i)
+    ).toBeInTheDocument();
   });
 
   it('adds multiple special hour rows', async () => {
@@ -904,12 +970,18 @@ describe('SpecialHoursEditor', () => {
     await user.click(screen.getByRole('button', { name: /add hours/i }));
     await user.click(screen.getByRole('button', { name: /add hours/i }));
 
-    expect(screen.getAllByPlaceholderText(/e.g., Friday Nov 29/i)).toHaveLength(2);
+    expect(screen.getAllByPlaceholderText(/e.g., Friday Nov 29/i)).toHaveLength(
+      2
+    );
 
-    const removeBtns = screen.getAllByRole('button', { name: /remove special hour/i });
+    const removeBtns = screen.getAllByRole('button', {
+      name: /remove special hour/i,
+    });
     await user.click(removeBtns[0]);
 
-    expect(screen.getAllByPlaceholderText(/e.g., Friday Nov 29/i)).toHaveLength(1);
+    expect(screen.getAllByPlaceholderText(/e.g., Friday Nov 29/i)).toHaveLength(
+      1
+    );
   });
 
   it('moves a special hour row up', async () => {
@@ -925,7 +997,9 @@ describe('SpecialHoursEditor', () => {
     await user.type(dayInputs[1], 'Saturday');
 
     // Move second row up
-    const moveUpBtns = screen.getAllByRole('button', { name: /move hour.*up/i });
+    const moveUpBtns = screen.getAllByRole('button', {
+      name: /move hour.*up/i,
+    });
     await user.click(moveUpBtns[1]);
 
     const store = usePromotionStore.getState();
@@ -946,7 +1020,9 @@ describe('SpecialHoursEditor', () => {
     await user.type(dayInputs[1], 'Saturday');
 
     // Move first row down
-    const moveDownBtns = screen.getAllByRole('button', { name: /move hour.*down/i });
+    const moveDownBtns = screen.getAllByRole('button', {
+      name: /move hour.*down/i,
+    });
     await user.click(moveDownBtns[0]);
 
     const store = usePromotionStore.getState();
@@ -970,7 +1046,9 @@ describe('SpecialHoursEditor', () => {
 
     await user.click(screen.getByRole('button', { name: /add hours/i }));
 
-    const moveDownBtn = screen.getByRole('button', { name: /move hour 1 down/i });
+    const moveDownBtn = screen.getByRole('button', {
+      name: /move hour 1 down/i,
+    });
     expect(moveDownBtn).toBeDisabled();
   });
 });

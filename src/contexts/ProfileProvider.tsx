@@ -99,6 +99,15 @@ export function useProductNoun(): string {
 }
 
 /**
+ * Get the plural product noun ("watches", "sunglasses"). Empty when not set;
+ * the subject-line generator then derives it from the singular.
+ */
+export function useProductNounPlural(): string {
+  const { profile } = useProfileContext();
+  return profile?.productNounPlural?.trim() || '';
+}
+
+/**
  * Get the brand keywords featured in subject-line suggestions.
  */
 export function useBrandKeywords(): string[] {

@@ -249,7 +249,7 @@ const EntryItem = memo(function EntryItem({
                 id={`entry-${entry.id}-callout`}
                 value={entry.callout}
                 onChange={handleChange('callout')}
-                placeholder="Final sale items excluded"
+                placeholder="Final Sale"
                 data-field="callout"
                 className="min-h-[34px] py-[7px]"
                 singleLine
