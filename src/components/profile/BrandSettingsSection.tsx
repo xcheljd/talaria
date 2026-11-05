@@ -11,6 +11,12 @@ import type { UseFormReturn } from 'react-hook-form';
 import type { ProfileFormValues } from '@/lib/profile-validation';
 import { ClearableInput } from '@/components/ui/clearable-input';
 import {
+  NEWSLETTER_THEMES,
+  THEME_LABELS,
+  THEME_PHRASES,
+} from '@/lib/newsletter-themes';
+import { THEME_FIELDS } from '@/components/profile/profile-form-utils';
+import {
   FormControl,
   FormDescription,
   FormField,
@@ -81,6 +87,42 @@ export function BrandSettingsSection({ form }: BrandSettingsSectionProps) {
           </FormItem>
         )}
       />
+
+      {/* Newsletter theme phrases */}
+      <div className="col-span-1 mt-2 border-t pt-4 lg:col-span-2">
+        <h2 className="text-sm font-semibold">Newsletter Theme Phrases</h2>
+        <p className="text-xs text-muted-foreground">
+          When your newsletter uses one of these phrases, subject suggestions
+          pick up the theme (e.g. "Just In: Aria Volt"). Common phrases are
+          built in; add your store&apos;s own wording here.
+        </p>
+      </div>
+      {NEWSLETTER_THEMES.map((theme) => (
+        <FormField
+          key={theme}
+          control={form.control}
+          name={THEME_FIELDS[theme]}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{THEME_LABELS[theme]}</FormLabel>
+              <FormControl>
+                <ClearableInput
+                  placeholder="Your own phrases, comma-separated"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                />
+              </FormControl>
+              <FormDescription>
+                Built in: {THEME_PHRASES[theme].slice(0, 4).join(', ')}…
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      ))}
     </div>
   );
 }

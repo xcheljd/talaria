@@ -169,6 +169,12 @@ export const profileFormSchema = z.object({
   // Comma-separated in the form; split into arrays when persisted.
   brandKeywords: z.string(),
   collectionKeywords: z.string(),
+  // Extra newsletter theme phrases, comma-separated per theme.
+  themeNewArrivals: z.string().optional(),
+  themeBackInStock: z.string().optional(),
+  themeLimited: z.string().optional(),
+  themeEvent: z.string().optional(),
+  themeGift: z.string().optional(),
 });
 
 export type ProfileFormValues = z.infer<typeof profileFormSchema>;

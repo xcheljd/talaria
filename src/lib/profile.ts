@@ -3,6 +3,7 @@
  * Centralized access to user profile data stored in localStorage.
  */
 
+import type { NewsletterTheme } from './newsletter-themes';
 import { StorageKeys } from '@/lib/storage-keys';
 
 /** User profile shape */
@@ -25,6 +26,11 @@ export interface UserProfile {
   brandKeywords?: string[];
   /** Collection names featured in generated subject lines (e.g. "Aria", "Volt"). */
   collectionKeywords?: string[];
+  /**
+   * Extra newsletter phrases per theme (e.g. newArrivals: ["fresh drop"]),
+   * added to the built-in triggers in newsletter-themes.ts.
+   */
+  themePhrases?: Partial<Record<NewsletterTheme, string[]>>;
 }
 
 // ─── Neutral defaults ───────────────────────────────────────────────────────

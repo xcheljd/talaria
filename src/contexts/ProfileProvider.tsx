@@ -124,6 +124,14 @@ export function useCollectionKeywords(): string[] {
 }
 
 /**
+ * Get the extra newsletter theme phrases (added to the built-in triggers).
+ */
+export function useThemePhrases(): UserProfile['themePhrases'] {
+  const { profile } = useProfileContext();
+  return profile?.themePhrases;
+}
+
+/**
  * Check if a user profile has been set up.
  */
 export function useHasProfile(): boolean {
