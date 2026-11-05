@@ -260,7 +260,7 @@ function HowToShopEditor() {
       <FormattableItemEditor
         items={store.howToShopItems}
         actions={actions}
-        placeholder="e.g., Visit us in-store for outlet-exclusive deals"
+        placeholder="e.g., Visit us in-store for exclusive deals"
         itemLabel="Item"
         emptyMessage="No shopping instructions yet"
         emptyDescription="Tell customers how to buy: in store, by phone, or online."
