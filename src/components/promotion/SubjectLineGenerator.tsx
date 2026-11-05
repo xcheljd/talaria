@@ -17,13 +17,17 @@ import { RefreshCw, Mail, Star, Sparkles } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { usePromotionStore } from '@/stores/promotion-store';
-import { generateSubjectLines } from '@/lib/subject-line-generator';
+import {
+  generateSubjectLines,
+  generatePreheaders,
+} from '@/lib/subject-line-generator';
 import {
   useCompanyName,
   useProductNoun,
   useProductNounPlural,
   useBrandKeywords,
   useCollectionKeywords,
+  useThemePhrases,
 } from '@/contexts/ProfileProvider';
 
 import { Button } from '@/components/ui/button';
@@ -153,6 +157,7 @@ export function SubjectLineGenerator() {
   const productNounPlural = useProductNounPlural();
   const profileBrandKeywords = useBrandKeywords();
   const collectionKeywords = useCollectionKeywords();
+  const themePhrases = useThemePhrases();
 
   // Brand names to feature in subject lines: the configured brand keywords plus
   // the company name.
@@ -206,6 +211,7 @@ export function SubjectLineGenerator() {
       productNoun,
       productNounPlural,
       collectionKeywords,
+      themePhrases,
     });
     store.setGeneratedSubjectLines(lines);
     if (lines.length > 0) {
@@ -218,6 +224,7 @@ export function SubjectLineGenerator() {
     productNoun,
     productNounPlural,
     collectionKeywords,
+    themePhrases,
   ]);
 
   // Regenerate (clears manual edit flag)
@@ -253,36 +260,23 @@ export function SubjectLineGenerator() {
   // Character count for the selected subject
   const charCount = store.selectedSubjectLine?.length ?? 0;
 
-  // Generate preheader suggestions from promotion content
-  const preheaderSuggestions = useMemo(() => {
-    const suggestions: string[] = [];
-    const entries = store.promotionEntries.filter((e) => e.line?.trim());
-    const dateRange = store.promoDateRange;
-
-    if (dateRange && entries.length > 0) {
-      suggestions.push(
-        `${dateRange} — ${entries.map((e) => e.line).join(', ')}`
-      );
-    }
-    if (entries.length > 0) {
-      suggestions.push(
-        `Don't miss out: ${entries
-          .slice(0, 2)
-          .map((e) => e.line)
-          .join(' + ')}`
-      );
-    }
-    if (dateRange) {
-      suggestions.push(`Exclusive savings ${dateRange} — while supplies last`);
-    }
-    if (entries.length > 0) {
-      suggestions.push(
-        `Shop ${entries.length} deal${entries.length > 1 ? 's' : ''} inside — limited availability`
-      );
-    }
-    suggestions.push('Preview your promotion deals and savings inside.');
-    return suggestions;
-  }, [store.promoDateRange, store.promotionEntries]);
+  // Preheader suggestions: the newsletter's own words first, then promotion
+  // lines; anything repeating the chosen subject is dropped.
+  const preheaderSuggestions = useMemo(
+    () =>
+      generatePreheaders({
+        promoDateRange: store.promoDateRange,
+        promotionEntries: store.promotionEntries,
+        newsletterBody: store.newsletterBody,
+        subject: store.selectedSubjectLine ?? undefined,
+      }),
+    [
+      store.promoDateRange,
+      store.promotionEntries,
+      store.newsletterBody,
+      store.selectedSubjectLine,
+    ]
+  );
 
   // Preheader for inbox preview — custom text or auto-generated fallback
   const preheaderDisplay =

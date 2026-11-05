@@ -6,6 +6,12 @@
 
 import type { PromotionEntry } from '@/stores/promotion-store';
 import { parsePromoDateRange, generatePromoTitle } from './holiday-dates';
+import {
+  detectThemes,
+  splitSentences,
+  type NewsletterTheme,
+  type ThemeHit,
+} from './newsletter-themes';
 
 // Re-exported for callers/tests that import it from this module
 export { generatePromoTitle };
@@ -43,6 +49,11 @@ export interface SubjectLineInput {
    * candidates when no entry names them. Defaults to none.
    */
   collectionKeywords?: string[];
+  /**
+   * Extra trigger phrases per newsletter theme, from the profile. Added to the
+   * built-in phrases (see newsletter-themes.ts).
+   */
+  themePhrases?: Partial<Record<NewsletterTheme, string[]>>;
 }
 
 /** Capitalize the first letter for use in title-style subject lines. */
@@ -54,6 +65,20 @@ function capitalizeWord(word: string): string {
  * Strip HTML tags to plain text for keyword scanning. Pure (no DOM) so the
  * generator stays portable; good enough for case-insensitive `.includes()`.
  */
+/** HTML to plain lines: block ends and <br> become line breaks. */
+export function htmlToLines(html: string): string {
+  return html
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6]|tr|blockquote)>/gi, '\n')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&#39;|&rsquo;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .trim();
+}
+
 function stripHtmlToText(html: string): string {
   return html
     .replace(/<[^>]*>/g, ' ')
@@ -258,6 +283,7 @@ const MONTH_SHORT = [
 
 type Angle =
   | 'heading'
+  | 'newsletter'
   | 'offer'
   | 'brand'
   | 'collection'
@@ -275,6 +301,7 @@ interface Candidate {
 
 const ANGLE_BASE: Record<Angle, number> = {
   heading: 12, // the store's own words beat any template
+  newsletter: 8, // themes the newsletter itself announces
   offer: 7,
   collection: 6,
   urgency: 6,
@@ -315,6 +342,60 @@ function nearDuplicate(a: string, b: string): boolean {
   let inter = 0;
   A.forEach((w) => B.has(w) && inter++);
   return inter / (A.size + B.size - inter) >= 0.7;
+}
+
+/** Display name for a theme hit: "Citizen Promaster Ecozilla", "Duality & Octava". */
+function themeNames(hit: ThemeHit): string {
+  const colls = hit.collections.slice(0, 2);
+  if (hit.brands.length === 1 && colls.length > 0) {
+    return `${hit.brands[0]} ${joinNames(colls)}`;
+  }
+  if (colls.length > 0) return joinNames(colls);
+  return joinNames(hit.brands.slice(0, 2));
+}
+
+/** Subject lines for one newsletter theme: [text, specificity]. */
+function themeLines(
+  hit: ThemeHit,
+  Product: string,
+  Products: string
+): Array<[string, number]> {
+  const names = themeNames(hit);
+  const out: Array<[string, number]> = [];
+  const add = (withNames: string, without: string) =>
+    out.push(names ? [withNames, 3] : [without, 1]);
+  switch (hit.theme) {
+    case 'newArrivals':
+      add(`Just In: ${names}`, `Just In: New ${Products}`);
+      add(`New Arrivals: ${names}`, 'New Arrivals Are Here');
+      add(`Now In Store: ${names}`, `Now In Store: New ${Products}`);
+      break;
+    case 'backInStock':
+      add(`Back in Stock: ${names}`, 'Back in Stock: Your Favorites');
+      add(`Restocked: ${names}`, 'Restocked & Ready');
+      break;
+    case 'limited': {
+      const label = /edition|release/.test(hit.phrase)
+        ? 'Limited Edition'
+        : 'Exclusive';
+      add(`${label}: ${names}`, `${label} ${Products} Inside`);
+      break;
+    }
+    case 'event': {
+      const kind = hit.phrase === 'trunk show' ? 'Trunk Show' : 'Event';
+      add(
+        `You're Invited: ${names} ${kind}`,
+        `You're Invited: In-Store ${kind}`
+      );
+      out.push(['Join Us In Store', 1]);
+      break;
+    }
+    case 'gift':
+      add(`Gift Idea: ${names}`, `${Product} Gifts They'll Love`);
+      add(`${names}: Gifts They'll Love`, `The ${Product} Gift Guide`);
+      break;
+  }
+  return out;
 }
 
 // ===== Subject Line Generation =====
@@ -383,6 +464,8 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
     return out;
   };
   const maxDiscount = Math.max(0, ...offers.map((o) => o.pct));
+  const oneBrandOfferCount = (b: string) =>
+    offers.filter((o) => o.brand && lower(o.brand) === lower(b)).length;
   const upTo = (n: number) => (n > 0 ? `Up to ${n}% OFF` : 'Special Savings');
 
   const cands: Candidate[] = [];
@@ -394,9 +477,44 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
     push(headingText, 'heading', 2);
   }
 
+  // Heading + the best offer it can honestly carry. A heading that names a
+  // brand only gets that brand's own percentage.
+  if (headingText && lower(headingText) !== 'newsletter' && maxDiscount > 0) {
+    const named = brands.filter((b) => mentions(headingText, b));
+    const n = named.length
+      ? Math.max(0, ...named.map((b) => brandMax(b)))
+      : maxDiscount;
+    const single = named.length
+      ? named.every((b) => oneBrandOfferCount(b) === 1) && named.length === 1
+      : offers.filter((o) => o.pct > 0).length === 1;
+    if (n > 0) {
+      push(`${headingText}: ${single ? `${n}% OFF` : upTo(n)}`, 'offer', 3);
+    }
+  }
+
+  // ----- Newsletter themes ("just in", "back in stock", "trunk show") -----
+  const sentences = [
+    ...(headingText ? [headingText] : []),
+    ...splitSentences(newsletterBody ? htmlToLines(newsletterBody) : ''),
+  ];
+  const collectionPool = [
+    ...new Set([
+      ...offers.flatMap((o) => o.collections),
+      ...collectionKeywords,
+    ]),
+  ].filter((c) => !brandKeywords.some((b) => lower(b) === lower(c)));
+  detectThemes(
+    sentences,
+    brandKeywords,
+    collectionPool,
+    input.themePhrases
+  ).forEach((hit) =>
+    themeLines(hit, Product, Products).forEach(([t, sp]) =>
+      push(t, 'newsletter', sp)
+    )
+  );
+
   // ----- Per-offer lines (names + that offer's own %) -----
-  const oneBrandOfferCount = (b: string) =>
-    offers.filter((o) => o.brand && lower(o.brand) === lower(b)).length;
   brands.forEach((b) => {
     const m = brandMax(b);
     if (m > 0) {
@@ -572,4 +690,79 @@ export function generateSubjectLines(input: SubjectLineInput): string[] {
   for (const c of ranked) if (keep(c)) picked.push(c);
 
   return picked.map((c) => c.text);
+}
+
+// ===== Preheaders =====
+
+export interface PreheaderInput {
+  promoDateRange: string;
+  promotionEntries: PromotionEntry[];
+  newsletterBody?: string;
+  /** The chosen subject line: preheaders should add to it, not repeat it. */
+  subject?: string;
+}
+
+const PREHEADER_MAX = 100;
+
+/**
+ * Preheader (inbox preview text) suggestions. The newsletter's own first
+ * sentence leads when it fits, then promotion-based lines. Anything that
+ * mostly repeats the chosen subject is dropped, since the preheader sits
+ * right after the subject in the inbox.
+ */
+export function generatePreheaders(input: PreheaderInput): string[] {
+  const entries = input.promotionEntries.filter((e) => e.line?.trim());
+  const dateRange = input.promoDateRange;
+  const out: string[] = [];
+
+  const body = input.newsletterBody ? htmlToLines(input.newsletterBody) : '';
+  const sentences = splitSentences(body).filter(
+    (t) => t.length >= 20 && t.length <= PREHEADER_MAX
+  );
+  if (sentences.length > 0) {
+    out.push(sentences[0]);
+    const two = `${sentences[0]} ${sentences[1] ?? ''}`.trim();
+    if (sentences[1] && two.length <= PREHEADER_MAX) out.push(two);
+  }
+
+  if (dateRange && entries.length > 0) {
+    out.push(`${dateRange} — ${entries.map((e) => e.line).join(', ')}`);
+  }
+  if (entries.length > 0) {
+    out.push(
+      `Don't miss out: ${entries
+        .slice(0, 2)
+        .map((e) => e.line)
+        .join(' + ')}`
+    );
+  }
+  if (dateRange) {
+    out.push(`Exclusive savings ${dateRange} — while supplies last`);
+  }
+  if (entries.length > 0) {
+    out.push(
+      `Shop ${entries.length} deal${entries.length > 1 ? 's' : ''} inside — limited availability`
+    );
+  }
+  out.push('Preview your promotion deals and savings inside.');
+
+  const subject = (input.subject || '').trim();
+  const repeats = (t: string) => {
+    if (!subject) return false;
+    const A = wordSet(subject);
+    const B = wordSet(t);
+    if (!A.size || !B.size) return false;
+    let inter = 0;
+    A.forEach((w) => B.has(w) && inter++);
+    // most of the subject's words reappear in the preheader
+    return inter / A.size >= 0.6 || lower(t).startsWith(lower(subject));
+  };
+  const seen = new Set<string>();
+  const result = out.filter((t) => {
+    const k = lower(t);
+    if (seen.has(k) || repeats(t)) return false;
+    seen.add(k);
+    return true;
+  });
+  return result.length > 0 ? result : out.slice(-1);
 }

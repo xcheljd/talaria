@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { themePhrasesToForm } from '@/components/profile/profile-form-utils';
 
 interface ProfileImportDialogProps {
   form: UseFormReturn<ProfileFormValues>;
@@ -90,6 +91,7 @@ export function ProfileImportDialog({
             )
               ? importedProfile.collectionKeywords.map(String).join(', ')
               : '',
+            ...themePhrasesToForm(importedProfile.themePhrases),
           });
 
           // Restore theme preferences (validated — imported files can carry

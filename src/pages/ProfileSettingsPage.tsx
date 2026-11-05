@@ -50,6 +50,8 @@ import { ProfileImportDialog } from '@/components/profile/ProfileImportDialog';
 import {
   toKeywordList,
   exportProfileJson,
+  themePhrasesToForm,
+  splitThemeFields,
 } from '@/components/profile/profile-form-utils';
 
 // ─── Sidebar sections ─────────────────────────────────────────────────────────
@@ -99,6 +101,7 @@ export function ProfileSettingsPage() {
       productNounPlural: profile?.productNounPlural || '',
       brandKeywords: (profile?.brandKeywords ?? []).join(', '),
       collectionKeywords: (profile?.collectionKeywords ?? []).join(', '),
+      ...themePhrasesToForm(profile?.themePhrases),
     },
   });
 
@@ -108,8 +111,10 @@ export function ProfileSettingsPage() {
     (data: ProfileFormValues) => {
       // Format phone before saving
       const phoneValidation = validatePhone(data.storePhone);
+      const { rest, themePhrases } = splitThemeFields(data);
       const profileData: UserProfile = {
-        ...data,
+        ...rest,
+        themePhrases,
         storePhone: phoneValidation.isValid
           ? phoneValidation.formatted
           : data.storePhone,
