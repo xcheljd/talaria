@@ -21,6 +21,7 @@ import { generateSubjectLines } from '@/lib/subject-line-generator';
 import {
   useCompanyName,
   useProductNoun,
+  useProductNounPlural,
   useBrandKeywords,
   useCollectionKeywords,
 } from '@/contexts/ProfileProvider';
@@ -149,6 +150,7 @@ function deriveInitials(name: string): string {
 export function SubjectLineGenerator() {
   const companyName = useCompanyName();
   const productNoun = useProductNoun();
+  const productNounPlural = useProductNounPlural();
   const profileBrandKeywords = useBrandKeywords();
   const collectionKeywords = useCollectionKeywords();
 
@@ -202,6 +204,7 @@ export function SubjectLineGenerator() {
       newsletterBody: store.newsletterBody,
       brandKeywords,
       productNoun,
+      productNounPlural,
       collectionKeywords,
     });
     store.setGeneratedSubjectLines(lines);
@@ -209,7 +212,13 @@ export function SubjectLineGenerator() {
       store.setSelectedSubjectLine(lines[0]);
     }
     store.setSubjectLineManuallyEdited(false);
-  }, [store, brandKeywords, productNoun, collectionKeywords]);
+  }, [
+    store,
+    brandKeywords,
+    productNoun,
+    productNounPlural,
+    collectionKeywords,
+  ]);
 
   // Regenerate (clears manual edit flag)
   const handleRegenerate = useCallback(() => {
